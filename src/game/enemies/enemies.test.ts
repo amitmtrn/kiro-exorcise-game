@@ -30,6 +30,12 @@ describe('createGhost', () => {
     expect(g.hitbox.w).toBe(GHOST_SIZE)
     expect(g.hitbox.h).toBe(GHOST_SIZE)
   })
+
+  it('initialises spawnedAt as a number and hitCount as 0', () => {
+    const g = createGhost(W, H)
+    expect(typeof g.spawnedAt).toBe('number')
+    expect(g.hitCount).toBe(0)
+  })
 })
 
 describe('createBat', () => {
@@ -79,11 +85,12 @@ describe('moveEnemies', () => {
     expect(ghost.x).toBe(original)
   })
 
-  it('updates hitbox to reflect new position', () => {
+  it('updates hitbox to reflect new position (hitbox is 20% enlarged)', () => {
     const ghost = createGhost(W, H)
     const [moved] = moveEnemies([ghost], 16)
-    expect(moved.hitbox.x).toBeCloseTo(moved.x - GHOST_SIZE / 2, 0)
-    expect(moved.hitbox.y).toBeCloseTo(moved.y - GHOST_SIZE / 2, 0)
+    const enlargedHalf = (GHOST_SIZE * 1.2) / 2
+    expect(moved.hitbox.x).toBeCloseTo(moved.x - enlargedHalf, 0)
+    expect(moved.hitbox.y).toBeCloseTo(moved.y - enlargedHalf, 0)
   })
 })
 

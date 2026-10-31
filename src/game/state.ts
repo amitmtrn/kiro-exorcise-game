@@ -24,6 +24,8 @@ export interface Enemy {
   speed: number    // px per frame at 60 fps
   sineOffset: number // phase for ghost wobble / bat zigzag
   hitbox: Hitbox   // axis-aligned, updated each move step
+  spawnedAt: number  // performance.now() when created; used for spawn grace period
+  hitCount: number   // consecutive frames where diff was true; used for 2-frame gate
 }
 
 export interface Particle {

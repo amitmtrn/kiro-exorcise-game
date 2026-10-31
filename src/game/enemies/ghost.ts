@@ -22,5 +22,7 @@ export function createGhost(canvasW: number, canvasH: number): Enemy {
     speed: GHOST_SPEED,
     sineOffset: Math.random() * Math.PI * 2,
     hitbox,
+    spawnedAt: performance.now(),
+    hitCount: 0,
   }
 }

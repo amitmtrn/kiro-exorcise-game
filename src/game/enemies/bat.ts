@@ -23,5 +23,7 @@ export function createBat(canvasW: number, canvasH: number): Enemy {
     speed: BAT_SPEED,
     sineOffset: Math.random() * Math.PI * 2,
     hitbox,
+    spawnedAt: performance.now(),
+    hitCount: 0,
   }
 }

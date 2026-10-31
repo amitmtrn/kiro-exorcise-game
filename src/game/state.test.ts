@@ -20,6 +20,8 @@ function makeEnemy(id: string): Enemy {
     speed: 1.2,
     sineOffset: 0,
     hitbox: { x: 60, y: 60, w: 80, h: 80 },
+    spawnedAt: 0,
+    hitCount: 0,
   }
 }
 
