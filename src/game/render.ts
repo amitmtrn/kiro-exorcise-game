@@ -4,6 +4,12 @@
  */
 
 import type { GameState, Enemy, Particle } from './state'
+import { lastMotionPixels } from './collision'
+
+// ─── Debug mode ───────────────────────────────────────────────────────────────
+
+let debugMode = false
+export function toggleDebug(): void { debugMode = !debugMode }
 
 // ─── Colours ──────────────────────────────────────────────────────────────────
 const COLOR_GHOST_BODY = '#e8e8f0'
@@ -39,6 +45,11 @@ export function renderFrame(
     ctx.fillStyle = '#c0392b'
     ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height)
     ctx.restore()
+  }
+
+  // Debug overlay — toggled with D key
+  if (debugMode) {
+    drawDebugOverlay(ctx, state, now)
   }
 }
 
@@ -186,5 +197,40 @@ function drawParticle(ctx: CanvasRenderingContext2D, p: Particle): void {
   ctx.beginPath()
   ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2)
   ctx.fill()
+  ctx.restore()
+}
+
+// ─── Debug overlay ────────────────────────────────────────────────────────────
+
+function drawDebugOverlay(ctx: CanvasRenderingContext2D, state: GameState, now: number): void {
+  ctx.save()
+
+  // Draw hitboxes
+  for (const enemy of state.enemies) {
+    const inGrace = now - enemy.spawnedAt < 300
+    ctx.strokeStyle = inGrace ? 'rgba(255,220,0,0.9)' : 'rgba(0,255,0,0.9)'
+    ctx.fillStyle = inGrace ? 'rgba(255,220,0,0.15)' : 'rgba(0,255,0,0.15)'
+    ctx.lineWidth = 2
+    ctx.shadowBlur = 0
+    ctx.fillRect(enemy.hitbox.x, enemy.hitbox.y, enemy.hitbox.w, enemy.hitbox.h)
+    ctx.strokeRect(enemy.hitbox.x, enemy.hitbox.y, enemy.hitbox.w, enemy.hitbox.h)
+
+    // hitCount indicator
+    ctx.fillStyle = inGrace ? '#ffdc00' : '#00ff00'
+    ctx.font = '11px monospace'
+    ctx.fillText(`hc:${enemy.hitCount}`, enemy.hitbox.x + 2, enemy.hitbox.y + 12)
+  }
+
+  // Draw motion pixel dots (populated by resolveHits each frame)
+  ctx.fillStyle = 'rgba(255,255,255,0.85)'
+  for (const mp of lastMotionPixels) {
+    ctx.fillRect(mp.x - 1, mp.y - 1, 3, 3)
+  }
+
+  // Debug label
+  ctx.fillStyle = 'rgba(255,255,0,0.9)'
+  ctx.font = 'bold 12px monospace'
+  ctx.fillText('DEBUG [D]', 8, ctx.canvas.height - 8)
+
   ctx.restore()
 }

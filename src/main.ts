@@ -7,6 +7,7 @@ import './style.css'
 import { initWebcam } from './webcam/capture'
 import { startLoop, stopLoop } from './game/loop'
 import { showWebcamError } from './ui/screens'
+import { toggleDebug } from './game/render'
 
 const webcamCanvas = document.getElementById('webcam-canvas') as HTMLCanvasElement
 const gameCanvas = document.getElementById('game-canvas') as HTMLCanvasElement
@@ -26,6 +27,11 @@ window.addEventListener('resize', resizeCanvases)
 const webcamCtx = webcamCanvas.getContext('2d')!
 const gameCtx = gameCanvas.getContext('2d')!
 
+// Debug overlay toggle
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'd' || e.key === 'D') toggleDebug()
+})
+
 async function boot(): Promise<void> {
   let video: HTMLVideoElement
   try {
@@ -35,12 +41,12 @@ async function boot(): Promise<void> {
     return
   }
 
-  function restart(): void {
+  async function restart(): Promise<void> {
     stopLoop()
-    startLoop(video, webcamCtx, gameCtx, restart)
+    await startLoop(video, webcamCtx, gameCtx, restart)
   }
 
-  startLoop(video, webcamCtx, gameCtx, restart)
+  await startLoop(video, webcamCtx, gameCtx, restart)
 }
 
 boot()
