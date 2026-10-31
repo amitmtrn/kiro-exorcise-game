@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Exorcise 👻</title>
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body>
+    <!-- Layer 1: mirrored webcam feed -->
+    <canvas id="webcam-canvas"></canvas>
+
+    <!-- Layer 2: enemies, particles, HUD -->
+    <canvas id="game-canvas"></canvas>
+
+    <!-- Layer 3: HTML UI overlay (screens, HUD hearts/text if using HTML) -->
+    <div id="ui"></div>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

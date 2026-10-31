@@ -1,0 +1,126 @@
+/* === Reset & base === */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #0d0014;
+  font-family: 'Segoe UI', system-ui, sans-serif;
+}
+
+/* === Stacked full-viewport canvases === */
+#webcam-canvas,
+#game-canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+
+#webcam-canvas {
+  z-index: 1;
+}
+
+#game-canvas {
+  z-index: 2;
+}
+
+/* === HTML UI overlay === */
+#ui {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 3;
+  pointer-events: none; /* pass clicks through to canvas by default */
+}
+
+/* === Game Over screen === */
+.screen-gameover {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: rgba(13, 0, 20, 0.85);
+  pointer-events: all;
+}
+
+.screen-gameover h1 {
+  font-size: clamp(3rem, 10vw, 6rem);
+  color: #ff6b1a;
+  text-shadow: 0 0 20px #ff6b1a, 0 0 40px #ff6b1a88;
+  letter-spacing: 0.05em;
+}
+
+.screen-gameover .final-score {
+  font-size: clamp(1.5rem, 5vw, 2.5rem);
+  color: #ffd166;
+  margin-top: 0.75rem;
+  text-shadow: 0 0 12px #ffd16688;
+}
+
+.screen-gameover button {
+  margin-top: 2rem;
+  padding: 0.75rem 2.5rem;
+  font-size: 1.5rem;
+  background: #ff6b1a;
+  color: #0d0014;
+  border: none;
+  border-radius: 999px;
+  cursor: pointer;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  transition: transform 0.1s, box-shadow 0.1s;
+  box-shadow: 0 0 16px #ff6b1a88;
+}
+
+.screen-gameover button:hover {
+  transform: scale(1.06);
+  box-shadow: 0 0 28px #ff6b1acc;
+}
+
+/* === Webcam error screen === */
+.screen-error {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: #0d0014;
+  gap: 1.5rem;
+  pointer-events: all;
+  padding: 2rem;
+  text-align: center;
+}
+
+.screen-error p {
+  color: #e8e8f0;
+  font-size: clamp(1rem, 3vw, 1.5rem);
+  max-width: 520px;
+  line-height: 1.6;
+}
+
+.screen-error button {
+  padding: 0.6rem 2rem;
+  font-size: 1.2rem;
+  background: #2a0845;
+  color: #ffd166;
+  border: 2px solid #ffd166;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.screen-error button:hover {
+  background: #3d0a62;
+}
