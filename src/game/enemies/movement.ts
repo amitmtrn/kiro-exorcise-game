@@ -59,12 +59,20 @@ export function moveEnemies(enemies: Enemy[], _deltaMs: number): Enemy[] {
 }
 
 function hitboxFor(type: Enemy['type'], cx: number, cy: number) {
+  // Hitboxes are enlarged by 20% (kept centered) so near-swats still register
+  const scale = 1.2
   switch (type) {
-    case 'ghost':
-      return { x: cx - GHOST_SIZE / 2, y: cy - GHOST_SIZE / 2, w: GHOST_SIZE, h: GHOST_SIZE }
-    case 'bat':
-      return { x: cx - BAT_W / 2, y: cy - BAT_H / 2, w: BAT_W, h: BAT_H }
-    case 'skull':
-      return { x: cx - SKULL_SIZE / 2, y: cy - SKULL_SIZE / 2, w: SKULL_SIZE, h: SKULL_SIZE }
+    case 'ghost': {
+      const w = GHOST_SIZE * scale, h = GHOST_SIZE * scale
+      return { x: cx - w / 2, y: cy - h / 2, w, h }
+    }
+    case 'bat': {
+      const w = BAT_W * scale, h = BAT_H * scale
+      return { x: cx - w / 2, y: cy - h / 2, w, h }
+    }
+    case 'skull': {
+      const w = SKULL_SIZE * scale, h = SKULL_SIZE * scale
+      return { x: cx - w / 2, y: cy - h / 2, w, h }
+    }
   }
 }
