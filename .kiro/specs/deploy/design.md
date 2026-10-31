@@ -20,7 +20,7 @@ GitHub Actions: deploy job
   └─ deploy-pages    (publishes artifact to github.io CDN)
         │
         ▼
-https://amitmtrn.github.io/kito-exorcise-game/
+https://amitmtrn.github.io/kiro-exorcise-game/
 ```
 
 ---
@@ -28,14 +28,14 @@ https://amitmtrn.github.io/kito-exorcise-game/
 ## Vite base path
 
 GitHub Pages serves the repo at a subpath:
-`https://amitmtrn.github.io/kito-exorcise-game/`
+`https://amitmtrn.github.io/kiro-exorcise-game/`
 
 Without a configured `base`, Vite generates asset references starting with `/`
 (e.g. `/assets/index-xxx.js`), which resolve to
 `https://amitmtrn.github.io/assets/index-xxx.js` — a 404.
 
-Setting `base: '/kito-exorcise-game/'` makes Vite emit:
-`/kito-exorcise-game/assets/index-xxx.js` — correct.
+Setting `base: '/kiro-exorcise-game/'` makes Vite emit:
+`/kiro-exorcise-game/assets/index-xxx.js` — correct.
 
 `vite.config.ts` change:
 
@@ -43,7 +43,7 @@ Setting `base: '/kito-exorcise-game/'` makes Vite emit:
 import { defineConfig } from 'vite'
 
 export default defineConfig({
-  base: '/kito-exorcise-game/',
+  base: '/kiro-exorcise-game/',
   test: {
     environment: 'node',
   },

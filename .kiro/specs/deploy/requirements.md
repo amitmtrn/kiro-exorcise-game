@@ -4,14 +4,14 @@
 
 Automate publishing Exorcise to GitHub Pages so every push to `main` builds
 the game and makes it playable at
-`https://amitmtrn.github.io/kito-exorcise-game/`.
+`https://amitmtrn.github.io/kiro-exorcise-game/`.
 Pages serves over HTTPS, satisfying the browser requirement for `getUserMedia`.
 
 ---
 
 ## R1 — Correct base path
 
-**R1.1** `vite.config.ts` must set `base: '/kito-exorcise-game/'` so the
+**R1.1** `vite.config.ts` must set `base: '/kiro-exorcise-game/'` so the
 built JS and CSS bundles reference assets at the correct subpath when served
 from GitHub Pages.
 
@@ -84,7 +84,7 @@ without scrolling.
 ## Acceptance criteria
 
 1. A push to `main` runs the workflow green (tests → build → deploy).
-2. `https://amitmtrn.github.io/kito-exorcise-game/` loads with no 404s for
+2. `https://amitmtrn.github.io/kiro-exorcise-game/` loads with no 404s for
    JS or CSS assets (verified in browser console).
 3. The browser requests webcam permission; the mirrored video shows and
    enemies spawn and can be swatted.

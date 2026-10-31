@@ -8,7 +8,7 @@ Ghosts and bats fly in from the dark edges of the screen toward your webcam imag
 
 ## Play now
 
-🎃 **[Live demo →](https://exorcise.example.com)** *(update after deploy)*
+🎃 **[Live demo →](https://amitmtrn.github.io/kiro-exorcise-game/)**
 
 ## How to run locally
 

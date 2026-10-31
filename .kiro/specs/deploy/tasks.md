@@ -6,7 +6,7 @@
 
 File: `vite.config.ts`
 
-- [ ] Add `base: '/kito-exorcise-game/'` to the `defineConfig` call.
+- [ ] Add `base: '/kiro-exorcise-game/'` to the `defineConfig` call.
 - [ ] Run `npm run build` and verify it exits 0 and `dist/` is produced.
 - [ ] Confirm `npm run dev` still starts without error.
 - [ ] Commit: `feat(deploy): set vite base path for GitHub Pages`
@@ -45,7 +45,7 @@ File: `.github/workflows/deploy.yml`
 File: `README.md`
 
 - [ ] Replace the placeholder URL `https://exorcise.example.com` with
-  `https://amitmtrn.github.io/kito-exorcise-game/` in the "Play now" section.
+  `https://amitmtrn.github.io/kiro-exorcise-game/` in the "Play now" section.
 - [ ] Remove the `*(update after deploy)*` note.
 - [ ] Commit: `docs(deploy): update README with live Pages URL`
 
@@ -60,7 +60,7 @@ File: `README.md`
 - [ ] Push any commit to `main` (or trigger the workflow manually via
   **Actions › Deploy to GitHub Pages › Run workflow**).
 - [ ] Wait for the workflow to go green.
-- [ ] Visit `https://amitmtrn.github.io/kito-exorcise-game/` and verify the
+- [ ] Visit `https://amitmtrn.github.io/kiro-exorcise-game/` and verify the
   acceptance criteria:
   1. No 404s in the browser console.
   2. Webcam permission prompt appears.
