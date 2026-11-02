@@ -34,6 +34,7 @@ import {
   advanceToNextStage,
   spawnBoss,
 } from './round'
+import { sfxLifeLost, sfxStageClear, startMusic, stopMusic } from '../audio/index'
 
 const CENTER_THRESHOLD = 40
 let rafId = 0
@@ -57,6 +58,7 @@ export async function startLoop(
 
   let state: GameState = createInitialState(initialStage)
   let lastTimestamp = 0
+  let prevPhase = state.phase
 
   function tick(timestamp: number): void {
     const deltaMs = lastTimestamp === 0 ? 16 : Math.min(timestamp - lastTimestamp, 100)
@@ -155,6 +157,7 @@ export async function startLoop(
       state = decrementLife(state)
       state = resetCombo(state)
       state = incrementMissed(state)
+      try { sfxLifeLost() } catch { /* audio not ready */ }
     }
 
     state = resolveHits(state, currentData, prevData, displayW, displayH, now)
@@ -163,6 +166,18 @@ export async function startLoop(
 
     renderFrame(gameCtx, state, now)
     renderHUD(gameCtx, state, now)
+
+    // Phase transition hooks
+    if (prevPhase !== state.phase) {
+      if (state.phase === 'playing') {
+        try { startMusic(state.stage) } catch { /* ignore */ }
+      } else if (state.phase === 'summary') {
+        try { sfxStageClear(); stopMusic() } catch { /* ignore */ }
+      } else if (state.phase === 'gameover') {
+        try { stopMusic() } catch { /* ignore */ }
+      }
+      prevPhase = state.phase
+    }
 
     prevCtx.drawImage(currentCanvas, 0, 0)
     rafId = requestAnimationFrame(tick)
