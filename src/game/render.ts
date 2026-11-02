@@ -61,8 +61,8 @@ function drawEnemy(ctx: CanvasRenderingContext2D, enemy: Enemy, now: number): vo
   ctx.save()
   ctx.translate(enemy.x, enemy.y)
   switch (enemy.type) {
-    case 'ghost':   drawGhost(ctx); break
-    case 'bat':     drawBat(ctx); break
+    case 'ghost':   drawGhost(ctx, enemy, now); break
+    case 'bat':     drawBat(ctx, enemy, now); break
     case 'skull':   drawSkull(ctx, now); break
     case 'lunger':  drawLunger(ctx, enemy, now); break
     case 'pumpkin': drawPumpkin(ctx, enemy); break
@@ -72,51 +72,134 @@ function drawEnemy(ctx: CanvasRenderingContext2D, enemy: Enemy, now: number): vo
 }
 
 // ─── Ghost ────────────────────────────────────────────────────────────────────
-function drawGhost(ctx: CanvasRenderingContext2D): void {
+// Spooky-skin R3.1: rounder Casper body, trailing wisps behind the direction of
+// travel, big hollow eyes with a highlight, and a small "ooo" mouth.
+function drawGhost(ctx: CanvasRenderingContext2D, enemy: Enemy, now: number): void {
   const w = 40, h = 50
-  ctx.shadowColor = 'rgba(232,232,240,0.7)'; ctx.shadowBlur = 16
+
+  // Unit vector pointing *away* from the target — wisps trail behind.
+  const dx = enemy.targetX - enemy.x
+  const dy = enemy.targetY - enemy.y
+  const d = Math.hypot(dx, dy) || 1
+  const bx = -dx / d, by = -dy / d
+  // Perpendicular for a gentle side-to-side bob on the wisps.
+  const px = -by, py = bx
+
+  ctx.shadowBlur = 0
   ctx.fillStyle = C_GHOST
+  const wisps = [
+    { dist: 30, r: 12, a: 0.40 },
+    { dist: 46, r: 9,  a: 0.25 },
+    { dist: 60, r: 6,  a: 0.12 },
+  ]
+  wisps.forEach((wsp, i) => {
+    const bob = Math.sin(now / 160 + i * 1.4 + enemy.sineOffset) * 5
+    const cx = bx * wsp.dist + px * bob
+    const cy = by * wsp.dist + py * bob + h * 0.25
+    ctx.globalAlpha = wsp.a
+    ctx.beginPath(); ctx.arc(cx, cy, wsp.r, 0, Math.PI * 2); ctx.fill()
+  })
+  ctx.globalAlpha = 1
+
+  // Body — dome, bulging sides, three rounded scallops at the hem.
+  ctx.shadowColor = 'rgba(232,232,240,0.7)'; ctx.shadowBlur = 16
   ctx.beginPath()
   ctx.arc(0, -h * 0.2, w, Math.PI, 0, false)
-  ctx.lineTo(w, h * 0.6)
+  ctx.quadraticCurveTo(w + 5, h * 0.25, w, h * 0.6)
   const bw = (w * 2) / 3
-  ctx.quadraticCurveTo(w - bw * 0.5, h * 0.9, w - bw, h * 0.6)
-  ctx.quadraticCurveTo(w - bw * 1.5, h * 0.9, w - bw * 2, h * 0.6)
-  ctx.quadraticCurveTo(-w + bw * 0.5, h * 0.9, -w, h * 0.6)
+  ctx.quadraticCurveTo(w - bw * 0.5, h * 0.98, w - bw, h * 0.6)
+  ctx.quadraticCurveTo(w - bw * 1.5, h * 0.98, w - bw * 2, h * 0.6)
+  ctx.quadraticCurveTo(-w + bw * 0.5, h * 0.98, -w, h * 0.6)
+  ctx.quadraticCurveTo(-w - 5, h * 0.25, -w, -h * 0.2)
   ctx.closePath(); ctx.fill()
+
+  // Face
   ctx.shadowBlur = 0; ctx.fillStyle = C_EYE
   ctx.beginPath(); ctx.ellipse(-14, -h * 0.05, 7, 9, 0, 0, Math.PI * 2); ctx.fill()
   ctx.beginPath(); ctx.ellipse(14, -h * 0.05, 7, 9, 0, 0, Math.PI * 2); ctx.fill()
+  ctx.beginPath(); ctx.ellipse(0, h * 0.22, 4, 5, 0, 0, Math.PI * 2); ctx.fill()
+  // Eye highlights
+  ctx.fillStyle = C_GHOST
+  ctx.beginPath(); ctx.arc(-12, -h * 0.1, 2, 0, Math.PI * 2); ctx.fill()
+  ctx.beginPath(); ctx.arc(16, -h * 0.1, 2, 0, Math.PI * 2); ctx.fill()
 }
 
 // ─── Bat ──────────────────────────────────────────────────────────────────────
-function drawBat(ctx: CanvasRenderingContext2D): void {
+// Spooky-skin R3.1: wing-flap animation — a fast sine drives both the wing-tip
+// height and the wingspan (wings foreshorten at the top/bottom of the stroke).
+function drawBat(ctx: CanvasRenderingContext2D, enemy: Enemy, now: number): void {
+  const flap = Math.sin(now / 70 + enemy.sineOffset)       // -1 … 1
+  const tipY = -4 - flap * 11                              // wing-tip height
+  const span = 40 * (1 - 0.22 * Math.abs(flap))            // wingspan
+
   ctx.shadowColor = 'rgba(42,8,69,0.8)'; ctx.shadowBlur = 10
   ctx.fillStyle = C_BAT_W
-  ctx.beginPath(); ctx.moveTo(0,0)
-  ctx.bezierCurveTo(-10,-12,-28,-16,-40,-4); ctx.bezierCurveTo(-28,4,-10,8,0,0); ctx.fill()
-  ctx.beginPath(); ctx.moveTo(0,0)
-  ctx.bezierCurveTo(10,-12,28,-16,40,-4); ctx.bezierCurveTo(28,4,10,8,0,0); ctx.fill()
+  for (const side of [-1, 1]) {
+    ctx.beginPath(); ctx.moveTo(0, 0)
+    ctx.bezierCurveTo(side * 10, tipY - 6, side * span * 0.7, tipY - 12, side * span, tipY)
+    // Scalloped trailing edge
+    ctx.quadraticCurveTo(side * span * 0.78, tipY + 10, side * span * 0.62, tipY + 6)
+    ctx.quadraticCurveTo(side * span * 0.45, tipY + 14, side * span * 0.3, 7)
+    ctx.quadraticCurveTo(side * 12, 10, 0, 0)
+    ctx.closePath(); ctx.fill()
+  }
+
+  // Body + ears
   ctx.fillStyle = C_BAT_B
-  ctx.beginPath(); ctx.ellipse(0,0,8,10,0,0,Math.PI*2); ctx.fill()
+  ctx.beginPath(); ctx.ellipse(0, 0, 8, 10, 0, 0, Math.PI * 2); ctx.fill()
+  for (const side of [-1, 1]) {
+    ctx.beginPath()
+    ctx.moveTo(side * 3, -8); ctx.lineTo(side * 7, -17); ctx.lineTo(side * 8, -7)
+    ctx.closePath(); ctx.fill()
+  }
+
+  // Eyes
   ctx.shadowBlur = 0; ctx.fillStyle = '#ffd166'
-  ctx.beginPath(); ctx.arc(-4,-3,2.5,0,Math.PI*2); ctx.fill()
-  ctx.beginPath(); ctx.arc(4,-3,2.5,0,Math.PI*2); ctx.fill()
+  ctx.beginPath(); ctx.arc(-4, -3, 2.5, 0, Math.PI * 2); ctx.fill()
+  ctx.beginPath(); ctx.arc(4, -3, 2.5, 0, Math.PI * 2); ctx.fill()
 }
 
 // ─── Skull ────────────────────────────────────────────────────────────────────
+// Spooky-skin R3.1: cheekbone shading, a toothy jaw, and a branching crack.
+// Still pulses red (steering: "don't hit me").
 function drawSkull(ctx: CanvasRenderingContext2D, now: number): void {
   const glow = 10 + Math.sin(now / 300) * 5
   ctx.shadowColor = '#c0392b'; ctx.shadowBlur = glow
+
+  // Cranium + jaw
   ctx.fillStyle = C_SKULL
-  ctx.beginPath(); ctx.arc(0,-4,22,0,Math.PI*2); ctx.fill()
-  ctx.beginPath(); ctx.roundRect(-14,10,28,16,5); ctx.fill()
-  ctx.shadowBlur = 0; ctx.fillStyle = C_SKULL_E
-  ctx.beginPath(); ctx.ellipse(-9,-6,6,8,0,0,Math.PI*2); ctx.fill()
-  ctx.beginPath(); ctx.ellipse(9,-6,6,8,0,0,Math.PI*2); ctx.fill()
-  ctx.beginPath(); ctx.ellipse(0,4,3.5,4,0,0,Math.PI*2); ctx.fill()
+  ctx.beginPath(); ctx.arc(0, -4, 22, 0, Math.PI * 2); ctx.fill()
+  ctx.beginPath(); ctx.roundRect(-14, 10, 28, 16, 5); ctx.fill()
+  ctx.shadowBlur = 0
+
+  // Cheekbone shading — darker orange wedges beside the sockets
+  ctx.fillStyle = 'rgba(160, 50, 0, 0.35)'
+  ctx.beginPath(); ctx.ellipse(-16, 4, 6, 5, 0.6, 0, Math.PI * 2); ctx.fill()
+  ctx.beginPath(); ctx.ellipse(16, 4, 6, 5, -0.6, 0, Math.PI * 2); ctx.fill()
+
+  // Eye sockets (glowing red) + nose
+  ctx.fillStyle = C_SKULL_E
+  ctx.shadowColor = '#ff2a1a'; ctx.shadowBlur = 6 + Math.sin(now / 200) * 3
+  ctx.beginPath(); ctx.ellipse(-9, -6, 6, 8, 0, 0, Math.PI * 2); ctx.fill()
+  ctx.beginPath(); ctx.ellipse(9, -6, 6, 8, 0, 0, Math.PI * 2); ctx.fill()
+  ctx.shadowBlur = 0
+  ctx.beginPath()
+  ctx.moveTo(0, 2); ctx.lineTo(-3.5, 8); ctx.lineTo(3.5, 8); ctx.closePath(); ctx.fill()
+
+  // Teeth — dark gaps across the jaw
   ctx.strokeStyle = '#8b0000'; ctx.lineWidth = 1.5
-  ctx.beginPath(); ctx.moveTo(-4,-20); ctx.lineTo(-2,-12); ctx.lineTo(-6,-6); ctx.stroke()
+  ctx.beginPath()
+  ctx.moveTo(-14, 18); ctx.lineTo(14, 18)
+  for (const tx of [-9, -4.5, 0, 4.5, 9]) { ctx.moveTo(tx, 12); ctx.lineTo(tx, 24) }
+  ctx.stroke()
+
+  // Cracked forehead — main fissure with two branches
+  ctx.lineWidth = 1.8
+  ctx.beginPath()
+  ctx.moveTo(-3, -25); ctx.lineTo(-1, -17); ctx.lineTo(-5, -12); ctx.lineTo(-2, -7)
+  ctx.moveTo(-1, -17); ctx.lineTo(4, -15)
+  ctx.moveTo(-5, -12); ctx.lineTo(-10, -13)
+  ctx.stroke()
 }
 
 // ─── Lunger ───────────────────────────────────────────────────────────────────

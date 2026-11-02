@@ -7,10 +7,10 @@
 - [x] Commit: `feat(skin-T1): tint, fog, candle glow`
 
 ## T2 — Improved enemy art
-- [ ] Ghost: trailing wisp + rounder body.
-- [ ] Bat: wing-flap animation.
-- [ ] Skull: more detail, cracked texture.
-- [ ] Commit: `feat(skin-T2): improved enemy art`
+- [x] Ghost: trailing wisp + rounder body.
+- [x] Bat: wing-flap animation.
+- [x] Skull: more detail, cracked texture.
+- [x] Commit: `feat(skin-T2): improved enemy art`
 
 ## T3 — Hit flash + screen shake
 - [ ] 1-frame white flash on hit (render enemy in white fill for 1 frame via `hitFlashFrames` on enemy).
