@@ -12,20 +12,30 @@ export interface Hitbox {
   h: number // height
 }
 
-export type EnemyType = 'ghost' | 'bat' | 'skull'
+export type EnemyType = 'ghost' | 'bat' | 'skull' | 'lunger' | 'pumpkin' | 'boss'
+
+export type MovePhase = 'approach' | 'windup' | 'lunge'
 
 export interface Enemy {
   id: string
   type: EnemyType
-  x: number        // center x, canvas coords
-  y: number        // center y, canvas coords
+  x: number          // center x, canvas coords
+  y: number          // center y, canvas coords
   targetX: number
   targetY: number
-  speed: number    // px per frame at 60 fps
+  speed: number      // px per frame at 60 fps
   sineOffset: number // phase for ghost wobble / bat zigzag
-  hitbox: Hitbox   // axis-aligned, updated each move step
+  hitbox: Hitbox     // axis-aligned, updated each move step
   spawnedAt: number  // performance.now() when created; used for spawn grace period
-  hitCount: number   // consecutive frames where diff was true; used for 2-frame gate
+  hitCount: number   // consecutive frames where diff was true; 2-frame gate
+  // Lunger-specific
+  movePhase: MovePhase
+  phaseTimer: number // ms remaining in current movePhase (windup)
+  // Pumpkin-specific
+  hitsReceived: number
+  hitsNeeded: number
+  // Boss-specific
+  bossHitsReceived: number
 }
 
 export interface Particle {
@@ -39,52 +49,106 @@ export interface Particle {
   radius: number
 }
 
-export type GamePhase = 'title' | 'playing' | 'gameover'
+export type GamePhase = 'start' | 'stageTitle' | 'playing' | 'summary' | 'gameover'
 
 export interface SpawnTimers {
-  ghost: number   // ms until next ghost spawn
-  bat: number     // ms until next bat spawn
-  skull: number   // ms until next skull spawn
+  ghost: number
+  bat: number
+  skull: number
+  lunger: number
+  pumpkin: number
 }
 
 export interface GameState {
   phase: GamePhase
-  lives: number          // 0–3
+  lives: number
   score: number
-  roundTimeMs: number    // milliseconds remaining in the round
+  roundTimeMs: number
   enemies: Enemy[]
   particles: Particle[]
   spawnTimers: SpawnTimers
-  flashEndTime: number   // performance.now() timestamp; 0 = no flash
+  flashEndTime: number
+  // Stage tracking
+  stage: number           // 1–5
+  stageTitleMs: number    // countdown for title card (3 s)
+  combo: number           // current combo multiplier (min 1)
+  bestCombo: number       // best combo this stage
+  stageBanished: number   // enemies banished this stage
+  stageMissed: number     // enemies that reached center this stage
+  highScore: number       // all-time high score from localStorage
+  summaryShownMs: number  // how long summary has been shown
+  bossActive: boolean     // stage 5 boss spawned
 }
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 export const ROUND_DURATION_MS = 60_000
 export const STARTING_LIVES = 3
+export const STAGE_TITLE_DURATION_MS = 3_000
+export const SUMMARY_AUTO_ADVANCE_MS = 5_000
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
+export function makeEnemy(partial: Partial<Enemy> & Pick<Enemy, 'id' | 'type' | 'x' | 'y' | 'targetX' | 'targetY' | 'speed' | 'hitbox'>): Enemy {
+  return {
+    sineOffset: 0,
+    spawnedAt: 0,
+    hitCount: 0,
+    movePhase: 'approach',
+    phaseTimer: 0,
+    hitsReceived: 0,
+    hitsNeeded: 1,
+    bossHitsReceived: 0,
+    ...partial,
+  }
+}
 
 // ─── Initial state ────────────────────────────────────────────────────────────
 
-export function createInitialState(): GameState {
+export function loadHighScore(): number {
+  try {
+    return parseInt(localStorage.getItem('exorcise-highscore') ?? '0', 10) || 0
+  } catch {
+    return 0
+  }
+}
+
+export function saveHighScore(score: number): void {
+  try {
+    localStorage.setItem('exorcise-highscore', String(score))
+  } catch { /* ignore */ }
+}
+
+export function createInitialState(stage = 1): GameState {
   return {
-    phase: 'playing',
+    phase: 'start',
     lives: STARTING_LIVES,
     score: 0,
     roundTimeMs: ROUND_DURATION_MS,
     enemies: [],
     particles: [],
     spawnTimers: {
-      ghost: 2000,   // first ghost after 2 s
-      bat: 1000,     // first bat after 1 s
-      skull: 5000,   // first skull after 5 s (spec says 5 s head start)
+      ghost: 2000,
+      bat: 1000,
+      skull: 8000,
+      lunger: 4000,
+      pumpkin: 5000,
     },
     flashEndTime: 0,
+    stage,
+    stageTitleMs: STAGE_TITLE_DURATION_MS,
+    combo: 1,
+    bestCombo: 1,
+    stageBanished: 0,
+    stageMissed: 0,
+    highScore: loadHighScore(),
+    summaryShownMs: 0,
+    bossActive: false,
   }
 }
 
-// ─── Reducers (pure — return new state objects) ───────────────────────────────
+// ─── Reducers ─────────────────────────────────────────────────────────────────
 
-/** Decrement lives by 1. Transitions to gameover if lives reach 0. */
 export function decrementLife(state: GameState): GameState {
   const lives = Math.max(0, state.lives - 1)
   return {
@@ -94,49 +158,58 @@ export function decrementLife(state: GameState): GameState {
   }
 }
 
-/** Add points to the score. */
 export function addScore(state: GameState, points: number): GameState {
-  return { ...state, score: state.score + points }
+  const newScore = state.score + points
+  const highScore = newScore > state.highScore ? newScore : state.highScore
+  return { ...state, score: newScore, highScore }
 }
 
-/**
- * Tick the round timer down by deltaMs.
- * Transitions to gameover and clears all enemies when time expires.
- */
 export function tickTimer(state: GameState, deltaMs: number): GameState {
   const roundTimeMs = Math.max(0, state.roundTimeMs - deltaMs)
-  if (roundTimeMs === 0) {
-    return { ...state, roundTimeMs, phase: 'gameover', enemies: [] }
+  if (roundTimeMs === 0 && state.phase === 'playing') {
+    return { ...state, roundTimeMs, phase: 'summary', enemies: [] }
   }
   return { ...state, roundTimeMs }
 }
 
-/** Remove a single enemy by id. */
 export function removeEnemy(state: GameState, id: string): GameState {
   return { ...state, enemies: state.enemies.filter((e) => e.id !== id) }
 }
 
-/** Append new particles to the active particle list. */
 export function addParticles(state: GameState, particles: Particle[]): GameState {
   return { ...state, particles: [...state.particles, ...particles] }
 }
 
-/** Replace the entire enemy list (used by movement / spawn logic). */
 export function setEnemies(state: GameState, enemies: Enemy[]): GameState {
   return { ...state, enemies }
 }
 
-/** Replace the entire particle list (used after ticking particles). */
 export function setParticles(state: GameState, particles: Particle[]): GameState {
   return { ...state, particles }
 }
 
-/** Set flashEndTime (skull hit red flash). */
 export function setFlash(state: GameState, flashEndTime: number): GameState {
   return { ...state, flashEndTime }
 }
 
-/** Replace spawn timers (used by spawn ticker). */
 export function setSpawnTimers(state: GameState, spawnTimers: SpawnTimers): GameState {
   return { ...state, spawnTimers }
+}
+
+export function incrementCombo(state: GameState): GameState {
+  const combo = state.combo + 1
+  const bestCombo = combo > state.bestCombo ? combo : state.bestCombo
+  return { ...state, combo, bestCombo }
+}
+
+export function resetCombo(state: GameState): GameState {
+  return { ...state, combo: 1 }
+}
+
+export function incrementBanished(state: GameState): GameState {
+  return { ...state, stageBanished: state.stageBanished + 1 }
+}
+
+export function incrementMissed(state: GameState): GameState {
+  return { ...state, stageMissed: state.stageMissed + 1 }
 }
