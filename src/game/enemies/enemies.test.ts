@@ -2,14 +2,15 @@ import { describe, it, expect } from 'vitest'
 import { createGhost, GHOST_SIZE } from './ghost'
 import { createBat, BAT_W, BAT_H } from './bat'
 import { createSkull, SKULL_SIZE } from './skull'
+import { createLunger } from './lunger'
 import { moveEnemies } from './movement'
-import { tickSpawners, MAX_ENEMIES } from './spawn'
-import { createInitialState } from '../state'
+import { tickSpawners } from './spawn'
+import { createInitialState, makeEnemy } from '../state'
 
 const W = 640
 const H = 480
 
-// ─── Spawn position helpers ───────────────────────────────────────────────────
+// ─── Factory tests ────────────────────────────────────────────────────────────
 
 describe('createGhost', () => {
   it('spawns outside canvas bounds', () => {
@@ -21,12 +22,9 @@ describe('createGhost', () => {
     }
   })
 
-  it('has type ghost', () => {
-    expect(createGhost(W, H).type).toBe('ghost')
-  })
-
-  it('hitbox dimensions match GHOST_SIZE', () => {
+  it('has type ghost and hitbox dimensions match GHOST_SIZE', () => {
     const g = createGhost(W, H)
+    expect(g.type).toBe('ghost')
     expect(g.hitbox.w).toBe(GHOST_SIZE)
     expect(g.hitbox.h).toBe(GHOST_SIZE)
   })
@@ -42,7 +40,6 @@ describe('createBat', () => {
   it('spawns outside canvas bounds', () => {
     for (let i = 0; i < 20; i++) {
       const b = createBat(W, H)
-      // Enemy center is placed at ±margin outside each edge
       const outsideX = b.x < 0 || b.x > W
       const outsideY = b.y < 0 || b.y > H
       expect(outsideX || outsideY).toBe(true)
@@ -70,7 +67,7 @@ describe('createSkull', () => {
 // ─── Movement ─────────────────────────────────────────────────────────────────
 
 describe('moveEnemies', () => {
-  it('moves an enemy closer to its target', () => {
+  it('moves a ghost closer to its target', () => {
     const ghost = createGhost(W, H)
     const before = Math.hypot(ghost.targetX - ghost.x, ghost.targetY - ghost.y)
     const [moved] = moveEnemies([ghost], 16)
@@ -94,39 +91,92 @@ describe('moveEnemies', () => {
   })
 })
 
+// ─── Lunger phase machine ─────────────────────────────────────────────────────
+
+describe('lunger movement', () => {
+  it('starts in approach phase', () => {
+    const l = createLunger(W, H)
+    expect(l.movePhase).toBe('approach')
+  })
+
+  it('transitions to windup when close enough to center', () => {
+    // Place lunger very close to its target (within LUNGER_HOLD_DIST)
+    const l = makeEnemy({
+      id: 'l1', type: 'lunger',
+      x: 320, y: 240,
+      targetX: 320, targetY: 280, // 40px away — well within hold dist
+      speed: 1,
+      hitbox: { x: 284, y: 204, w: 72, h: 72 },
+      movePhase: 'approach',
+      phaseTimer: 0,
+    })
+    const [moved] = moveEnemies([l], 16)
+    expect(moved.movePhase).toBe('windup')
+    expect(moved.phaseTimer).toBeGreaterThan(0)
+  })
+
+  it('transitions from windup to lunge when timer expires', () => {
+    const l = makeEnemy({
+      id: 'l1', type: 'lunger',
+      x: 320, y: 200,
+      targetX: 320, targetY: 240,
+      speed: 1,
+      hitbox: { x: 284, y: 164, w: 72, h: 72 },
+      movePhase: 'windup',
+      phaseTimer: 50, // almost done
+    })
+    const [moved] = moveEnemies([l], 100) // 100ms > 50ms timer
+    expect(moved.movePhase).toBe('lunge')
+  })
+
+  it('moves faster in lunge phase', () => {
+    const l = makeEnemy({
+      id: 'l1', type: 'lunger',
+      x: 0, y: 0,
+      targetX: 640, targetY: 480,
+      speed: 1,
+      hitbox: { x: -36, y: -36, w: 72, h: 72 },
+      movePhase: 'lunge',
+      phaseTimer: 0,
+    })
+    const normalL = { ...l, movePhase: 'approach' as const }
+    const [lunged] = moveEnemies([l], 16)
+    const [approached] = moveEnemies([normalL], 16)
+    const lDist = Math.hypot(lunged.x, lunged.y)
+    const aDist = Math.hypot(approached.x, approached.y)
+    expect(lDist).toBeGreaterThan(aDist)
+  })
+})
+
 // ─── Spawn ticker ─────────────────────────────────────────────────────────────
 
 describe('tickSpawners', () => {
-  it('spawns a ghost when ghost timer fires and cap not reached', () => {
-    let s = createInitialState()
-    // Force ghost timer to fire immediately
-    s = { ...s, spawnTimers: { ...s.spawnTimers, ghost: 0 } }
+  it('spawns a ghost when ghost timer fires and phase is playing', () => {
+    let s = { ...createInitialState(1), phase: 'playing' as const, spawnTimers: { ...createInitialState().spawnTimers, ghost: 0 } }
     const next = tickSpawners(s, 16, W, H)
-    const ghosts = next.enemies.filter((e) => e.type === 'ghost')
-    expect(ghosts.length).toBeGreaterThanOrEqual(1)
+    expect(next.enemies.filter(e => e.type === 'ghost').length).toBeGreaterThanOrEqual(1)
   })
 
-  it('does not exceed MAX_ENEMIES cap', () => {
-    // Fill enemies to cap
-    let s = createInitialState()
-    const dummyEnemies = Array.from({ length: MAX_ENEMIES }, (_, i) => ({
-      ...createGhost(W, H),
-      id: `e${i}`,
-    }))
-    s = { ...s, enemies: dummyEnemies, spawnTimers: { ghost: 0, bat: 0, skull: 0 } }
+  it('does not spawn when phase is not playing', () => {
+    let s = { ...createInitialState(1), phase: 'stageTitle' as const, spawnTimers: { ...createInitialState().spawnTimers, ghost: 0 } }
     const next = tickSpawners(s, 16, W, H)
-    expect(next.enemies.length).toBeLessThanOrEqual(MAX_ENEMIES)
+    expect(next.enemies).toHaveLength(0)
   })
 
   it('never spawns more than one skull at a time', () => {
-    let s = createInitialState()
-    s = { ...s, spawnTimers: { ghost: 99999, bat: 99999, skull: 0 } }
-    // Run multiple ticks
+    let s = { ...createInitialState(3), phase: 'playing' as const,
+      spawnTimers: { ghost: 99999, bat: 99999, skull: 0, lunger: 99999, pumpkin: 99999 } }
     for (let i = 0; i < 10; i++) {
       s = tickSpawners(s, 16, W, H)
       s = { ...s, spawnTimers: { ...s.spawnTimers, skull: 0 } }
     }
-    const skulls = s.enemies.filter((e) => e.type === 'skull')
-    expect(skulls.length).toBeLessThanOrEqual(1)
+    expect(s.enemies.filter(e => e.type === 'skull').length).toBeLessThanOrEqual(1)
+  })
+
+  it('respects stage enemy mix (stage 1 has no bats)', () => {
+    let s = { ...createInitialState(1), phase: 'playing' as const,
+      spawnTimers: { ghost: 0, bat: 0, skull: 0, lunger: 0, pumpkin: 0 } }
+    for (let i = 0; i < 20; i++) s = tickSpawners(s, 16, W, H)
+    expect(s.enemies.filter(e => e.type === 'bat').length).toBe(0)
   })
 })
