@@ -1,0 +1,71 @@
+// Drives the game in headless Chrome over CDP and counts hits / motion pixels
+// by importing the live Vite module instances (same URLs the bundle uses).
+// usage: node drive.mjs <cdpPort> <playMs> <space|wave>
+const [PORT = '9333', PLAY_MS = '30000', MODE = 'space'] = process.argv.slice(2)
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
+
+let page
+for (let i = 0; i < 100 && !page; i++) {
+  try {
+    const list = await (await fetch(`http://127.0.0.1:${PORT}/json`)).json()
+    page = list.find((t) => t.type === 'page' && t.url.includes('kiro-exorcise-game'))
+  } catch {}
+  if (!page) await sleep(200)
+}
+if (!page) { console.error('no page target'); process.exit(1) }
+
+const ws = new WebSocket(page.webSocketDebuggerUrl)
+await new Promise((res, rej) => { ws.onopen = res; ws.onerror = rej })
+let id = 0; const pending = new Map()
+ws.onmessage = (e) => { const m = JSON.parse(e.data); if (m.id && pending.has(m.id)) { pending.get(m.id)(m); pending.delete(m.id) } }
+const send = (method, params = {}) => new Promise((r) => { const i = ++id; pending.set(i, r); ws.send(JSON.stringify({ id: i, method, params })) })
+const ev = async (expression) => {
+  const r = await send('Runtime.evaluate', { expression, returnByValue: true, awaitPromise: true })
+  if (r.result?.exceptionDetails) return 'ERR ' + (r.result.exceptionDetails.exception?.description ?? r.result.exceptionDetails.text)
+  return r.result?.result?.value
+}
+await send('Runtime.enable')
+console.log('page:', page.url)
+await sleep(4000) // webcam start + 1 s calibration
+
+const base = '/kiro-exorcise-game/src/'
+console.log('monitor:', await ev(`(async () => {
+  // Import the exact module URLs the page loaded (Vite may append ?t= after HMR
+  // invalidation; a bare URL would yield a separate module instance).
+  const urls = performance.getEntriesByType('resource').map((e) => e.name)
+  const pick = (suffix) => urls.find((u) => u.includes(suffix)) ?? '${base}' + suffix
+  const diff = await import(pick('src/webcam/diff.ts'))
+  const col = await import(pick('src/game/collision.ts'))
+  const gc = document.getElementById('game-canvas').getContext('2d')
+  window.__m = { frames: 0, hits: 0, motionFrames: 0, maxMotion: 0, playFrames: 0, firstPlayAt: -1, t0: performance.now(), diff, col,
+                 urls: [pick('src/webcam/diff.ts'), pick('src/game/collision.ts')] }
+  const f = () => {
+    const m = window.__m; m.frames++
+    if (col.lastBanished && col.lastBanished.length) m.hits += col.lastBanished.length
+    const n = col.lastMotionPixels.length
+    if (n) m.motionFrames++
+    if (n > m.maxMotion) m.maxMotion = n
+    // Phase probe: overlay screens paint an opaque dark rect; playing leaves mid-screen transparent.
+    const W = gc.canvas.width, H = gc.canvas.height
+    const a = [[0.3, 0.5], [0.7, 0.5], [0.5, 0.55]].map(([fx, fy]) => gc.getImageData(Math.round(W * fx), Math.round(H * fy), 1, 1).data[3]).sort((x, y) => x - y)[1]
+    if (a < 40) { m.playFrames++; if (m.firstPlayAt < 0) m.firstPlayAt = Math.round(performance.now() - m.t0) }
+    requestAnimationFrame(f)
+  }
+  requestAnimationFrame(f)
+  return 'ok threshold=' + diff.DIFF_THRESHOLD + ' urls=' + JSON.stringify(window.__m.urls)
+})()`))
+
+if (MODE === 'space') {
+  console.log('space:', await ev(`document.dispatchEvent(new KeyboardEvent('keydown', { key: ' ', code: 'Space', bubbles: true })); 'sent'`))
+}
+
+const t0 = Date.now()
+while (Date.now() - t0 < Number(PLAY_MS)) {
+  await sleep(5000)
+  console.log(`t+${Math.round((Date.now() - t0) / 1000)}s`, await ev(`JSON.stringify({
+    frames: __m.frames, hits: __m.hits, motionFrames: __m.motionFrames, maxMotion: __m.maxMotion,
+    playFrames: __m.playFrames, firstPlayAtMs: __m.firstPlayAt,
+    threshold: __m.diff.DIFF_THRESHOLD, highScoreSaved: localStorage.getItem('exorcise-highscore'),
+  })`))
+}
+ws.close(); process.exit(0)

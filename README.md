@@ -25,7 +25,7 @@ npm run dev
 
 | Command | What it does |
 |---|---|
-| `npm test` | Run all 118 unit tests (Vitest) |
+| `npm test` | Run all 133 unit tests (Vitest) |
 | `npm run build` | Production build → `dist/` |
 | `npm run preview` | Preview the production build locally |
 
@@ -51,6 +51,10 @@ Hit detection uses **frame differencing**: fast motion inside an enemy's hitbox 
 | `Space` | Start from the title screen |
 | `M` or the 🔊 button (top-right) | Mute / unmute |
 | `D` | Toggle the hitbox + motion-mask debug overlay |
+
+### Testing hit detection without a webcam
+
+`tools/motion-harness/run.sh sweep` feeds a synthetic 30 fps camera feed to headless Chrome and counts real hits; `run.sh wave` checks that waving over the START button starts the game with no keypress. See `tools/motion-harness/README.md`.
 
 ## How we used Kiro
 
@@ -92,6 +96,7 @@ A Kiro agent hook runs `npm test` automatically whenever a file under `src/` is 
 - One commit per spec task gives a history that directly traces back to the spec.
 - The spooky-skin design notes were concrete enough (`rgba(40,0,60,0.22)` tint, `sin(t/4000)` fog drift, `clamp(W/20, 24, 48)` HUD font) that even the visual-polish spec got unit tests against a recording mock canvas context.
 - Reconciling each `tasks.md` against `git log` at the end caught two sub-tasks the commits had skipped — the "Calibrating…" banner and the localStorage high-score test — plus a start screen that said "Press Space" with no Space handler.
+- The manual smoke tests were the only check on frame differencing, and they hid two bugs: a 30 fps webcam under the 60 fps loop made the 2-frame hit gate impossible to pass, and the motion buttons never received motion pixels at all. A synthetic-webcam harness (`tools/motion-harness`) reproduced both (0 hits in 45 s) and now proves the fix (12 hits, START triggered by waving).
 
 ## Project structure
 
