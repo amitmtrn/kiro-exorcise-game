@@ -4,7 +4,7 @@
 
 import './style.css'
 import { initWebcam } from './webcam/capture'
-import { startLoop } from './game/loop'
+import { startLoop, requestStart } from './game/loop'
 import { showWebcamError, hideWebcamError } from './ui/screens'
 import { toggleDebug } from './game/render'
 import { toggleMute, getAudioContext } from './audio/index'
@@ -37,6 +37,7 @@ window.addEventListener('keydown', unlockAudio)
 document.addEventListener('keydown', (e) => {
   if (e.key === 'd' || e.key === 'D') toggleDebug()
   if (e.key === 'm' || e.key === 'M') toggleMute()
+  if (e.key === ' ' || e.code === 'Space') { e.preventDefault(); requestStart() }
 })
 
 // Tap / click on the HUD mute button (top-right) toggles audio too.

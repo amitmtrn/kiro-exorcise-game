@@ -23,7 +23,7 @@ import { moveEnemies } from './enemies/movement'
 import { resolveHits } from './collision'
 import { tickParticles, tickScoreLabels } from './particles'
 import { renderFrame } from './render'
-import { renderHUD } from '../ui/hud'
+import { renderHUD, hudFontSize, HUD_FONT_FAMILY } from '../ui/hud'
 import {
   renderStartScreen,
   renderStageTitle,
@@ -42,6 +42,28 @@ import { sfxLifeLost, sfxStageClear, startMusic, stopMusic } from '../audio/inde
 const CENTER_THRESHOLD = 40
 let rafId = 0
 
+// Keyboard fallback for the motion START button — the start screen says
+// "Press Space". main.ts calls requestStart(); the start branch consumes it.
+let startRequested = false
+export function requestStart(): void { startRequested = true }
+
+/** hit-detection-fix T4: tell the player to hold still while we sample noise. */
+function drawCalibratingBanner(ctx: CanvasRenderingContext2D): void {
+  const { width: W, height: H } = ctx.canvas
+  ctx.save()
+  ctx.clearRect(0, 0, W, H)
+  ctx.fillStyle = 'rgba(13, 0, 20, 0.6)'
+  ctx.fillRect(0, 0, W, H)
+  ctx.font = `bold ${hudFontSize(W)}px ${HUD_FONT_FAMILY}`
+  ctx.textAlign = 'center'
+  ctx.textBaseline = 'middle'
+  ctx.fillStyle = '#ffd166'
+  ctx.shadowColor = '#ffd166'
+  ctx.shadowBlur = 14
+  ctx.fillText('Calibrating… hold still 👻', W / 2, H / 2)
+  ctx.restore()
+}
+
 export async function startLoop(
   video: HTMLVideoElement,
   webcamCtx: CanvasRenderingContext2D,
@@ -56,6 +78,10 @@ export async function startLoop(
   prevCanvas.width = MOTION_W; prevCanvas.height = MOTION_H
   const prevCtx = prevCanvas.getContext('2d')!
 
+  // Show the first webcam frame + a banner while the 1 s noise calibration runs
+  drawWebcamFrame(webcamCtx, video)
+  drawWebcamTint(webcamCtx)
+  drawCalibratingBanner(gameCtx)
   await calibrateDiffThreshold(currentCtx, video, 1000)
   captureFrame(prevCtx, video)
 
@@ -85,10 +111,15 @@ export async function startLoop(
       renderStartScreen(gameCtx, state, now, () => {
         state = startGame(state)
       })
+      // Space bar fallback (only honoured while actually on the start screen)
+      if (startRequested && state.phase === 'start') state = startGame(state)
+      startRequested = false
       prevCtx.drawImage(currentCanvas, 0, 0)
       rafId = requestAnimationFrame(tick)
       return
     }
+
+    startRequested = false // a stray Space outside the start screen is ignored
 
     // ── Stage title card ──────────────────────────────────────────────────────
     if (state.phase === 'stageTitle') {
