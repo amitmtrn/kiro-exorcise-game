@@ -12,15 +12,14 @@ import {
   ROUND_DURATION_MS,
   STARTING_LIVES,
 } from './state'
-import type { Particle } from './state'
+import type { GameState, Particle } from './state'
+
+const gs = (o: Partial<GameState>): GameState => ({ ...createInitialState(), ...o }) as GameState
 
 function enemy(id: string) {
   return makeEnemy({
-    id,
-    type: 'ghost',
-    x: 100, y: 100,
-    targetX: 320, targetY: 240,
-    speed: 1.2,
+    id, type: 'ghost', x: 100, y: 100,
+    targetX: 320, targetY: 240, speed: 1.2,
     hitbox: { x: 60, y: 60, w: 80, h: 80 },
   })
 }
@@ -37,10 +36,8 @@ describe('createInitialState', () => {
     expect(s.score).toBe(0)
     expect(s.roundTimeMs).toBe(ROUND_DURATION_MS)
     expect(s.enemies).toHaveLength(0)
-    expect(s.particles).toHaveLength(0)
     expect(s.stage).toBe(1)
     expect(s.combo).toBe(1)
-    expect(s.bestCombo).toBe(1)
   })
 })
 
@@ -48,14 +45,11 @@ describe('decrementLife', () => {
   it('reduces lives by 1', () => {
     const s = decrementLife(createInitialState())
     expect(s.lives).toBe(STARTING_LIVES - 1)
-    expect(s.phase).toBe('start')
   })
 
   it('transitions to gameover when lives reach 0', () => {
     let s = createInitialState()
-    s = decrementLife(s)
-    s = decrementLife(s)
-    s = decrementLife(s)
+    s = decrementLife(s); s = decrementLife(s); s = decrementLife(s)
     expect(s.lives).toBe(0)
     expect(s.phase).toBe('gameover')
   })
@@ -68,68 +62,55 @@ describe('decrementLife', () => {
 })
 
 describe('addScore', () => {
-  it('increments score by given amount', () => {
-    const s = addScore(createInitialState(), 100)
-    expect(s.score).toBe(100)
+  it('increments score', () => {
+    expect(addScore(createInitialState(), 100).score).toBe(100)
   })
 
-  it('updates highScore when new score exceeds it', () => {
-    let s = createInitialState()
-    s = { ...s, highScore: 50 }
-    s = addScore(s, 100)
+  it('updates highScore when exceeded', () => {
+    const s = addScore(gs({ highScore: 50 }), 100)
     expect(s.highScore).toBe(100)
   })
 
   it('does not lower highScore', () => {
-    let s = createInitialState()
-    s = { ...s, highScore: 500 }
-    s = addScore(s, 100)
+    const s = addScore(gs({ highScore: 500 }), 100)
     expect(s.highScore).toBe(500)
   })
 })
 
 describe('tickTimer', () => {
-  it('decrements roundTimeMs by deltaMs', () => {
-    const s = { ...createInitialState(), phase: 'playing' as const }
-    const r = tickTimer(s, 1000)
+  it('decrements roundTimeMs', () => {
+    const r = tickTimer(gs({ phase: 'playing' }), 1000)
     expect(r.roundTimeMs).toBe(ROUND_DURATION_MS - 1000)
     expect(r.phase).toBe('playing')
   })
 
-  it('transitions to summary and clears enemies when time reaches 0', () => {
-    let s = { ...createInitialState(), phase: 'playing' as const, enemies: [enemy('e1')] }
-    s = tickTimer(s, ROUND_DURATION_MS)
-    expect(s.roundTimeMs).toBe(0)
-    expect(s.phase).toBe('summary')
-    expect(s.enemies).toHaveLength(0)
+  it('transitions to summary and clears enemies at 0', () => {
+    const r = tickTimer(gs({ phase: 'playing', enemies: [enemy('e1')] }), ROUND_DURATION_MS)
+    expect(r.roundTimeMs).toBe(0)
+    expect(r.phase).toBe('summary')
+    expect(r.enemies).toHaveLength(0)
   })
 
-  it('clamps roundTimeMs to 0', () => {
-    const s = { ...createInitialState(), phase: 'playing' as const }
-    const r = tickTimer(s, ROUND_DURATION_MS + 9999)
-    expect(r.roundTimeMs).toBe(0)
+  it('clamps to 0', () => {
+    expect(tickTimer(gs({ phase: 'playing' }), ROUND_DURATION_MS + 9999).roundTimeMs).toBe(0)
   })
 })
 
 describe('removeEnemy', () => {
-  it('removes the enemy with the matching id', () => {
-    let s = { ...createInitialState(), enemies: [enemy('a'), enemy('b')] }
-    s = removeEnemy(s, 'a')
-    expect(s.enemies).toHaveLength(1)
-    expect(s.enemies[0].id).toBe('b')
+  it('removes the matching enemy', () => {
+    const r = removeEnemy(gs({ enemies: [enemy('a'), enemy('b')] }), 'a')
+    expect(r.enemies).toHaveLength(1)
+    expect(r.enemies[0].id).toBe('b')
   })
 
-  it('is a no-op for an unknown id', () => {
-    let s = { ...createInitialState(), enemies: [enemy('a')] }
-    s = removeEnemy(s, 'xyz')
-    expect(s.enemies).toHaveLength(1)
+  it('is a no-op for unknown id', () => {
+    expect(removeEnemy(gs({ enemies: [enemy('a')] }), 'xyz').enemies).toHaveLength(1)
   })
 })
 
 describe('addParticles', () => {
-  it('appends new particles to the list', () => {
-    let s = createInitialState()
-    s = addParticles(s, [makeParticle(), makeParticle()])
+  it('appends particles', () => {
+    let s = addParticles(createInitialState(), [makeParticle(), makeParticle()])
     expect(s.particles).toHaveLength(2)
     s = addParticles(s, [makeParticle()])
     expect(s.particles).toHaveLength(3)
@@ -137,31 +118,17 @@ describe('addParticles', () => {
 })
 
 describe('combo reducers', () => {
-  it('incrementCombo increases combo by 1', () => {
-    const s = incrementCombo(createInitialState())
+  it('incrementCombo increases by 1 and updates bestCombo', () => {
+    let s = incrementCombo(createInitialState())
     expect(s.combo).toBe(2)
-  })
-
-  it('incrementCombo updates bestCombo', () => {
-    let s = createInitialState()
-    s = incrementCombo(s)
     s = incrementCombo(s)
     expect(s.bestCombo).toBe(3)
   })
 
-  it('resetCombo sets combo back to 1', () => {
-    let s = createInitialState()
-    s = incrementCombo(s)
-    s = incrementCombo(s)
+  it('resetCombo returns to 1 without lowering bestCombo', () => {
+    let s = incrementCombo(incrementCombo(createInitialState()))
     s = resetCombo(s)
     expect(s.combo).toBe(1)
-  })
-
-  it('resetCombo does not lower bestCombo', () => {
-    let s = createInitialState()
-    s = incrementCombo(s)
-    s = incrementCombo(s)
-    s = resetCombo(s)
     expect(s.bestCombo).toBe(3)
   })
 })

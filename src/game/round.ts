@@ -7,7 +7,6 @@ import type { GameState } from './state'
 import {
   createInitialState,
   setEnemies,
-  setSpawnTimers,
   STAGE_TITLE_DURATION_MS,
   SUMMARY_AUTO_ADVANCE_MS,
   saveHighScore,

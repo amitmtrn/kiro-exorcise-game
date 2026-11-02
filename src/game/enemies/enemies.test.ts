@@ -6,9 +6,11 @@ import { createLunger } from './lunger'
 import { moveEnemies } from './movement'
 import { tickSpawners } from './spawn'
 import { createInitialState, makeEnemy } from '../state'
+import type { GameState } from '../state'
 
 const W = 640
 const H = 480
+const gs = (o: Partial<GameState>): GameState => ({ ...createInitialState(), ...o }) as GameState
 
 // ─── Factory tests ────────────────────────────────────────────────────────────
 
@@ -152,31 +154,30 @@ describe('lunger movement', () => {
 
 describe('tickSpawners', () => {
   it('spawns a ghost when ghost timer fires and phase is playing', () => {
-    let s = { ...createInitialState(1), phase: 'playing' as const, spawnTimers: { ...createInitialState().spawnTimers, ghost: 0 } }
+    const s = gs({ stage: 1, phase: 'playing', spawnTimers: { ...createInitialState().spawnTimers, ghost: 0 } })
     const next = tickSpawners(s, 16, W, H)
-    expect(next.enemies.filter(e => e.type === 'ghost').length).toBeGreaterThanOrEqual(1)
+    expect(next.enemies.filter((e) => e.type === 'ghost').length).toBeGreaterThanOrEqual(1)
   })
 
   it('does not spawn when phase is not playing', () => {
-    let s = { ...createInitialState(1), phase: 'stageTitle' as const, spawnTimers: { ...createInitialState().spawnTimers, ghost: 0 } }
-    const next = tickSpawners(s, 16, W, H)
-    expect(next.enemies).toHaveLength(0)
+    const s = gs({ stage: 1, phase: 'stageTitle', spawnTimers: { ...createInitialState().spawnTimers, ghost: 0 } })
+    expect(tickSpawners(s, 16, W, H).enemies).toHaveLength(0)
   })
 
   it('never spawns more than one skull at a time', () => {
-    let s = { ...createInitialState(3), phase: 'playing' as const,
-      spawnTimers: { ghost: 99999, bat: 99999, skull: 0, lunger: 99999, pumpkin: 99999 } }
+    let s = gs({ stage: 3, phase: 'playing',
+      spawnTimers: { ghost: 99999, bat: 99999, skull: 0, lunger: 99999, pumpkin: 99999 } })
     for (let i = 0; i < 10; i++) {
       s = tickSpawners(s, 16, W, H)
       s = { ...s, spawnTimers: { ...s.spawnTimers, skull: 0 } }
     }
-    expect(s.enemies.filter(e => e.type === 'skull').length).toBeLessThanOrEqual(1)
+    expect(s.enemies.filter((e) => e.type === 'skull').length).toBeLessThanOrEqual(1)
   })
 
   it('respects stage enemy mix (stage 1 has no bats)', () => {
-    let s = { ...createInitialState(1), phase: 'playing' as const,
-      spawnTimers: { ghost: 0, bat: 0, skull: 0, lunger: 0, pumpkin: 0 } }
+    let s = gs({ stage: 1, phase: 'playing',
+      spawnTimers: { ghost: 0, bat: 0, skull: 0, lunger: 0, pumpkin: 0 } })
     for (let i = 0; i < 20; i++) s = tickSpawners(s, 16, W, H)
-    expect(s.enemies.filter(e => e.type === 'bat').length).toBe(0)
+    expect(s.enemies.filter((e) => e.type === 'bat').length).toBe(0)
   })
 })
