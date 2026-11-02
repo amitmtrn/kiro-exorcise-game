@@ -7,6 +7,7 @@ import { initWebcam } from './webcam/capture'
 import { startLoop } from './game/loop'
 import { showWebcamError, hideWebcamError } from './ui/screens'
 import { toggleDebug } from './game/render'
+import { toggleMute, getAudioContext } from './audio/index'
 
 const webcamCanvas = document.getElementById('webcam-canvas') as HTMLCanvasElement
 const gameCanvas   = document.getElementById('game-canvas') as HTMLCanvasElement
@@ -23,8 +24,18 @@ window.addEventListener('resize', resizeCanvases)
 const webcamCtx = webcamCanvas.getContext('2d')!
 const gameCtx   = gameCanvas.getContext('2d')!
 
+// Unlock AudioContext on first user gesture (browser autoplay policy)
+function unlockAudio() {
+  try { getAudioContext() } catch { /* ignore */ }
+  window.removeEventListener('pointerdown', unlockAudio)
+  window.removeEventListener('keydown', unlockAudio)
+}
+window.addEventListener('pointerdown', unlockAudio)
+window.addEventListener('keydown', unlockAudio)
+
 document.addEventListener('keydown', (e) => {
   if (e.key === 'd' || e.key === 'D') toggleDebug()
+  if (e.key === 'm' || e.key === 'M') toggleMute()
 })
 
 async function boot(): Promise<void> {

@@ -4,6 +4,7 @@
 
 import type { GameState } from '../game/state'
 import { STAGES } from '../game/stages'
+import { isMuted } from '../audio/index'
 
 export function renderHUD(ctx: CanvasRenderingContext2D, state: GameState, now: number): void {
   if (state.phase !== 'playing') return
@@ -64,6 +65,15 @@ export function renderHUD(ctx: CanvasRenderingContext2D, state: GameState, now: 
     const cw = ctx.measureText(comboText).width
     ctx.fillText(comboText, W - pad - cw, H - pad)
   }
+
+  // ── Mute indicator (top-right, next to timer) ──────────────────────────────
+  ctx.textBaseline = 'top'
+  ctx.font = `${Math.round(fontSize * 0.8)}px sans-serif`
+  ctx.shadowBlur = 0
+  ctx.fillStyle = isMuted() ? '#c0392b' : 'rgba(232,232,240,0.5)'
+  ctx.textAlign = 'right'
+  ctx.fillText(isMuted() ? '🔇' : '🔊', W - pad, pad + fontSize + 4)
+  ctx.textAlign = 'left'
 
   ctx.restore()
 }
