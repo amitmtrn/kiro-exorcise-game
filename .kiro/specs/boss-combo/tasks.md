@@ -1,5 +1,13 @@
 # Boss Ghost + Combo — Tasks
 
+> **Status: superseded by the `stages/` spec.** Boss and combo mechanics shipped
+> via `feat(stages-T1)`, `feat(stages-T4)` and `feat(stages-T7)` as a 10-hit
+> stage-5 boss inside a 5-stage phase machine
+> (`start → stageTitle → playing → summary → gameover`), not the per-round 3-hit
+> boss and `'boss' | 'roundclear'` phases described here. T9/T10 (audio, mute)
+> shipped via the `audio/` spec. Kept for history; the checkboxes below are
+> intentionally not tracked.
+
 ---
 
 ## T1 — Extend GameState for combo and boss phase
