@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi, afterEach } from 'vitest'
 import {
   createInitialState,
   decrementLife,
@@ -12,6 +12,8 @@ import {
   setShake,
   tickShake,
   addScoreLabels,
+  loadHighScore,
+  saveHighScore,
   ROUND_DURATION_MS,
   STARTING_LIVES,
   SHAKE_FRAMES,
@@ -166,5 +168,37 @@ describe('score labels (spooky-skin R5.2)', () => {
     const s = addScoreLabels(base, [{ x: 0, y: 0, text: '+100', alpha: 1, vy: -1 }])
     expect(s.scoreLabels).toHaveLength(1)
     expect(base.scoreLabels).toHaveLength(0)
+  })
+})
+
+describe('high score persistence (stages T1 / T9)', () => {
+  afterEach(() => vi.unstubAllGlobals())
+
+  it('saveHighScore writes to localStorage and loadHighScore reads it back', () => {
+    const store = new Map<string, string>()
+    vi.stubGlobal('localStorage', {
+      getItem: (k: string) => store.get(k) ?? null,
+      setItem: (k: string, v: string) => { store.set(k, v) },
+    })
+    saveHighScore(4200)
+    expect(loadHighScore()).toBe(4200)
+    expect(store.get('exorcise-highscore')).toBe('4200')
+  })
+
+  it('loadHighScore falls back to 0 when localStorage is unavailable', () => {
+    vi.stubGlobal('localStorage', {
+      getItem: () => { throw new Error('blocked') },
+      setItem: () => { throw new Error('blocked') },
+    })
+    expect(loadHighScore()).toBe(0)
+    expect(() => saveHighScore(1)).not.toThrow()
+  })
+
+  it('createInitialState picks up the stored high score', () => {
+    vi.stubGlobal('localStorage', {
+      getItem: () => '999',
+      setItem: () => {},
+    })
+    expect(createInitialState().highScore).toBe(999)
   })
 })
