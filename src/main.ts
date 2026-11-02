@@ -8,6 +8,7 @@ import { startLoop } from './game/loop'
 import { showWebcamError, hideWebcamError } from './ui/screens'
 import { toggleDebug } from './game/render'
 import { toggleMute, getAudioContext } from './audio/index'
+import { hudFontSize, muteButtonRect } from './ui/hud'
 
 const webcamCanvas = document.getElementById('webcam-canvas') as HTMLCanvasElement
 const gameCanvas   = document.getElementById('game-canvas') as HTMLCanvasElement
@@ -36,6 +37,15 @@ window.addEventListener('keydown', unlockAudio)
 document.addEventListener('keydown', (e) => {
   if (e.key === 'd' || e.key === 'D') toggleDebug()
   if (e.key === 'm' || e.key === 'M') toggleMute()
+})
+
+// Tap / click on the HUD mute button (top-right) toggles audio too.
+// Canvas pixel size equals its CSS size, so client coords map 1:1.
+gameCanvas.addEventListener('pointerdown', (e) => {
+  const r = muteButtonRect(gameCanvas.width, hudFontSize(gameCanvas.width))
+  if (e.clientX >= r.x && e.clientX <= r.x + r.w && e.clientY >= r.y && e.clientY <= r.y + r.h) {
+    toggleMute()
+  }
 })
 
 async function boot(): Promise<void> {

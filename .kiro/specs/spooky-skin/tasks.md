@@ -23,6 +23,6 @@
 - [x] Commit: `feat(skin-T4): floating score pop labels`
 
 ## T5 — HUD polish
-- [ ] Responsive font size.
-- [ ] Glow on all HUD text.
-- [ ] Commit: `feat(skin-T5): HUD polish`
+- [x] Responsive font size.
+- [x] Glow on all HUD text.
+- [x] Commit: `feat(skin-T5): HUD polish`
