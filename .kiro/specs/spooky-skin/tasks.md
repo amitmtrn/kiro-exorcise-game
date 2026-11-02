@@ -18,9 +18,9 @@
 - [x] Commit: `feat(skin-T3): hit flash + screen shake`
 
 ## T4 — Score pop labels
-- [ ] `ScoreLabel` type + spawn in `resolveHits`.
-- [ ] Tick + render floating "+N" text.
-- [ ] Commit: `feat(skin-T4): floating score pop labels`
+- [x] `ScoreLabel` type + spawn in `resolveHits`.
+- [x] Tick + render floating "+N" text.
+- [x] Commit: `feat(skin-T4): floating score pop labels`
 
 ## T5 — HUD polish
 - [ ] Responsive font size.

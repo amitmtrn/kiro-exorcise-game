@@ -51,6 +51,15 @@ export interface Particle {
   radius: number
 }
 
+/** Spooky-skin R5.2 — floating "+N" label that drifts up and fades after a hit. */
+export interface ScoreLabel {
+  x: number
+  y: number
+  text: string
+  alpha: number    // 0–1
+  vy: number       // px per frame (negative = upward)
+}
+
 export type GamePhase = 'start' | 'stageTitle' | 'playing' | 'summary' | 'gameover'
 
 export interface SpawnTimers {
@@ -68,6 +77,7 @@ export interface GameState {
   roundTimeMs: number
   enemies: Enemy[]
   particles: Particle[]
+  scoreLabels: ScoreLabel[]
   spawnTimers: SpawnTimers
   flashEndTime: number
   // Stage tracking
@@ -136,6 +146,7 @@ export function createInitialState(stage = 1): GameState {
     roundTimeMs: ROUND_DURATION_MS,
     enemies: [],
     particles: [],
+    scoreLabels: [],
     spawnTimers: {
       ghost: 2000,
       bat: 1000,
@@ -196,6 +207,14 @@ export function setEnemies(state: GameState, enemies: Enemy[]): GameState {
 
 export function setParticles(state: GameState, particles: Particle[]): GameState {
   return { ...state, particles }
+}
+
+export function addScoreLabels(state: GameState, labels: ScoreLabel[]): GameState {
+  return { ...state, scoreLabels: [...state.scoreLabels, ...labels] }
+}
+
+export function setScoreLabels(state: GameState, scoreLabels: ScoreLabel[]): GameState {
+  return { ...state, scoreLabels }
 }
 
 export function setFlash(state: GameState, flashEndTime: number): GameState {

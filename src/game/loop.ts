@@ -10,6 +10,7 @@ import {
   tickTimer,
   setEnemies,
   setParticles,
+  setScoreLabels,
   decrementLife,
   resetCombo,
   incrementMissed,
@@ -20,7 +21,7 @@ import type { GameState } from './state'
 import { tickSpawners } from './enemies/spawn'
 import { moveEnemies } from './enemies/movement'
 import { resolveHits } from './collision'
-import { tickParticles } from './particles'
+import { tickParticles, tickScoreLabels } from './particles'
 import { renderFrame } from './render'
 import { renderHUD } from '../ui/hud'
 import {
@@ -169,6 +170,7 @@ export async function startLoop(
     state = resolveHits(state, currentData, prevData, displayW, displayH, now)
     state = tickTimer(state, deltaMs)
     state = setParticles(state, tickParticles(state.particles))
+    state = setScoreLabels(state, tickScoreLabels(state.scoreLabels))
 
     renderFrame(gameCtx, state, now)
     renderHUD(gameCtx, state, now)

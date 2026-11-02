@@ -1,5 +1,8 @@
 import { describe, it, expect } from 'vitest'
-import { spawnGhostPuff, spawnBatPuff, tickParticles } from './particles'
+import {
+  spawnGhostPuff, spawnBatPuff, tickParticles,
+  spawnScoreLabel, tickScoreLabels, SCORE_LABEL_LIFETIME_FRAMES,
+} from './particles'
 
 describe('spawnGhostPuff', () => {
   it('produces exactly 20 particles', () => {
@@ -70,5 +73,32 @@ describe('tickParticles', () => {
       ticks++
     }
     expect(particles).toHaveLength(0)
+  })
+})
+
+describe('score pop labels (spooky-skin R5.2)', () => {
+  it('spawnScoreLabel formats "+N", starts opaque, above the enemy, moving up', () => {
+    const l = spawnScoreLabel(300, 200, 150)
+    expect(l.text).toBe('+150')
+    expect(l.alpha).toBe(1)
+    expect(l.x).toBe(300)
+    expect(l.y).toBeLessThan(200)
+    expect(l.vy).toBeLessThan(0)
+  })
+
+  it('tickScoreLabels drifts labels upward and fades them', () => {
+    const [t1] = tickScoreLabels([spawnScoreLabel(0, 100, 100)])
+    expect(t1.y).toBeLessThan(76) // spawned at y - 24, then moved up again
+    expect(t1.alpha).toBeLessThan(1)
+    expect(t1.alpha).toBeGreaterThan(0)
+  })
+
+  it('a label lives for ~600 ms (SCORE_LABEL_LIFETIME_FRAMES ticks) then disappears', () => {
+    let labels = [spawnScoreLabel(0, 0, 100)]
+    let ticks = 0
+    while (labels.length > 0 && ticks < 500) { labels = tickScoreLabels(labels); ticks++ }
+    expect(labels).toHaveLength(0)
+    expect(ticks).toBe(SCORE_LABEL_LIFETIME_FRAMES)
+    expect(SCORE_LABEL_LIFETIME_FRAMES / 60).toBeCloseTo(0.6, 1)
   })
 })

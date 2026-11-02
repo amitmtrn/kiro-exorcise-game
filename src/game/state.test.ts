@@ -11,6 +11,7 @@ import {
   makeEnemy,
   setShake,
   tickShake,
+  addScoreLabels,
   ROUND_DURATION_MS,
   STARTING_LIVES,
   SHAKE_FRAMES,
@@ -152,5 +153,18 @@ describe('screen shake reducers (spooky-skin R4.1)', () => {
     s = tickShake(s); expect(s.shakeFrames).toBe(1)
     s = tickShake(s); expect(s.shakeFrames).toBe(0)
     s = tickShake(s); expect(s.shakeFrames).toBe(0)
+  })
+})
+
+describe('score labels (spooky-skin R5.2)', () => {
+  it('initial state has no score labels', () => {
+    expect(createInitialState().scoreLabels).toHaveLength(0)
+  })
+
+  it('addScoreLabels appends without mutating the input', () => {
+    const base = createInitialState()
+    const s = addScoreLabels(base, [{ x: 0, y: 0, text: '+100', alpha: 1, vy: -1 }])
+    expect(s.scoreLabels).toHaveLength(1)
+    expect(base.scoreLabels).toHaveLength(0)
   })
 })

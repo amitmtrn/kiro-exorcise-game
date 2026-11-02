@@ -3,7 +3,7 @@
  * shapes), particles, boss health bar, red flash, and optional debug overlay.
  */
 
-import type { GameState, Enemy, Particle } from './state'
+import type { GameState, Enemy, Particle, ScoreLabel } from './state'
 import { SHAKE_AMPLITUDE_PX } from './state'
 import { lastMotionPixels, lastBanished } from './collision'
 import { BOSS_HITS_NEEDED } from './enemies/boss'
@@ -57,6 +57,7 @@ export function renderFrame(
   }
 
   for (const p of state.particles) drawParticle(ctx, p)
+  for (const l of state.scoreLabels) drawScoreLabel(ctx, l)
 
   // Boss health bar
   const boss = state.enemies.find(e => e.type === 'boss')
@@ -353,6 +354,24 @@ function drawParticle(ctx: CanvasRenderingContext2D, p: Particle): void {
   ctx.globalAlpha = Math.max(0, p.alpha)
   ctx.fillStyle = p.color
   ctx.beginPath(); ctx.arc(p.x, p.y, p.radius, 0, Math.PI*2); ctx.fill()
+  ctx.restore()
+}
+
+// ─── Score pop label (spooky-skin R5.2) ───────────────────────────────────────
+const C_SCORE_POP = '#ffd166'  // Candlelight Yellow
+function drawScoreLabel(ctx: CanvasRenderingContext2D, l: ScoreLabel): void {
+  ctx.save()
+  ctx.globalAlpha = Math.max(0, l.alpha)
+  ctx.font = 'bold 26px sans-serif'
+  ctx.textAlign = 'center'
+  ctx.textBaseline = 'middle'
+  ctx.lineWidth = 4
+  ctx.lineJoin = 'round'
+  ctx.strokeStyle = 'rgba(13,0,20,0.85)'
+  ctx.strokeText(l.text, l.x, l.y)
+  ctx.shadowColor = C_SCORE_POP; ctx.shadowBlur = 12
+  ctx.fillStyle = C_SCORE_POP
+  ctx.fillText(l.text, l.x, l.y)
   ctx.restore()
 }
 

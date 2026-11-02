@@ -5,11 +5,11 @@
 import type { GameState, Enemy } from './state'
 import {
   addScore, decrementLife, addParticles, setFlash, setEnemies,
-  incrementCombo, incrementBanished, setShake,
+  incrementCombo, incrementBanished, setShake, addScoreLabels,
   SHAKE_FRAMES, SHAKE_COMBO_THRESHOLD,
 } from './state'
 import { computeFrameDiff, scaleHitbox, MOTION_W } from '../webcam/diff'
-import { spawnGhostPuff, spawnBatPuff } from './particles'
+import { spawnGhostPuff, spawnBatPuff, spawnScoreLabel } from './particles'
 import {
   sfxGhostHit, sfxBatHit, sfxSkullHit,
   sfxBossHit, sfxBossDefeated, sfxCombo,
@@ -30,6 +30,12 @@ export let lastBanished: Enemy[] = []
 /** Shake the screen when a scoring hit lands at combo ≥ 3 (spooky-skin R4.1). */
 function shakeIfStrong(s: GameState): GameState {
   return s.combo >= SHAKE_COMBO_THRESHOLD ? setShake(s, SHAKE_FRAMES) : s
+}
+
+/** Award points and float a "+N" label up from the enemy (spooky-skin R5.2). */
+function scoreWithPop(s: GameState, enemy: Enemy, pts: number): GameState {
+  s = addScore(s, pts)
+  return addScoreLabels(s, [spawnScoreLabel(enemy.x, enemy.y, pts)])
 }
 
 export function resolveHits(
@@ -78,7 +84,7 @@ export function resolveHits(
 
     if (enemy.type === 'ghost' || enemy.type === 'lunger') {
       const pts = (enemy.type === 'ghost' ? 100 : 150) * s.combo
-      s = addScore(s, pts)
+      s = scoreWithPop(s, enemy, pts)
       s = incrementCombo(s)
       s = incrementBanished(s)
       s = shakeIfStrong(s)
@@ -87,7 +93,7 @@ export function resolveHits(
       try { sfxGhostHit(); sfxCombo(s.combo) } catch { /* audio not ready */ }
 
     } else if (enemy.type === 'bat') {
-      s = addScore(s, 50 * s.combo)
+      s = scoreWithPop(s, enemy, 50 * s.combo)
       s = incrementCombo(s)
       s = incrementBanished(s)
       s = shakeIfStrong(s)
@@ -98,7 +104,7 @@ export function resolveHits(
     } else if (enemy.type === 'pumpkin') {
       const newHitsReceived = enemy.hitsReceived + 1
       if (newHitsReceived >= enemy.hitsNeeded) {
-        s = addScore(s, 200 * s.combo)
+        s = scoreWithPop(s, enemy, 200 * s.combo)
         s = incrementCombo(s)
         s = incrementBanished(s)
         s = shakeIfStrong(s)
@@ -120,7 +126,7 @@ export function resolveHits(
     } else if (enemy.type === 'boss') {
       const newBossHits = enemy.bossHitsReceived + 1
       if (newBossHits >= enemy.hitsNeeded) {
-        s = addScore(s, 1000 * s.combo)
+        s = scoreWithPop(s, enemy, 1000 * s.combo)
         s = incrementBanished(s)
         s = addParticles(s, spawnGhostPuff(enemy.x, enemy.y))
         s = addParticles(s, spawnBatPuff(enemy.x, enemy.y))

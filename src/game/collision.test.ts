@@ -198,3 +198,29 @@ describe('resolveHits — 1-frame white hit flash (spooky-skin R4.2)', () => {
     expect(r.enemies[0].hitFlashFrames).toBe(1)
   })
 })
+
+describe('resolveHits — score pop labels (spooky-skin R5.2)', () => {
+  it('a ghost hit spawns a "+100" label at the ghost', () => {
+    mockDiff.mockReturnValue(true)
+    const s = { ...createInitialState(), enemies: [enemy('ghost', 'g1', { hitCount: 1, x: 200, y: 150 })] }
+    const r = resolveHits(s, FAKE, FAKE, DW, DH, 1000)
+    expect(r.scoreLabels).toHaveLength(1)
+    expect(r.scoreLabels[0].text).toBe('+100')
+    expect(r.scoreLabels[0].x).toBe(200)
+    expect(r.scoreLabels[0].y).toBeLessThan(150)
+  })
+
+  it('label shows the combo-multiplied points', () => {
+    mockDiff.mockReturnValue(true)
+    const s = { ...createInitialState(), combo: 3, enemies: [enemy('bat', 'b1', { hitCount: 1 })] }
+    const r = resolveHits(s, FAKE, FAKE, DW, DH, 1000)
+    expect(r.scoreLabels[0].text).toBe('+150')
+  })
+
+  it('a skull hit spawns no label', () => {
+    mockDiff.mockReturnValue(true)
+    const s = { ...createInitialState(), enemies: [enemy('skull', 's1', { hitCount: 1 })] }
+    const r = resolveHits(s, FAKE, FAKE, DW, DH, 1000)
+    expect(r.scoreLabels).toHaveLength(0)
+  })
+})

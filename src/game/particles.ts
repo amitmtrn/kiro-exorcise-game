@@ -1,10 +1,16 @@
 /**
- * Particle system — spawns and ticks canvas particles for hit effects.
+ * Particle system — spawns and ticks canvas particles for hit effects,
+ * plus the floating score-pop labels (spooky-skin R5.2).
  */
 
-import type { Particle } from './state'
+import type { Particle, ScoreLabel } from './state'
 
 const GRAVITY = 0.15
+
+/** Score labels fade over ~600 ms at 60 fps. */
+export const SCORE_LABEL_LIFETIME_FRAMES = 36
+const SCORE_LABEL_DECAY = 1 / SCORE_LABEL_LIFETIME_FRAMES
+const SCORE_LABEL_RISE_PX = 1.4
 
 // ─── Spawn helpers ────────────────────────────────────────────────────────────
 
@@ -61,4 +67,18 @@ export function tickParticles(particles: Particle[]): Particle[] {
       alpha: p.alpha - p.decay,
     }))
     .filter((p) => p.alpha > 0)
+}
+
+// ─── Score pop labels (spooky-skin R5.2) ──────────────────────────────────────
+
+/** A "+N" label that starts just above the enemy and drifts upward. */
+export function spawnScoreLabel(x: number, y: number, points: number): ScoreLabel {
+  return { x, y: y - 24, text: `+${points}`, alpha: 1, vy: -SCORE_LABEL_RISE_PX }
+}
+
+/** Moves every label up by its velocity and fades it; removes dead labels. */
+export function tickScoreLabels(labels: ScoreLabel[]): ScoreLabel[] {
+  return labels
+    .map((l) => ({ ...l, y: l.y + l.vy, alpha: l.alpha - SCORE_LABEL_DECAY }))
+    .filter((l) => l.alpha > 0)
 }
