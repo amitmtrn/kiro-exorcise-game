@@ -115,6 +115,26 @@ the rAF begins; the loop shows "Calibrating…" in the HUD during this time.
 `enemy.hitCount` increments when diff is true, resets to 0 when false.
 A hit fires when `hitCount >= 2` and `now - spawnedAt > 300`.
 
+#### Update 2026-11-02 — camera frame rate (regression found by the motion harness)
+
+Webcams deliver 30 fps (15 fps in low light) while `requestAnimationFrame`
+runs at 60. Every other tick therefore compared a camera frame **with itself**:
+diff = 0 everywhere, `hitCount` reset, and the gate could never reach 2. Hits
+were impossible on any real camera; `tools/motion-harness` reproduced it
+(0 hits in 45 s, then 12 after the fix).
+
+- `computeMotionMask(current, prev, MOTION_W, MOTION_H)` in `diff.ts` samples
+  the whole motion canvas on the `SAMPLE_STRIDE` grid each tick and reports
+  `changed` — any non-zero luminance delta. A live camera frame always carries
+  sensor noise, so `changed === false` means "no new frame", not "no motion".
+- `resolveHits(…, now, frameIsNew)` skips the diff and leaves every
+  `hitCount` untouched when `frameIsNew === false`; only hit flashes expire.
+  The gate now means **two consecutive camera frames with motion**.
+- The same mask feeds `lastMotionPixels` (display space) via
+  `updateMotionPixels()`, replacing the old per-enemy population — see the
+  stages spec, "Motion buttons". On a duplicate frame the previous pixels are
+  kept so a held wave is not interrupted.
+
 ### Hitbox enlargement
 
 Applied in `hitboxFor` / enemy factories: multiply `w` and `h` by `1.2`,

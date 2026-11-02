@@ -44,12 +44,22 @@ Replicates the original EyeToy mechanic without ML:
 
 This approach detects any fast motion inside a hitbox (a swipe, a swat) rather than tracking a specific body part.
 
+**Camera frame rate ≠ loop frame rate.** Webcams deliver 30 fps (15 fps in low
+light) while `requestAnimationFrame` runs at 60, so roughly every other tick the
+captured frame is byte-identical to the previous one. Treat that as "no new
+frame" (keep per-enemy gate counters, keep the last motion mask), never as "no
+motion". A real camera frame always carries sensor noise, so an exactly-zero
+whole-frame luminance delta is a reliable duplicate-frame signal
+(`computeMotionMask().changed`).
+
 ### Tuning knobs
 | Parameter | Default | Purpose |
 |---|---|---|
 | `diffThreshold` | `30` | Luminance delta to count a pixel as "moved" |
 | `hitRatio` | `0.15` | Fraction of hitbox pixels that must exceed threshold |
 | `sampleStride` | `4` | Check every Nth pixel to keep diff fast |
+| `hitFramesRequired` | `2` | Consecutive *camera* frames with motion in the hitbox (duplicate ticks skipped) |
+| `minMotionPixels` / `idleGraceMs` | `3` / `150` | Motion-button noise floor and reversal tolerance |
 
 ## Optional Future Upgrade — MediaPipe Hand Tracking
 MediaPipe Hands can be layered on top in v2 with minimal disruption:

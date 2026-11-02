@@ -4,7 +4,7 @@
 
 import { drawWebcamFrame } from '../webcam/capture'
 import { drawWebcamTint } from './atmosphere'
-import { captureFrame, calibrateDiffThreshold, MOTION_W, MOTION_H } from '../webcam/diff'
+import { captureFrame, calibrateDiffThreshold, computeMotionMask, MOTION_W, MOTION_H } from '../webcam/diff'
 import {
   createInitialState,
   tickTimer,
@@ -20,7 +20,7 @@ import {
 import type { GameState } from './state'
 import { tickSpawners } from './enemies/spawn'
 import { moveEnemies } from './enemies/movement'
-import { resolveHits } from './collision'
+import { resolveHits, updateMotionPixels } from './collision'
 import { tickParticles, tickScoreLabels } from './particles'
 import { renderFrame } from './render'
 import { renderHUD, hudFontSize, HUD_FONT_FAMILY } from '../ui/hud'
@@ -105,6 +105,12 @@ export async function startLoop(
     const currentData = currentCtx.getImageData(0, 0, MOTION_W, MOTION_H)
     const prevData = prevCtx.getImageData(0, 0, MOTION_W, MOTION_H)
 
+    // Whole-frame motion mask: drives the motion buttons + debug overlay, and
+    // tells us whether the camera actually delivered a new frame this tick.
+    const mask = computeMotionMask(currentData, prevData, MOTION_W, MOTION_H)
+    updateMotionPixels(mask, displayW, displayH)
+    const frameIsNew = mask.changed
+
     // ── Start screen ──────────────────────────────────────────────────────────
     if (state.phase === 'start') {
       renderFrame(gameCtx, state, now)
@@ -136,8 +142,7 @@ export async function startLoop(
       saveHighScore(state.highScore)
       state = tickRound(state, deltaMs, displayW, displayH)
       renderFrame(gameCtx, state, now)
-      // Run resolveHits so motion buttons work
-      state = resolveHits(state, currentData, prevData, displayW, displayH, now)
+      state = resolveHits(state, currentData, prevData, displayW, displayH, now, frameIsNew)
       renderSummary(gameCtx, state, now, () => {
         state = advanceToNextStage(state, displayW, displayH)
       })
@@ -149,8 +154,7 @@ export async function startLoop(
     // ── Game Over ─────────────────────────────────────────────────────────────
     if (state.phase === 'gameover') {
       saveHighScore(state.highScore)
-      // Run resolveHits so motion buttons work
-      state = resolveHits(state, currentData, prevData, displayW, displayH, now)
+      state = resolveHits(state, currentData, prevData, displayW, displayH, now, frameIsNew)
       renderFrame(gameCtx, state, now)
       renderGameOver(gameCtx, state, now,
         () => { state = retryStage(state) },
@@ -198,7 +202,7 @@ export async function startLoop(
       try { sfxLifeLost() } catch { /* audio not ready */ }
     }
 
-    state = resolveHits(state, currentData, prevData, displayW, displayH, now)
+    state = resolveHits(state, currentData, prevData, displayW, displayH, now, frameIsNew)
     state = tickTimer(state, deltaMs)
     state = setParticles(state, tickParticles(state.particles))
     state = setScoreLabels(state, tickScoreLabels(state.scoreLabels))

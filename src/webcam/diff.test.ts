@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { computeFrameDiff, scaleHitbox, DIFF_THRESHOLD, HIT_RATIO, SAMPLE_STRIDE, MOTION_W, MOTION_H } from './diff'
+import { computeFrameDiff, scaleHitbox, DIFF_THRESHOLD, HIT_RATIO, SAMPLE_STRIDE, MOTION_W, MOTION_H, computeMotionMask } from './diff'
 import type { Hitbox } from '../game/state'
 
 /** Build a minimal ImageData-like object filled with a uniform luminance. */
@@ -143,5 +143,42 @@ describe('scaleHitbox', () => {
     expect(scaled.y).toBeCloseTo(10)
     expect(scaled.w).toBeCloseTo(50)
     expect(scaled.h).toBeCloseTo(30)
+  })
+})
+
+// ─── computeMotionMask ────────────────────────────────────────────────────────
+
+describe('computeMotionMask — whole-frame mask + new-frame detection', () => {
+  const W = 32, H = 16
+  const frame = (fill: number) => ({ data: new Uint8ClampedArray(W * H * 4).fill(fill), width: W, height: H } as unknown as ImageData)
+
+  it('identical frames: changed=false, nothing moved', () => {
+    const m = computeMotionMask(frame(100), frame(100), W, H, 4)
+    expect(m.changed).toBe(false)
+    expect(m.moved).toBe(0)
+    expect(m.points).toHaveLength(0)
+    expect(m.sampled).toBe((W / 4) * (H / 4))
+  })
+
+  it('sensor noise below threshold: changed=true but nothing moved', () => {
+    const m = computeMotionMask(frame(100), frame(103), W, H, 4)
+    expect(m.changed).toBe(true)
+    expect(m.moved).toBe(0)
+  })
+
+  it('a bright block reports moved points only inside the block', () => {
+    const cur = frame(40), prv = frame(40)
+    // Block covering x 16..31, y 0..7
+    for (let y = 0; y < 8; y++) for (let x = 16; x < W; x++) {
+      const i = (y * W + x) * 4
+      cur.data[i] = cur.data[i + 1] = cur.data[i + 2] = 220
+    }
+    const m = computeMotionMask(cur, prv, W, H, 4)
+    expect(m.changed).toBe(true)
+    expect(m.moved).toBe(4 * 2) // 4 sampled columns × 2 sampled rows
+    for (const p of m.points) {
+      expect(p.x).toBeGreaterThanOrEqual(16)
+      expect(p.y).toBeLessThan(8)
+    }
   })
 })

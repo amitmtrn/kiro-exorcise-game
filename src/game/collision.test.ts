@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { resolveHits, lastBanished } from './collision'
+import { resolveHits, lastBanished, updateMotionPixels, lastMotionPixels } from './collision'
 import { createInitialState, makeEnemy, SHAKE_FRAMES } from './state'
 import type { Enemy } from './state'
 
@@ -222,5 +222,57 @@ describe('resolveHits — score pop labels (spooky-skin R5.2)', () => {
     const s = { ...createInitialState(), enemies: [enemy('skull', 's1', { hitCount: 1 })] }
     const r = resolveHits(s, FAKE, FAKE, DW, DH, 1000)
     expect(r.scoreLabels).toHaveLength(0)
+  })
+})
+
+describe('resolveHits — duplicate camera frames (30 fps webcam under a 60 fps loop)', () => {
+  it('frameIsNew=false leaves the 2-frame gate counter untouched and skips the diff', () => {
+    mockDiff.mockReturnValue(true)
+    const s = { ...createInitialState(), enemies: [enemy('ghost', 'g1', { hitCount: 1 })] }
+    const r = resolveHits(s, FAKE, FAKE, DW, DH, 1000, false)
+    expect(mockDiff).not.toHaveBeenCalled()
+    expect(r.enemies).toHaveLength(1)
+    expect(r.enemies[0].hitCount).toBe(1)
+    expect(r.score).toBe(0)
+  })
+
+  it('motion on two new frames with a duplicate in between still confirms the hit', () => {
+    mockDiff.mockReturnValue(true)
+    let s = { ...createInitialState(), enemies: [enemy('ghost', 'g1', { hitCount: 0 })] }
+    s = resolveHits(s, FAKE, FAKE, DW, DH, 1000, true)   // new frame, motion → hitCount 1
+    s = resolveHits(s, FAKE, FAKE, DW, DH, 1016, false)  // duplicate frame → untouched
+    expect(s.enemies[0].hitCount).toBe(1)
+    s = resolveHits(s, FAKE, FAKE, DW, DH, 1033, true)   // new frame, motion → hit
+    expect(s.enemies).toHaveLength(0)
+    expect(s.score).toBe(100)
+  })
+
+  it('frameIsNew=false still lets a hit flash expire and clears lastBanished', () => {
+    mockDiff.mockReturnValue(true)
+    let s = { ...createInitialState(), enemies: [enemy('pumpkin', 'p1', { hitCount: 1, hitsReceived: 0, hitsNeeded: 2 })] }
+    s = resolveHits(s, FAKE, FAKE, DW, DH, 1000, true)
+    expect(s.enemies[0].hitFlashFrames).toBe(1)
+    s = resolveHits(s, FAKE, FAKE, DW, DH, 1016, false)
+    expect(s.enemies[0].hitFlashFrames).toBe(0)
+    expect(lastBanished).toHaveLength(0)
+  })
+})
+
+describe('updateMotionPixels — whole-frame mask published in display space', () => {
+  it('scales motion-canvas points to display coordinates', () => {
+    updateMotionPixels({ points: [{ x: 160, y: 90 }], sampled: 1, moved: 1, changed: true }, 1280, 720)
+    expect(lastMotionPixels).toEqual([{ x: 640, y: 360 }])
+  })
+
+  it('keeps the previous pixels on a duplicate camera frame', () => {
+    updateMotionPixels({ points: [{ x: 32, y: 18 }], sampled: 1, moved: 1, changed: true }, 640, 360)
+    updateMotionPixels({ points: [], sampled: 1, moved: 0, changed: false }, 640, 360)
+    expect(lastMotionPixels).toEqual([{ x: 64, y: 36 }])
+  })
+
+  it('clears pixels on a new frame with no motion', () => {
+    updateMotionPixels({ points: [{ x: 32, y: 18 }], sampled: 1, moved: 1, changed: true }, 640, 360)
+    updateMotionPixels({ points: [], sampled: 1, moved: 0, changed: true }, 640, 360)
+    expect(lastMotionPixels).toEqual([])
   })
 })

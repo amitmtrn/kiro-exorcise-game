@@ -99,3 +99,23 @@ Files: `src/game/render.ts`, `src/game/collision.ts`, `src/main.ts`
 - [x] In `src/main.ts`, add `document.addEventListener('keydown', e => { if (e.key === 'd' || e.key === 'D') toggleDebug() })`.
 - [x] No new unit tests (visual feature); manually verify with `npm run dev`.
 - [x] Commit: `feat(P0-T5): debug overlay toggle with D key`
+
+---
+
+## T6 — Frame-rate-aware gate + whole-frame motion mask (added 2026-11-02)
+
+Files: `src/webcam/diff.ts`, `src/game/collision.ts`, `src/game/loop.ts`,
+`src/ui/motionButton.ts`, `tools/motion-harness/`
+
+- [x] `computeMotionMask()` — whole-canvas stride sampling, returns moved
+  points + `changed` (duplicate-frame detection).
+- [x] `resolveHits(…, frameIsNew)` — gate counters untouched on duplicate
+  camera frames.
+- [x] `updateMotionPixels()` — publish the mask in display space every tick
+  (all phases) for motion buttons + debug overlay; fix y-scale (was `MOTION_W`).
+- [x] `MotionButton`: `MIN_MOTION_PIXELS = 3`, `IDLE_GRACE_MS = 150`.
+- [x] Unit tests: mask (identical / noise / block), gate across a duplicate
+  frame, pixel publishing, button fill / grace / reset.
+- [x] `tools/motion-harness`: synthetic 30 fps webcam in headless Chrome —
+  sweep: 0 hits before → 12 hits after; wave: START triggers with no keypress.
+- [x] Commit: `fix(P0-T6): hit gate ignores duplicate camera frames; motion buttons fed by whole-frame mask`

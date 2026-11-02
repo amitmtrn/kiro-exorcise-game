@@ -1,11 +1,20 @@
 /**
  * Motion button — a circular canvas button triggered by sustained hand motion.
- * Uses lastMotionPixels from collision.ts to detect motion inside the circle.
+ * Uses lastMotionPixels from collision.ts (the whole-frame motion mask in
+ * display space, published every tick) to detect motion inside the circle.
  */
 
 import { lastMotionPixels } from '../game/collision'
 
-const FILL_DURATION_MS = 800 // time to hold motion before triggering
+export const FILL_DURATION_MS = 800 // time to hold motion before triggering
+/** Sampled motion pixels that must fall inside the circle; filters sensor noise. */
+export const MIN_MOTION_PIXELS = 3
+/**
+ * A waving hand reverses direction a few times a second and is momentarily
+ * still at each turn, so frame differencing sees a frame or two of no motion.
+ * Keep filling through gaps shorter than this instead of resetting.
+ */
+export const IDLE_GRACE_MS = 150
 
 export class MotionButton {
   cx: number
@@ -14,6 +23,7 @@ export class MotionButton {
   label: string
   private fillStartTime = 0
   private filling = false
+  private lastMotionAt = Number.NEGATIVE_INFINITY
 
   constructor(cx: number, cy: number, radius: number, label: string) {
     this.cx = cx
@@ -24,13 +34,18 @@ export class MotionButton {
 
   /** Call each frame. Returns 'triggered' when fully filled. */
   update(now: number): 'idle' | 'filling' | 'triggered' {
-    const motionInside = lastMotionPixels.some((mp) => {
+    let inside = 0
+    const r2 = this.radius * this.radius
+    for (const mp of lastMotionPixels) {
       const dx = mp.x - this.cx
       const dy = mp.y - this.cy
-      return Math.sqrt(dx * dx + dy * dy) < this.radius
-    })
+      if (dx * dx + dy * dy < r2 && ++inside >= MIN_MOTION_PIXELS) break
+    }
+    const motionInside = inside >= MIN_MOTION_PIXELS
+    if (motionInside) this.lastMotionAt = now
+    const active = motionInside || (this.filling && now - this.lastMotionAt <= IDLE_GRACE_MS)
 
-    if (motionInside) {
+    if (active) {
       if (!this.filling) {
         this.filling = true
         this.fillStartTime = now

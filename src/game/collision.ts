@@ -8,7 +8,8 @@ import {
   incrementCombo, incrementBanished, setShake, addScoreLabels,
   SHAKE_FRAMES, SHAKE_COMBO_THRESHOLD,
 } from './state'
-import { computeFrameDiff, scaleHitbox, MOTION_W } from '../webcam/diff'
+import { computeFrameDiff, scaleHitbox, MOTION_W, MOTION_H } from '../webcam/diff'
+import type { MotionMask } from '../webcam/diff'
 import { spawnGhostPuff, spawnBatPuff, spawnScoreLabel } from './particles'
 import {
   sfxGhostHit, sfxBatHit, sfxSkullHit,
@@ -16,9 +17,27 @@ import {
 } from '../audio/sfx'
 
 const SPAWN_GRACE_MS = 300
+/** Consecutive *new camera frames* with motion in the hitbox needed to confirm a hit. */
 const HIT_FRAMES_REQUIRED = 2
 
+/**
+ * Display-space coordinates of every sampled pixel that moved in the most recent
+ * new camera frame. Fed by updateMotionPixels() every tick from the loop, read by
+ * the motion buttons (all screens) and the debug overlay.
+ */
 export let lastMotionPixels: Array<{ x: number; y: number }> = []
+
+/**
+ * Publish the whole-frame motion mask in display space. On a duplicate camera
+ * frame (mask.changed === false) the previous pixels are kept, so a held wave
+ * over a motion button is not interrupted by the camera's lower frame rate.
+ */
+export function updateMotionPixels(mask: MotionMask, displayW: number, displayH: number): void {
+  if (!mask.changed) return
+  const sx = displayW / MOTION_W
+  const sy = displayH / MOTION_H
+  lastMotionPixels = mask.points.map((p) => ({ x: p.x * sx, y: p.y * sy }))
+}
 
 /**
  * Enemies banished during the most recent resolveHits call, each with
@@ -45,9 +64,18 @@ export function resolveHits(
   displayW: number,
   displayH: number,
   now: number,
+  frameIsNew = true,
 ): GameState {
-  lastMotionPixels = []
   lastBanished = []
+
+  // Duplicate camera frame: the diff would be exactly zero everywhere, which
+  // used to reset every enemy's 2-frame gate on every other tick for a 30 fps
+  // webcam. Leave the gate counters alone and only let hit flashes expire.
+  if (!frameIsNew) {
+    return setEnemies(state, state.enemies.map((e) =>
+      e.hitFlashFrames > 0 ? { ...e, hitFlashFrames: e.hitFlashFrames - 1 } : e,
+    ))
+  }
 
   let s = state
   const updatedEnemies: Enemy[] = []
@@ -65,13 +93,6 @@ export function resolveHits(
 
     const scaledHitbox = scaleHitbox(enemy.hitbox, displayW, displayH)
     const diffResult = computeFrameDiff(currentData, prevData, scaledHitbox, MOTION_W)
-
-    if (diffResult) {
-      lastMotionPixels.push({
-        x: (scaledHitbox.x + scaledHitbox.w / 2) * (displayW / MOTION_W),
-        y: (scaledHitbox.y + scaledHitbox.h / 2) * (displayH / MOTION_W),
-      })
-    }
 
     const newHitCount = diffResult ? enemy.hitCount + 1 : 0
 

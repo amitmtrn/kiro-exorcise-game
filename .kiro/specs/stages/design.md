@@ -63,6 +63,15 @@ class MotionButton {
 Uses the existing motion-pixel data from `collision.ts` to detect sustained
 motion inside the circle hitbox.
 
+**Update 2026-11-02.** `lastMotionPixels` used to be filled only inside the
+per-enemy loop of `resolveHits`, and the start screen never called
+`resolveHits` at all, so no motion button could ever trigger. It is now the
+whole-frame motion mask (`computeMotionMask` → `updateMotionPixels`) published
+every tick in every phase. `update(now)` requires `MIN_MOTION_PIXELS = 3`
+sampled pixels inside the circle (filters sensor noise) and tolerates
+`IDLE_GRACE_MS = 150` of stillness (a waving hand stops at each reversal)
+before resetting the 800 ms fill.
+
 ## HUD additions
 
 - Stage name (top-center, small, dimmed).

@@ -164,3 +164,56 @@ export async function calibrateDiffThreshold(
   DIFF_THRESHOLD = threshold
   return threshold
 }
+
+// ─── Whole-frame motion mask ──────────────────────────────────────────────────
+
+export interface MotionMask {
+  /** Sampled pixels (motion-canvas coords) whose luminance moved > DIFF_THRESHOLD. */
+  points: Array<{ x: number; y: number }>
+  /** Number of pixels sampled (every `stride`-th pixel in both axes). */
+  sampled: number
+  /** Number of sampled pixels that moved. */
+  moved: number
+  /**
+   * False when the two frames are byte-identical in luminance at every sampled
+   * pixel. A live camera always carries sensor noise, so an exact match means the
+   * camera has not delivered a new frame since the previous tick (most webcams
+   * run at 30 fps or less while requestAnimationFrame runs at 60).
+   */
+  changed: boolean
+}
+
+/**
+ * Pure: samples the whole motion canvas on a `stride` grid and returns every
+ * sampled pixel that moved, plus whether the frame differs from the previous
+ * one at all. Cost at 320×180 / stride 4 is 3 600 samples — negligible.
+ */
+export function computeMotionMask(
+  currentData: ImageData,
+  prevData: ImageData,
+  canvasWidth: number,
+  canvasHeight: number,
+  stride: number = SAMPLE_STRIDE,
+): MotionMask {
+  const points: Array<{ x: number; y: number }> = []
+  let sampled = 0
+  let moved = 0
+  let changed = false
+  const cur = currentData.data
+  const prv = prevData.data
+
+  for (let y = 0; y < canvasHeight; y += stride) {
+    for (let x = 0; x < canvasWidth; x += stride) {
+      const idx = (y * canvasWidth + x) * 4
+      if (idx + 2 >= cur.length || idx + 2 >= prv.length) continue
+      const lumC = (cur[idx] * 77 + cur[idx + 1] * 150 + cur[idx + 2] * 29) >> 8
+      const lumP = (prv[idx] * 77 + prv[idx + 1] * 150 + prv[idx + 2] * 29) >> 8
+      const diff = Math.abs(lumC - lumP)
+      sampled++
+      if (diff !== 0) changed = true
+      if (diff > DIFF_THRESHOLD) { moved++; points.push({ x, y }) }
+    }
+  }
+
+  return { points, sampled, moved, changed }
+}

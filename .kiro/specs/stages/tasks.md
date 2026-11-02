@@ -14,7 +14,7 @@
 - [x] Commit: `feat(stages-T2): phase machine`
 
 ## T3 — Motion buttons (start screen + game over)
-- [x] Create `src/ui/motionButton.ts`.
+- [x] Create `src/ui/motionButton.ts`. _(Non-functional until hit-detection-fix T6, 2026-11-02: motion pixels were only ever produced per enemy.)_
 - [x] Replace start screen HTML button with motion pumpkin. _(Shipped as a generic glowing motion button, not pumpkin-shaped.)_
 - [x] Replace game-over HTML buttons with motion buttons.
 - [x] Commit: `feat(stages-T3): motion buttons`
