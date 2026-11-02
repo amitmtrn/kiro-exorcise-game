@@ -3,6 +3,7 @@
  */
 
 import { drawWebcamFrame } from '../webcam/capture'
+import { drawWebcamTint } from './atmosphere'
 import { captureFrame, calibrateDiffThreshold, MOTION_W, MOTION_H } from '../webcam/diff'
 import {
   createInitialState,
@@ -67,8 +68,9 @@ export async function startLoop(
     const displayW = webcamCtx.canvas.width
     const displayH = webcamCtx.canvas.height
 
-    // Always draw webcam feed
+    // Always draw webcam feed, then the haunted purple tint (spooky-skin R1.1)
     drawWebcamFrame(webcamCtx, video)
+    drawWebcamTint(webcamCtx)
 
     // Capture motion frame every tick for motion buttons to work on all screens
     captureFrame(currentCtx, video)

@@ -1,10 +1,10 @@
 # Spooky Skin — Tasks (P2)
 
 ## T1 — Webcam tint + fog + candle glow
-- [ ] Purple overlay on webcam canvas after `drawWebcamFrame`.
-- [ ] Fog layer in `renderFrame` (before enemies).
-- [ ] Candle glow radial gradients at screen edges.
-- [ ] Commit: `feat(skin-T1): tint, fog, candle glow`
+- [x] Purple overlay on webcam canvas after `drawWebcamFrame`.
+- [x] Fog layer in `renderFrame` (before enemies).
+- [x] Candle glow radial gradients at screen edges.
+- [x] Commit: `feat(skin-T1): tint, fog, candle glow`
 
 ## T2 — Improved enemy art
 - [ ] Ghost: trailing wisp + rounder body.

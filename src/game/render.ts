@@ -1,11 +1,12 @@
 /**
- * Game canvas rendering — enemies (procedural canvas shapes), particles,
- * boss health bar, red flash, and optional debug overlay.
+ * Game canvas rendering — fog + candle glow, enemies (procedural canvas
+ * shapes), particles, boss health bar, red flash, and optional debug overlay.
  */
 
 import type { GameState, Enemy, Particle } from './state'
 import { lastMotionPixels } from './collision'
 import { BOSS_HITS_NEEDED } from './enemies/boss'
+import { drawFog, drawCandleGlow } from './atmosphere'
 
 // ─── Debug mode ───────────────────────────────────────────────────────────────
 let debugMode = false
@@ -30,6 +31,10 @@ export function renderFrame(
   now: number,
 ): void {
   ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height)
+
+  // Atmosphere sits behind everything (spooky-skin R2)
+  drawFog(ctx, now)
+  drawCandleGlow(ctx, now)
 
   for (const enemy of state.enemies) drawEnemy(ctx, enemy, now)
   for (const p of state.particles) drawParticle(ctx, p)
