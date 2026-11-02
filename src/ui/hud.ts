@@ -1,62 +1,69 @@
 /**
- * HUD rendering — hearts, timer, score drawn onto the game canvas.
+ * HUD — hearts, timer, score, stage label, combo multiplier.
  */
 
 import type { GameState } from '../game/state'
-
-const HEART_FULL = '♥'
-const HEART_EMPTY = '♡'
-
-const COLOR_LIVES = '#c0392b'
-const COLOR_TIMER = '#ffd166'
-const COLOR_TIMER_LOW = '#c0392b'
-const COLOR_SCORE = '#ffd166'
+import { STAGES } from '../game/stages'
 
 export function renderHUD(ctx: CanvasRenderingContext2D, state: GameState, now: number): void {
+  if (state.phase !== 'playing') return
+
   const { width: W, height: H } = ctx.canvas
   const pad = 20
+  const fontSize = Math.max(22, Math.min(38, Math.round(W / 22)))
 
   ctx.save()
-  ctx.textBaseline = 'top'
+  ctx.shadowBlur = 10
 
   // ── Lives (top-left) ───────────────────────────────────────────────────────
-  ctx.font = 'bold 28px sans-serif'
-  ctx.shadowColor = COLOR_LIVES
-  ctx.shadowBlur = 10
-  ctx.fillStyle = COLOR_LIVES
-
-  let heartsStr = ''
-  for (let i = 0; i < 3; i++) {
-    heartsStr += i < state.lives ? HEART_FULL : HEART_EMPTY
-  }
-  ctx.fillText(heartsStr, pad, pad)
+  ctx.font = `bold ${fontSize}px sans-serif`
+  ctx.textBaseline = 'top'
+  ctx.shadowColor = '#c0392b'
+  ctx.fillStyle = '#c0392b'
+  let hearts = ''
+  for (let i = 0; i < 3; i++) hearts += i < state.lives ? '♥' : '♡'
+  ctx.fillText(hearts, pad, pad)
 
   // ── Timer (top-right) ──────────────────────────────────────────────────────
   const secsRemaining = Math.ceil(state.roundTimeMs / 1000)
   const mins = Math.floor(secsRemaining / 60)
   const secs = secsRemaining % 60
   const timerText = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`
-
   const isLow = state.roundTimeMs <= 10_000
-  // Flash at 1 Hz when low: visible for 500ms on, 500ms off
   const flashVisible = !isLow || Math.floor(now / 500) % 2 === 0
-
   if (flashVisible) {
-    ctx.font = 'bold 28px monospace'
-    ctx.shadowColor = isLow ? COLOR_TIMER_LOW : COLOR_TIMER
-    ctx.shadowBlur = 12
-    ctx.fillStyle = isLow ? COLOR_TIMER_LOW : COLOR_TIMER
-    const timerW = ctx.measureText(timerText).width
-    ctx.fillText(timerText, W - pad - timerW, pad)
+    ctx.font = `bold ${fontSize}px monospace`
+    ctx.shadowColor = isLow ? '#c0392b' : '#ffd166'
+    ctx.fillStyle = isLow ? '#c0392b' : '#ffd166'
+    const tw = ctx.measureText(timerText).width
+    ctx.fillText(timerText, W - pad - tw, pad)
   }
+
+  // ── Stage label (top-center) ───────────────────────────────────────────────
+  const cfg = STAGES[state.stage - 1]
+  ctx.font = `${Math.round(fontSize * 0.65)}px sans-serif`
+  ctx.shadowColor = 'rgba(232,232,240,0.5)'; ctx.shadowBlur = 6
+  ctx.fillStyle = 'rgba(232,232,240,0.55)'
+  ctx.textAlign = 'center'
+  ctx.fillText(`${cfg.name} — ${cfg.subtitle}`, W / 2, pad)
+  ctx.textAlign = 'left'
 
   // ── Score (bottom-left) ────────────────────────────────────────────────────
   ctx.textBaseline = 'bottom'
-  ctx.font = 'bold 24px sans-serif'
-  ctx.shadowColor = COLOR_SCORE
-  ctx.shadowBlur = 10
-  ctx.fillStyle = COLOR_SCORE
+  ctx.font = `bold ${fontSize}px sans-serif`
+  ctx.shadowColor = '#ffd166'; ctx.shadowBlur = 10
+  ctx.fillStyle = '#ffd166'
   ctx.fillText(`Score: ${state.score}`, pad, H - pad)
+
+  // ── Combo (bottom-right) ───────────────────────────────────────────────────
+  if (state.combo > 1) {
+    ctx.font = `bold ${Math.round(fontSize * 1.1)}px sans-serif`
+    ctx.shadowColor = '#39ff14'; ctx.shadowBlur = 14
+    ctx.fillStyle = '#39ff14'
+    const comboText = `x${state.combo}`
+    const cw = ctx.measureText(comboText).width
+    ctx.fillText(comboText, W - pad - cw, H - pad)
+  }
 
   ctx.restore()
 }

@@ -1,5 +1,5 @@
 /**
- * Game loop — drives the entire game tick by tick using requestAnimationFrame.
+ * Game loop — drives all phases via requestAnimationFrame.
  */
 
 import { drawWebcamFrame } from '../webcam/capture'
@@ -10,6 +10,9 @@ import {
   setEnemies,
   setParticles,
   decrementLife,
+  resetCombo,
+  incrementMissed,
+  saveHighScore,
 } from './state'
 import type { GameState } from './state'
 import { tickSpawners } from './enemies/spawn'
@@ -18,113 +21,160 @@ import { resolveHits } from './collision'
 import { tickParticles } from './particles'
 import { renderFrame } from './render'
 import { renderHUD } from '../ui/hud'
-import { showGameOver } from '../ui/screens'
+import {
+  renderStartScreen,
+  renderStageTitle,
+  renderSummary,
+  renderGameOver,
+} from '../ui/screens'
+import {
+  tickRound,
+  startGame,
+  retryStage,
+  advanceToNextStage,
+  spawnBoss,
+} from './round'
 
-/** Enemy center must be within this many px of its target to count as "reached center". */
 const CENTER_THRESHOLD = 40
-
 let rafId = 0
 
 export async function startLoop(
   video: HTMLVideoElement,
   webcamCtx: CanvasRenderingContext2D,
   gameCtx: CanvasRenderingContext2D,
-  onRestart: () => void,
-): Promise<void> {
-  // Fixed-size off-screen canvases for frame differencing (fast to sample)
+  initialStage = 1,
+): Promise<() => void> {
   const currentCanvas = document.createElement('canvas')
-  currentCanvas.width = MOTION_W
-  currentCanvas.height = MOTION_H
+  currentCanvas.width = MOTION_W; currentCanvas.height = MOTION_H
   const currentCtx = currentCanvas.getContext('2d')!
 
   const prevCanvas = document.createElement('canvas')
-  prevCanvas.width = MOTION_W
-  prevCanvas.height = MOTION_H
+  prevCanvas.width = MOTION_W; prevCanvas.height = MOTION_H
   const prevCtx = prevCanvas.getContext('2d')!
 
-  // Auto-calibrate threshold from 1 s of background noise
   await calibrateDiffThreshold(currentCtx, video, 1000)
-  // Prime the previous frame
   captureFrame(prevCtx, video)
 
-  let state: GameState = createInitialState()
+  let state: GameState = createInitialState(initialStage)
   let lastTimestamp = 0
 
   function tick(timestamp: number): void {
-    if (state.phase === 'gameover') {
-      showGameOver(state.score, onRestart)
-      return
-    }
-
     const deltaMs = lastTimestamp === 0 ? 16 : Math.min(timestamp - lastTimestamp, 100)
     lastTimestamp = timestamp
-
     const now = performance.now()
     const displayW = webcamCtx.canvas.width
     const displayH = webcamCtx.canvas.height
 
-    // 1. Draw mirrored webcam frame to display canvas
+    // Always draw webcam feed
     drawWebcamFrame(webcamCtx, video)
 
-    // 2. Capture current video frame (mirrored) to the small motion canvas
+    // Capture motion frame every tick for motion buttons to work on all screens
     captureFrame(currentCtx, video)
+    const currentData = currentCtx.getImageData(0, 0, MOTION_W, MOTION_H)
+    const prevData = prevCtx.getImageData(0, 0, MOTION_W, MOTION_H)
 
-    // 3. Tick spawn timers → may add new enemies
+    // ── Start screen ──────────────────────────────────────────────────────────
+    if (state.phase === 'start') {
+      renderFrame(gameCtx, state, now)
+      renderStartScreen(gameCtx, state, now, () => {
+        state = startGame(state)
+      })
+      prevCtx.drawImage(currentCanvas, 0, 0)
+      rafId = requestAnimationFrame(tick)
+      return
+    }
+
+    // ── Stage title card ──────────────────────────────────────────────────────
+    if (state.phase === 'stageTitle') {
+      state = tickRound(state, deltaMs, displayW, displayH)
+      renderFrame(gameCtx, state, now)
+      renderStageTitle(gameCtx, state)
+      prevCtx.drawImage(currentCanvas, 0, 0)
+      rafId = requestAnimationFrame(tick)
+      return
+    }
+
+    // ── Summary ───────────────────────────────────────────────────────────────
+    if (state.phase === 'summary') {
+      saveHighScore(state.highScore)
+      state = tickRound(state, deltaMs, displayW, displayH)
+      renderFrame(gameCtx, state, now)
+      // Run resolveHits so motion buttons work
+      state = resolveHits(state, currentData, prevData, displayW, displayH, now)
+      renderSummary(gameCtx, state, now, () => {
+        state = advanceToNextStage(state, displayW, displayH)
+      })
+      prevCtx.drawImage(currentCanvas, 0, 0)
+      rafId = requestAnimationFrame(tick)
+      return
+    }
+
+    // ── Game Over ─────────────────────────────────────────────────────────────
+    if (state.phase === 'gameover') {
+      saveHighScore(state.highScore)
+      // Run resolveHits so motion buttons work
+      state = resolveHits(state, currentData, prevData, displayW, displayH, now)
+      renderFrame(gameCtx, state, now)
+      renderGameOver(gameCtx, state, now,
+        () => { state = retryStage(state) },
+        () => { state = createInitialState(1) },
+      )
+      prevCtx.drawImage(currentCanvas, 0, 0)
+      rafId = requestAnimationFrame(tick)
+      return
+    }
+
+    // ── Playing ───────────────────────────────────────────────────────────────
+
+    // Stage 5: spawn boss once
+    if (state.stage === 5 && !state.bossActive) {
+      state = spawnBoss(state, displayW, displayH)
+    }
+
     state = tickSpawners(state, deltaMs, displayW, displayH)
 
-    // 4. Move all enemies one step
     const movedEnemies = moveEnemies(state.enemies, deltaMs)
     state = setEnemies(state, movedEnemies)
 
-    // 5. Check for enemies reaching center (ghost/bat only; skull has no arrival penalty)
+    // Check for enemies reaching center
     const survivors = state.enemies.filter((enemy) => {
-      if (enemy.type === 'skull') return true
-      const dx = enemy.x - enemy.targetX  // enemy.x/y is the CENTER
+      if (enemy.type === 'skull' || enemy.type === 'boss') return true
+      const dx = enemy.x - enemy.targetX
       const dy = enemy.y - enemy.targetY
       return Math.sqrt(dx * dx + dy * dy) > CENTER_THRESHOLD
     })
-    // Count non-skull enemies that reached center (didn't survive)
-    const nonSkullReached = state.enemies.filter((enemy) => {
-      if (enemy.type === 'skull') return false
+    const missedCount = state.enemies.filter((enemy) => {
+      if (enemy.type === 'skull' || enemy.type === 'boss') return false
       const dx = enemy.x - enemy.targetX
       const dy = enemy.y - enemy.targetY
       return Math.sqrt(dx * dx + dy * dy) <= CENTER_THRESHOLD
     }).length
+
     state = setEnemies(state, survivors)
-    for (let i = 0; i < nonSkullReached; i++) {
+    for (let i = 0; i < missedCount; i++) {
       state = decrementLife(state)
+      state = resetCombo(state)
+      state = incrementMissed(state)
     }
 
-    // 6. Resolve hits via frame differencing (grace period + 2-frame gate inside)
-    const currentData = currentCtx.getImageData(0, 0, MOTION_W, MOTION_H)
-    const prevData = prevCtx.getImageData(0, 0, MOTION_W, MOTION_H)
     state = resolveHits(state, currentData, prevData, displayW, displayH, now)
-
-    // 7. Tick round timer (may trigger gameover)
     state = tickTimer(state, deltaMs)
-
-    // 8. Tick particles
     state = setParticles(state, tickParticles(state.particles))
 
-    // 9. Render enemies, particles, flash
     renderFrame(gameCtx, state, now)
-
-    // 10. Render HUD on top
     renderHUD(gameCtx, state, now)
 
-    // 11. Copy currentFrame → prevFrame for next tick
     prevCtx.drawImage(currentCanvas, 0, 0)
-
-    // 12. Schedule next frame
     rafId = requestAnimationFrame(tick)
   }
 
   rafId = requestAnimationFrame(tick)
+
+  return () => {
+    if (rafId) { cancelAnimationFrame(rafId); rafId = 0 }
+  }
 }
 
 export function stopLoop(): void {
-  if (rafId) {
-    cancelAnimationFrame(rafId)
-    rafId = 0
-  }
+  if (rafId) { cancelAnimationFrame(rafId); rafId = 0 }
 }
