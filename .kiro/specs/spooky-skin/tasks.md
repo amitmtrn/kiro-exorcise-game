@@ -13,9 +13,9 @@
 - [x] Commit: `feat(skin-T2): improved enemy art`
 
 ## T3 — Hit flash + screen shake
-- [ ] 1-frame white flash on hit (render enemy in white fill for 1 frame via `hitFlashFrames` on enemy).
-- [ ] Screen shake on combo ≥ 3 hit.
-- [ ] Commit: `feat(skin-T3): hit flash + screen shake`
+- [x] 1-frame white flash on hit (render enemy in white fill for 1 frame via `hitFlashFrames` on enemy).
+- [x] Screen shake on combo ≥ 3 hit.
+- [x] Commit: `feat(skin-T3): hit flash + screen shake`
 
 ## T4 — Score pop labels
 - [ ] `ScoreLabel` type + spawn in `resolveHits`.

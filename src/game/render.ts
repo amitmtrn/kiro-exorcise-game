@@ -4,7 +4,8 @@
  */
 
 import type { GameState, Enemy, Particle } from './state'
-import { lastMotionPixels } from './collision'
+import { SHAKE_AMPLITUDE_PX } from './state'
+import { lastMotionPixels, lastBanished } from './collision'
 import { BOSS_HITS_NEEDED } from './enemies/boss'
 import { drawFog, drawCandleGlow } from './atmosphere'
 
@@ -32,11 +33,29 @@ export function renderFrame(
 ): void {
   ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height)
 
+  // Screen shake (spooky-skin R4.1): jitter the whole frame while shakeFrames > 0
+  ctx.save()
+  if (state.shakeFrames > 0) {
+    ctx.translate(
+      (Math.random() * 2 - 1) * SHAKE_AMPLITUDE_PX,
+      (Math.random() * 2 - 1) * SHAKE_AMPLITUDE_PX,
+    )
+  }
+
   // Atmosphere sits behind everything (spooky-skin R2)
   drawFog(ctx, now)
   drawCandleGlow(ctx, now)
 
-  for (const enemy of state.enemies) drawEnemy(ctx, enemy, now)
+  // Enemies — any with hitFlashFrames > 0 render in solid white (spooky-skin R4.2)
+  const whiteCtx = whiteFillProxy(ctx)
+  for (const enemy of state.enemies) {
+    drawEnemy(enemy.hitFlashFrames > 0 ? whiteCtx : ctx, enemy, now)
+  }
+  // Enemies banished this frame are gone from state but flash white once
+  if (state.phase === 'playing') {
+    for (const enemy of lastBanished) drawEnemy(whiteCtx, enemy, now)
+  }
+
   for (const p of state.particles) drawParticle(ctx, p)
 
   // Boss health bar
@@ -53,6 +72,26 @@ export function renderFrame(
   }
 
   if (debugMode) drawDebugOverlay(ctx, state, now)
+
+  ctx.restore() // undo shake translate
+}
+
+// ─── White-fill proxy (spooky-skin R4.2) ──────────────────────────────────────
+// Wraps a context so every fillStyle / strokeStyle / shadowColor write becomes
+// white. Lets the normal enemy draw routines produce a solid white silhouette
+// for the 1-frame hit flash without a second set of drawing code.
+const WHITE = '#ffffff'
+function whiteFillProxy(ctx: CanvasRenderingContext2D): CanvasRenderingContext2D {
+  return new Proxy(ctx, {
+    get(target, key) {
+      const v = Reflect.get(target, key)
+      return typeof v === 'function' ? v.bind(target) : v
+    },
+    set(target, key, value) {
+      const forced = key === 'fillStyle' || key === 'strokeStyle' || key === 'shadowColor'
+      return Reflect.set(target, key, forced ? WHITE : value)
+    },
+  })
 }
 
 // ─── Enemy dispatch ───────────────────────────────────────────────────────────

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { resolveHits } from './collision'
-import { createInitialState, makeEnemy } from './state'
+import { resolveHits, lastBanished } from './collision'
+import { createInitialState, makeEnemy, SHAKE_FRAMES } from './state'
 import type { Enemy } from './state'
 
 vi.mock('../webcam/diff', () => ({
@@ -131,5 +131,70 @@ describe('resolveHits — boss multi-hit', () => {
     const r = resolveHits(s, FAKE, FAKE, DW, DH, 1000)
     expect(r.enemies).toHaveLength(0)
     expect(r.score).toBe(1000)
+  })
+})
+
+describe('resolveHits — screen shake (spooky-skin R4.1)', () => {
+  it('a hit that brings combo to 3 sets shakeFrames', () => {
+    mockDiff.mockReturnValue(true)
+    const s = { ...createInitialState(), combo: 2, enemies: [enemy('ghost', 'g1', { hitCount: 1 })] }
+    const r = resolveHits(s, FAKE, FAKE, DW, DH, 1000)
+    expect(r.combo).toBe(3)
+    expect(r.shakeFrames).toBe(SHAKE_FRAMES)
+  })
+
+  it('a hit below combo 3 does not shake', () => {
+    mockDiff.mockReturnValue(true)
+    const s = { ...createInitialState(), combo: 1, enemies: [enemy('bat', 'b1', { hitCount: 1 })] }
+    const r = resolveHits(s, FAKE, FAKE, DW, DH, 1000)
+    expect(r.shakeFrames).toBe(0)
+  })
+
+  it('a skull hit never shakes', () => {
+    mockDiff.mockReturnValue(true)
+    const s = { ...createInitialState(), combo: 5, enemies: [enemy('skull', 's1', { hitCount: 1 })] }
+    const r = resolveHits(s, FAKE, FAKE, DW, DH, 1000)
+    expect(r.shakeFrames).toBe(0)
+  })
+})
+
+describe('resolveHits — 1-frame white hit flash (spooky-skin R4.2)', () => {
+  it('records a banished ghost in lastBanished with hitFlashFrames = 1', () => {
+    mockDiff.mockReturnValue(true)
+    const s = { ...createInitialState(), enemies: [enemy('ghost', 'g1', { hitCount: 1 })] }
+    const r = resolveHits(s, FAKE, FAKE, DW, DH, 1000)
+    expect(r.enemies).toHaveLength(0)
+    expect(lastBanished).toHaveLength(1)
+    expect(lastBanished[0].id).toBe('g1')
+    expect(lastBanished[0].hitFlashFrames).toBe(1)
+  })
+
+  it('clears lastBanished on the next call', () => {
+    mockDiff.mockReturnValue(true)
+    resolveHits({ ...createInitialState(), enemies: [enemy('ghost', 'g1', { hitCount: 1 })] }, FAKE, FAKE, DW, DH, 1000)
+    expect(lastBanished).toHaveLength(1)
+    mockDiff.mockReturnValue(false)
+    resolveHits(createInitialState(), FAKE, FAKE, DW, DH, 1016)
+    expect(lastBanished).toHaveLength(0)
+  })
+
+  it('a surviving pumpkin flashes for one frame after its first hit', () => {
+    mockDiff.mockReturnValue(true)
+    const s = { ...createInitialState(), enemies: [enemy('pumpkin', 'p1', { hitCount: 1, hitsReceived: 0, hitsNeeded: 2 })] }
+    const r = resolveHits(s, FAKE, FAKE, DW, DH, 1000)
+    expect(r.enemies[0].hitFlashFrames).toBe(1)
+
+    // Next frame with no motion: flash expires, enemy stays
+    mockDiff.mockReturnValue(false)
+    const r2 = resolveHits(r, FAKE, FAKE, DW, DH, 1016)
+    expect(r2.enemies).toHaveLength(1)
+    expect(r2.enemies[0].hitFlashFrames).toBe(0)
+  })
+
+  it('a boss that survives a hit flashes for one frame', () => {
+    mockDiff.mockReturnValue(true)
+    const s = { ...createInitialState(), enemies: [enemy('boss', 'b1', { hitCount: 1, bossHitsReceived: 0, hitsNeeded: 10 })] }
+    const r = resolveHits(s, FAKE, FAKE, DW, DH, 1000)
+    expect(r.enemies[0].hitFlashFrames).toBe(1)
   })
 })

@@ -14,6 +14,7 @@ import {
   resetCombo,
   incrementMissed,
   saveHighScore,
+  tickShake,
 } from './state'
 import type { GameState } from './state'
 import { tickSpawners } from './enemies/spawn'
@@ -129,6 +130,9 @@ export async function startLoop(
     }
 
     // ── Playing ───────────────────────────────────────────────────────────────
+
+    // Screen shake counts down one frame per tick (set by resolveHits below)
+    state = tickShake(state)
 
     // Stage 5: spawn boss once
     if (state.stage === 5 && !state.bossActive) {

@@ -9,8 +9,11 @@ import {
   incrementCombo,
   resetCombo,
   makeEnemy,
+  setShake,
+  tickShake,
   ROUND_DURATION_MS,
   STARTING_LIVES,
+  SHAKE_FRAMES,
 } from './state'
 import type { GameState, Particle } from './state'
 
@@ -130,5 +133,24 @@ describe('combo reducers', () => {
     s = resetCombo(s)
     expect(s.combo).toBe(1)
     expect(s.bestCombo).toBe(3)
+  })
+})
+
+describe('screen shake reducers (spooky-skin R4.1)', () => {
+  it('initial state has no shake and enemies start with no hit flash', () => {
+    expect(createInitialState().shakeFrames).toBe(0)
+    expect(enemy('x').hitFlashFrames).toBe(0)
+  })
+
+  it('setShake stores the frame count and clamps negatives to 0', () => {
+    expect(setShake(createInitialState(), SHAKE_FRAMES).shakeFrames).toBe(SHAKE_FRAMES)
+    expect(setShake(createInitialState(), -5).shakeFrames).toBe(0)
+  })
+
+  it('tickShake counts down one frame per call and stops at 0', () => {
+    let s = setShake(createInitialState(), 2)
+    s = tickShake(s); expect(s.shakeFrames).toBe(1)
+    s = tickShake(s); expect(s.shakeFrames).toBe(0)
+    s = tickShake(s); expect(s.shakeFrames).toBe(0)
   })
 })

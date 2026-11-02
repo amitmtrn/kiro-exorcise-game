@@ -36,6 +36,8 @@ export interface Enemy {
   hitsNeeded: number
   // Boss-specific
   bossHitsReceived: number
+  // Spooky-skin R4.2 — frames left to render this enemy in solid white
+  hitFlashFrames: number
 }
 
 export interface Particle {
@@ -78,6 +80,7 @@ export interface GameState {
   highScore: number       // all-time high score from localStorage
   summaryShownMs: number  // how long summary has been shown
   bossActive: boolean     // stage 5 boss spawned
+  shakeFrames: number     // spooky-skin R4.1 — frames of screen shake remaining
 }
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -86,6 +89,11 @@ export const ROUND_DURATION_MS = 60_000
 export const STARTING_LIVES = 3
 export const STAGE_TITLE_DURATION_MS = 3_000
 export const SUMMARY_AUTO_ADVANCE_MS = 5_000
+
+// Spooky-skin R4.1 — screen shake fires on a hit at combo ≥ 3, ±4 px for 3 frames
+export const SHAKE_FRAMES = 3
+export const SHAKE_COMBO_THRESHOLD = 3
+export const SHAKE_AMPLITUDE_PX = 4
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -99,6 +107,7 @@ export function makeEnemy(partial: Partial<Enemy> & Pick<Enemy, 'id' | 'type' | 
     hitsReceived: 0,
     hitsNeeded: 1,
     bossHitsReceived: 0,
+    hitFlashFrames: 0,
     ...partial,
   }
 }
@@ -144,6 +153,7 @@ export function createInitialState(stage = 1): GameState {
     highScore: loadHighScore(),
     summaryShownMs: 0,
     bossActive: false,
+    shakeFrames: 0,
   }
 }
 
@@ -212,4 +222,16 @@ export function incrementBanished(state: GameState): GameState {
 
 export function incrementMissed(state: GameState): GameState {
   return { ...state, stageMissed: state.stageMissed + 1 }
+}
+
+// ─── Screen shake (spooky-skin R4.1) ──────────────────────────────────────────
+
+export function setShake(state: GameState, frames: number): GameState {
+  return { ...state, shakeFrames: Math.max(0, frames) }
+}
+
+/** Decrements the shake counter by one frame; call once per tick before rendering. */
+export function tickShake(state: GameState): GameState {
+  if (state.shakeFrames === 0) return state
+  return { ...state, shakeFrames: state.shakeFrames - 1 }
 }
