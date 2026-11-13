@@ -3,7 +3,7 @@
  */
 
 import './style.css'
-import { initWebcam } from './webcam/capture'
+import { initWebcam, stopWebcam } from './webcam/capture'
 import { startLoop, requestStart } from './game/loop'
 import { showCameraDenied, classifyCameraError, runOnboarding } from './ui/onboarding'
 import { createOnboarding, onboardingReducer, hasSeenOnboarding, getLocalStorage } from './game/onboarding'
@@ -89,8 +89,7 @@ async function boot(): Promise<void> {
   // First run: silhouette guide + how-to over the live camera, then the usual flow.
   if (onboarding.step !== 'done') {
     const result = await runOnboarding(video, webcamCtx, gameCtx, storage, onboarding, (s) => { onboarding = s })
-    if (result === 'cameraLost') { denyCamera({ name: 'NotReadableError' }); return }
-    onboarding = onboardingReducer(onboarding, { type: 'skip' })
+    if (result === 'cameraLost') { stopWebcam(video); denyCamera({ name: 'NotReadableError' }); return }
   }
 
   await startLoop(video, webcamCtx, gameCtx)

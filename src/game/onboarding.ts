@@ -38,6 +38,7 @@ export type OnboardingEvent =
   | { type: 'skip' }
   | { type: 'cameraDenied' }
   | { type: 'retry' }
+  | { type: 'noFrame' }
   | { type: 'framing'; status: FramingStatus; deltaMs: number }
 
 const FRAMING_RESET = { framing: null, framingOkMs: 0 } as const
@@ -77,13 +78,17 @@ export function onboardingReducer(s: OnboardingState, e: OnboardingEvent): Onboa
         return { ...s, step: 'guide', resume: 'guide', ...FRAMING_RESET }
       }
       return s
-    case 'framing':
+    case 'noFrame':
+      if (s.step !== 'guide' || s.framing === null) return s
+      return { ...s, ...FRAMING_RESET }
+    case 'framing': {
       if (s.step !== 'guide') return s
       // The first ok sample after a non-ok (or first) one only starts the clock:
       // stability is measured over observed ok time, not the interval before it.
       const base = s.framing === 'ok' ? s.framingOkMs : 0
       const ms = e.status === 'ok' && s.framing !== 'ok' ? 0 : tickFraming(base, e.status, e.deltaMs)
       return { ...s, framing: e.status, framingOkMs: ms }
+    }
   }
 }
 

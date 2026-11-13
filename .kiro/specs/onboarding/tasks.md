@@ -70,3 +70,17 @@ Files: `src/ui/onboarding.ts`, `src/ui/fonts.ts`, `src/main.ts`, `src/game/loop.
 - [x] Tests: `onboarding.run.test.ts` (wiring, ended track, stall, instructions, CSS guards), `fonts.test.ts`.
 - [x] `npm test` and `npm run build` both clean.
 - [x] Commit: `fix(onboarding): resume step on camera loss, calibration latch, polish`
+
+## T8 — Third review fixes
+Files: `src/ui/onboarding.ts`, `src/game/onboarding.ts`, `src/main.ts`, `src/webcam/capture.ts`, `src/style.css`, tests, specs, README
+
+- [x] Keyboard tests (Enter/Space/Escape, `repeat`, BUTTON target, listener removal) and start-latch tests before/during calibration (R8.1, R3.3).
+- [x] `noFrame` event clears stale framing/hint while video stalls (R8.3 / R8.2).
+- [x] Prolonged track `mute` → `cameraLost` (`MUTE_LOST_MS`); tests (R8.3).
+- [x] `stopWebcam` releases old stream on retry and on failed setup; tests (R8.3).
+- [x] Removed dead `skip` reduce in `main.ts`; focus stays on Back (R8.4); braces around `case 'framing'`.
+- [x] Sticky button row + very-short-window rule (R8.4).
+- [x] Property test asserts the persisting event is Skip or final Next (R7.1); `noFrame` added to the event arbitrary.
+- [x] Docs: design (rAF location, `tickFraming` signature, skin-tone note), R5.3/R5.4 order, README email autolink.
+- [x] `npm test` and `npm run build` both clean.
+- [x] Commit: `fix(onboarding): ...`

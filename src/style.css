@@ -197,6 +197,20 @@ html, body {
   overflow-y: auto;
 }
 
+/* Buttons stay reachable even if the panel has to scroll on a very short window */
+.onboarding-buttons {
+  position: sticky;
+  bottom: 0;
+  background: rgba(13, 0, 20, 0.92);
+  z-index: 1;
+}
+
+/* Very short windows: drop the decorative dots to make room */
+@media (max-height: 400px) {
+  .onboarding-dots { display: none; }
+  .onboarding-body { font-size: 0.95rem; }
+}
+
 /* Short landscape windows: compact panel so it still fits in 40 % */
 @media (max-height: 560px) {
   .onboarding { gap: 0.25rem; padding: 0.6rem 1rem 0.7rem; }

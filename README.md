@@ -25,7 +25,7 @@ npm run dev
 
 | Command | What it does |
 |---|---|
-| `npm test` | Run all 792 unit tests (Vitest) |
+| `npm test` | Run all 806 unit tests (Vitest) |
 | `npm run build` | Production build → `dist/` |
 | `npm run preview` | Preview the production build locally |
 
@@ -220,7 +220,7 @@ tools/
 
 ## Credits
 
-- **Creepster** display font — designed by Font Diner, Inc (<diner@fontdiner.com>), licensed under the SIL Open Font License 1.1. Self-hosted from `src/assets/fonts/Creepster-Regular.ttf`; no CDN. Licence text: [`src/assets/fonts/OFL.txt`](src/assets/fonts/OFL.txt). Source: the `ofl/creepster` directory of the [google/fonts](https://github.com/google/fonts) repository.
+- **Creepster** display font — designed by Font Diner, Inc, licensed under the SIL Open Font License 1.1. Self-hosted from `src/assets/fonts/Creepster-Regular.ttf`; no CDN. Licence text: [`src/assets/fonts/OFL.txt`](src/assets/fonts/OFL.txt). Source: the `ofl/creepster` directory of the [google/fonts](https://github.com/google/fonts) repository.
 
 ## License
 

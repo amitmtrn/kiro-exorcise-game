@@ -105,12 +105,12 @@ using the camera) and the privacy line.
 `SecurityError`) from "no camera / camera busy" (`NotFoundError`,
 `NotReadableError`, others) by `classifyCameraError`.
 
+**R5.3** The screen is link-free: no `<a>` element, no `http(s)://` or
+`chrome://` text. A "Try again" button re-requests the camera.
+
 **R5.4** Instructions are ordered by kind: for "no camera / busy" the device check
 comes first and the permission step is conditional; for "blocked" the browser-setting
 steps come first.
-
-**R5.3** The screen is link-free: no `<a>` element, no `http(s)://` or
-`chrome://` text. A "Try again" button re-requests the camera.
 
 ---
 
@@ -161,6 +161,15 @@ advance onboarding cards.
 
 **R8.2** Losing the camera mid-onboarding shows the camera-denied screen and
 Try again resumes the same step and card (`runOnboarding` shares its state with the caller). A track that had already ended also counts as lost. Space pressed during the 1 s calibration never skips the title. Framing samples are skipped until the video has
-a frame, and framing state resets when the guide is re-entered.
+a frame, and framing state resets when the guide is re-entered or the video stalls (no stale "Looking good!" over a frozen picture).
+
+**R8.3** A camera track that stays `muted` for 3 s counts as lost (same path as
+`ended`); a mute that recovers sooner does not. The old stream is stopped and
+detached before a retry requests a new one, and also when setup fails after
+permission was granted.
+
+**R8.4** After Back, keyboard focus stays on Back while it is visible (otherwise
+on Next), so repeated Enter keeps going the same direction. The panel's buttons
+stay reachable (sticky) if the panel has to scroll on a very short window.
 
 ---

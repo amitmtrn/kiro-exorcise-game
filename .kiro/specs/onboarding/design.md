@@ -10,7 +10,7 @@ boot()
        └─ first run ─▶ runOnboarding(video)  ─▶ finish | skip ─▶ set flag ─▶ startLoop
 ```
 
-Onboarding runs in its own small `requestAnimationFrame` loop in `main.ts`
+Onboarding runs in its own small `requestAnimationFrame` loop (`runOnboarding` in `src/ui/onboarding.ts`, called from `main.ts`)
 *before* `startLoop`, so `GamePhase`, `loop.ts` and the existing screens are not
 touched. It reuses `drawWebcamFrame` + `drawWebcamTint` for the mirrored view and
 draws the guide on the game canvas. Text and buttons are an HTML panel in `#ui`
@@ -72,7 +72,7 @@ draws the video into a 64×36 canvas and reads it every `FRAMING_INTERVAL_MS`
   neighbour by ≥ 24 is < 0.04.
 - else `ok`.
 
-`tickFraming(state, status, deltaMs)` adds `deltaMs` to `framingOkMs` when `ok`
+`tickFraming(okMs, status, deltaMs)` adds `deltaMs` to `framingOkMs` when `ok`
 and resets it otherwise; "Looking good!" shows at ≥ 1000 ms.
 
 ## Guide silhouette (procedural)
@@ -130,11 +130,20 @@ synthetic bold).
 `showCameraDenied` → `retry` → `boot()` resumes the same step (R1.4, R5). The
 font load runs in parallel with `getUserMedia`. Space is ignored by the global
 start handler when a button is the target, `e.repeat` is ignored in the
-onboarding key handler, and `startLoop` clears the Space start latch.
+onboarding key handler, and `startLoop` clears the Space start latch (before and
+after calibration). A `noFrame` reducer event resets framing state while the
+video has no frame. A track `mute` lasting `MUTE_LOST_MS` (3 s) resolves
+`'cameraLost'`. `stopWebcam` stops tracks and nulls `srcObject` before a retry
+(and inside `initWebcam` when setup fails). The panel remembers the last
+activated button so Back keeps focus; the button row is `position: sticky`.
+`isSkin` (`r > 95`) is deliberately conservative: `too-close` is advisory and may
+not fire for darker skin tones or dim light; Skip/Next are never blocked.
 
 ## Testing
 
 - `src/game/onboarding.test.ts`, `onboarding.property.test.ts`
 - `src/webcam/framing.test.ts`, `framing.property.test.ts`
+- `src/ui/onboarding.run.test.ts`: fake-DOM wiring: keyboard (Enter/Space/Escape, repeat, button target, listener removal), focus, mute, stall, camera loss
+- `src/game/loop.latch.test.ts`: start latch before/during calibration
 - `src/ui/onboarding.test.ts`: `guideGeometry` bounds, `classifyCameraError`, denied copy link-free (pure helpers only; no DOM in the node test env)
 - `tools/fonts.test.mjs`: sources scanned for `http(s)` in font references.

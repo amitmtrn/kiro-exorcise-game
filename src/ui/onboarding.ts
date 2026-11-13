@@ -152,6 +152,9 @@ export function drawGuide(ctx: CanvasRenderingContext2D, stable: boolean, timeMs
 const SAMPLE_W = 64
 const SAMPLE_H = 36
 
+/** A camera track muted this long is treated as lost (R8.2). */
+export const MUTE_LOST_MS = 3000
+
 export type OnboardingResult = 'done' | 'cameraLost'
 
 /**
@@ -195,6 +198,12 @@ export function runOnboarding(
     const tracks = video.srcObject instanceof MediaStream ? video.srcObject.getVideoTracks() : []
     const onTrackEnded = (): void => finish('cameraLost')
     for (const t of tracks) t.addEventListener('ended', onTrackEnded)
+    // A track muted for a while (camera taken by another app, black frames) counts as lost too;
+    // a brief mute that recovers does not.
+    let muteTimer: ReturnType<typeof setTimeout> | null = null
+    const clearMute = (): void => { if (muteTimer !== null) { clearTimeout(muteTimer); muteTimer = null } }
+    const onMute = (): void => { if (muteTimer === null) muteTimer = setTimeout(() => finish('cameraLost'), MUTE_LOST_MS) }
+    for (const t of tracks) { t.addEventListener('mute', onMute); t.addEventListener('unmute', clearMute) }
     // A track that already ended never fires again; resolve once the panel is up.
     const alreadyEnded = tracks.some((t) => t.readyState === 'ended')
 
@@ -203,7 +212,12 @@ export function runOnboarding(
       finished = true
       cancelAnimationFrame(rafId)
       window.removeEventListener('keydown', onKey, true)
-      for (const t of tracks) t.removeEventListener('ended', onTrackEnded)
+      clearMute()
+      for (const t of tracks) {
+        t.removeEventListener('ended', onTrackEnded)
+        t.removeEventListener('mute', onMute)
+        t.removeEventListener('unmute', clearMute)
+      }
       panel.root.remove()
       gameCtx.clearRect(0, 0, gameCtx.canvas.width, gameCtx.canvas.height)
       resolve(result)
@@ -233,8 +247,11 @@ export function runOnboarding(
 
       if (state.step === 'guide') {
         // No frame yet (or stalled): don't bank time, so ok-time only counts observed samples.
-        if (video.readyState < 2) sinceSample = 0
-        else sinceSample += deltaMs
+        if (video.readyState < 2) {
+          sinceSample = 0
+          // Don't leave "Looking good!" over a frozen picture.
+          if (state.framing !== null) { dispatch({ type: 'noFrame' }); panel.setFraming(state) }
+        } else sinceSample += deltaMs
         if (sinceSample >= FRAMING_INTERVAL_MS) {
           const elapsed = sinceSample
           sinceSample = 0
@@ -285,6 +302,7 @@ function buildPanel(): Panel {
   buttons.append(skip, back, next)
   root.append(title, body, hint, dots, buttons, privacy)
 
+  let focusTarget: HTMLButtonElement | null = null
   const panel: Panel = {
     root,
     onNext: () => {}, onBack: () => {}, onSkip: () => {},
@@ -307,7 +325,9 @@ function buildPanel(): Panel {
         back.hidden = false
         next.textContent = s.howtoIndex === HOWTO_STEPS.length - 1 ? 'Let’s play!' : 'Next'
       }
-      next.focus()
+      // Keep focus on the button the player just used if it is still shown (Back, then Enter, goes back again).
+      const target = focusTarget && !focusTarget.hidden ? focusTarget : next
+      target.focus()
     },
     setFraming(s) {
       if (s.framing === null) { hint.textContent = ''; delete hint.dataset.status; return }
@@ -315,8 +335,8 @@ function buildPanel(): Panel {
       hint.dataset.status = s.framing
     },
   }
-  next.addEventListener('click', () => panel.onNext())
-  back.addEventListener('click', () => panel.onBack())
+  next.addEventListener('click', () => { focusTarget = next; panel.onNext() })
+  back.addEventListener('click', () => { focusTarget = back; panel.onBack() })
   skip.addEventListener('click', () => panel.onSkip())
   return panel
 }

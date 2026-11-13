@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { initWebcam, drawWebcamFrame } from './capture'
+import { initWebcam, stopWebcam, drawWebcamFrame } from './capture'
 
 describe('initWebcam', () => {
   beforeEach(() => {
@@ -51,5 +51,38 @@ describe('drawWebcamFrame', () => {
     expect(scale).toHaveBeenCalledWith(-1, 1)
     expect(drawImage).toHaveBeenCalledWith(video, 0, 0, 640, 480)
     expect(restore).toHaveBeenCalledOnce()
+  })
+})
+
+describe('stopWebcam', () => {
+  it('stops every track and detaches the stream', () => {
+    const stop = vi.fn()
+    const video = { srcObject: { getTracks: () => [{ stop }, { stop }] } } as unknown as HTMLVideoElement
+    stopWebcam(video)
+    expect(stop).toHaveBeenCalledTimes(2)
+    expect(video.srcObject).toBeNull()
+  })
+
+  it('is safe when nothing is attached', () => {
+    const video = { srcObject: null } as unknown as HTMLVideoElement
+    expect(() => stopWebcam(video)).not.toThrow()
+  })
+})
+
+describe('initWebcam cleanup', () => {
+  it('releases the stream when play() rejects after permission was granted', async () => {
+    const stop = vi.fn()
+    const stream = { getTracks: () => [{ stop }] }
+    vi.stubGlobal('navigator', { mediaDevices: { getUserMedia: vi.fn().mockResolvedValue(stream) } })
+    const video = {
+      srcObject: null as unknown, playsInline: false, muted: false,
+      addEventListener: (t: string, f: () => void) => { if (t === 'loadedmetadata') f() },
+      play: () => Promise.reject(new Error('play blocked')),
+    }
+    vi.stubGlobal('document', { createElement: () => video })
+    await expect(initWebcam()).rejects.toThrow('play blocked')
+    expect(stop).toHaveBeenCalledOnce()
+    expect(video.srcObject).toBeNull()
+    vi.unstubAllGlobals()
   })
 })

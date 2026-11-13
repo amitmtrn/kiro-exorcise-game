@@ -7,17 +7,31 @@ export async function initWebcam(): Promise<HTMLVideoElement> {
   const stream = await navigator.mediaDevices.getUserMedia({ video: true })
 
   const video = document.createElement('video')
-  video.srcObject = stream
-  video.playsInline = true
-  video.muted = true
+  try {
+    video.srcObject = stream
+    video.playsInline = true
+    video.muted = true
 
-  await new Promise<void>((resolve, reject) => {
-    video.addEventListener('loadedmetadata', () => resolve(), { once: true })
-    video.addEventListener('error', () => reject(new Error('Video element error')), { once: true })
-  })
+    await new Promise<void>((resolve, reject) => {
+      video.addEventListener('loadedmetadata', () => resolve(), { once: true })
+      video.addEventListener('error', () => reject(new Error('Video element error')), { once: true })
+    })
 
-  await video.play()
-  return video
+    await video.play()
+    return video
+  } catch (err) {
+    stopWebcam(video) // don't keep the camera lit when setup fails after permission was granted
+    throw err
+  }
+}
+
+/** Stops every track and detaches the stream so the camera is released before a retry. */
+export function stopWebcam(video: HTMLVideoElement): void {
+  const src = video.srcObject
+  if (src && typeof (src as MediaStream).getTracks === 'function') {
+    (src as MediaStream).getTracks().forEach((t) => t.stop())
+  }
+  video.srcObject = null
 }
 
 /**

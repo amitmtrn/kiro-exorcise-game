@@ -8,6 +8,7 @@ const eventArb: fc.Arbitrary<OnboardingEvent> = fc.oneof(
   fc.constant<OnboardingEvent>({ type: 'skip' }),
   fc.constant<OnboardingEvent>({ type: 'cameraDenied' }),
   fc.constant<OnboardingEvent>({ type: 'retry' }),
+  fc.constant<OnboardingEvent>({ type: 'noFrame' }),
   fc.record({
     type: fc.constant('framing' as const),
     status: fc.constantFrom('ok', 'too-dark', 'too-close', 'low-detail' as const),
@@ -36,7 +37,12 @@ describe('onboarding reducer (property)', () => {
       let persists = 0
       for (const e of events) {
         const n = onboardingReducer(s, e)
-        if (shouldPersist(s, n)) persists++
+        if (shouldPersist(s, n)) {
+          persists++
+          // R7.1: the flag only flips on Skip, or on Next from the last card.
+          expect(e.type === 'skip' || (e.type === 'next' && s.step === 'howto' && s.howtoIndex === 2)).toBe(true)
+        }
+        if (!s.seen && n.seen) expect(shouldPersist(s, n)).toBe(true)
         if (s.seen) expect(n.seen).toBe(true)
         s = n
       }
