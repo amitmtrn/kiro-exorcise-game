@@ -104,6 +104,8 @@ export interface GameState {
   highScore: number       // all-time high score from localStorage
   summaryShownMs: number  // how long summary has been shown
   bossActive: boolean     // stage 5 boss spawned
+  waveIndex: number       // next scripted wave event to fire (waves spec)
+  bonus: boolean          // playing the bonus round after the stage's summary (waves spec)
   shakeFrames: number     // spooky-skin R4.1 — frames of screen shake remaining
 }
 
@@ -190,6 +192,8 @@ export function createInitialState(stage = 1): GameState {
     highScore: loadHighScore(),
     summaryShownMs: 0,
     bossActive: false,
+    waveIndex: 0,
+    bonus: false,
     shakeFrames: 0,
   }
 }

@@ -5,8 +5,8 @@
 | File | Role |
 |---|---|
 | `src/game/paths.ts` (new, pure) | `PathSpec`, `pathPosition`, `pathDurationMs`, `pathExits`, `makePath`, `makeSwarm` |
-| `src/game/waves.ts` (new, data + pure helpers) | `WaveScript`, `STAGE_SCRIPTS`, `BONUS_ROUND`, `intensityAt`, `spawnRateFor`, `speedFactorFor`, `pickPath`, `stageLabel` |
-| `src/game/stages.ts` | `StageConfig.waves?: WaveScript`, `StageConfig.bonusAfter?: BonusRound` |
+| `src/game/waves.ts` (new, data + pure helpers) | `WaveScript`, `STAGE_SCRIPTS`, `BONUS_ROUND`, `intensityAt`, `spawnRateFor`, `speedFactorFor`, `pickPath` |
+| `src/game/stages.ts` | `StageConfig.waves?: WaveScript`, `StageConfig.bonusAfter?: BonusRound`, `stageLabel(state)` |
 | `src/game/enemies/waveSpawn.ts` (new) | `spawnWave(kind, path, count, opts)` builds `Enemy[]` with a path; `createCandy` in `candy.ts` |
 | `src/game/enemies/reach.ts` (new) | `isThreat`, `splitReached` (the "reached its target" rule moved out of `loop.ts`) |
 | `src/game/enemies/spawn.ts` | intensity-scaled timers, path choice, scripted events, bonus branch |

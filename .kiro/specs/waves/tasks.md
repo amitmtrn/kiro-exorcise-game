@@ -12,12 +12,12 @@ Files: `src/game/paths.ts`, `src/game/paths.test.ts`, `src/game/paths.property.t
 ## T2 — Wave scripts, intensity curves, bonus config
 Files: `src/game/waves.ts`, `src/game/stages.ts`, `src/game/waves.test.ts`
 
-- [ ] `WaveScript`, `STAGE_SCRIPTS` for stages 1–4 (none for 5), `BONUS_ROUND`, `intensityAt`, `spawnRateFor`, `speedFactorFor`, `pickPath`, `stageLabel`; `StageConfig.waves` / `bonusAfter` (stage 2).
-- [ ] Unit tests: kinds enabled in `enemyMix`, events ordered and inside the stage, weights positive, no `drop` on `leftRight` stages, bats only flyby / swarm, boss stage untouched.
-- [ ] Unit tests: intensity starts ≤ 0.3, non-decreasing up to `peakAt`, max at `peakAt`, peaks rise per stage with stage 4 = 1.0, mapping functions monotonic.
-- [ ] Unit tests: bonus config has no ghost / skull / lunger, only exiting paths, 15 s.
-- [ ] `npm test` and `npm run build` both clean.
-- [ ] Commit: `feat(waves-T2): wave scripts, intensity curves, bonus config`
+- [x] `WaveScript`, `STAGE_SCRIPTS` for stages 1–4 (none for 5), `BONUS_ROUND`, `intensityAt`, `spawnRateFor`, `speedFactorFor`, `pickPath`; `StageConfig.waves` / `bonusAfter` (stage 2), `stageLabel` in `stages.ts`; `GameState.waveIndex` / `bonus` (initial values).
+- [x] Unit tests: kinds enabled in `enemyMix`, events ordered and inside the stage, weights positive, no `drop` on `leftRight` stages, bats only flyby / swarm, boss stage untouched.
+- [x] Unit tests: intensity starts ≤ 0.3, non-decreasing up to `peakAt`, max at `peakAt`, peaks rise per stage with stage 4 = 1.0, mapping functions monotonic.
+- [x] Unit tests: bonus config has no ghost / skull / lunger, only exiting paths, 15 s.
+- [x] `npm test` and `npm run build` both clean.
+- [x] Commit: `feat(waves-T2): wave scripts, intensity curves, bonus config`
 
 ## T3 — Path movement, culling, reach rule, candy type
 Files: `src/game/state.ts`, `src/game/enemies/candy.ts`, `src/game/enemies/movement.ts`, `src/game/enemies/reach.ts`, `src/game/enemies/waveSpawn.ts`, `src/game/loop.ts`, tests
