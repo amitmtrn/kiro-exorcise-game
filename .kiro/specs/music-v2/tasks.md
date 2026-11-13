@@ -3,10 +3,10 @@
 ## T1 — Pattern data and parser
 Files: `src/audio/music/patterns.ts`, `src/audio/music/patterns.test.ts`
 
-- [ ] `TrackDef`, `parseTrack`, note-name parser, bar helpers, and six original tracks (`title`, `stage1`–`stage4`, `boss`).
-- [ ] Tests: every track parses; equal voice lengths, whole bars; pitches in the allowed scale; bpm 60–160; transposition −5…+5; malformed input throws.
-- [ ] Run `npm test` and `npm run build`; both clean.
-- [ ] Commit: `feat(music-v2-T1): original track patterns and parser`
+- [x] `TrackDef`, `parseTrack`, note-name parser, bar helpers, and six original tracks (`title`, `stage1`–`stage4`, `boss`).
+- [x] Tests: every track parses; equal voice lengths, whole bars; pitches in the allowed scale; bpm 60–160; transposition −5…+5; malformed input throws.
+- [x] Run `npm test` and `npm run build`; both clean.
+- [x] Commit: `feat(music-v2-T1): original track patterns and parser`
 
 ## T2 — Look-ahead step scheduler
 Files: `src/audio/music/scheduler.ts`, `src/audio/music/scheduler.test.ts`, `src/audio/music/scheduler.property.test.ts`
