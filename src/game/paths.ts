@@ -47,6 +47,11 @@ export interface PathOptions {
 
 const MARGIN_H = 0.12
 const MIN_MARGIN_PX = 64
+/** Shortest allowed line / arc chord, in canvas heights. */
+const MIN_CHORD_H = 0.85
+/** Swarm lanes stay inside the playable band (waves R1.3). */
+const LANE_MIN = 0.15
+const LANE_MAX = 0.8
 
 /** The extended box every position must stay in: the canvas plus this many px. */
 export function marginPx(H: number): number {
@@ -149,8 +154,16 @@ export function makePath(kind: PathKind, o: PathOptions): PathSpec {
 
   // line / arc: edge → a spread-out point in the play area (never the centre on purpose)
   const start = edgeStart(r, W, H, o.edges ?? 'all')
-  const x1 = between(r, 0.2, 0.8)
-  const y1 = between(r, 0.25, 0.75)
+  // Resample (a few times) until the walk is long enough to be fair: ≥ MIN_CHORD_H
+  // canvas heights, so the shortest time to a lost life stays about 4 s in stage 1.
+  let x1 = 0, y1 = 0, best = -1
+  for (let i = 0; i < 8; i++) {
+    const cx = between(r, 0.2, 0.8)
+    const cy = between(r, 0.25, 0.75)
+    const d = Math.hypot((cx - start.x) * W, (cy - start.y) * H) / H
+    if (d > best) { best = d; x1 = cx; y1 = cy }
+    if (d >= MIN_CHORD_H) break
+  }
   let bend = 0
   if (kind === 'arc') {
     const mag = between(r, 0.08, 0.18)
@@ -164,6 +177,8 @@ export function makePath(kind: PathKind, o: PathOptions): PathSpec {
   }
   return { ...base, kind, x0: start.x, y0: start.y, x1, y1, bend }
 }
+
+const clampLane = (y: number) => Math.min(LANE_MAX, Math.max(LANE_MIN, y))
 
 /**
  * A small cluster of flyby members moving together: one lane each (lateral
@@ -181,8 +196,8 @@ export function makeSwarm(count: number, o: PathOptions): PathSpec[] {
     // shift never moves the start / exit points off their margin.
     out.push({
       ...lead,
-      y0: lead.y0 + lane,
-      y1: lead.y1 + lane,
+      y0: clampLane(lead.y0 + lane),
+      y1: clampLane(lead.y1 + lane),
       speed: lead.speed * between(r, 0.95, 1.05),
       phase: r() * Math.PI * 2,
     })

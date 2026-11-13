@@ -7,7 +7,7 @@
 | `src/game/paths.ts` (new, pure) | `PathSpec`, `pathPosition`, `pathDurationMs`, `pathExits`, `makePath`, `makeSwarm` |
 | `src/game/waves.ts` (new, data + pure helpers) | `WaveScript`, `STAGE_SCRIPTS`, `BONUS_ROUND`, `intensityAt`, `spawnRateFor`, `speedFactorFor`, `pickPath` |
 | `src/game/stages.ts` | `StageConfig.waves?: WaveScript`, `StageConfig.bonusAfter?: BonusRound`, `stageLabel(state)` |
-| `src/game/enemies/waveSpawn.ts` (new) | `spawnWave(kind, path, count, opts)` builds `Enemy[]` with a path; `createCandy` in `candy.ts` |
+| `src/game/enemies/waveSpawn.ts` (new) | `spawnWave(kind, path, count, opts)` builds `Enemy[]` with a path (candy is built here too); `candy.ts` holds only the candy constants |
 | `src/game/enemies/reach.ts` (new) | `isThreat`, `splitReached` (the "reached its target" rule moved out of `loop.ts`) |
 | `src/game/enemies/spawn.ts` | intensity-scaled timers, path choice, scripted events, bonus branch |
 | `src/game/enemies/movement.ts` | path enemies move by `pathPosition`; `cullExitedEnemies` culls finished paths; `hitboxFor('candy')` |
@@ -112,7 +112,7 @@ Intensity peaks: stage 1 0.60, stage 2 0.70, stage 3 0.85, stage 4 1.00 (peak at
 2. Each spawn timer decrements by `deltaMs × spawnRateFor(level)`; on expiry it
    spawns one enemy (cap and skull rules unchanged) whose path comes from
    `pickPath(pathMix[kind])` and whose speed is `speedMultiplier × speedFactorFor(level)`.
-   Swarm picks spawn up to 5 bats (truncated to the free capacity).
+   Swarm picks spawn up to 5 bats (truncated to the free capacity; scripted swarms wait for ≥ 3 free slots, and scripted events run before the random timers).
 3. Scripted events with `atMs ≤ elapsed` fire in order, tracked by
    `GameState.waveIndex` (reset when the stage starts). Events obey the same cap.
 4. No script (stage 5): the original behaviour; the boss spawns itself and its minions.
@@ -144,7 +144,8 @@ property is tested for H ≥ 540 where the margin is purely proportional.
 ## Tests
 
 - `paths.test.ts`: per-type bounds, endpoints, exits flag, swarm lanes.
-- `paths.property.test.ts`: frame-rate independence (via `moveEnemies`), scale invariance, bounds, flyby exit + cull, never culled while visible.
+- `enemies/pathEnemies.property.test.ts`: frame-rate independence (via `moveEnemies`).
+- `paths.property.test.ts`: scale invariance, bounds, flyby exit + cull, never culled while visible.
 - `waves.test.ts`: script validation, intensity shape, bonus config.
 - `spawn.waves.test.ts` / property: cap with scripted events, scripted order, bonus harmless over a whole round, `splitReached`.
 - Existing unit and property tests stay green.

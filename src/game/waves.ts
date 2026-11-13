@@ -84,7 +84,7 @@ export const STAGE_SCRIPTS: Record<number, WaveScript> = {
       { atMs: 18_000, kind: 'pumpkin', path: 'drop', count: 2 },
       { atMs: 28_000, kind: 'ghost', path: 'flyby', count: 3 },
       { atMs: 38_000, kind: 'bat', path: 'swarm', count: 5 },
-      { atMs: 46_000, kind: 'ghost', path: 'drop', count: 3 },
+      { atMs: 46_000, kind: 'ghost', path: 'drop', count: 2 },
     ],
   },
 }

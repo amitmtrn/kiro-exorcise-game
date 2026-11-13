@@ -149,6 +149,31 @@ describe('paths', () => {
     for (const m of swarm) for (const pt of sample(m, W, H)) expect(inExtendedBox(pt, W, H)).toBe(true)
   })
 
+  it('swarm lanes stay in the 15–80 % band, even for extreme lead heights (R1.3)', () => {
+    for (const height of [0.2, 0.7]) {
+      for (let seed = 1; seed <= 40; seed++) {
+        const swarm = makeSwarm(5, { W: 960, H: 540, speed: 0.4, height, rand: mulberry32(seed) })
+        for (const m of swarm) {
+          for (const y of [m.y0, m.y1]) {
+            expect(y).toBeGreaterThanOrEqual(0.15 - 1e-9)
+            expect(y).toBeLessThanOrEqual(0.8 + 1e-9)
+          }
+        }
+      }
+    }
+  })
+
+  it('line / arc walks are long enough to be fair (≥ 0.85 H) at 16:9, so stage 1 stays forgiving', () => {
+    const [W, H] = [960, 540]
+    for (const kind of ['line', 'arc'] as const) {
+      for (let seed = 1; seed <= 200; seed++) {
+        const p = makePath(kind, { W, H, speed: 0.2, edges: 'leftRight', rand: mulberry32(seed) })
+        const chord = Math.hypot((p.x1 - p.x0) * W, (p.y1 - p.y0) * H) / H
+        expect(chord).toBeGreaterThanOrEqual(0.85)
+      }
+    }
+  })
+
   it('pathDurationMs is chord length over speed (in canvas heights)', () => {
     const p: PathSpec = { kind: 'line', x0: 0, y0: 0, x1: 1, y1: 0, bend: 0, wobble: 0, wobbleRate: 0, phase: 0, speed: 0.5 }
     // chord 960 px at 0.5 × 540 px/s = 270 px/s

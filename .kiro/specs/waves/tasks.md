@@ -64,3 +64,15 @@ Files: `src/game/render.ts`, `README.md`
 - [ ] Bat swarms cross the screen; missing bats costs nothing.
 - [ ] Bonus round after stage 2: candy and pumpkins, lives unchanged, then stage 3.
 - [ ] Stage 4 peaks, then the boss stage behaves as in boss-phases.
+
+## T8 — Review fixes
+Files: `src/game/enemies/spawn.ts`, `src/game/paths.ts`, `src/game/waves.ts`, spec docs, tests
+
+- [x] Scripted events run before the random timers and wait (in order) when there is no room; swarms wait for ≥ 3 free slots (R3.4).
+- [x] Swarm lanes clamped to the 15–80 % band (R1.3); line / arc walks ≥ 0.85 H so stage 1 stays forgiving (R1.2).
+- [x] Bonus round keeps one slot free of random candy (R5.3a); R5.3 combo wording clarified.
+- [x] Stage 4's 46 s event is two drops, not three; dead `createBat` / `createPumpkin` use removed from the spawner.
+- [x] Design doc drift fixed (`candy.ts`, test file names); README test count 427.
+- [x] Tests: event deferral, swarm minimum, event ordering, lane clamp, minimum chord.
+- [x] `npm test` and `npm run build` both clean.
+- [x] Commit: `fix(waves): review fixes`

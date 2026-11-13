@@ -23,11 +23,14 @@ spawning; lunger and skull behaviour are unchanged).
 **R1.2** `line` — edge to a point in the play area (x 20–80 %, y 25–75 % of the
 canvas), not the centre. `arc` — the same, along a curve that bulges toward the
 canvas centre. `drop` — enters above the top edge and falls (fast, then slowing)
-to a landing point in the play area.
+to a landing point in the play area. A `line` / `arc` walk is at least 0.85
+canvas heights long (the target is resampled until it is), so even the fastest
+stage 1 ghost needs about 4 s to cost a life.
 
 **R1.3** `flyby` — crosses the canvas edge to edge (left→right or right→left) at a
 chosen height (15–80 % of the canvas height, several heights per wave), never
-aimed at the centre, and leaves the screen on the other side.
+aimed at the centre, and leaves the screen on the other side. Swarm lanes are
+clamped to the same 15–80 % band, so no member is parked off screen.
 
 **R1.4** `swarm` — a small cluster (3–5) of flyby members moving together in
 separate lanes (small lateral offsets, ±5 % speed).
@@ -79,7 +82,10 @@ A stage with `spawnEdges: 'leftRight'` never uses `drop` or top/bottom entries.
 
 **R3.4** The enemy cap (`maxEnemies`, boss excluded, exiting skulls excluded) and
 the skull rules (at most one non-exiting skull) apply to every spawn, random or
-scripted; a scripted group that does not fit is truncated, never exceeds the cap.
+scripted. Scripted events fire before the random timers. A scripted group that
+only partly fits is truncated to the free slots; an event with no room (a swarm
+needs at least 3 free slots, any other event 1) waits, in order, until there is,
+rather than being dropped. The cap is never exceeded.
 
 **R3.5** Scripts are plain data: changing a number never requires touching game
 logic.
@@ -113,8 +119,13 @@ type) and pumpkins that need one hit. They enter on `flyby`, `swarm` or off-scre
 
 **R5.3** The bonus round cannot cost a life: no skull, ghost or lunger is ever
 spawned, no bonus enemy reaches a target, and the "reached the centre" check is
-disabled while `state.bonus` is set. Lives and the combo carry through
-unchanged by misses.
+disabled while `state.bonus` is set. Lives carry through unchanged. The combo
+is reset on entering and on leaving the bonus round, exactly as at every other
+stage transition (`createInitialState`); within the bonus round it builds on hits
+and is never broken by misses.
+
+**R5.3a** Random candy never takes the last free slot (`maxEnemies − 1`), so bonus
+pumpkins and scripted events are not starved by candy the player has not cleared.
 
 **R5.4** Candy scores 75 × combo, a bonus pumpkin 200 × combo. Hits extend the
 combo as usual. The summary screen follows the bonus round, then the next stage.

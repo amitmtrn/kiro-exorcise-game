@@ -7,10 +7,8 @@ import type { GameState, Enemy } from '../state'
 import { setEnemies, setSpawnTimers } from '../state'
 import { STAGES } from '../stages'
 import { createGhost } from './ghost'
-import { createBat } from './bat'
 import { createSkull } from './skull'
 import { createLunger } from './lunger'
-import { createPumpkin } from './pumpkin'
 import { spawnWave } from './waveSpawn'
 import { intensityAt, spawnRateFor, speedFactorFor, pickPath, BONUS_ROUND } from '../waves'
 import type { WaveKind } from '../waves'
@@ -62,6 +60,10 @@ export function tickSpawners(
   const rate = script ? spawnRateFor(level) : 1
   const mult = cfg.speedMultiplier * (script ? speedFactorFor(level) : 1)
 
+  // Bonus round: random candy leaves one slot free so bonus pumpkins and
+  // scripted events are never starved by candy the player has not cleared.
+  const candyReserve = bonus ? 1 : 0
+
   let { enemies } = state
   const timers = { ...state.spawnTimers }
 
@@ -80,9 +82,11 @@ export function tickSpawners(
     nonBossCount += made.length
   }
 
-  /** Timer-driven spawn of one ghost / bat / pumpkin (or a bat swarm). */
-  const addRandom = (kind: WaveKind, legacy: () => Enemy): void => {
+  /** Timer-driven spawn of one ghost / bat / pumpkin (or a bat swarm). Only the ghost has a legacy factory. */
+  const addRandom = (kind: WaveKind, legacy?: () => Enemy): void => {
+    // No script (boss stage): only the original ghost spawner is reachable.
     if (!script) {
+      if (!legacy) return
       enemies = [...enemies, legacy()]
       nonBossCount++
       return
@@ -90,6 +94,24 @@ export function tickSpawners(
     let path = pickPath(script.pathMix[kind], Math.random())
     if (path === 'swarm' && max - nonBossCount < 3) path = 'flyby'
     addWave(kind, path, randomCount(path))
+  }
+
+  // Scripted set pieces fire once, in order, as the stage clock passes their
+  // time. They run before the random timers so ambient spawns cannot eat their
+  // slots. An event that does not fit (a swarm needs ≥ 3 free slots, anything
+  // else ≥ 1) waits for room instead of being lost; later events queue behind it.
+  let waveIndex = state.waveIndex
+  if (script) {
+    while (waveIndex < script.events.length && script.events[waveIndex].atMs <= elapsed) {
+      const ev = script.events[waveIndex]
+      const enabled = ev.kind === 'ghost' ? mix.ghost : ev.kind === 'bat' ? mix.bat : ev.kind === 'pumpkin' ? mix.pumpkin : bonus
+      if (enabled) {
+        const need = ev.path === 'swarm' ? Math.min(3, ev.count) : 1
+        if (max - nonBossCount < need) break
+        addWave(ev.kind, ev.path, ev.count, ev.height)
+      }
+      waveIndex++
+    }
   }
 
   // Ghost
@@ -102,7 +124,7 @@ export function tickSpawners(
   // Bat
   timers.bat -= deltaMs * rate
   if (timers.bat <= 0) {
-    if (mix.bat && nonBossCount < max) addRandom(batKind, () => createBat(canvasW, canvasH, mult))
+    if (mix.bat && nonBossCount < max - candyReserve) addRandom(batKind)
     timers.bat = resetTimer(timers.bat, cfg.spawnIntervalMs.bat)
   }
 
@@ -129,19 +151,8 @@ export function tickSpawners(
   // Pumpkin
   timers.pumpkin -= deltaMs * rate
   if (timers.pumpkin <= 0) {
-    if (mix.pumpkin && nonBossCount < max) addRandom('pumpkin', () => createPumpkin(canvasW, canvasH, mult))
+    if (mix.pumpkin && nonBossCount < max) addRandom('pumpkin')
     timers.pumpkin = resetTimer(timers.pumpkin, cfg.spawnIntervalMs.pumpkin)
-  }
-
-  // Scripted set pieces fire once, in order, as the stage clock passes their time.
-  let waveIndex = state.waveIndex
-  if (script) {
-    while (waveIndex < script.events.length && script.events[waveIndex].atMs <= elapsed) {
-      const ev = script.events[waveIndex]
-      const enabled = ev.kind === 'ghost' ? mix.ghost : ev.kind === 'bat' ? mix.bat : ev.kind === 'pumpkin' ? mix.pumpkin : bonus
-      if (enabled) addWave(ev.kind, ev.path, ev.count, ev.height)
-      waveIndex++
-    }
   }
 
   let next = setSpawnTimers(state, timers)

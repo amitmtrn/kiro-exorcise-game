@@ -100,32 +100,62 @@ describe('wave-driven spawner', () => {
     })
   })
 
-  it('fires every overdue event in order within one tick', () => {
+  it('fires every overdue event in order, as room allows (one per free slot group)', () => {
     withSeededRandom(2, () => {
       const events = STAGES[1].waves!.events
-      const s = tickSpawners(at(2, STAGES[1].durationMs), 16, W, H)
+      let s = at(2, STAGES[1].durationMs)
+      s = { ...s, roundTimeMs: 0 }
+      for (let i = 0; i < events.length; i++) {
+        s = tickSpawners({ ...s, enemies: [] }, 16, W, H)
+      }
       expect(s.waveIndex).toBe(events.length)
     })
   })
 
-  it('truncates a scripted group to the free capacity, never exceeding the cap (R3.4)', () => {
+  it('truncates a non-swarm scripted group to the free capacity, never exceeding the cap (R3.4)', () => {
     withSeededRandom(4, () => {
-      const cfg = STAGES[1]
-      const ev = cfg.waves!.events[0]
+      const cfg = STAGES[0]
+      const ev = cfg.waves!.events[1] // flyby row of 2
+      expect(ev.count).toBe(2)
       const pre = Array.from({ length: cfg.maxEnemies - 1 }, (_, i) => filler(i))
-      const s = tickSpawners(at(2, ev.atMs, { enemies: pre }), 16, W, H)
+      const s = tickSpawners(at(1, ev.atMs, { enemies: pre, waveIndex: 1 }), 16, W, H)
       expect(s.enemies.filter((e) => e.type !== 'boss').length).toBe(cfg.maxEnemies)
-      expect(s.waveIndex).toBe(1)
+      expect(s.waveIndex).toBe(2)
     })
   })
 
-  it('skips an event while the stage is full (consumed, nothing spawned)', () => {
+  it('defers an event while the stage is full, then fires it once there is room (R3.4)', () => {
     withSeededRandom(4, () => {
       const cfg = STAGES[1]
       const pre = Array.from({ length: cfg.maxEnemies }, (_, i) => filler(i))
-      const s = tickSpawners(at(2, cfg.waves!.events[0].atMs, { enemies: pre }), 16, W, H)
+      let s = tickSpawners(at(2, cfg.waves!.events[0].atMs, { enemies: pre }), 16, W, H)
       expect(s.enemies).toHaveLength(cfg.maxEnemies)
+      expect(s.waveIndex).toBe(0)
+      s = tickSpawners({ ...s, enemies: [] }, 16, W, H)
       expect(s.waveIndex).toBe(1)
+      expect(s.enemies).toHaveLength(3) // the swarm, whole
+    })
+  })
+
+  it('never fires a swarm with fewer than 3 members (waits for 3 free slots)', () => {
+    withSeededRandom(4, () => {
+      const cfg = STAGES[1]
+      const pre = Array.from({ length: cfg.maxEnemies - 2 }, (_, i) => filler(i))
+      const s = tickSpawners(at(2, cfg.waves!.events[0].atMs, { enemies: pre }), 16, W, H)
+      expect(s.waveIndex).toBe(0)
+      expect(s.enemies).toHaveLength(pre.length)
+    })
+  })
+
+  it('scripted events run before random timers, so ambient spawns cannot take their slots', () => {
+    withSeededRandom(4, () => {
+      const cfg = STAGES[1] // cap 5
+      const s = tickSpawners(
+        at(2, cfg.waves!.events[0].atMs, { spawnTimers: { ghost: 0, bat: 0, skull: NEVER, lunger: NEVER, pumpkin: NEVER } }),
+        16, W, H,
+      )
+      expect(s.waveIndex).toBe(1)
+      expect(s.enemies.filter((e) => e.type !== 'boss').length).toBeLessThanOrEqual(cfg.maxEnemies)
     })
   })
 
