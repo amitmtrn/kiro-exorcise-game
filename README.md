@@ -25,7 +25,7 @@ npm run dev
 
 | Command | What it does |
 |---|---|
-| `npm test` | Run all 537 unit tests (Vitest) |
+| `npm test` | Run all 625 unit tests (Vitest) |
 | `npm run build` | Production build → `dist/` |
 | `npm run preview` | Preview the production build locally |
 
@@ -86,10 +86,11 @@ Every feature was planned as a Kiro spec before implementation:
 | `pbt/` | Property-based tests (fast-check): lives, score, spawner cap, mirror parity, combo tiers, frame-rate independence |
 | `waves/` | Data-driven wave scripts (line / arc / flyby / drop / swarm paths), per-stage intensity curves, harmless candy bonus round |
 | `juice/` | Swipe-direction estimate from the motion mask, knock-back with spin and fade, 60 ms hit-stop, combo call-outs, stage intro / outro animations |
+| `music-v2/` | 3-voice procedural sequencer (bass, noise drums, lead) on a look-ahead scheduler, combo-tier layers, title and boss themes, real 0.5 s crossfade |
 
 Each spec has `requirements.md`, `design.md`, and `tasks.md`. Writing requirements and design before tasks surfaced design gaps (e.g. skull penalty rules, hitbox coordinate system, mirror parity bug) that would have been painful to fix mid-implementation.
 
-All thirteen specs are implemented. Every task in `tasks.md` is ticked except the manual smoke tests (a webcam playthrough, enabling GitHub Pages in the repo settings), and `boss-combo/` carries a status note explaining it was superseded by `stages/`.
+All fourteen specs are implemented. Every task in `tasks.md` is ticked except the manual smoke tests (a webcam playthrough, enabling GitHub Pages in the repo settings), and `boss-combo/` carries a status note explaining it was superseded by `stages/`.
 
 ### Kiro hooks (`.kiro/hooks/`)
 Standalone `v1` hook files, loaded by Kiro IDE and Kiro CLI V3. Spec: `.kiro/specs/hooks/`.
@@ -164,7 +165,8 @@ src/
   audio/
     context.ts          AudioContext singleton, master gain, mute / volume
     sfx.ts              8 procedural Web Audio sound effects
-    music.ts            Procedural background music sequencer, 5 patterns
+    music.ts            Music API (startMusic, startTitleMusic, stopMusic, setMusicCombo)
+    music/              patterns, look-ahead scheduler, combo layers, voices, engine + crossfade
 .kiro/
   steering/             product.md, tech.md, design.md
   specs/
@@ -181,6 +183,7 @@ src/
     pbt/                Property-based tests spec (`*.property.test.ts`, fast-check)
     waves/              Wave scripts, intensity curves, bonus round spec
     juice/              Swipe knock-back, hit-stop, combo call-outs, stage intro / outro spec
+    music-v2/           3-voice look-ahead music sequencer spec
   hooks/                test-on-save.json, spec-drift-check.json, readme-test-count.json (save/create/delete)
 tools/
   sync-readme-tests.mjs Run tests and sync the README test count (used by a hook)

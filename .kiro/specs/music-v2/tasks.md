@@ -44,9 +44,9 @@ Files: `src/audio/music.ts`, `src/audio/index.ts`, `src/game/loop.ts`, `src/audi
 - [x] Commit: `feat(music-v2-T5): wire engine into game`
 
 ## T6 — Docs
-- [ ] README: spec table row, spec count, test count; `audio/design.md` note that music is superseded by `music-v2/`.
-- [ ] Run `npm test` and `npm run build`; both clean.
-- [ ] Commit: `docs(music-v2-T6): README and audio note`
+- [x] README: spec table row, spec count, test count; `audio/design.md` note that music is superseded by `music-v2/`.
+- [x] Run `npm test` and `npm run build`; both clean.
+- [x] Commit: `docs(music-v2-T6): README and audio note`
 
 ## T7 — Manual listening test
 - [ ] Title theme loops without drift; combo x1→x4 adds hat/bass, then drums, lead, arpeggio; crossfade between stages is smooth; boss theme at stage 5; mute and `M` silence it.
