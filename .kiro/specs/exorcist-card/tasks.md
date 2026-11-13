@@ -24,12 +24,12 @@
 - [x] Commit: `feat(exorcist-card-T3): card drawing and local-only PNG download`
 
 ## T4 — Screens, input and lifecycle
-- [ ] `src/ui/cardScreen.ts`: preview overlay with SAVE / NO PHOTO / CLOSE motion buttons, hit test, key mapping.
-- [ ] Game-over and victory screens: "EXORCIST CARD" motion button; `loop.ts` observes run stats, grabs mirrored snapshots at moments, fallback at game end, opens preview only on explicit choice, discards snapshot and closes preview when leaving the screen / retry / menu / new game.
-- [ ] `main.ts`: `C`, `S`, `Enter`, `N`, `Esc` keys and `pointerdown` forwarded to the loop (never while typing in a button focus).
-- [ ] Tests: button hit test, key mapping, snapshot grab is mirrored.
-- [ ] `npm test` and `npm run build` both clean.
-- [ ] Commit: `feat(exorcist-card-T4): card offer on game over and victory`
+- [x] `src/ui/cardScreen.ts`: preview overlay with SAVE / NO PHOTO / CLOSE motion buttons, hit test, key mapping.
+- [x] Game-over and victory screens: "EXORCIST CARD" motion button; `loop.ts` observes run stats, grabs mirrored snapshots at moments, fallback at game end, opens preview only on explicit choice, discards snapshot and closes preview when leaving the screen / retry / menu / new game.
+- [x] `main.ts`: `C`, `S`, `Enter`, `N`, `Esc` keys and `pointerdown` forwarded to the loop (never while typing in a button focus).
+- [x] Tests: button hit test, key mapping, snapshot grab is mirrored, `CardSession` lifecycle (`src/card/session.ts`: snapshot discarded on retry / menu / play again, card only on explicit open, save reports status), keys and clicks ignored off the end screens.
+- [x] `npm test` and `npm run build` both clean.
+- [x] Commit: `feat(exorcist-card-T4): card offer on game over and victory`
 
 ## T5 — Docs
 - [ ] README: spec table row, spec count, test count, privacy note (card is local only).

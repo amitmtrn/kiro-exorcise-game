@@ -9,6 +9,7 @@ import { STAGE_TITLE_DURATION_MS } from '../game/state'
 import { introPose, outroPose, outroRowAlpha } from '../game/transitions'
 import { MotionButton } from './motionButton'
 import { TITLE_FONT_FAMILY } from './fonts'
+import { renderCardOffer } from './cardScreen'
 
 // ─── Motion buttons (persistent instances reused across frames) ───────────────
 
@@ -178,6 +179,7 @@ export function renderGameOver(
   now: number,
   onRetry: () => void,
   onMenu: () => void,
+  onCard?: () => void,
 ): void {
   const { width: W, height: H } = ctx.canvas
 
@@ -221,8 +223,12 @@ export function renderGameOver(
   const r2 = menuBtn.update(now)
   menuBtn.render(ctx, now)
 
+  // Exorcist Card offer (exorcist-card R1.1): only an explicit choice makes a card.
+  const cardChosen = renderCardOffer(ctx, now, H * 0.72, clamp(W / 9, 48, 76))
+
   ctx.restore()
 
+  if (cardChosen) { onCard?.(); return }
   if (r1 === 'triggered') onRetry()
   if (r2 === 'triggered') onMenu()
 }
@@ -240,6 +246,7 @@ export function renderVictory(
   now: number,
   onPlayAgain: () => void,
   onMenu: () => void,
+  onCard?: () => void,
 ): void {
   const { width: W, height: H } = ctx.canvas
   if (victoryShownAt === null) victoryShownAt = now
@@ -289,9 +296,11 @@ export function renderVictory(
   winBtn.render(ctx, now)
   const r2 = live ? winMenuBtn.update(now) : null
   winMenuBtn.render(ctx, now)
+  const cardChosen = renderCardOffer(ctx, now, H * 0.74, r, live)
   ctx.restore()
 
   if (!live) return
+  if (cardChosen) { onCard?.(); return }
   if (r1 === 'triggered') onPlayAgain()
   else if (r2 === 'triggered') onMenu()
 }

@@ -9,6 +9,8 @@
 | `src/card/snapshotStore.ts` | yes (generic) | `createSnapshotStore<T>(release?)`: `offer(moment, grab)`, `get()`, `has()`, `discard()` |
 | `src/card/layout.ts` | yes | `layoutCard(w, h, texts)`, `fitText`, `coverRect`, `scaleToFit` |
 | `src/card/draw.ts` | canvas | `drawCard(ctx, w, h, data, photo)`; procedural frame, silhouette |
+| `src/card/snapshot.ts` | canvas | `grabMirroredSnapshot` (same mirrored draw as the live view), `releaseSnapshot` |
+| `src/card/session.ts` | yes (deps injected) | `CardSession`: run stats + snapshot store + preview state + lifecycle (observe / open / toggle / save / reset) |
 | `src/card/download.ts` | DOM, deps injected | `downloadCanvasPng(canvas, filename, deps)` |
 | `src/ui/cardScreen.ts` | canvas | preview overlay + 3 motion buttons + hit test |
 | `src/game/loop.ts` | – | wiring: observe each tick, snapshot grab, card flow, lifecycle |
