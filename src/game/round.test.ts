@@ -35,6 +35,13 @@ describe('tickRound — stageTitle', () => {
     expect(s.enemies).toHaveLength(0)
   })
 
+  it('clears any leftover hit-stop when the stage starts (juice R3.4)', () => {
+    let s = gs({ phase: 'stageTitle', stageTitleMs: 50, hitStopMs: 40 })
+    s = tickRound(s, 100, W, H)
+    expect(s.phase).toBe('playing')
+    expect(s.hitStopMs).toBe(0)
+  })
+
   it('sets roundTimeMs from stage config when entering playing', () => {
     let s = gs({ phase: 'stageTitle', stageTitleMs: 50, stage: 1 })
     s = tickRound(s, 100, W, H)

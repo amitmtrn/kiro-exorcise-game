@@ -15,6 +15,7 @@ import { onBossHit } from './enemies/bossPhases'
 import { isHittable } from './enemies/vulnerability'
 import { CANDY_POINTS } from './enemies/candy'
 import { makeKnock, addKnock } from './knock'
+import { addHitStop } from './hitstop'
 import { motionPointsIn, centroid, estimateSwipe } from './swipe'
 import type { Pt, Swipe } from './swipe'
 import { spawnGhostPuff, spawnBatPuff, spawnScoreLabel } from './particles'
@@ -88,7 +89,7 @@ const NO_SWIPE: Swipe = { dx: 0, dy: -1, mag: 0, source: 'default' }
 function banishFx(s: GameState, enemy: Enemy, displayH: number): GameState {
   lastBanished.push({ ...enemy, hitFlashFrames: 1 })
   const knock = makeKnock({ ...enemy, hitFlashFrames: 0 }, lastSwipes.get(enemy.id) ?? NO_SWIPE, displayH)
-  return { ...s, knocks: addKnock(s.knocks, knock) }
+  return { ...s, knocks: addKnock(s.knocks, knock), hitStopMs: addHitStop(s.hitStopMs) }
 }
 
 function clearFlashes(s: GameState): GameState {

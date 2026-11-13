@@ -118,6 +118,7 @@ export interface GameState {
   bonus: boolean          // playing the bonus round after the stage's summary (waves spec)
   shakeFrames: number     // spooky-skin R4.1 — frames of screen shake remaining
   knocks: Knock[]         // juice R2 — banished enemies flying off along the swipe
+  hitStopMs: number       // juice R3 — game-time freeze left after a banish
 }
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -209,6 +210,7 @@ export function createInitialState(stage = 1): GameState {
     bonus: false,
     shakeFrames: 0,
     knocks: [],
+    hitStopMs: 0,
   }
 }
 

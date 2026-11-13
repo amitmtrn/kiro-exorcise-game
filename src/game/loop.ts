@@ -25,6 +25,7 @@ import { splitReached } from './enemies/reach'
 import { resolveHits, updateMotionPixels } from './collision'
 import { tickParticles, tickScoreLabels } from './particles'
 import { tickKnocks } from './knock'
+import { splitHitStop } from './hitstop'
 import { renderFrame } from './render'
 import { renderHUD, hudFontSize, HUD_FONT_FAMILY } from '../ui/hud'
 import {
@@ -204,46 +205,58 @@ export async function startLoop(
 
     // ── Playing ───────────────────────────────────────────────────────────────
 
-    // Screen shake counts down with elapsed time (set by resolveHits below)
-    state = tickShake(state, deltaMs)
+    // Hit-stop (juice R3): game time freezes for a beat after a banish. The camera,
+    // motion capture and hit detection keep running on the real delta; only the
+    // simulation uses `simMs`, so the freeze lasts HITSTOP_MS at any frame rate.
+    const hs = splitHitStop(state.hitStopMs, deltaMs)
+    state = { ...state, hitStopMs: hs.remainingMs }
+    const simMs = hs.liveMs
 
-    // Stage 5: spawn boss once
-    if (state.stage === 5 && !state.bossActive) {
-      state = spawnBoss(state, displayW, displayH)
-    }
+    if (simMs > 0) {
+      // Screen shake counts down with elapsed time (set by resolveHits below)
+      state = tickShake(state, simMs)
 
-    state = tickSpawners(state, deltaMs, displayW, displayH)
+      // Stage 5: spawn boss once
+      if (state.stage === 5 && !state.bossActive) {
+        state = spawnBoss(state, displayW, displayH)
+      }
 
-    const movedEnemies = cullExitedEnemies(
-      moveEnemies(state.enemies, deltaMs, displayW, displayH),
-      displayW,
-      displayH,
-    )
-    state = setEnemies(state, movedEnemies)
+      state = tickSpawners(state, simMs, displayW, displayH)
 
-    // Enemies reaching their target cost a life (never in the bonus round, never flybys)
-    const { survivors, missed: missedCount } = splitReached(state.enemies, state.bonus, displayW, displayH)
-    state = setEnemies(state, survivors)
-    for (let i = 0; i < missedCount; i++) {
-      if (state.phase === 'gameover') break // nothing else happens after the last life
-      state = decrementLife(state)
-      state = resetCombo(state)
-      state = incrementMissed(state)
-      try { sfxLifeLost() } catch { /* audio not ready */ }
-    }
+      const movedEnemies = cullExitedEnemies(
+        moveEnemies(state.enemies, simMs, displayW, displayH),
+        displayW,
+        displayH,
+      )
+      state = setEnemies(state, movedEnemies)
 
-    // Boss attacks: a lunge that lands costs a life (tickBoss resets the combo)
-    const livesBeforeBoss = state.lives
-    state = tickBoss(state, displayW, displayH)
-    if (state.lives < livesBeforeBoss) {
-      try { sfxLifeLost() } catch { /* audio not ready */ }
+      // Enemies reaching their target cost a life (never in the bonus round, never flybys)
+      const { survivors, missed: missedCount } = splitReached(state.enemies, state.bonus, displayW, displayH)
+      state = setEnemies(state, survivors)
+      for (let i = 0; i < missedCount; i++) {
+        if (state.phase === 'gameover') break // nothing else happens after the last life
+        state = decrementLife(state)
+        state = resetCombo(state)
+        state = incrementMissed(state)
+        try { sfxLifeLost() } catch { /* audio not ready */ }
+      }
+
+      // Boss attacks: a lunge that lands costs a life (tickBoss resets the combo)
+      const livesBeforeBoss = state.lives
+      state = tickBoss(state, displayW, displayH)
+      if (state.lives < livesBeforeBoss) {
+        try { sfxLifeLost() } catch { /* audio not ready */ }
+      }
     }
 
     state = resolveHits(state, currentData, prevData, displayW, displayH, now, frameIsNew, deltaMs)
-    state = tickTimer(state, deltaMs)
-    state = setParticles(state, tickParticles(state.particles, deltaMs))
-    state = setScoreLabels(state, tickScoreLabels(state.scoreLabels, deltaMs))
-    state = { ...state, knocks: tickKnocks(state.knocks, deltaMs) }
+
+    if (simMs > 0) {
+      state = tickTimer(state, simMs)
+      state = setParticles(state, tickParticles(state.particles, simMs))
+      state = setScoreLabels(state, tickScoreLabels(state.scoreLabels, simMs))
+      state = { ...state, knocks: tickKnocks(state.knocks, simMs) }
+    }
 
     renderFrame(gameCtx, state, now)
     renderHUD(gameCtx, state, now)

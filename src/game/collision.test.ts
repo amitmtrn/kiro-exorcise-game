@@ -540,3 +540,32 @@ describe('resolveHits — knock-back (juice R2)', () => {
     expect(r.knocks[0].enemy.type).toBe('boss')
   })
 })
+
+describe('resolveHits — hit-stop (juice R3)', () => {
+  const run = (type: Enemy['type'], base: Partial<ReturnType<typeof createInitialState>> = {}) => {
+    mockDiff.mockReturnValue(true)
+    return resolveHits({ ...createInitialState(), ...base, enemies: [enemy(type, 'e1', { hitCount: 1 })] }, FAKE, FAKE, DW, DH, 1000)
+  }
+
+  it('a banish freezes game time for 60 ms', () => {
+    expect(run('ghost').hitStopMs).toBe(60)
+    expect(run('bat').hitStopMs).toBe(60)
+  })
+
+  it('a longer remaining freeze is not shortened', () => {
+    expect(run('ghost', { hitStopMs: 100 }).hitStopMs).toBe(100)
+  })
+
+  it('a skull (penalty) and a missed swipe do not freeze', () => {
+    expect(run('skull').hitStopMs).toBe(0)
+    mockDiff.mockReturnValue(false)
+    const r = resolveHits({ ...createInitialState(), enemies: [enemy('ghost', 'e1', { hitCount: 1 })] }, FAKE, FAKE, DW, DH, 1000)
+    expect(r.hitStopMs).toBe(0)
+  })
+
+  it('hit detection still runs while frozen (input is not blocked)', () => {
+    const r = run('ghost', { hitStopMs: 40 })
+    expect(r.enemies).toHaveLength(0)
+    expect(r.score).toBeGreaterThan(0)
+  })
+})

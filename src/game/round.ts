@@ -35,6 +35,7 @@ export function tickRound(
         return {
           ...state,
           stageTitleMs: 0,
+          hitStopMs: 0,
           phase: 'playing',
           roundTimeMs: cfg.durationMs,
           enemies: [],

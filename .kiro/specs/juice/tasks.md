@@ -26,12 +26,12 @@ Files: `src/game/knock.ts`, `src/game/state.ts`, `src/game/collision.ts`,
 Files: `src/game/hitstop.ts`, `src/game/state.ts`, `src/game/collision.ts`, `src/game/round.ts`,
 `src/game/loop.ts`, `src/game/hitstop.test.ts`, `src/game/hitstop.property.test.ts`
 
-- [ ] `hitstop.ts`: `HITSTOP_MS`, `addHitStop`, `splitHitStop`.
-- [ ] `GameState.hitStopMs`; `resolveHits` sets it on scoring banishes; `tickRound` clears it when a stage starts; loop drives the simulation with `liveMs` while hit detection, camera and rendering use the real delta.
-- [ ] Unit tests: 60 ms at 30 / 60 / 144 Hz, stall crossing the end, max-merge, banish sets it, skull does not.
-- [ ] Property tests: `frozen + live = delta`, total frozen = budget for any step partition, remaining never negative.
-- [ ] Run `npm test` and `npm run build`; both clean.
-- [ ] Commit: `feat(juice-T3): 60 ms hit-stop on banish`
+- [x] `hitstop.ts`: `HITSTOP_MS`, `addHitStop`, `splitHitStop`.
+- [x] `GameState.hitStopMs`; `resolveHits` sets it on scoring banishes; `tickRound` clears it when a stage starts; loop drives the simulation with `liveMs` while hit detection, camera and rendering use the real delta.
+- [x] Unit tests: 60 ms at 30 / 60 / 144 Hz, stall crossing the end, max-merge, banish sets it, skull does not.
+- [x] Property tests: `frozen + live = delta`, total frozen = budget for any step partition, remaining never negative.
+- [x] Run `npm test` and `npm run build`; both clean.
+- [x] Commit: `feat(juice-T3): 60 ms hit-stop on banish`
 
 ## T4 — Combo call-outs
 Files: `src/game/callouts.ts`, `src/game/state.ts`, `src/game/collision.ts`,
