@@ -72,3 +72,158 @@ describe('readStageConfig (R2)', () => {
     expect(cfg.stages[0].durationMs).toBe(45_000)
   })
 })
+
+// ---------------------------------------------------------- spawned server (R3)
+import { spawn } from 'node:child_process'
+import { mkdtempSync, writeFileSync, chmodSync, rmSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join, dirname } from 'node:path'
+import { fileURLToPath } from 'node:url'
+import { afterAll } from 'vitest'
+
+const SERVER = join(dirname(fileURLToPath(import.meta.url)), 'mcp-server.mjs')
+const tmp = mkdtempSync(join(tmpdir(), 'mcp-test-'))
+afterAll(() => rmSync(tmp, { recursive: true, force: true }))
+
+function mockScript(name, body) {
+  const p = join(tmp, name)
+  writeFileSync(p, `#!/usr/bin/env bash\n${body}\n`)
+  chmodSync(p, 0o755)
+  return p
+}
+const OK_SCRIPT = mockScript('ok.sh', `echo "page: http://127.0.0.1/kiro-exorcise-game/"\necho "args: $1 $2"\necho 't+5s ${JSON.stringify(M)}'`)
+
+/** Start the real server as a child process with a mock harness script. */
+function client(env = {}) {
+  const child = spawn('node', [SERVER], { env: { ...process.env, ...env }, stdio: ['pipe', 'pipe', 'pipe'] })
+  let buf = ''
+  const raw = []
+  const waiters = new Map()
+  let stderr = ''
+  child.stderr.on('data', (d) => { stderr += d })
+  child.stdout.on('data', (d) => {
+    buf += d
+    let i
+    while ((i = buf.indexOf('\n')) >= 0) {
+      const l = buf.slice(0, i); buf = buf.slice(i + 1)
+      raw.push(l)
+      const m = JSON.parse(l) // stdout purity: every line must be JSON
+      waiters.get(m.id)?.(m)
+    }
+  })
+  let next = 1
+  const request = (method, params) => new Promise((res) => {
+    const id = next++
+    waiters.set(id, res)
+    child.stdin.write(JSON.stringify({ jsonrpc: '2.0', id, method, params }) + '\n')
+  })
+  return { child, raw, request, stderr: () => stderr, write: (s) => child.stdin.write(s), close: () => child.kill() }
+}
+
+describe('spawned MCP server', () => {
+  it('handshake, tools/list, ping', async () => {
+    const c = client()
+    const init = await c.request('initialize', { protocolVersion: '2025-06-18', capabilities: {}, clientInfo: { name: 't', version: '0' } })
+    expect(init.result.protocolVersion).toBe('2025-06-18')
+    expect(init.result.serverInfo.name).toBe('motion-harness')
+    expect(init.result.capabilities.tools).toBeDefined()
+    c.write(JSON.stringify({ jsonrpc: '2.0', method: 'notifications/initialized' }) + '\n')
+    expect((await c.request('ping')).result).toEqual({})
+    const list = await c.request('tools/list')
+    expect(list.result.tools.map((t) => t.name)).toEqual(['run_harness', 'read_stage_config'])
+    expect(list.result.tools[0].inputSchema.properties.mode.enum).toEqual(['sweep', 'wave'])
+    // the notification produced no response line
+    expect(c.raw.length).toBe(3)
+    c.close()
+  })
+
+  it('unknown protocol version falls back to a known one', async () => {
+    const c = client()
+    const init = await c.request('initialize', { protocolVersion: '1999-01-01' })
+    expect(init.result.protocolVersion).toBe('2025-06-18')
+    c.close()
+  })
+
+  it('run_harness returns parsed metrics from the mock script', async () => {
+    const c = client({ EXORCISE_HARNESS_SCRIPT: OK_SCRIPT })
+    const r = await c.request('tools/call', { name: 'run_harness', arguments: { mode: 'wave', seconds: 7 } })
+    expect(r.result.isError).toBe(false)
+    expect(r.result.structuredContent).toMatchObject({ mode: 'wave', seconds: 7, ...M })
+    expect(JSON.parse(r.result.content[0].text).hits).toBe(12)
+    c.close()
+  })
+
+  it('passes mode and seconds to the script as separate argv entries', async () => {
+    const script = mockScript('argv.sh', `echo "t+5s {\\"frames\\":$#,\\"hits\\":0,\\"motionFrames\\":0,\\"maxMotion\\":0,\\"playFrames\\":0,\\"firstPlayAtMs\\":-1,\\"threshold\\":0,\\"highScoreSaved\\":\\"$1/$2\\"}"`)
+    const c = client({ EXORCISE_HARNESS_SCRIPT: script })
+    const r = await c.request('tools/call', { name: 'run_harness', arguments: { mode: 'sweep' } })
+    expect(r.result.structuredContent.frames).toBe(2)
+    expect(r.result.structuredContent.highScoreSaved).toBe('sweep/30')
+    c.close()
+  })
+
+  it('run_harness reports tool errors instead of throwing', async () => {
+    const c = client({ EXORCISE_HARNESS_SCRIPT: mockScript('bad.sh', 'echo "no page target"; exit 1') })
+    const bad = await c.request('tools/call', { name: 'run_harness', arguments: { mode: 'sweep; echo hi', seconds: 10 } })
+    expect(bad.result.isError).toBe(true)
+    expect(bad.result.content[0].text).toMatch(/mode must be/)
+    const range = await c.request('tools/call', { name: 'run_harness', arguments: { mode: 'sweep', seconds: 9999 } })
+    expect(range.result.isError).toBe(true)
+    const fail = await c.request('tools/call', { name: 'run_harness', arguments: { mode: 'sweep', seconds: 10 } })
+    expect(fail.result.isError).toBe(true)
+    expect(fail.result.content[0].text).toContain('no page target')
+    expect(fail.result.content[0].text).toContain('exit code 1')
+    c.close()
+  })
+
+  it('rejects a concurrent run and still answers other requests meanwhile', async () => {
+    const c = client({ EXORCISE_HARNESS_SCRIPT: mockScript('slow.sh', `sleep 1\necho 't+5s ${JSON.stringify(M)}'`) })
+    const first = c.request('tools/call', { name: 'run_harness', arguments: { mode: 'sweep', seconds: 10 } })
+    await new Promise((r) => setTimeout(r, 200))
+    const second = await c.request('tools/call', { name: 'run_harness', arguments: { mode: 'sweep', seconds: 10 } })
+    expect(second.result.isError).toBe(true)
+    expect(second.result.content[0].text).toMatch(/already in progress/)
+    expect((await c.request('ping')).result).toEqual({})
+    expect((await first).result.isError).toBe(false)
+    c.close()
+  })
+
+  it('kills a hung run (whole process group) on timeout', async () => {
+    const marker = join(tmp, 'child.pid')
+    const script = mockScript('hang.sh', `sleep 30 &\necho $! > "${marker}"\nwait`)
+    const c = client({ EXORCISE_HARNESS_SCRIPT: script, EXORCISE_HARNESS_TIMEOUT_MS: '600' })
+    const r = await c.request('tools/call', { name: 'run_harness', arguments: { mode: 'sweep', seconds: 10 } })
+    expect(r.result.isError).toBe(true)
+    expect(r.result.content[0].text).toMatch(/timed out/)
+    const { readFileSync } = await import('node:fs')
+    const pid = Number(readFileSync(marker, 'utf8').trim())
+    await new Promise((res) => setTimeout(res, 300))
+    expect(() => process.kill(pid, 0)).toThrow() // grandchild is gone
+    c.close()
+  })
+
+  it('read_stage_config returns the live tuning', async () => {
+    const c = client()
+    const r = await c.request('tools/call', { name: 'read_stage_config', arguments: {} })
+    expect(r.result.isError).toBe(false)
+    expect(r.result.structuredContent.stages).toHaveLength(5)
+    expect(r.result.structuredContent.stages[0].durationMs).toBe(45_000)
+    c.close()
+  })
+
+  it('JSON-RPC errors: unknown tool, unknown method, bad params, malformed JSON, invalid request', async () => {
+    const c = client()
+    expect((await c.request('tools/call', { name: 'nope' })).error.code).toBe(-32602)
+    expect((await c.request('tools/call', {})).error.code).toBe(-32602)
+    expect((await c.request('resources/list')).error.code).toBe(-32601)
+    const parseErr = new Promise((res) => { c.child.stdout.once('data', (d) => res(JSON.parse(String(d)))) })
+    c.write('{not json\n')
+    expect((await parseErr).error.code).toBe(-32700)
+    const invalid = new Promise((res) => { c.child.stdout.once('data', (d) => res(JSON.parse(String(d)))) })
+    c.write('{"jsonrpc":"2.0","id":99}\n')
+    expect((await invalid).error.code).toBe(-32600)
+    // stdout purity: only JSON lines (client() would have thrown otherwise); logs on stderr
+    expect(c.stderr()).toContain('ready')
+    c.close()
+  })
+})

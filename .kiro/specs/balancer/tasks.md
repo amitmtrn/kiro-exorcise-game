@@ -12,11 +12,11 @@ Files: `tools/motion-harness/mcp-server.mjs`, `tools/motion-harness/mcp-server.t
 ## T2 — JSON-RPC stdio server and tools
 Files: `tools/motion-harness/mcp-server.mjs`, `tools/motion-harness/mcp-server.test.mjs`
 
-- [ ] `handleMessage` / `startServer`: `initialize`, `notifications/initialized`, `ping`, `tools/list`, `tools/call`, error codes.
-- [ ] `run_harness` (argv spawn, one at a time, process-group timeout) and `read_stage_config`.
-- [ ] Spawned-server tests with a mock `run.sh` (handshake, list, both calls, bad args, busy, unknown tool/method, malformed JSON, timeout, stdout purity). Chrome is never launched.
-- [ ] `npm test` and `npm run build` both clean.
-- [ ] Commit: `feat(balancer-T2): motion-harness MCP stdio server`
+- [x] `handleMessage` / `startServer`: `initialize`, `notifications/initialized`, `ping`, `tools/list`, `tools/call`, error codes.
+- [x] `run_harness` (argv spawn, one at a time, process-group timeout) and `read_stage_config`.
+- [x] Spawned-server tests with a mock `run.sh` (handshake, list, both calls, bad args, busy, unknown tool/method, malformed JSON, timeout, stdout purity). Chrome is never launched.
+- [x] `npm test` and `npm run build` both clean.
+- [x] Commit: `feat(balancer-T2): motion-harness MCP stdio server`
 
 ## T3 — Registration and harness hygiene
 Files: `.kiro/settings/mcp.json`, `tools/motion-harness/run.sh`, `tools/balancer-config.test.mjs`
