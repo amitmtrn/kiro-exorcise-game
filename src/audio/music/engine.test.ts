@@ -1,6 +1,5 @@
-import { readFileSync } from 'node:fs'
 import { getNoiseBuffer } from './voices'
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import { createMusicEngine, crossfade, CROSSFADE_SEC, LAYER_FADE_SEC } from './engine'
 import { FakeAudioContext, FakeNode, FakeParam, fakeTimers } from '../../test/fakeAudio'
 import { getTrack, parseTrack, type TrackId } from './patterns'
@@ -326,8 +325,12 @@ describe('review fixes', () => {
   })
 
   it('does not use setTimeout for timing', () => {
-    const src = readFileSync(new URL('./engine.ts', import.meta.url), 'utf8')
-    expect(src).not.toMatch(/setTimeout/)
+    const spy = vi.spyOn(globalThis, 'setTimeout')
+    const { engine, advance } = setup()
+    engine.play('title')
+    advance(1)
+    expect(spy).not.toHaveBeenCalled()
+    spy.mockRestore()
   })
 
   it('noise buffer is fixed-seed and shared per context (R2.2)', () => {
