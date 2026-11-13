@@ -142,7 +142,7 @@ export async function startLoop(
       saveHighScore(state.highScore)
       state = tickRound(state, deltaMs, displayW, displayH)
       renderFrame(gameCtx, state, now)
-      state = resolveHits(state, currentData, prevData, displayW, displayH, now, frameIsNew)
+      state = resolveHits(state, currentData, prevData, displayW, displayH, now, frameIsNew, deltaMs)
       renderSummary(gameCtx, state, now, () => {
         state = advanceToNextStage(state, displayW, displayH)
       })
@@ -154,7 +154,6 @@ export async function startLoop(
     // ── Game Over ─────────────────────────────────────────────────────────────
     if (state.phase === 'gameover') {
       saveHighScore(state.highScore)
-      state = resolveHits(state, currentData, prevData, displayW, displayH, now, frameIsNew)
       renderFrame(gameCtx, state, now)
       renderGameOver(gameCtx, state, now,
         () => { state = retryStage(state) },
@@ -167,8 +166,8 @@ export async function startLoop(
 
     // ── Playing ───────────────────────────────────────────────────────────────
 
-    // Screen shake counts down one frame per tick (set by resolveHits below)
-    state = tickShake(state)
+    // Screen shake counts down with elapsed time (set by resolveHits below)
+    state = tickShake(state, deltaMs)
 
     // Stage 5: spawn boss once
     if (state.stage === 5 && !state.bossActive) {
@@ -206,10 +205,10 @@ export async function startLoop(
       try { sfxLifeLost() } catch { /* audio not ready */ }
     }
 
-    state = resolveHits(state, currentData, prevData, displayW, displayH, now, frameIsNew)
+    state = resolveHits(state, currentData, prevData, displayW, displayH, now, frameIsNew, deltaMs)
     state = tickTimer(state, deltaMs)
-    state = setParticles(state, tickParticles(state.particles))
-    state = setScoreLabels(state, tickScoreLabels(state.scoreLabels))
+    state = setParticles(state, tickParticles(state.particles, deltaMs))
+    state = setScoreLabels(state, tickScoreLabels(state.scoreLabels, deltaMs))
 
     renderFrame(gameCtx, state, now)
     renderHUD(gameCtx, state, now)

@@ -105,6 +105,9 @@ export const STAGE_TITLE_DURATION_MS = 3_000
 export const SUMMARY_AUTO_ADVANCE_MS = 5_000
 
 // Spooky-skin R4.1 — screen shake fires on a scoring hit at streak ≥ 3, ±4 px for 3 frames
+/** One 60 Hz frame in ms — the unit of the frame-counted effects (shake, flash, particles). */
+export const FRAME_MS = 1000 / 60
+
 export const SHAKE_FRAMES = 3
 export const SHAKE_COMBO_THRESHOLD = 3
 export const SHAKE_AMPLITUDE_PX = 4
@@ -270,8 +273,8 @@ export function setShake(state: GameState, frames: number): GameState {
   return { ...state, shakeFrames: Math.max(0, frames) }
 }
 
-/** Decrements the shake counter by one frame; call once per tick before rendering. */
-export function tickShake(state: GameState): GameState {
+/** Counts the shake down by `deltaMs` (one 60 Hz frame by default); call once per tick before rendering. */
+export function tickShake(state: GameState, deltaMs: number = FRAME_MS): GameState {
   if (state.shakeFrames === 0) return state
-  return { ...state, shakeFrames: state.shakeFrames - 1 }
+  return { ...state, shakeFrames: Math.max(0, state.shakeFrames - deltaMs / FRAME_MS) }
 }

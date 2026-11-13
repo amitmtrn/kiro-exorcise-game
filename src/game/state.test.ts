@@ -193,6 +193,17 @@ describe('screen shake reducers (spooky-skin R4.1)', () => {
     s = tickShake(s); expect(s.shakeFrames).toBe(0)
     s = tickShake(s); expect(s.shakeFrames).toBe(0)
   })
+
+  it('tickShake is time-based: the same elapsed time leaves the same shake at any step size (pbt BUG-4)', () => {
+    const run = (stepMs: number) => {
+      let s = setShake(createInitialState(), SHAKE_FRAMES)
+      for (let t = 0; t < 33.3333 - 1e-9; t += stepMs) s = tickShake(s, stepMs)
+      return s.shakeFrames
+    }
+    expect(run(1000 / 60)).toBeCloseTo(1, 6)
+    expect(run(1000 / 120)).toBeCloseTo(1, 6)
+    expect(run(1000 / 30)).toBeCloseTo(1, 6)
+  })
 })
 
 describe('score labels (spooky-skin R5.2)', () => {

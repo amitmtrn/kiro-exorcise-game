@@ -6,7 +6,7 @@ import type { GameState, Enemy } from './state'
 import {
   addScore, decrementLife, addParticles, setFlash, setEnemies,
   incrementCombo, incrementBanished, setShake, addScoreLabels,
-  SHAKE_FRAMES, SHAKE_COMBO_THRESHOLD,
+  SHAKE_FRAMES, SHAKE_COMBO_THRESHOLD, FRAME_MS,
 } from './state'
 import { computeFrameDiff, scaleHitbox, MOTION_W, MOTION_H } from '../webcam/diff'
 import type { MotionMask } from '../webcam/diff'
@@ -17,6 +17,14 @@ import {
 } from '../audio/sfx'
 
 const SPAWN_GRACE_MS = 300
+/** A hit flash below this many 60 Hz frames remaining is over (avoids a 2nd flash frame at 16 ms ticks). */
+const FLASH_EPSILON = 0.25
+
+/** Count a hit flash down by `dt` 60 Hz frames (pbt BUG-4). */
+function decayFlash(frames: number, dt: number): number {
+  const rest = frames - dt
+  return rest > FLASH_EPSILON ? rest : 0
+}
 /** Consecutive *new camera frames* with motion in the hitbox needed to confirm a hit. */
 const HIT_FRAMES_REQUIRED = 2
 
@@ -65,15 +73,21 @@ export function resolveHits(
   displayH: number,
   now: number,
   frameIsNew = true,
+  deltaMs: number = FRAME_MS,
 ): GameState {
   lastBanished = []
+
+  // Nothing scores after death (pbt BUG-3).
+  if (state.phase === 'gameover') return state
+
+  const dt = deltaMs / FRAME_MS
 
   // Duplicate camera frame: the diff would be exactly zero everywhere, which
   // used to reset every enemy's 2-frame gate on every other tick for a 30 fps
   // webcam. Leave the gate counters alone and only let hit flashes expire.
   if (!frameIsNew) {
     return setEnemies(state, state.enemies.map((e) =>
-      e.hitFlashFrames > 0 ? { ...e, hitFlashFrames: e.hitFlashFrames - 1 } : e,
+      e.hitFlashFrames > 0 ? { ...e, hitFlashFrames: decayFlash(e.hitFlashFrames, dt) } : e,
     ))
   }
 
@@ -83,8 +97,14 @@ export function resolveHits(
   for (const raw of state.enemies) {
     // A white flash set last frame expires this frame unless re-triggered below.
     const enemy: Enemy = raw.hitFlashFrames > 0
-      ? { ...raw, hitFlashFrames: raw.hitFlashFrames - 1 }
+      ? { ...raw, hitFlashFrames: decayFlash(raw.hitFlashFrames, dt) }
       : raw
+
+    // The last life was lost earlier in this call: nobody else scores.
+    if (s.phase === 'gameover') {
+      updatedEnemies.push(enemy)
+      continue
+    }
 
     if (now - enemy.spawnedAt < SPAWN_GRACE_MS) {
       updatedEnemies.push(enemy)

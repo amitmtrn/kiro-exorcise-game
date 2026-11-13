@@ -207,6 +207,50 @@ describe('resolveHits — 1-frame white hit flash (spooky-skin R4.2)', () => {
   })
 })
 
+describe('resolveHits — time-based hit flash and game over (pbt BUG-3, BUG-4)', () => {
+  it('a hit flash lasts one frame at 60 fps (16 and 16.67 ms) but is not extended at 144 Hz beyond ~3 frames', () => {
+    for (const ms of [16, 1000 / 60]) {
+      mockDiff.mockReturnValue(true)
+      const s = { ...createInitialState(), enemies: [enemy('pumpkin', 'p1', { hitCount: 1, hitsReceived: 0, hitsNeeded: 2 })] }
+      const r = resolveHits(s, FAKE, FAKE, DW, DH, 1000, true, ms)
+      expect(r.enemies[0].hitFlashFrames).toBe(1)
+      mockDiff.mockReturnValue(false)
+      expect(resolveHits(r, FAKE, FAKE, DW, DH, 1016, true, ms).enemies[0].hitFlashFrames).toBe(0)
+    }
+    mockDiff.mockReturnValue(true)
+    let r = resolveHits({ ...createInitialState(), enemies: [enemy('pumpkin', 'p1', { hitCount: 1, hitsReceived: 0, hitsNeeded: 2 })] }, FAKE, FAKE, DW, DH, 1000)
+    mockDiff.mockReturnValue(false)
+    let ticks = 0
+    while (r.enemies[0].hitFlashFrames > 0 && ticks < 20) { r = resolveHits(r, FAKE, FAKE, DW, DH, 1000, true, 1000 / 144); ticks++ }
+    expect(ticks).toBeLessThanOrEqual(3)
+  })
+
+  it('a hit flash lasts one tick at 30 fps and expires on duplicate camera frames too', () => {
+    mockDiff.mockReturnValue(false)
+    const flashing = { ...createInitialState(), enemies: [enemy('ghost', 'g1', { hitFlashFrames: 1 })] }
+    expect(resolveHits(flashing, FAKE, FAKE, DW, DH, 1000, false, 33).enemies[0].hitFlashFrames).toBe(0)
+  })
+
+  it('does nothing in the gameover phase', () => {
+    mockDiff.mockReturnValue(true)
+    const s = { ...createInitialState(), phase: 'gameover' as const, lives: 0, enemies: [enemy('ghost', 'g1', { hitCount: 1 })] }
+    expect(resolveHits(s, FAKE, FAKE, DW, DH, 1000)).toBe(s)
+    expect(lastBanished).toHaveLength(0)
+  })
+
+  it('enemies after a skull that takes the last life do not score', () => {
+    mockDiff.mockReturnValue(true)
+    const s = {
+      ...createInitialState(), phase: 'playing' as const, lives: 1,
+      enemies: [enemy('skull', 's1', { hitCount: 1 }), enemy('ghost', 'g1', { hitCount: 1 })],
+    }
+    const r = resolveHits(s, FAKE, FAKE, DW, DH, 1000)
+    expect(r.phase).toBe('gameover')
+    expect(r.score).toBe(0)
+    expect(r.enemies.map((e) => e.id)).toEqual(['g1'])
+  })
+})
+
 describe('resolveHits — score pop labels (spooky-skin R5.2)', () => {
   it('a ghost hit spawns a "+100" label at the ghost', () => {
     mockDiff.mockReturnValue(true)

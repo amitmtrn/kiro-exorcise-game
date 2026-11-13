@@ -9,6 +9,8 @@ import type { Enemy, EnemyType, GameState } from './state'
 import { advanceToNextStage } from './round'
 import { hitboxFor } from './enemies/movement'
 import { MOTION_W, MOTION_H } from '../webcam/diff'
+import { withSeededRandom } from '../test/prng'
+import { comboForStreak } from './state'
 
 // Audio needs an AudioContext; production wraps every call in try/catch.
 vi.mock('../audio/sfx', () => ({
@@ -111,8 +113,8 @@ function apply(s: GameState, ev: Ev): GameState {
 describe('lives and score under any event sequence (properties)', () => {
   it('lives is a non-negative integer that never increases; gameover at 0', () => {
     fc.assert(fc.property(
-      fc.integer({ min: 1, max: 5 }), fc.array(eventArb, { maxLength: 40 }),
-      (stage, events) => {
+      fc.integer({ min: 1, max: 5 }), fc.array(eventArb, { maxLength: 40 }), fc.integer(),
+      (stage, events, seed) => withSeededRandom(seed, () => {
         let s: GameState = { ...createInitialState(stage), phase: 'playing' }
         for (const ev of events) {
           const before = s
@@ -120,16 +122,16 @@ describe('lives and score under any event sequence (properties)', () => {
           expect(Number.isInteger(s.lives)).toBe(true)
           expect(s.lives).toBeGreaterThanOrEqual(0)
           expect(s.lives).toBeLessThanOrEqual(before.lives)
-          if (s.lives === 0 && before.lives > 0) expect(s.phase).toBe('gameover')
+          if (s.lives === 0) expect(s.phase).toBe('gameover')
         }
-      },
+      }),
     ))
   })
 
   it('score is monotonic non-decreasing; highScore is monotonic and ≥ score', () => {
     fc.assert(fc.property(
-      fc.integer({ min: 1, max: 5 }), fc.array(eventArb, { maxLength: 40 }),
-      (stage, events) => {
+      fc.integer({ min: 1, max: 5 }), fc.array(eventArb, { maxLength: 40 }), fc.integer(),
+      (stage, events, seed) => withSeededRandom(seed, () => {
         let s: GameState = { ...createInitialState(stage), phase: 'playing' }
         for (const ev of events) {
           const before = s
@@ -139,18 +141,45 @@ describe('lives and score under any event sequence (properties)', () => {
           expect(s.highScore).toBeGreaterThanOrEqual(before.highScore)
           expect(s.highScore).toBeGreaterThanOrEqual(s.score)
         }
-      },
+      }),
     ))
   })
 
-  it('combo stays consistent with streak and within x1–x4 through resolveHits', () => {
-    fc.assert(fc.property(fc.array(eventArb, { maxLength: 40 }), (events) => {
+  it('combo equals comboForStreak(streak) and stays within x1–x4 through resolveHits', () => {
+    fc.assert(fc.property(fc.array(eventArb, { maxLength: 40 }), fc.integer(), (events, seed) => withSeededRandom(seed, () => {
       let s: GameState = { ...createInitialState(4), phase: 'playing' }
       for (const ev of events) {
         s = apply(s, ev)
         expect(s.combo).toBeGreaterThanOrEqual(1)
         expect(s.combo).toBeLessThanOrEqual(4)
+        expect(s.combo).toBe(comboForStreak(s.streak))
       }
-    }))
+    })))
+  })
+
+  it('after game over, resolveHits changes nothing (BUG-3)', () => {
+    fc.assert(fc.property(
+      fc.array(enemyArb, { maxLength: 6 }), fc.array(rectArb, { maxLength: 4 }), fc.boolean(), fc.integer(),
+      (enemies, rects, isNew, seed) => withSeededRandom(seed, () => {
+        const dead: GameState = { ...createInitialState(3), phase: 'gameover', lives: 0, enemies }
+        const { cur, prev } = frame(rects)
+        expect(resolveHits(dead, cur, prev, DW, DH, 5000, isNew)).toEqual(dead)
+      }),
+    ))
+  })
+
+  it('a skull that takes the last life stops later enemies in the same call from scoring (BUG-3)', () => {
+    fc.assert(fc.property(fc.array(enemyArb, { minLength: 1, maxLength: 6 }), fc.integer(), (others, seed) => withSeededRandom(seed, () => {
+      const skull = makeEnemy({
+        id: 'skull', type: 'skull', x: 100, y: 100, targetX: DW / 2, targetY: DH / 2, speed: 0.1,
+        hitbox: hitboxFor('skull', 100, 100), hitCount: 1,
+      })
+      const s: GameState = { ...createInitialState(3), phase: 'playing', lives: 1, enemies: [skull, ...others] }
+      const { cur, prev } = frame([{ x: 0, y: 0, w: MOTION_W, h: MOTION_H }])
+      const next = resolveHits(s, cur, prev, DW, DH, 5000, true)
+      expect(next.phase).toBe('gameover')
+      expect(next.score).toBe(0)
+      expect(next.stageBanished).toBe(0)
+    })))
   })
 })
