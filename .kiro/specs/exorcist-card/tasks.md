@@ -17,11 +17,11 @@
 - [x] Commit: `feat(exorcist-card-T2): snapshot store and pure card layout`
 
 ## T3 — Card drawing and local download
-- [ ] `src/card/draw.ts`: procedural frame, photo (cover-fit) or silhouette, Creepster title, stats.
-- [ ] `src/card/download.ts`: `downloadCanvasPng` (toBlob → object URL → `<a download>` → revoke).
-- [ ] Unit tests with mocked `toBlob` / `URL`: URL revoked (also on click error and null blob), anchor removed, `download` attribute set; spies on `fetch`, `XMLHttpRequest`, `navigator.sendBeacon`, `WebSocket` never called; source-grep privacy test; draw smoke test with a recording context (photo vs silhouette).
-- [ ] `npm test` and `npm run build` both clean.
-- [ ] Commit: `feat(exorcist-card-T3): card drawing and local-only PNG download`
+- [x] `src/card/draw.ts`: procedural frame, photo (cover-fit) or silhouette, Creepster title, stats.
+- [x] `src/card/download.ts`: `downloadCanvasPng` (toBlob → object URL → `<a download>` → revoke).
+- [x] Unit tests with mocked `toBlob` / `URL`: URL revoked (also on click error and null blob), anchor removed, `download` attribute set; spies on `fetch`, `XMLHttpRequest`, `navigator.sendBeacon`, `WebSocket` never called; source-grep privacy test; draw smoke test with a recording context (photo vs silhouette).
+- [x] `npm test` and `npm run build` both clean.
+- [x] Commit: `feat(exorcist-card-T3): card drawing and local-only PNG download`
 
 ## T4 — Screens, input and lifecycle
 - [ ] `src/ui/cardScreen.ts`: preview overlay with SAVE / NO PHOTO / CLOSE motion buttons, hit test, key mapping.
