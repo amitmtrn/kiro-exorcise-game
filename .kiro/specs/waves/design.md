@@ -47,8 +47,8 @@ pos = lerp(p0, p1, e) + n · H · (bend·sin(πs) + wobble·sin(phase + rate·ag
 exact (landing point, off-screen exit). `pathDurationMs = L / (speed·H) · 1000`.
 `pathExits(p)` is true when the end point is outside the canvas.
 
-Off-screen margin: `marginPx(H) = max(0.12·H, 64)`; start/exit points sit one
-margin beyond the edge (stored as fractions computed from W and H at spawn).
+Off-screen margin: `marginPx(H) = max(0.12·H, 64)`; start/exit points sit 0.9 × the
+margin beyond the edge (leaving room for lane offsets and sway) (stored as fractions computed from W and H at spawn).
 Arcs choose the bend sign whose midpoint is closer to the canvas centre, so
 bulges never leave the extended box.
 
@@ -109,13 +109,16 @@ Intensity peaks: stage 1 0.60, stage 2 0.70, stage 3 0.85, stage 4 1.00 (peak at
 `tickSpawners` (non-bonus, stage has a script):
 
 1. `elapsed = clamp(durationMs − roundTimeMs)`, `level = intensityAt(curve, elapsed/durationMs)`.
-2. Each spawn timer decrements by `deltaMs × spawnRateFor(level)`; on expiry it
+2. Scripted events with `atMs ≤ elapsed` fire first, in order, tracked by
+   `GameState.waveIndex` (reset when the stage starts). Events obey the same cap;
+   one that does not fit waits (a swarm needs ≥ 3 free slots) and later events queue behind it.
+3. Each spawn timer decrements by `deltaMs × spawnRateFor(level)`; on expiry it
    spawns one enemy (cap and skull rules unchanged) whose path comes from
    `pickPath(pathMix[kind])` and whose speed is `speedMultiplier × speedFactorFor(level)`.
-   Swarm picks spawn up to 5 bats (truncated to the free capacity; scripted swarms wait for ≥ 3 free slots, and scripted events run before the random timers).
-3. Scripted events with `atMs ≤ elapsed` fire in order, tracked by
-   `GameState.waveIndex` (reset when the stage starts). Events obey the same cap.
-4. No script (stage 5): the original behaviour; the boss spawns itself and its minions.
+   Swarm picks spawn up to 5 members (truncated to the free capacity). In the
+   bonus round random candy uses `maxEnemies − 1` as its cap (entry guard, swarm
+   fallback and truncation); random pumpkins and scripted events use the full cap.
+4. No script (stage 5): `addRandom` does nothing; the boss spawns itself and its minions.
 
 ## Bonus round
 
@@ -143,9 +146,11 @@ property is tested for H ≥ 540 where the margin is purely proportional.
 
 ## Tests
 
-- `paths.test.ts`: per-type bounds, endpoints, exits flag, swarm lanes.
-- `enemies/pathEnemies.property.test.ts`: frame-rate independence (via `moveEnemies`).
-- `paths.property.test.ts`: scale invariance, bounds, flyby exit + cull, never culled while visible.
+- `paths.test.ts`: per-type bounds, endpoints, exits flag, swarm lanes (band, distinct after clamping), flyby band, ≥ 0.85 H walks (all edges, several aspect ratios) and the narrow-canvas best effort.
+- `enemies/pathEnemies.property.test.ts`: frame-rate independence (via `moveEnemies`), flyby exit + cull.
+- `paths.property.test.ts`: scale invariance, bounds, never culled while visible.
 - `waves.test.ts`: script validation, intensity shape, bonus config.
-- `spawn.waves.test.ts` / property: cap with scripted events, scripted order, bonus harmless over a whole round, `splitReached`.
+- `enemies/pathEnemies.test.ts`: `splitReached`.
+- `enemies/spawn.waves.test.ts` / property: cap with scripted events, scripted order and deferral.
+- `bonus.test.ts`: bonus flow and the candy slot reserve (random candy vs. random pumpkin / scripted events); `bonus.property.test.ts`: harmless over a whole round.
 - Existing unit and property tests stay green.

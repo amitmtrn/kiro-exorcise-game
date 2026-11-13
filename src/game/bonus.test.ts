@@ -155,3 +155,50 @@ describe('bonus scoring', () => {
     expect(r.lives).toBe(3)
   })
 })
+
+describe('bonus round: candy slot reserve (R5.3a)', () => {
+  const fill = (n: number): Enemy[] => Array.from({ length: n }, (_, i) => makeEnemy({
+    id: `x${i}`, type: 'pumpkin', x: 100, y: 100 + i, targetX: 480, targetY: 270, speed: 0.1,
+    hitbox: { x: 80, y: 80 + i, w: 40, h: 40 },
+  }))
+  const NEVER = 1e9
+  const bonusAt = (enemies: Enemy[], timers: Partial<GameState['spawnTimers']>): GameState => ({
+    ...createInitialState(2),
+    phase: 'playing',
+    bonus: true,
+    roundTimeMs: BONUS_ROUND.durationMs - 1, // before the first scripted event
+    spawnTimers: { ghost: NEVER, bat: NEVER, skull: NEVER, lunger: NEVER, pumpkin: NEVER, ...timers },
+    enemies,
+  })
+  /** Math.random pinned high: pickPath → the last mix entry (swarm for candy), swarm size 5. */
+  const withRandom = <T,>(v: number, fn: () => T): T => {
+    const orig = Math.random
+    Math.random = () => v
+    try { return fn() } finally { Math.random = orig }
+  }
+  const count = (s: GameState) => s.enemies.filter((e) => e.type !== 'boss' && !e.exiting).length
+  const max = BONUS_ROUND.maxEnemies
+
+  it('a random candy swarm never takes the last slot', () => {
+    for (const present of [3, 4, 5, 6]) {
+      const s = withRandom(0.99, () => tickSpawners(bonusAt(fill(present), { bat: 0 }), 16, W, H))
+      expect(count(s)).toBeLessThanOrEqual(max - 1)
+    }
+  })
+
+  it('random candy stops spawning at maxEnemies − 1', () => {
+    const s = withRandom(0.5, () => tickSpawners(bonusAt(fill(max - 1), { bat: 0 }), 16, W, H))
+    expect(count(s)).toBe(max - 1)
+  })
+
+  it('a random bonus pumpkin may use the last slot', () => {
+    const s = withRandom(0.5, () => tickSpawners(bonusAt(fill(max - 1), { pumpkin: 0 }), 16, W, H))
+    expect(count(s)).toBe(max)
+  })
+
+  it('a scripted event may use the last slot', () => {
+    const s0 = { ...bonusAt(fill(max - 1), {}), waveIndex: 1 } // the 3 s swarm already fired
+    const s = withRandom(0.5, () => tickSpawners({ ...s0, roundTimeMs: BONUS_ROUND.durationMs - 8_000 }, 16, W, H))
+    expect(count(s)).toBe(max) // the 8 s flyby of 4 candy is truncated to the single free slot
+  })
+})

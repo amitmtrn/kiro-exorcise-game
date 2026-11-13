@@ -3,10 +3,9 @@
  * respecting the stage config, enemy cap, and skull/boss uniqueness rules.
  */
 
-import type { GameState, Enemy } from '../state'
+import type { GameState } from '../state'
 import { setEnemies, setSpawnTimers } from '../state'
 import { STAGES } from '../stages'
-import { createGhost } from './ghost'
 import { createSkull } from './skull'
 import { createLunger } from './lunger'
 import { spawnWave } from './waveSpawn'
@@ -60,8 +59,9 @@ export function tickSpawners(
   const rate = script ? spawnRateFor(level) : 1
   const mult = cfg.speedMultiplier * (script ? speedFactorFor(level) : 1)
 
-  // Bonus round: random candy leaves one slot free so bonus pumpkins and
+  // Bonus round: *random candy* leaves one slot free so bonus pumpkins and
   // scripted events are never starved by candy the player has not cleared.
+  // Random pumpkins and scripted events may use the last slot.
   const candyReserve = bonus ? 1 : 0
 
   let { enemies } = state
@@ -73,27 +73,23 @@ export function tickSpawners(
   // below must see the enemies added earlier in this tick (pbt T4).
   let nonBossCount = enemies.filter((e) => e.type !== 'boss' && !e.exiting).length
 
-  /** Spawn up to `count` path enemies, never beyond the cap (R3.4). */
-  const addWave = (kind: WaveKind, path: WavePath, count: number, height?: number): void => {
-    const n = Math.min(count, max - nonBossCount)
+  /** Spawn up to `count` path enemies, never beyond `cap` (default: the stage cap, R3.4). */
+  const addWave = (kind: WaveKind, path: WavePath, count: number, height?: number, cap = max): void => {
+    const n = Math.min(count, cap - nonBossCount)
     if (n <= 0) return
     const made = spawnWave(kind, path, n, { W: canvasW, H: canvasH, speedMult: mult, edges, height, bonus })
     enemies = [...enemies, ...made]
     nonBossCount += made.length
   }
 
-  /** Timer-driven spawn of one ghost / bat / pumpkin (or a bat swarm). Only the ghost has a legacy factory. */
-  const addRandom = (kind: WaveKind, legacy?: () => Enemy): void => {
-    // No script (boss stage): only the original ghost spawner is reachable.
-    if (!script) {
-      if (!legacy) return
-      enemies = [...enemies, legacy()]
-      nonBossCount++
-      return
-    }
+  /** Timer-driven spawn of one ghost / bat / pumpkin / candy (or a swarm). Random candy stops one short of the cap. */
+  const addRandom = (kind: WaveKind): void => {
+    // No script (boss stage): the boss spawns its own minions, nothing random here.
+    if (!script) return
+    const cap = kind === 'candy' ? max - candyReserve : max
     let path = pickPath(script.pathMix[kind], Math.random())
-    if (path === 'swarm' && max - nonBossCount < 3) path = 'flyby'
-    addWave(kind, path, randomCount(path))
+    if (path === 'swarm' && cap - nonBossCount < 3) path = 'flyby'
+    addWave(kind, path, randomCount(path), undefined, cap)
   }
 
   // Scripted set pieces fire once, in order, as the stage clock passes their
@@ -117,14 +113,14 @@ export function tickSpawners(
   // Ghost
   timers.ghost -= deltaMs * rate
   if (timers.ghost <= 0) {
-    if (mix.ghost && nonBossCount < max) addRandom('ghost', () => createGhost(canvasW, canvasH, mult))
+    if (mix.ghost && nonBossCount < max) addRandom('ghost')
     timers.ghost = resetTimer(timers.ghost, cfg.spawnIntervalMs.ghost)
   }
 
   // Bat
   timers.bat -= deltaMs * rate
   if (timers.bat <= 0) {
-    if (mix.bat && nonBossCount < max - candyReserve) addRandom(batKind)
+    if (mix.bat && nonBossCount < (batKind === 'candy' ? max - candyReserve : max)) addRandom(batKind)
     timers.bat = resetTimer(timers.bat, cfg.spawnIntervalMs.bat)
   }
 

@@ -63,6 +63,10 @@ function entryPx(H: number): number {
   return 0.9 * marginPx(H)
 }
 
+const clampLane = (y: number) => Math.min(LANE_MAX, Math.max(LANE_MIN, y))
+/** Swarm lanes spread at most this far (H) either side of the lead's centre. */
+const LANE_SPREAD = 0.13
+
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t
 const between = (r: Rand, a: number, b: number) => lerp(a, b, r())
 
@@ -123,6 +127,37 @@ function edgeStart(r: Rand, W: number, H: number, edges: Edges): { x: number; y:
   }
 }
 
+/**
+ * Pick the walk target for a line / arc: a random play-area point (x 20–80 %,
+ * y 25–75 %), unless that walk is shorter than MIN_CHORD_H. Then the target is
+ * built deterministically instead: the point MIN_CHORD_H away from the start,
+ * towards the random point, clamped to the play area; if clamping still leaves it
+ * short, the farthest corner of the play area. So the walk is always at least
+ * min(MIN_CHORD_H, the farthest reachable distance) — on very narrow canvases
+ * the full 0.85 H can be geometrically out of reach.
+ */
+function walkTarget(r: Rand, start: { x: number; y: number }, W: number, H: number): { x: number; y: number } {
+  const dist = (x: number, y: number) => Math.hypot((x - start.x) * W, (y - start.y) * H) / H
+  const cx = between(r, 0.2, 0.8)
+  const cy = between(r, 0.25, 0.75)
+  if (dist(cx, cy) >= MIN_CHORD_H) return { x: cx, y: cy }
+  const clampX = (x: number) => Math.min(0.8, Math.max(0.2, x))
+  const clampY = (y: number) => Math.min(0.75, Math.max(0.25, y))
+  // Push the random target out along the same direction to exactly MIN_CHORD_H.
+  const dx = (cx - start.x) * W / H, dy = cy - start.y
+  const len = Math.hypot(dx, dy) || 1
+  const px = clampX(start.x + (dx / len) * MIN_CHORD_H * H / W)
+  const py = clampY(start.y + (dy / len) * MIN_CHORD_H)
+  if (dist(px, py) >= MIN_CHORD_H) return { x: px, y: py }
+  // Farthest corner of the play area.
+  let best = { x: cx, y: cy }, bestD = -1
+  for (const x of [0.2, 0.8]) for (const y of [0.25, 0.75]) {
+    const d = dist(x, y)
+    if (d > bestD) { bestD = d; best = { x, y } }
+  }
+  return best
+}
+
 /** Build one path. `swarm` is not a kind of its own: see makeSwarm. */
 export function makePath(kind: PathKind, o: PathOptions): PathSpec {
   const r = o.rand ?? Math.random
@@ -136,8 +171,8 @@ export function makePath(kind: PathKind, o: PathOptions): PathSpec {
     const ltr = (o.dir ?? (r() < 0.5 ? 'ltr' : 'rtl')) === 'ltr'
     return {
       ...base, kind,
-      x0: ltr ? -mx : 1 + mx, y0: h + between(r, -0.08, 0.08),
-      x1: ltr ? 1 + mx : -mx, y1: h + between(r, -0.08, 0.08),
+      x0: ltr ? -mx : 1 + mx, y0: clampLane(h + between(r, -0.08, 0.08)),
+      x1: ltr ? 1 + mx : -mx, y1: clampLane(h + between(r, -0.08, 0.08)),
       wobble: between(r, 0.03, 0.06), wobbleRate: between(r, 5, 8),
     }
   }
@@ -154,16 +189,7 @@ export function makePath(kind: PathKind, o: PathOptions): PathSpec {
 
   // line / arc: edge → a spread-out point in the play area (never the centre on purpose)
   const start = edgeStart(r, W, H, o.edges ?? 'all')
-  // Resample (a few times) until the walk is long enough to be fair: ≥ MIN_CHORD_H
-  // canvas heights, so the shortest time to a lost life stays about 4 s in stage 1.
-  let x1 = 0, y1 = 0, best = -1
-  for (let i = 0; i < 8; i++) {
-    const cx = between(r, 0.2, 0.8)
-    const cy = between(r, 0.25, 0.75)
-    const d = Math.hypot((cx - start.x) * W, (cy - start.y) * H) / H
-    if (d > best) { best = d; x1 = cx; y1 = cy }
-    if (d >= MIN_CHORD_H) break
-  }
+  const { x: x1, y: y1 } = walkTarget(r, start, W, H)
   let bend = 0
   if (kind === 'arc') {
     const mag = between(r, 0.08, 0.18)
@@ -178,7 +204,6 @@ export function makePath(kind: PathKind, o: PathOptions): PathSpec {
   return { ...base, kind, x0: start.x, y0: start.y, x1, y1, bend }
 }
 
-const clampLane = (y: number) => Math.min(LANE_MAX, Math.max(LANE_MIN, y))
 
 /**
  * A small cluster of flyby members moving together: one lane each (lateral
@@ -188,6 +213,11 @@ const clampLane = (y: number) => Math.min(LANE_MAX, Math.max(LANE_MIN, y))
 export function makeSwarm(count: number, o: PathOptions): PathSpec[] {
   const r = o.rand ?? Math.random
   const lead = makePath('flyby', { ...o, height: o.height ?? between(r, 0.2, 0.7) })
+  // Keep the lead's centre far enough inside the band that clamping never
+  // merges two lanes (R1.4): every member's offset then fits without clamping.
+  const lo = LANE_MIN + LANE_SPREAD, hi = LANE_MAX - LANE_SPREAD
+  lead.y0 = Math.min(hi, Math.max(lo, lead.y0))
+  lead.y1 = Math.min(hi, Math.max(lo, lead.y1))
   const out: PathSpec[] = []
   for (let k = 0; k < count; k++) {
     // Lanes span ±0.12 H around the lead path, with a little jitter.

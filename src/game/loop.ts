@@ -154,9 +154,13 @@ export async function startLoop(
       state = tickEffects(state, deltaMs)
       renderFrame(gameCtx, state, now)
       state = resolveHits(state, currentData, prevData, displayW, displayH, now, frameIsNew, deltaMs)
-      renderSummary(gameCtx, state, now, () => {
-        state = advanceToNextStage(state, displayW, displayH)
-      })
+      // tickRound may just have auto-advanced (e.g. into the bonus title card):
+      // only offer NEXT while the summary is still showing, so it cannot skip a stage.
+      if (state.phase === 'summary') {
+        renderSummary(gameCtx, state, now, () => {
+          if (state.phase === 'summary') state = advanceToNextStage(state, displayW, displayH)
+        })
+      }
       prevCtx.drawImage(currentCanvas, 0, 0)
       rafId = requestAnimationFrame(tick)
       return

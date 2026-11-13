@@ -24,16 +24,20 @@ spawning; lunger and skull behaviour are unchanged).
 canvas), not the centre. `arc` — the same, along a curve that bulges toward the
 canvas centre. `drop` — enters above the top edge and falls (fast, then slowing)
 to a landing point in the play area. A `line` / `arc` walk is at least 0.85
-canvas heights long (the target is resampled until it is), so even the fastest
-stage 1 ghost needs about 4 s to cost a life.
+canvas heights long, so even the fastest stage 1 ghost needs about 4 s to cost
+a life. The bound is constructed, not sampled: a random target that is too close
+is replaced by the point 0.85 H away in the same direction (clamped to the play
+area, else the farthest play-area corner). On canvases too narrow to reach 0.85 H
+(portrait windows) the walk is the longest one the play area allows.
 
 **R1.3** `flyby` — crosses the canvas edge to edge (left→right or right→left) at a
-chosen height (15–80 % of the canvas height, several heights per wave), never
+chosen height (15–80 % of the canvas height, several heights per wave; end points are clamped into that band after jitter), never
 aimed at the centre, and leaves the screen on the other side. Swarm lanes are
 clamped to the same 15–80 % band, so no member is parked off screen.
 
 **R1.4** `swarm` — a small cluster (3–5) of flyby members moving together in
-separate lanes (small lateral offsets, ±5 % speed).
+separate lanes (small lateral offsets, ±5 % speed). Lanes stay distinct after
+clamping: the lead's centre is kept inside the band by the lane spread.
 
 **R1.5** Every path is a pure function of the enemy's accumulated path time
 (`pathMs`, advanced by `deltaMs`) and the canvas size. Positions are identical
@@ -124,8 +128,10 @@ is reset on entering and on leaving the bonus round, exactly as at every other
 stage transition (`createInitialState`); within the bonus round it builds on hits
 and is never broken by misses.
 
-**R5.3a** Random candy never takes the last free slot (`maxEnemies − 1`), so bonus
+**R5.3a** Random candy (single or swarm, including a swarm's truncation and its
+fallback to a flyby) never takes the last free slot (`maxEnemies − 1`), so bonus
 pumpkins and scripted events are not starved by candy the player has not cleared.
+Random bonus pumpkins and scripted events may use the last slot.
 
 **R5.4** Candy scores 75 × combo, a bonus pumpkin 200 × combo. Hits extend the
 combo as usual. The summary screen follows the bonus round, then the next stage.

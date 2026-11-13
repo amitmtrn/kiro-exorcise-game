@@ -19,6 +19,8 @@ function inExtendedBox(pt: { x: number; y: number }, W: number, H: number): bool
   return pt.x >= -m && pt.x <= W + m && pt.y >= -m && pt.y <= H + m
 }
 
+const chordH = (p: PathSpec, W: number, H: number) => Math.hypot((p.x1 - p.x0) * W, (p.y1 - p.y0) * H) / H
+
 describe('paths', () => {
   it('lists all five path types', () => {
     expect([...WAVE_PATHS].sort()).toEqual(['arc', 'drop', 'flyby', 'line', 'swarm'])
@@ -170,6 +172,62 @@ describe('paths', () => {
         const p = makePath(kind, { W, H, speed: 0.2, edges: 'leftRight', rand: mulberry32(seed) })
         const chord = Math.hypot((p.x1 - p.x0) * W, (p.y1 - p.y0) * H) / H
         expect(chord).toBeGreaterThanOrEqual(0.85)
+      }
+    }
+  })
+
+  it('line / arc walks reach 0.85 H from every edge (edges "all"), on wide and square canvases (R1.2)', () => {
+    for (const [W, H] of [[960, 540], [1920, 1080], [800, 800], [1280, 720]]) {
+      for (const kind of ['line', 'arc'] as const) {
+        for (let seed = 1; seed <= 400; seed++) {
+          const p = makePath(kind, { W, H, speed: 0.2, edges: 'all', rand: mulberry32(seed) })
+          expect(chordH(p, W, H)).toBeGreaterThanOrEqual(0.85 - 1e-9)
+        }
+      }
+    }
+  })
+
+  it('on narrow / portrait canvases the walk is the longest reachable, up to 0.85 H (R1.2)', () => {
+    for (const [W, H] of [[540, 960], [400, 900], [300, 900]]) {
+      // Longest possible walk from this start into the play-area box.
+      const farthest = (p: PathSpec) => {
+        let m = 0
+        for (const x of [0.2, 0.8]) for (const y of [0.25, 0.75]) {
+          m = Math.max(m, Math.hypot((x - p.x0) * W, (y - p.y0) * H) / H)
+        }
+        return m
+      }
+      for (const edges of ['leftRight', 'all'] as const) {
+        for (let seed = 1; seed <= 300; seed++) {
+          const p = makePath('line', { W, H, speed: 0.2, edges, rand: mulberry32(seed) })
+          expect(chordH(p, W, H)).toBeGreaterThanOrEqual(Math.min(0.85, farthest(p)) - 1e-9)
+        }
+      }
+    }
+  })
+
+  it('swarm lanes stay distinct after clamping (R1.4)', () => {
+    for (const n of [3, 4, 5]) {
+      for (const height of [0.2, 0.7, undefined]) {
+        for (let seed = 1; seed <= 200; seed++) {
+          const swarm = makeSwarm(n, { W: 960, H: 540, speed: 0.4, height, rand: mulberry32(seed) })
+          const ys = swarm.map((m) => m.y0).sort((a, b) => a - b)
+          for (let i = 1; i < ys.length; i++) expect(ys[i] - ys[i - 1]).toBeGreaterThan(0.01)
+          const ye = swarm.map((m) => m.y1).sort((a, b) => a - b)
+          for (let i = 1; i < ye.length; i++) expect(ye[i] - ye[i - 1]).toBeGreaterThan(0.01)
+        }
+      }
+    }
+  })
+
+  it('flyby end points stay in the 15–80 % band, whatever the height (R1.3)', () => {
+    for (const height of [0.15, 0.8, undefined]) {
+      for (let seed = 1; seed <= 200; seed++) {
+        const p = makePath('flyby', { W: 960, H: 540, speed: 0.4, height, rand: mulberry32(seed) })
+        for (const y of [p.y0, p.y1]) {
+          expect(y).toBeGreaterThanOrEqual(0.15 - 1e-9)
+          expect(y).toBeLessThanOrEqual(0.8 + 1e-9)
+        }
       }
     }
   })

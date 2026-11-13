@@ -72,7 +72,20 @@ Files: `src/game/enemies/spawn.ts`, `src/game/paths.ts`, `src/game/waves.ts`, sp
 - [x] Swarm lanes clamped to the 15–80 % band (R1.3); line / arc walks ≥ 0.85 H so stage 1 stays forgiving (R1.2).
 - [x] Bonus round keeps one slot free of random candy (R5.3a); R5.3 combo wording clarified.
 - [x] Stage 4's 46 s event is two drops, not three; dead `createBat` / `createPumpkin` use removed from the spawner.
-- [x] Design doc drift fixed (`candy.ts`, test file names); README test count 427.
+- [x] Design doc drift fixed (`candy.ts`, test file names); README test count 427 at the time.
 - [x] Tests: event deferral, swarm minimum, event ordering, lane clamp, minimum chord.
 - [x] `npm test` and `npm run build` both clean.
-- [x] Commit: `fix(waves): review fixes`
+- [x] Commit: `fix(waves): defer scripted events, clamp lanes, fair walks, bonus slot reserve` (1c07d3e)
+
+## T9 — Second review fixes
+Files: `src/game/paths.ts`, `src/game/enemies/spawn.ts`, `src/game/loop.ts`, spec docs, tests
+
+- [x] R1.2: line / arc walk target is constructed deterministically (≥ 0.85 H, else farthest reachable on narrow canvases); no resampling loop.
+- [x] R5.3a: the one-slot reserve applies to random candy only (entry, swarm fallback, truncation); random pumpkins and scripted events use the last slot.
+- [x] R1.4: the lead's centre is clamped so swarm lanes stay distinct; R1.3: flyby end points clamped to 15–80 %.
+- [x] Loop: NEXT is only offered while the phase is still `summary` (no skipped bonus round on the auto-advance frame).
+- [x] Dead `!script` ghost branch and `createGhost` import removed from the spawner.
+- [x] Design doc drift fixed (0.9 × margin, tickSpawners step order, test file list); T8 commit message corrected.
+- [x] Tests: `'all'` edges and narrow canvases, distinct lanes, flyby band, candy reserve (swarm, single, pumpkin, scripted); README count 435.
+- [x] `npm test` and `npm run build` clean.
+- [x] Commit: `fix(waves): constructed walk targets, candy-only slot reserve, lane and loop fixes`
