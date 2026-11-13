@@ -124,7 +124,7 @@ export function sfxLifeLost(): void {
   osc.stop(now() + 0.6)
 }
 
-/** Combo increment — ascending chime, pitch scales with combo level */
+/** Combo tier-up — chime whose pitch rises with the multiplier (played only when the tier changes) */
 export function sfxCombo(combo: number): void {
   const freq = Math.min(220 * combo, 1760)
   playTone(freq, 'sine', 0.3, 0.005, 0.05, 0.15)

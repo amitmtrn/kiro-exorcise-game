@@ -13,7 +13,13 @@ vi.mock('../webcam/diff', () => ({
   MOTION_H: 180,
 }))
 
+vi.mock('../audio/sfx', () => ({
+  sfxGhostHit: vi.fn(), sfxBatHit: vi.fn(), sfxSkullHit: vi.fn(),
+  sfxBossHit: vi.fn(), sfxBossDefeated: vi.fn(), sfxCombo: vi.fn(),
+}))
+
 import { computeFrameDiff } from '../webcam/diff'
+import { sfxCombo } from '../audio/sfx'
 const mockDiff = computeFrameDiff as ReturnType<typeof vi.fn>
 
 const DW = 640, DH = 480
@@ -32,7 +38,7 @@ function enemy(type: Enemy['type'], id = 'e1', overrides: Partial<Enemy> = {}): 
   })
 }
 
-beforeEach(() => mockDiff.mockReset())
+beforeEach(() => { mockDiff.mockReset(); (sfxCombo as ReturnType<typeof vi.fn>).mockClear() })
 
 describe('resolveHits — 2-frame gate', () => {
   it('does not fire on first true frame', () => {
@@ -276,5 +282,34 @@ describe('updateMotionPixels — whole-frame mask published in display space', (
     updateMotionPixels({ points: [{ x: 32, y: 18 }], sampled: 1, moved: 1, changed: true }, 640, 360)
     updateMotionPixels({ points: [], sampled: 1, moved: 0, changed: true }, 640, 360)
     expect(lastMotionPixels).toEqual([])
+  })
+})
+
+describe('resolveHits — feel-fix review fixes', () => {
+  it('a skull hit leaves streak and combo unchanged (R3.2)', () => {
+    mockDiff.mockReturnValue(true)
+    const s = { ...createInitialState(), streak: 7, combo: 3, enemies: [enemy('skull', 's1', { hitCount: 1 })] }
+    const r = resolveHits(s, FAKE, FAKE, DW, DH, 1000)
+    expect(r.streak).toBe(7)
+    expect(r.combo).toBe(3)
+  })
+
+  it('hitting an exiting skull still costs a life (R2.4)', () => {
+    mockDiff.mockReturnValue(true)
+    const s = { ...createInitialState(), enemies: [enemy('skull', 's1', { hitCount: 1, exiting: true })] }
+    const r = resolveHits(s, FAKE, FAKE, DW, DH, 1000)
+    expect(r.lives).toBe(2)
+  })
+
+  it('combo chime plays only when the multiplier tier rises', () => {
+    mockDiff.mockReturnValue(true)
+    const fn = sfxCombo as ReturnType<typeof vi.fn>
+    const hit = (streak: number, combo: number) =>
+      resolveHits({ ...createInitialState(), streak, combo, enemies: [enemy('ghost', 'g1', { hitCount: 1 })] }, FAKE, FAKE, DW, DH, 1000)
+    hit(0, 1)
+    expect(fn).not.toHaveBeenCalled()
+    hit(2, 1)
+    expect(fn).toHaveBeenCalledTimes(1)
+    expect(fn).toHaveBeenCalledWith(2)
   })
 })

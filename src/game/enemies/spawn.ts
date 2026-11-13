@@ -34,7 +34,7 @@ export function tickSpawners(
 
   const skullActive = enemies.some((e) => e.type === 'skull' && !e.exiting)
   // Boss is handled separately by round.ts — don't spawn it here
-  const nonBossCount = enemies.filter((e) => e.type !== 'boss').length
+  const nonBossCount = enemies.filter((e) => e.type !== 'boss' && !e.exiting).length
 
   // Ghost
   timers.ghost -= deltaMs

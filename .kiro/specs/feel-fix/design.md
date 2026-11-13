@@ -72,7 +72,9 @@ straight-line movement.
 whose hitbox is fully outside the canvas; the loop calls it after
 `moveEnemies`.
 
-`tickSpawners`: `skullActive = enemies.some(e => e.type === 'skull' && !e.exiting)`.
+`tickSpawners`: `skullActive = enemies.some(e => e.type === 'skull' && !e.exiting)`;
+exiting skulls are also excluded from the `maxEnemies` count. The combo chime
+(`sfxCombo`) plays only when a hit raises the multiplier tier.
 Assumption: the one-skull-at-a-time cap is kept for non-leaving skulls; only
 the *permanent* block is removed.
 
@@ -88,7 +90,8 @@ comboForStreak(streak)`, `bestCombo = max`. `resetCombo` → `streak 0`,
 `combo 1`. `resolveHits` already scores with `s.combo` before incrementing,
 which satisfies R3.3. `shakeIfStrong` compares `streak` to
 `SHAKE_COMBO_THRESHOLD` (3), i.e. fires from the hit that earns x2 (previously
-`combo ≥ 3` = the third hit's result; behaviour on a fresh streak is the same).
+`combo ≥ 3`, i.e. the old code shook from the 2nd hit of a fresh streak; the
+new code shakes from the 3rd, per R3.4).
 The HUD already keys off `combo`, so its pulse now fires on tier-ups only.
 
 ## File change summary

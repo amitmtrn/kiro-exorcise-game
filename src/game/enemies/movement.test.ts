@@ -142,3 +142,28 @@ describe('skull exit (feel-fix R2)', () => {
     expect(s.enemies.filter((e) => e.type === 'skull' && !e.exiting)).toHaveLength(1)
   })
 })
+
+describe('lunger hold distance scales with canvas height (R1.5)', () => {
+  const holdDistance = (h: number) => {
+    const w = h * 16 / 9
+    let cur: Enemy[] = [{ ...make('lunger', 0.1, h, w), x: -40, y: h / 2 }]
+    for (let i = 0; i < 3000 && cur[0].movePhase === 'approach'; i++) cur = moveEnemies(cur, 1000 / 60, w, h)
+    return Math.hypot(cur[0].targetX - cur[0].x, cur[0].targetY - cur[0].y) / h
+  }
+
+  it('stops at the same fraction of canvas height on 540p and 1080p', () => {
+    expect(holdDistance(540)).toBeCloseTo(holdDistance(1080), 1)
+  })
+})
+
+describe('exiting skull and maxEnemies', () => {
+  it('an exiting skull does not count toward maxEnemies', () => {
+    const cfg = STAGES[2]
+    const filler = Array.from({ length: cfg.maxEnemies - 1 }, (_, i) => ({ ...make('ghost', 0.1), id: `g${i}` }))
+    const leaving = { ...make('skull', 0.1), id: 'sk', exiting: true }
+    const s: GameState = { ...createInitialState(3), phase: 'playing', enemies: [...filler, leaving],
+      spawnTimers: { ghost: 0, bat: 99999, skull: 99999, lunger: 99999, pumpkin: 99999 } }
+    const r = tickSpawners(s, 16, W, H)
+    expect(r.enemies.length).toBe(s.enemies.length + 1)
+  })
+})

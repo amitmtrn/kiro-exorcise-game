@@ -1,5 +1,5 @@
 /**
- * Movement update — moves every enemy one step toward its target.
+ * Movement update — moves every enemy one deltaMs-scaled step toward its target.
  * Returns a new array (pure, does not mutate input).
  */
 

@@ -42,8 +42,8 @@ Other enemy base speeds keep their previous ratio to the ghost.
 
 **R2.1** A skull accumulates *on-screen time* while its centre is inside the
 canvas. After **4 s** on screen it turns around and leaves: it is flagged
-`exiting`, retargeted to a point outside the screen on the side it is nearest
-to, and flies out at 1.5× speed.
+`exiting`, retargeted to a point outside the screen straight out from the canvas
+centre through its current position, and flies out at 1.5× speed.
 
 **R2.2** An exiting skull is removed once it is entirely outside the canvas.
 Skulls never park permanently.

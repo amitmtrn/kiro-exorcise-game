@@ -43,3 +43,16 @@ Files: `README.md` (only if it states combo or speed behaviour)
 - [x] Update any README lines that describe the combo or enemy speed.
 - [x] Run `npm test` and `npm run build`; both clean.
 - [x] Commit: `docs(feel-fix-T4): reflect combo tiers and movement`
+
+## T5 — Review fixes
+Files: `src/game/collision.ts`, `src/audio/sfx.ts`, `src/game/enemies/spawn.ts`,
+`src/game/enemies/movement.ts`, specs, tests
+
+- [x] R2.1 reworded to match the radial exit; design combo note corrected; spooky-skin R4.1 updated to streak ≥ 3.
+- [x] Combo chime plays only on a multiplier tier-up (chime comment updated).
+- [x] Exiting skulls no longer count toward `maxEnemies`.
+- [x] `movement.ts` header comment mentions `deltaMs` scaling.
+- [x] Tests: skull hit keeps streak/combo (R3.2), exiting skull costs a life (R2.4), lunger hold distance scales with height (R1.5), chime only on tier-up, exiting skull vs maxEnemies.
+- Not changed (cosmetic, out of scope): per-frame shake/particle timers, lunger one-frame wind-up granularity, skull parking at centre.
+- [x] Run `npm test` and `npm run build`; both clean.
+- [x] Commit: `fix(feel-fix): review fixes`

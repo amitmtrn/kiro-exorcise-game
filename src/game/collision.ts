@@ -106,12 +106,13 @@ export function resolveHits(
     if (enemy.type === 'ghost' || enemy.type === 'lunger') {
       const pts = (enemy.type === 'ghost' ? 100 : 150) * s.combo
       s = scoreWithPop(s, enemy, pts)
+      const tierBefore = s.combo
       s = incrementCombo(s)
       s = incrementBanished(s)
       s = shakeIfStrong(s)
       s = addParticles(s, spawnGhostPuff(enemy.x, enemy.y))
       lastBanished.push({ ...enemy, hitFlashFrames: 1 })
-      try { sfxGhostHit(); sfxCombo(s.combo) } catch { /* audio not ready */ }
+      try { sfxGhostHit(); if (s.combo > tierBefore) sfxCombo(s.combo) } catch { /* audio not ready */ }
 
     } else if (enemy.type === 'bat') {
       s = scoreWithPop(s, enemy, 50 * s.combo)

@@ -12,7 +12,7 @@
 **R3.2** All art remains procedural canvas 2D — no external image files.
 
 ## R4 — Hit effects
-**R4.1** On a strong hit (combo ≥ 3), a brief screen shake (translate ±4 px for 3 frames) fires.
+**R4.1** On a strong hit (streak ≥ 3, i.e. the x2 tier — see feel-fix R3.4), a brief screen shake (translate ±4 px for 3 frames) fires.
 **R4.2** Each enemy flashes white for 1 frame on hit before the puff particles appear.
 
 ## R5 — HUD polish
