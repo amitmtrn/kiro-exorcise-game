@@ -33,7 +33,7 @@ dependency is needed).
     "name": "test-on-src-save",
     "description": "Run npm test after any file under src/ is saved.",
     "trigger": "PostFileSave",
-    "matcher": "(^|/)src/",
+    "matcher": "^(?!.*(^|/)node_modules/)(?!.*\\.test\\.ts$).*(^|/)src/",
     "action": { "type": "command", "command": "npm test" },
     "timeout": 120, "enabled": true }] }
 ```
@@ -48,7 +48,7 @@ in each, `git log --oneline` for `Commit:` lines, print a table
 mark manual items as not checkable, and **make no edits**.
 
 ### readme-test-count (R4)
-Matcher: `\.test\.(ts|mjs)$`. Command: `node tools/sync-readme-tests.mjs`.
+Matcher: `^(?!.*(^|/)node_modules/).*\.test\.(ts|mjs)$`. Command: `node tools/sync-readme-tests.mjs`.
 
 Script flow:
 1. `npx vitest run --reporter=json --outputFile=<os tmpdir>/exorcise-vitest.json`
@@ -57,7 +57,11 @@ Script flow:
 3. `updateReadmeCount(text, n)` — pure; regex
    `/(Run all )\d+( unit tests)/`; throws if no match.
 4. Write README only if the text changed (`--check`: print mismatch, exit 1).
-5. Remove the temp report. Exit 1 if any test failed.
+5. Remove the temp report. Exit 1 if any test failed or Vitest's status is
+   non-zero. Before step 1 any stale report is deleted. `evaluateReport`
+   (pure) rejects reports with a bad `numTotalTests` or with failed suites and
+   no failed tests (a file that did not load), so the README is never written
+   with an under-count. `updateReadmeCount` rejects non-integer counts.
 
 The script's own pure-function test never spawns Vitest, so there is no
 recursion.
@@ -66,7 +70,8 @@ recursion.
 | Path | test-on-save | spec-drift | readme-count |
 |---|---|---|---|
 | `src/game/state.ts` | ✔ | ✘ | ✘ |
-| `/abs/repo/src/ui/hud.test.ts` | ✔ | ✘ | ✔ |
+| `/abs/repo/src/ui/hud.test.ts` | ✘ (R4 runs the suite) | ✘ | ✔ |
+| `node_modules/x/src/a.ts` | ✘ | ✘ | ✘ |
 | `.kiro/specs/stages/tasks.md` | ✘ | ✔ | ✘ |
 | `.kiro/specs/stages/design.md` | ✘ | ✘ | ✘ |
 | `README.md` | ✘ | ✘ | ✘ |

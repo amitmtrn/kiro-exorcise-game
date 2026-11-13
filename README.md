@@ -25,7 +25,7 @@ npm run dev
 
 | Command | What it does |
 |---|---|
-| `npm test` | Run all 185 unit tests (Vitest) |
+| `npm test` | Run all 191 unit tests (Vitest) |
 | `npm run build` | Production build → `dist/` |
 | `npm run preview` | Preview the production build locally |
 
@@ -81,17 +81,18 @@ Every feature was planned as a Kiro spec before implementation:
 | `audio/` | Procedural Web Audio SFX and background music |
 | `spooky-skin/` | Webcam tint, fog, candle glow, screen shake, score pops |
 | `feel-fix/` | px/s movement scaled to screen height, skull exits, combo tiers |
+| `hooks/` | Kiro hooks: test on save, spec/code drift report, README test-count sync |
 
 Each spec has `requirements.md`, `design.md`, and `tasks.md`. Writing requirements and design before tasks surfaced design gaps (e.g. skull penalty rules, hitbox coordinate system, mirror parity bug) that would have been painful to fix mid-implementation.
 
-All eight specs are implemented. Every task in `tasks.md` is ticked except the manual smoke tests (a webcam playthrough, enabling GitHub Pages in the repo settings), and `boss-combo/` carries a status note explaining it was superseded by `stages/`.
+All nine specs are implemented. Every task in `tasks.md` is ticked except the manual smoke tests (a webcam playthrough, enabling GitHub Pages in the repo settings), and `boss-combo/` carries a status note explaining it was superseded by `stages/`.
 
 ### Kiro hooks (`.kiro/hooks/`)
 Standalone `v1` hook files, loaded by Kiro IDE and Kiro CLI V3. Spec: `.kiro/specs/hooks/`.
 
 | Hook file | Fires on | What it does |
 |---|---|---|
-| `test-on-save.json` | save of any file under `src/` | Runs `npm test` |
+| `test-on-save.json` | save of any non-test file under `src/` | Runs `npm test` (test-file saves are handled by `readme-test-count.json`, so the suite runs once) |
 | `spec-drift-check.json` | save of `.kiro/specs/*/tasks.md` | Agent checks every ticked task against the code, tests and git log, and reports drift (report only, no edits) |
 | `readme-test-count.json` | save of a `*.test.ts` / `*.test.mjs` file | Runs `node tools/sync-readme-tests.mjs`: runs the tests and rewrites the test count in this README (`--check` only reports) |
 

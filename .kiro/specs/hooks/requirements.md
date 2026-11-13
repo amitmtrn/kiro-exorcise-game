@@ -35,7 +35,9 @@ the supplied `command`/`prompt` field, valid `matcher` regex).
 ## R2 — Run tests after writes to `src/`
 
 **R2.1** Trigger `PostFileSave`, matcher selects paths containing a `src/`
-directory segment (any file type).
+directory segment (any file type), except `*.test.ts` files (those are handled
+by R4, which also runs the suite, so the suite never runs twice per save) and
+anything under `node_modules/`.
 
 **R2.2** Action is the shell command `npm test`, with a timeout of 120 s.
 
@@ -68,7 +70,7 @@ reported as "manual — not checkable", not as drift.
 ## R4 — README test-count sync
 
 **R4.1** Trigger `PostFileSave`, matcher selects test files
-(`*.test.ts` / `*.test.mjs`) anywhere in the repo.
+(`*.test.ts` / `*.test.mjs`) anywhere in the repo except under `node_modules/`.
 
 **R4.2** Action is a shell command `node tools/sync-readme-tests.mjs` that
 runs the real test suite (Vitest JSON reporter), reads the total test count,
@@ -78,8 +80,12 @@ and rewrites the count in the README `npm test` row
 **R4.3** The script is idempotent: if the README already states the real
 number, the file is left byte-identical.
 
-**R4.4** If tests fail to run (non-zero exit with no JSON report), the script
-exits non-zero and does **not** modify the README. If some tests fail but a
+**R4.4** If tests fail to run (non-zero exit with no JSON report), or the
+report is untrustworthy (`numTotalTests` missing / not a positive integer, or
+a test file failed to load — `numFailedTestSuites > 0` with no failed tests,
+which would under-count), the script exits non-zero and does **not** modify
+the README. The script also exits non-zero whenever Vitest's exit status is
+non-zero. A stale report file from a previous crash is deleted before the run. If some tests fail but a
 report exists, it still syncs the count (the count is the number of tests,
 not of passes) and exits non-zero so the failure surfaces.
 
@@ -87,7 +93,9 @@ not of passes) and exits non-zero so the failure surfaces.
 
 **R4.6** The replacement logic is a pure function with unit tests: replaces
 the number, leaves other text alone, errors when the README has no matching
-line.
+line, and rejects a non-integer / non-positive count. Report validation is
+likewise a pure function (`evaluateReport`) with unit tests. On Windows `npx`
+is spawned through the shell.
 
 ---
 
@@ -99,7 +107,9 @@ fire twice).
 
 **R5.2** The hook JSON shape is verified with `kiro-cli agent validate` using
 a temporary agent config that embeds the same `hooks` array; the temp file is
-deleted afterwards.
+deleted afterwards. The result (kiro-cli version, exit status) is recorded in
+`tasks.md` (T5). Validation accepts the shape but is lenient; the structural
+unit test remains the guard.
 
 ---
 
@@ -108,7 +118,8 @@ deleted afterwards.
 **R6.1** README has a short "Kiro hooks" section listing each hook and what it
 does; the stale `test-on-save.json` description is replaced.
 
-**R6.2** The README file tree lists the new hook files, spec and script.
+**R6.2** The README file tree lists the new hook files, spec and script, and
+the README specs table has a `hooks/` row with a correct spec count.
 
 ---
 

@@ -32,6 +32,9 @@ describe('hook files (R1)', () => {
       it('has valid hooks', () => {
         for (const h of doc.hooks) {
           expect(typeof h.name).toBe('string')
+          expect(typeof h.action).toBe('object')
+          if (h.timeout !== undefined) expect(Number.isInteger(h.timeout) && h.timeout > 0).toBe(true)
+          if (h.enabled !== undefined) expect(typeof h.enabled).toBe('boolean')
           expect(TRIGGERS.has(h.trigger)).toBe(true)
           if (h.matcher !== undefined) expect(() => new RegExp(h.matcher)).not.toThrow()
           if (h.action.type === 'command') expect(h.action.command).toBeTruthy()
@@ -47,7 +50,13 @@ describe('test-on-save matcher (R2)', () => {
   const m = () => matcherOf('test-on-save.json', 'test-on-src-save')
   it('fires for src files', () => {
     expect(m().test('src/game/state.ts')).toBe(true)
-    expect(m().test('/abs/repo/src/ui/hud.test.ts')).toBe(true)
+    expect(m().test('/abs/repo/src/ui/hud.ts')).toBe(true)
+  })
+  it('leaves test files to readme-test-count (no double run)', () => {
+    expect(m().test('src/ui/hud.test.ts')).toBe(false)
+  })
+  it('ignores node_modules', () => {
+    expect(m().test('node_modules/x/src/a.ts')).toBe(false)
   })
   it('ignores other files', () => {
     for (const p of ['README.md', '.kiro/specs/x/tasks.md', 'tools/a.mjs', 'mysrc/a.ts']) {
@@ -89,7 +98,10 @@ describe('readme-test-count (R4)', () => {
     for (const p of ['src/ui/hud.test.ts', '/abs/tools/sync-readme-tests.test.mjs']) {
       expect(m.test(p)).toBe(true)
     }
-    for (const p of ['src/game/state.ts', 'README.md', 'tools/sync-readme-tests.mjs']) {
+    for (const p of [
+      'src/game/state.ts', 'README.md', 'tools/sync-readme-tests.mjs',
+      'node_modules/x/a.test.ts',
+    ]) {
       expect(m.test(p)).toBe(false)
     }
   })

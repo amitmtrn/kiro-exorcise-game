@@ -11,10 +11,30 @@ const COUNT_RE = /(Run all )\d+( unit tests)/
 
 /** Pure: returns README text with the stated test count replaced by n. */
 export function updateReadmeCount(text, n) {
+  if (!Number.isInteger(n) || n <= 0) {
+    throw new Error(`invalid test count: ${n}`)
+  }
   if (!COUNT_RE.test(text)) {
     throw new Error('README has no "Run all <N> unit tests" line to update')
   }
   return text.replace(COUNT_RE, `$1${n}$2`)
+}
+
+/**
+ * Pure: decide what to do with a Vitest JSON report.
+ * Returns { ok, reason?, total, failed, skipped }. ok=false means the report
+ * cannot be trusted (suites that failed to load, bad numbers) and README must
+ * not be written.
+ */
+export function evaluateReport(r) {
+  const total = r?.numTotalTests
+  if (!Number.isInteger(total) || total <= 0) {
+    return { ok: false, reason: 'report has no valid numTotalTests' }
+  }
+  if ((r.numFailedTestSuites ?? 0) > 0 && (r.numFailedTests ?? 0) === 0) {
+    return { ok: false, reason: 'a test file failed to load; count would be too low' }
+  }
+  return { ok: true, total, failed: r.numFailedTests ?? 0, skipped: r.numPendingTests ?? 0 }
 }
 
 function main() {
@@ -23,33 +43,46 @@ function main() {
   const report = join(tmpdir(), `exorcise-vitest-${process.pid}.json`)
   const check = process.argv.includes('--check')
 
+  rmSync(report, { force: true }) // never read a stale report
   const run = spawnSync(
     'npx',
     ['vitest', 'run', '--reporter=json', `--outputFile=${report}`],
-    { cwd: root, encoding: 'utf8' },
+    { cwd: root, encoding: 'utf8', shell: process.platform === 'win32' },
   )
   if (!existsSync(report)) {
     console.error('Vitest produced no report; README left untouched.')
     console.error(run.stderr || run.error || '')
     process.exit(1)
   }
-  const { numTotalTests, numFailedTests, numPendingTests } = JSON.parse(readFileSync(report, 'utf8'))
+  let parsed
+  try {
+    parsed = JSON.parse(readFileSync(report, 'utf8'))
+  } catch {
+    parsed = null
+  }
   rmSync(report, { force: true })
 
+  const ev = evaluateReport(parsed)
+  if (!ev.ok) {
+    console.error(`${ev.reason}; README left untouched.`)
+    process.exit(1)
+  }
+  const { total, failed, skipped } = ev
+
   const before = readFileSync(readmePath, 'utf8')
-  const after = updateReadmeCount(before, numTotalTests)
-  console.log(`tests: ${numTotalTests} total, ${numFailedTests} failed, ${numPendingTests} skipped`)
+  const after = updateReadmeCount(before, total)
+  console.log(`tests: ${total} total, ${failed} failed, ${skipped} skipped`)
 
   if (after === before) {
     console.log('README test count already correct.')
   } else if (check) {
-    console.error(`README test count is stale (real count: ${numTotalTests}).`)
+    console.error(`README test count is stale (real count: ${total}).`)
     process.exit(1)
   } else {
     writeFileSync(readmePath, after)
-    console.log(`README updated to ${numTotalTests} tests.`)
+    console.log(`README updated to ${total} tests.`)
   }
-  if (numFailedTests > 0) process.exit(1)
+  if (failed > 0 || run.status !== 0) process.exit(1)
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) main()
