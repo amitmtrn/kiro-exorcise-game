@@ -46,9 +46,9 @@ export function updateMotionPixels(mask: MotionMask, displayW: number, displayH:
  */
 export let lastBanished: Enemy[] = []
 
-/** Shake the screen when a scoring hit lands at combo ≥ 3 (spooky-skin R4.1). */
+/** Shake the screen when a scoring hit lands at streak ≥ 3 (spooky-skin R4.1). */
 function shakeIfStrong(s: GameState): GameState {
-  return s.combo >= SHAKE_COMBO_THRESHOLD ? setShake(s, SHAKE_FRAMES) : s
+  return s.streak >= SHAKE_COMBO_THRESHOLD ? setShake(s, SHAKE_FRAMES) : s
 }
 
 /** Award points and float a "+N" label up from the enemy (spooky-skin R5.2). */

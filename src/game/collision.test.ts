@@ -73,9 +73,11 @@ describe('resolveHits — combo multiplier', () => {
 
   it('increments combo on ghost hit', () => {
     mockDiff.mockReturnValue(true)
-    const s = { ...createInitialState(), combo: 2, enemies: [enemy('ghost', 'g1', { hitCount: 1 })] }
+    const s = { ...createInitialState(), streak: 2, combo: 1, enemies: [enemy('ghost', 'g1', { hitCount: 1 })] }
     const r = resolveHits(s, FAKE, FAKE, DW, DH, 1000)
-    expect(r.combo).toBe(3)
+    expect(r.streak).toBe(3)
+    expect(r.combo).toBe(2)
+    expect(r.score).toBe(100) // scored at the pre-increment multiplier
   })
 
   it('bat scores 50 * combo', () => {
@@ -135,15 +137,15 @@ describe('resolveHits — boss multi-hit', () => {
 })
 
 describe('resolveHits — screen shake (spooky-skin R4.1)', () => {
-  it('a hit that brings combo to 3 sets shakeFrames', () => {
+  it('a hit that brings the streak to 3 sets shakeFrames', () => {
     mockDiff.mockReturnValue(true)
-    const s = { ...createInitialState(), combo: 2, enemies: [enemy('ghost', 'g1', { hitCount: 1 })] }
+    const s = { ...createInitialState(), streak: 2, combo: 1, enemies: [enemy('ghost', 'g1', { hitCount: 1 })] }
     const r = resolveHits(s, FAKE, FAKE, DW, DH, 1000)
-    expect(r.combo).toBe(3)
+    expect(r.streak).toBe(3)
     expect(r.shakeFrames).toBe(SHAKE_FRAMES)
   })
 
-  it('a hit below combo 3 does not shake', () => {
+  it('a hit below streak 3 does not shake', () => {
     mockDiff.mockReturnValue(true)
     const s = { ...createInitialState(), combo: 1, enemies: [enemy('bat', 'b1', { hitCount: 1 })] }
     const r = resolveHits(s, FAKE, FAKE, DW, DH, 1000)

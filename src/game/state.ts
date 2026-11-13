@@ -86,7 +86,8 @@ export interface GameState {
   // Stage tracking
   stage: number           // 1–5
   stageTitleMs: number    // countdown for title card (3 s)
-  combo: number           // current combo multiplier (min 1)
+  streak: number          // consecutive banishes since the last reset
+  combo: number           // score multiplier derived from streak (x1–x4)
   bestCombo: number       // best combo this stage
   stageBanished: number   // enemies banished this stage
   stageMissed: number     // enemies that reached center this stage
@@ -103,7 +104,7 @@ export const STARTING_LIVES = 3
 export const STAGE_TITLE_DURATION_MS = 3_000
 export const SUMMARY_AUTO_ADVANCE_MS = 5_000
 
-// Spooky-skin R4.1 — screen shake fires on a hit at combo ≥ 3, ±4 px for 3 frames
+// Spooky-skin R4.1 — screen shake fires on a scoring hit at streak ≥ 3, ±4 px for 3 frames
 export const SHAKE_FRAMES = 3
 export const SHAKE_COMBO_THRESHOLD = 3
 export const SHAKE_AMPLITUDE_PX = 4
@@ -162,6 +163,7 @@ export function createInitialState(stage = 1): GameState {
     flashEndTime: 0,
     stage,
     stageTitleMs: STAGE_TITLE_DURATION_MS,
+    streak: 0,
     combo: 1,
     bestCombo: 1,
     stageBanished: 0,
@@ -230,14 +232,28 @@ export function setSpawnTimers(state: GameState, spawnTimers: SpawnTimers): Game
   return { ...state, spawnTimers }
 }
 
+/** Stages R4.1 — streak thresholds, highest first. */
+export const COMBO_TIERS: ReadonlyArray<{ streak: number; mult: number }> = [
+  { streak: 10, mult: 4 },
+  { streak: 6, mult: 3 },
+  { streak: 3, mult: 2 },
+]
+
+/** Score multiplier for a given streak of consecutive banishes (x1–x4). */
+export function comboForStreak(streak: number): number {
+  for (const tier of COMBO_TIERS) if (streak >= tier.streak) return tier.mult
+  return 1
+}
+
 export function incrementCombo(state: GameState): GameState {
-  const combo = state.combo + 1
+  const streak = state.streak + 1
+  const combo = comboForStreak(streak)
   const bestCombo = combo > state.bestCombo ? combo : state.bestCombo
-  return { ...state, combo, bestCombo }
+  return { ...state, streak, combo, bestCombo }
 }
 
 export function resetCombo(state: GameState): GameState {
-  return { ...state, combo: 1 }
+  return { ...state, streak: 0, combo: 1 }
 }
 
 export function incrementBanished(state: GameState): GameState {

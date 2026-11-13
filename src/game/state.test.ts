@@ -7,6 +7,7 @@ import {
   removeEnemy,
   addParticles,
   incrementCombo,
+  comboForStreak,
   resetCombo,
   makeEnemy,
   setShake,
@@ -123,19 +124,55 @@ describe('addParticles', () => {
   })
 })
 
-describe('combo reducers', () => {
-  it('incrementCombo increases by 1 and updates bestCombo', () => {
-    let s = incrementCombo(createInitialState())
-    expect(s.combo).toBe(2)
-    s = incrementCombo(s)
-    expect(s.bestCombo).toBe(3)
+describe('combo reducers (stages R4.1–R4.3)', () => {
+  const hits = (n: number) => {
+    let s = createInitialState()
+    for (let i = 0; i < n; i++) s = incrementCombo(s)
+    return s
+  }
+
+  it('starts at x1 with no streak', () => {
+    const s = createInitialState()
+    expect(s.combo).toBe(1)
+    expect(s.streak).toBe(0)
   })
 
-  it('resetCombo returns to 1 without lowering bestCombo', () => {
-    let s = incrementCombo(incrementCombo(createInitialState()))
-    s = resetCombo(s)
+  it.each([
+    [0, 1], [1, 1], [2, 1],
+    [3, 2], [4, 2], [5, 2],
+    [6, 3], [7, 3], [9, 3],
+    [10, 4], [11, 4], [50, 4],
+  ])('comboForStreak(%i) = x%i', (streak, mult) => {
+    expect(comboForStreak(streak)).toBe(mult)
+  })
+
+  it('incrementCombo crosses each tier on exactly the 3rd, 6th and 10th hit', () => {
+    expect(hits(2).combo).toBe(1)
+    expect(hits(3).combo).toBe(2)
+    expect(hits(5).combo).toBe(2)
+    expect(hits(6).combo).toBe(3)
+    expect(hits(9).combo).toBe(3)
+    expect(hits(10).combo).toBe(4)
+  })
+
+  it('never exceeds x4', () => {
+    const s = hits(200)
+    expect(s.combo).toBe(4)
+    expect(s.streak).toBe(200)
+    expect(s.bestCombo).toBe(4)
+  })
+
+  it('resetCombo (enemy reached the centre) returns to x1 / streak 0, keeping bestCombo', () => {
+    let s = hits(6)
+    s = decrementLife(resetCombo(s))
     expect(s.combo).toBe(1)
+    expect(s.streak).toBe(0)
     expect(s.bestCombo).toBe(3)
+    // the climb starts again from scratch
+    for (let i = 0; i < 2; i++) s = incrementCombo(s)
+    expect(s.combo).toBe(1)
+    s = incrementCombo(s)
+    expect(s.combo).toBe(2)
   })
 })
 

@@ -30,12 +30,12 @@ Files: `src/game/state.ts`, `src/game/enemies/movement.ts`, `spawn.ts`,
 Files: `src/game/state.ts`, `src/game/collision.ts`,
 `src/game/state.test.ts`, `src/game/collision.test.ts`
 
-- [ ] `streak` in `GameState`; `comboForStreak`; `incrementCombo` / `resetCombo` use it; multiplier capped at x4.
-- [ ] Shake keyed on `streak`.
-- [ ] Update existing combo/shake tests to the tier model.
-- [ ] Tests: boundaries 2→x1, 3→x2, 5→x2, 6→x3, 9→x3, 10→x4, 50→x4; reset to x1 / streak 0; `bestCombo` keeps the peak multiplier; hit is scored at the pre-increment multiplier; enemy reaching centre resets (loop-level reducer sequence).
-- [ ] Run `npm test` and `npm run build`; both clean.
-- [ ] Commit: `feat(feel-fix-T3): combo tiers x2/x3/x4 at 3/6/10 hits`
+- [x] `streak` in `GameState`; `comboForStreak`; `incrementCombo` / `resetCombo` use it; multiplier capped at x4.
+- [x] Shake keyed on `streak`.
+- [x] Update existing combo/shake tests to the tier model.
+- [x] Tests: boundaries 2→x1, 3→x2, 5→x2, 6→x3, 9→x3, 10→x4, 50→x4; reset to x1 / streak 0; `bestCombo` keeps the peak multiplier; hit is scored at the pre-increment multiplier; enemy reaching centre resets (loop-level reducer sequence).
+- [x] Run `npm test` and `npm run build`; both clean.
+- [x] Commit: `feat(feel-fix-T3): combo tiers x2/x3/x4 at 3/6/10 hits`
 
 ## T4 — Docs
 Files: `README.md` (only if it states combo or speed behaviour)
