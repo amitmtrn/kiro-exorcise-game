@@ -70,6 +70,7 @@ export function tickRound(
       return { ...state, summaryShownMs }
     }
 
+    case 'victory':
     case 'gameover':
       saveHighScore(state.highScore)
       return state
@@ -79,13 +80,16 @@ export function tickRound(
   }
 }
 
-/** Transition from summary → next stage title (or loop back to stage 1). */
+/** Transition from summary → next stage title, or → victory after the final stage (never loops). */
 export function advanceToNextStage(
   state: GameState,
   _canvasW: number,
   _canvasH: number,
 ): GameState {
-  const nextStage = state.stage < 5 ? state.stage + 1 : 1
+  if (state.stage >= STAGES.length) {
+    return { ...state, phase: 'victory', enemies: [] }
+  }
+  const nextStage = state.stage + 1
   return {
     ...createInitialState(nextStage),
     lives: state.lives,          // carry lives across stages

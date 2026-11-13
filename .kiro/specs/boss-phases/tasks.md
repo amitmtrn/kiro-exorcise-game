@@ -18,11 +18,11 @@
 - [x] Commit: `feat(boss-phases-T2): shielded boss, lunger only hittable in wind-up, defeat ends stage`
 
 ## T3 — Timeout and final-stage flow
-- [ ] `tickTimer`: timer 0 with a live boss → `gameover`.
-- [ ] `advanceToNextStage` from the last stage → `victory` (no wrap to stage 1); `tickRound` saves the high score in `victory`.
-- [ ] Unit tests: timeout with boss → game over, without → summary, defeat on the expiry tick → victory, last stage never loops.
-- [ ] `npm test` and `npm run build` both clean.
-- [ ] Commit: `feat(boss-phases-T3): timeout game over and victory flow`
+- [x] `tickTimer`: timer 0 with a live boss → `gameover`.
+- [x] `advanceToNextStage` from the last stage → `victory` (no wrap to stage 1); `tickRound` saves the high score in `victory`.
+- [x] Unit tests: timeout with boss → game over, without → summary, defeat on the expiry tick → victory, last stage never loops.
+- [x] `npm test` and `npm run build` both clean.
+- [x] Commit: `feat(boss-phases-T3): timeout game over and victory flow`
 
 ## T4 — Loop, victory screen, art
 - [ ] `loop.ts`: call `tickBoss` (life-lost sfx on strike), handle the `victory` phase, stop music on victory.

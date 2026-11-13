@@ -219,6 +219,10 @@ export function addScore(state: GameState, points: number): GameState {
 export function tickTimer(state: GameState, deltaMs: number): GameState {
   const roundTimeMs = Math.max(0, state.roundTimeMs - deltaMs)
   if (roundTimeMs === 0 && state.phase === 'playing') {
+    // Time ran out with the boss still alive: the stage is failed (boss-phases R6.5).
+    if (state.enemies.some((e) => e.type === 'boss')) {
+      return { ...state, roundTimeMs, phase: 'gameover' }
+    }
     return { ...state, roundTimeMs, phase: 'summary', enemies: [] }
   }
   return { ...state, roundTimeMs }

@@ -98,6 +98,18 @@ describe('tickTimer', () => {
     expect(r.enemies).toHaveLength(0)
   })
 
+  it('timeout with a live boss is game over, not summary (boss-phases R6.5)', () => {
+    const boss = makeEnemy({ id: 'b', type: 'boss', x: 0, y: 0, targetX: 0, targetY: 0, speed: 0, hitbox: { x: 0, y: 0, w: 1, h: 1 } })
+    const r = tickTimer(gs({ phase: 'playing', stage: 5, roundTimeMs: 100, enemies: [boss, enemy('e1')] }), 100)
+    expect(r.roundTimeMs).toBe(0)
+    expect(r.phase).toBe('gameover')
+  })
+
+  it('a boss alive before the timer expires does not end the stage early', () => {
+    const boss = makeEnemy({ id: 'b', type: 'boss', x: 0, y: 0, targetX: 0, targetY: 0, speed: 0, hitbox: { x: 0, y: 0, w: 1, h: 1 } })
+    expect(tickTimer(gs({ phase: 'playing', roundTimeMs: 100, enemies: [boss] }), 99).phase).toBe('playing')
+  })
+
   it('clamps to 0', () => {
     expect(tickTimer(gs({ phase: 'playing' }), ROUND_DURATION_MS + 9999).roundTimeMs).toBe(0)
   })
