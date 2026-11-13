@@ -56,5 +56,18 @@ Reading: detection works (7 hits, motion on 93 % of ticks, auto-calibrated thres
 - [x] `npm test` and `npm run build` both clean.
 - [x] Commit: `docs(balancer-T6): README and harness docs`
 
+## T8 — Review fixes
+Files: `tools/motion-harness/mcp-server.mjs`, `run.sh`, `.kiro/settings/mcp.json`, `.kiro/agents/balancer.json`, tests, this spec
+
+- [ ] Non-zero exit is `isError` even when a progress line parsed (R3.5a); test with "valid line + exit 3".
+- [ ] Active run killed on SIGTERM/SIGINT/SIGHUP/stdin end/exit (R3.5b); spawned-server test checks the grandchild is gone.
+- [x] `timeout` and `requestTimeout` both 300000 (R5.1); `run.sh` uses `npx --no-install vite` (R3.6).
+- [ ] `validateRunArgs` rejects unknown properties (R3.4); unit + property test.
+- [ ] Cross-process lock `out/harness.lock` for the real script (R3.5); tests for held, stale and release.
+- [ ] Sandbox hardened and tested (R2.3); R1.1 wording aligned; env overrides documented (R3.6).
+- [ ] Config tests iterate all agent files, balancer.json missing fails (R5.1, R5.2, R6.5); deny list extended (R6.2); prompt explains `highScoreSaved: null` (R6.4).
+- [ ] `npm test` and `npm run build` both clean.
+- [ ] Commits: `fix(balancer): ...`
+
 ## T7 — Manual
 - [ ] In Kiro CLI: `kiro-cli chat --agent balancer`, ask for a balance report; confirm it runs the harness and writes `tools/motion-harness/out/balancer-report.md` without touching `src/`.

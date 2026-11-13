@@ -20,7 +20,7 @@ entry point (`import.meta.url === pathToFileURL(process.argv[1]).href`).
 
 | Export | Purpose |
 |---|---|
-| `parseHarnessOutput(text)` | R1. Scan lines, keep the last that matches `^t\+\d+s (\{.*\})$`, `JSON.parse`, validate field types. Returns `{ ok: true, metrics }` or `{ ok: false, error }` (error includes the last 400 chars). |
+| `parseHarnessOutput(text)` | R1. Scan lines, keep the last *valid* line that matches `^t\+\d+s (\{.*\})$`, `JSON.parse`, validate field types. Returns `{ ok: true, metrics }` or `{ ok: false, error }` (error includes the last 400 chars). |
 | `validateRunArgs(args)` | R3.4. Returns `{ mode, seconds }` or throws `ArgError`. `seconds` default 30, integer 5–120. |
 | `readStageConfig(root)` | R2. See below. |
 | `runHarness({mode, seconds}, opts)` | spawns `bash <script> <mode> <seconds>` (`detached: true`, argv array), collects stdout+stderr, kills the process group on timeout. |
@@ -40,15 +40,31 @@ Concurrency: a module-level `running` flag; a second `run_harness` while
 running returns `isError` immediately. Requests are handled concurrently so
 `ping` and `read_stage_config` still answer during a long run.
 
-Timeout: `seconds * 1000 + 60_000`; `process.kill(-pid, 'SIGTERM')`, then
+Result rules (R3.5a): `timedOut` → error; non-zero exit → error (exit code +
+output tail); no valid line → error; only exit 0 + valid line is a success.
+
+Lifecycle (R3.5b): the active child's pid is kept in a module variable;
+`SIGINT`/`SIGTERM`/`SIGHUP`, stdin `close` and `exit` call `killActive()`
+(`process.kill(-pid, 'SIGKILL')`) and the signal handlers then `process.exit`.
+
+Cross-process lock (R3.5): only for the default `run.sh`; `out/harness.lock`
+opened with flag `wx`, content = pid, stale when `process.kill(pid, 0)` throws
+ESRCH; released in `finally` and by `killActive`. Custom scripts (tests) skip it.
+
+Unknown argument properties are rejected by `validateRunArgs` (schema says
+`additionalProperties: false`).
+
+Timeout: `seconds * 1000 + 60_000` (test-only override `EXORCISE_HARNESS_TIMEOUT_MS`); `process.kill(-pid, 'SIGTERM')`, then
 `SIGKILL` after 3 s. `run.sh`'s own EXIT trap does the normal cleanup (R4.2).
 
 ### readStageConfig
 `typescript` (already a devDependency) `transpileModule` compiles
-`src/game/waves.ts` and `src/game/stages.ts` to CommonJS; a tiny loader in a
-`node:vm` context with only `exports`/`module` and a `require` that resolves
-exactly `./waves` to the compiled waves module (everything else throws) runs
-them. Type-only imports are elided by TS, so no other module is needed. The
+`src/game/waves.ts` and `src/game/stages.ts` to CommonJS; `evalSandboxed(code, table)` runs each file in a fresh `node:vm` context whose
+only global is a `require` *created inside that context* (a lookup in `table`,
+which has exactly `./waves` for stages; everything else throws), with `module`
+and `exports` declared inside the context too, so no host `Function` is
+reachable. Tests assert `process`/`fetch` are undefined and
+`require.constructor('return process')()` throws. Type-only imports are elided by TS, so no other module is needed. The
 result `{ stages: STAGES, bonusRound: BONUS_ROUND }` is passed through
 `JSON.parse(JSON.stringify())` (drops functions, makes it plain data).
 
@@ -67,7 +83,7 @@ result `{ stages: STAGES, bonusRound: BONUS_ROUND }` is passed through
 { "mcpServers": { "motion-harness": {
   "command": "node",
   "args": ["tools/motion-harness/mcp-server.mjs"],
-  "timeout": 30000,
+  "timeout": 300000,
   "requestTimeout": 300000 } } }
 ```
 `.kiro/agents/balancer.json` (current format: `tools` selectors +
@@ -81,7 +97,8 @@ result `{ stages: STAGES, bonusRound: BONUS_ROUND }` is passed through
     { "capability": "mcp", "match": ["motion-harness/*"], "effect": "allow" },
     { "capability": "fs_read", "match": ["**"], "effect": "allow" },
     { "capability": "fs_write", "match": ["tools/motion-harness/out/balancer-report.md"], "effect": "allow" },
-    { "capability": "fs_write", "match": ["src/**", ".kiro/**", "package*.json", ".gitignore"], "effect": "deny" } ] },
+    { "capability": "fs_write", "match": ["src/**", ".kiro/**", ".git/**", "package*.json", ".gitignore",
+      "README.md", "index.html", "vite.config.ts", "tools/*.mjs", "tools/motion-harness/*.*"], "effect": "deny" } ] },
   "resources": ["file://.kiro/steering/*.md", "file://.kiro/specs/stages/*.md", "file://.kiro/specs/waves/*.md", "file://tools/motion-harness/README.md"] }
 ```
 Exact match patterns are confirmed against `kiro-cli agent validate` output.

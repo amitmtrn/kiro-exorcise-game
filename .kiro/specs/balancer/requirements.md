@@ -23,8 +23,9 @@ playtests, new runtime dependencies.
 
 ## R1 — Metric parsing
 
-**R1.1** `parseHarnessOutput(text)` returns the metrics of the **last**
-progress line printed by `drive.mjs` (`t+<n>s {json}`) as an object with
+**R1.1** `parseHarnessOutput(text)` returns the metrics of the **last valid**
+progress line printed by `drive.mjs` (`t+<n>s {json}`; a later line that is
+truncated or wrongly typed is skipped and the previous valid line is used) as an object with
 `frames`, `hits`, `motionFrames`, `maxMotion`, `playFrames`, `firstPlayAtMs`,
 `threshold`, `highScoreSaved`.
 
@@ -52,8 +53,11 @@ and `src/game/waves.ts` as JSON: every stage (`id`, `name`, `durationMs`,
 file), so it can never drift from the code, and it uses only the repo's
 existing `typescript` dev dependency — no new packages.
 
-**R2.3** It evaluates only those two files in an isolated context with no
-`process`, `require` of arbitrary modules, `fetch` or file access.
+**R2.3** It evaluates only those two files in an isolated `vm` context with no
+`process`, `fetch` or file access and a `require` that resolves only
+`./waves`. `module`, `exports` and `require` are created *inside* the context,
+so no host object (and no host `Function`) is reachable from the evaluated code
+(`require.constructor('return process')()` throws). Tested.
 
 ---
 
@@ -76,18 +80,34 @@ returns `-32700`; stdout carries only protocol messages (logs go to stderr).
 - `read_stage_config {}` returns R2.1.
 
 **R3.4** Invalid arguments (unknown mode, `seconds` out of range or not an
-integer, extra shell-looking strings) return a tool result with
+integer, extra shell-looking strings, **unknown properties**) return a tool result with
 `isError: true`; they never reach a shell — the script is spawned with an argv
 array, never through a shell.
 
 **R3.5** `run_harness` allows one run at a time (the harness uses fixed ports);
-a concurrent call returns `isError`. A run is killed (whole process group) after
-`seconds + 60 s`, and the result then reports a timeout.
+a concurrent call returns `isError`. The lock also holds across server
+processes: the real harness takes `tools/motion-harness/out/harness.lock`
+(created exclusively, holds the owner pid; a lock whose pid is dead is stale and
+replaced), so a second Kiro session gets `isError` instead of killing the first
+run's Chrome. A run is killed (whole process group) after `seconds + 60 s`, and
+the result then reports a timeout.
+
+**R3.5a** The result is a success only if the script exits with code 0 **and**
+prints a valid progress line. A non-zero exit (crash, signal) is `isError: true`
+with the exit code and the output tail, even if earlier progress lines parsed:
+partial metrics are never returned (R1.3).
+
+**R3.5b** The server tracks the active run and kills its whole process group on
+`SIGINT`, `SIGTERM`, `SIGHUP`, stdin end and process `exit`, so a killed server
+never leaves Vite / Chrome behind. Tested with a spawned server.
 
 **R3.6** Local only: no network listener, no HTTP/SSE transport, no `fetch`, no
-runtime package fetch. The harness script path can be overridden with the
-`EXORCISE_HARNESS_SCRIPT` environment variable **for tests only** (so unit tests
-never launch Chrome); the default is the repo's `run.sh`.
+runtime package fetch (`run.sh` starts Vite with `npx --no-install`, so a
+missing `node_modules` fails instead of downloading). Two environment variables
+exist **for tests only** (unit tests never launch Chrome): `EXORCISE_HARNESS_SCRIPT`
+(script path; default is the repo's `run.sh`) and `EXORCISE_HARNESS_TIMEOUT_MS`
+(timeout override; default `seconds + 60 s`). They are not set in any `.kiro`
+config. A custom script bypasses the cross-process lock.
 
 ---
 
@@ -106,11 +126,14 @@ their child processes) when it exits, on success, failure and signals.
 
 **R5.1** `.kiro/settings/mcp.json` registers `motion-harness` as a stdio server:
 `command: "node"`, `args: ["tools/motion-harness/mcp-server.mjs"]`, relative
-path, a per-request timeout that exceeds the longest run.
+path, and **both** `timeout` and `requestTimeout` above the longest run
+(120 s + 60 s grace = 180 s; set to 300 000 ms). Which field Kiro treats as the
+per-request limit is not confirmed (T7), so neither may be the 30 s default.
 
 **R5.2** No `url`, `type: http|sse`, `env`, `headers`, tokens, keys, absolute
 paths, `npx`/`npm exec`/`uvx` or other fetch-at-runtime launchers appear in
-`.kiro/settings/mcp.json` or `.kiro/agents/*.json` (checked by a test).
+`.kiro/settings/mcp.json` or **any** `.kiro/agents/*.json` (checked by a test
+that iterates all agent files).
 
 **R5.3** `.kiro/` is not listed in `.gitignore` (existing rule, re-checked).
 
@@ -128,7 +151,9 @@ reasoning.
 **R6.2** Restricted tool set: `read`, `@motion-harness` and `write` — no
 `shell`, no `web`, no `subagent`. Permissions allow writing only the report
 file `tools/motion-harness/out/balancer-report.md` (git-ignored) and deny writes
-to `src/**`, `.kiro/**`, `package*.json` and `.gitignore`. The agent therefore
+to `src/**`, `.kiro/**`, `.git/**`, `package*.json`, `.gitignore`, `README.md`,
+`index.html`, `vite.config.ts`, `tools/*.mjs` and `tools/motion-harness/*.*`
+(single-level globs, so the report in `out/` stays writable). The agent therefore
 cannot edit game code, run `git commit` or `git push`.
 
 **R6.3** `resources` point at the three steering docs and the `stages/` and
@@ -137,7 +162,12 @@ inline, identical to R5.1 (a test checks they match).
 
 **R6.4** The prompt states the limits of the evidence: the synthetic hand is not
 a player; metrics prove detection works, not that difficulty feels right, so
-proposals must be labelled as hypotheses to confirm in a webcam playtest.
+proposals must be labelled as hypotheses to confirm in a webcam playtest. It
+also says that `highScoreSaved: null` is expected for runs shorter than the
+45 s stage 1 and is not a failure.
+
+**R6.5** The config test fails (not skips) if `.kiro/agents/balancer.json` is
+missing.
 
 ---
 
