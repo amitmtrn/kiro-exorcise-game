@@ -13,11 +13,11 @@ Files: `src/game/onboarding.ts`, `src/game/onboarding.test.ts`, `src/game/onboar
 ## T2 — Framing check (pure)
 Files: `src/webcam/framing.ts`, `src/webcam/framing.test.ts`, `src/webcam/framing.property.test.ts`
 
-- [ ] `checkFraming`, thresholds, `tickFraming` (deltaMs-based stability).
-- [ ] Unit tests on synthetic frames: dark, close-up skin, flat, textured ok, check order, stability reset.
-- [ ] Property tests: deterministic, four statuses, darker never turns `too-dark` into non-dark.
-- [ ] `npm test` and `npm run build` both clean.
-- [ ] Commit: `feat(onboarding-T2): framing check on synthetic frames`
+- [x] `checkFraming`, thresholds, `tickFraming` (deltaMs-based stability).
+- [x] Unit tests on synthetic frames: dark, close-up skin, flat, textured ok, check order, stability reset.
+- [x] Property tests: deterministic, four statuses, darker never turns `too-dark` into non-dark.
+- [x] `npm test` and `npm run build` both clean.
+- [x] Commit: `feat(onboarding-T2): framing check on synthetic frames`
 
 ## T3 — Self-hosted Creepster font
 Files: `src/assets/fonts/*`, `src/style.css`, `src/ui/fonts.ts`, `tools/fonts.test.mjs`, `src/ui/screens.ts`, `src/game/render.ts`
