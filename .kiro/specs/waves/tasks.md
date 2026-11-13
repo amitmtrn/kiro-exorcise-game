@@ -43,13 +43,13 @@ Files: `src/game/enemies/spawn.ts`, `src/game/state.ts` (`waveIndex`), `src/game
 ## T5 — Bonus round
 Files: `src/game/state.ts` (`bonus`), `src/game/round.ts`, `src/game/enemies/spawn.ts`, `src/game/collision.ts`, `src/ui/hud.ts`, `src/ui/screens.ts`, tests
 
-- [ ] `advanceToNextStage` inserts the bonus after stage 2; title card and HUD use `stageLabel`; the bonus ends in the normal summary then stage 3; retry never starts in a bonus.
-- [ ] `tickSpawners` bonus branch (candy + one-hit harmless pumpkins, exiting paths only).
-- [ ] `resolveHits` candy branch (75 × combo; pumpkin 200 × combo).
-- [ ] Unit tests: stage 2 → bonus → stage 3 flow, lives and score carried, candy / pumpkin scoring.
-- [ ] Property test: a whole simulated bonus round (spawn, move, cull, reach) never reduces lives.
-- [ ] `npm test` and `npm run build` both clean.
-- [ ] Commit: `feat(waves-T5): harmless bonus round`
+- [x] `advanceToNextStage` inserts the bonus after stage 2; title card and HUD use `stageLabel`; the bonus ends in the normal summary then stage 3; retry never starts in a bonus.
+- [x] `tickSpawners` bonus branch (candy + one-hit harmless pumpkins, exiting paths only).
+- [x] `resolveHits` candy branch (75 × combo; pumpkin 200 × combo).
+- [x] Unit tests: stage 2 → bonus → stage 3 flow, lives and score carried, candy / pumpkin scoring.
+- [x] Property test: a whole simulated bonus round (spawn, move, cull, reach) never reduces lives.
+- [x] `npm test` and `npm run build` both clean.
+- [x] Commit: `feat(waves-T5): harmless bonus round`
 
 ## T6 — Candy art and docs
 Files: `src/game/render.ts`, `README.md`

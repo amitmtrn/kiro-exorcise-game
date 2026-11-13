@@ -12,7 +12,7 @@ import { createSkull } from './skull'
 import { createLunger } from './lunger'
 import { createPumpkin } from './pumpkin'
 import { spawnWave } from './waveSpawn'
-import { intensityAt, spawnRateFor, speedFactorFor, pickPath } from '../waves'
+import { intensityAt, spawnRateFor, speedFactorFor, pickPath, BONUS_ROUND } from '../waves'
 import type { WaveKind } from '../waves'
 import type { WavePath } from '../paths'
 
@@ -43,14 +43,20 @@ export function tickSpawners(
 ): GameState {
   if (state.phase !== 'playing') return state
 
-  const cfg = STAGES[state.stage - 1]
+  // The bonus round (waves R5) swaps in its own config: the `bat` slot spawns
+  // candy, the `pumpkin` slot one-hit pumpkins, everything else is switched off.
+  const bonus = state.bonus
+  const stageCfg = STAGES[state.stage - 1]
+  const cfg = bonus ? BONUS_ROUND : stageCfg
   const mix = cfg.enemyMix
   const max = cfg.maxEnemies
+  const edges = bonus ? 'all' : stageCfg.spawnEdges
+  const batKind: WaveKind = bonus ? 'candy' : 'bat'
 
   // Wave script (waves spec): the stage clock drives an intensity level that
   // scales the spawn timers and the speed of new enemies. No script (boss
   // stage) → the original flat spawner.
-  const script = cfg.waves
+  const script = bonus ? BONUS_ROUND.script : stageCfg.waves
   const elapsed = Math.min(cfg.durationMs, Math.max(0, cfg.durationMs - state.roundTimeMs))
   const level = script ? intensityAt(script.intensity, elapsed / cfg.durationMs) : 0.5
   const rate = script ? spawnRateFor(level) : 1
@@ -69,13 +75,13 @@ export function tickSpawners(
   const addWave = (kind: WaveKind, path: WavePath, count: number, height?: number): void => {
     const n = Math.min(count, max - nonBossCount)
     if (n <= 0) return
-    const made = spawnWave(kind, path, n, { W: canvasW, H: canvasH, speedMult: mult, edges: cfg.spawnEdges, height })
+    const made = spawnWave(kind, path, n, { W: canvasW, H: canvasH, speedMult: mult, edges, height, bonus })
     enemies = [...enemies, ...made]
     nonBossCount += made.length
   }
 
   /** Timer-driven spawn of one ghost / bat / pumpkin (or a bat swarm). */
-  const addRandom = (kind: 'ghost' | 'bat' | 'pumpkin', legacy: () => Enemy): void => {
+  const addRandom = (kind: WaveKind, legacy: () => Enemy): void => {
     if (!script) {
       enemies = [...enemies, legacy()]
       nonBossCount++
@@ -96,7 +102,7 @@ export function tickSpawners(
   // Bat
   timers.bat -= deltaMs * rate
   if (timers.bat <= 0) {
-    if (mix.bat && nonBossCount < max) addRandom('bat', () => createBat(canvasW, canvasH, mult))
+    if (mix.bat && nonBossCount < max) addRandom(batKind, () => createBat(canvasW, canvasH, mult))
     timers.bat = resetTimer(timers.bat, cfg.spawnIntervalMs.bat)
   }
 
@@ -132,7 +138,7 @@ export function tickSpawners(
   if (script) {
     while (waveIndex < script.events.length && script.events[waveIndex].atMs <= elapsed) {
       const ev = script.events[waveIndex]
-      const enabled = ev.kind === 'ghost' ? mix.ghost : ev.kind === 'bat' ? mix.bat : ev.kind === 'pumpkin' ? mix.pumpkin : false
+      const enabled = ev.kind === 'ghost' ? mix.ghost : ev.kind === 'bat' ? mix.bat : ev.kind === 'pumpkin' ? mix.pumpkin : bonus
       if (enabled) addWave(ev.kind, ev.path, ev.count, ev.height)
       waveIndex++
     }

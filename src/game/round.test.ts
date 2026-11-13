@@ -77,9 +77,9 @@ describe('retryStage', () => {
 
 describe('advanceToNextStage', () => {
   it('carries lives and score', () => {
-    let s = gs({ stage: 2, lives: 2, score: 500, highScore: 500, phase: 'summary', summaryShownMs: 0 })
+    let s = gs({ stage: 3, lives: 2, score: 500, highScore: 500, phase: 'summary', summaryShownMs: 0 })
     s = advanceToNextStage(s, W, H)
-    expect(s.stage).toBe(3)
+    expect(s.stage).toBe(4)
     expect(s.lives).toBe(2)
     expect(s.score).toBe(500)
   })

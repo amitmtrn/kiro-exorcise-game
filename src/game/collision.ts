@@ -13,6 +13,7 @@ import type { MotionMask } from '../webcam/diff'
 import { STAGES } from './stages'
 import { onBossHit } from './enemies/bossPhases'
 import { isHittable } from './enemies/vulnerability'
+import { CANDY_POINTS } from './enemies/candy'
 import { spawnGhostPuff, spawnBatPuff, spawnScoreLabel } from './particles'
 import {
   sfxGhostHit, sfxBatHit, sfxSkullHit,
@@ -153,6 +154,15 @@ export function resolveHits(
 
     } else if (enemy.type === 'bat') {
       s = scoreWithPop(s, enemy, 50 * s.combo)
+      s = incrementCombo(s)
+      s = incrementBanished(s)
+      s = shakeIfStrong(s)
+      s = addParticles(s, spawnBatPuff(enemy.x, enemy.y))
+      lastBanished.push({ ...enemy, hitFlashFrames: 1 })
+      try { sfxBatHit() } catch { /* audio not ready */ }
+
+    } else if (enemy.type === 'candy') {
+      s = scoreWithPop(s, enemy, CANDY_POINTS * s.combo)
       s = incrementCombo(s)
       s = incrementBanished(s)
       s = shakeIfStrong(s)

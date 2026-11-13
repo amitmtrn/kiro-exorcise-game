@@ -4,7 +4,7 @@
  */
 
 import type { GameState } from '../game/state'
-import { STAGES } from '../game/stages'
+import { stageLabel } from '../game/stages'
 import { MotionButton } from './motionButton'
 
 // ─── Motion buttons (persistent instances reused across frames) ───────────────
@@ -75,7 +75,7 @@ export function renderStartScreen(
 
 export function renderStageTitle(ctx: CanvasRenderingContext2D, state: GameState): void {
   const { width: W, height: H } = ctx.canvas
-  const cfg = STAGES[state.stage - 1]
+  const cfg = stageLabel(state)
   const secs = Math.ceil(state.stageTitleMs / 1000)
 
   ctx.save()
@@ -117,7 +117,7 @@ export function renderSummary(
   ctx.textAlign = 'center'
   ctx.font = `bold ${clamp(W / 14, 32, 56)}px sans-serif`
   ctx.fillStyle = '#ffd166'; ctx.shadowColor = '#ffd166'; ctx.shadowBlur = 14
-  ctx.fillText('STAGE CLEAR!', W / 2, H * 0.18)
+  ctx.fillText(state.bonus ? 'BONUS CLEAR!' : 'STAGE CLEAR!', W / 2, H * 0.18)
 
   ctx.shadowBlur = 0
   ctx.font = `${clamp(W / 12, 36, 60)}px sans-serif`

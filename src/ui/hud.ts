@@ -5,7 +5,7 @@
  */
 
 import type { GameState } from '../game/state'
-import { STAGES } from '../game/stages'
+import { stageLabel } from '../game/stages'
 import { isMuted } from '../audio/index'
 
 // ─── Palette (see .kiro/steering/design.md) ──────────────────────────────────
@@ -117,7 +117,7 @@ export function renderHUD(ctx: CanvasRenderingContext2D, state: GameState, now: 
   }
 
   // ── Stage label (top-center) ───────────────────────────────────────────────
-  const cfg = STAGES[state.stage - 1]
+  const cfg = stageLabel(state)
   drawHudText(ctx, `${cfg.name} — ${cfg.subtitle}`, W / 2, pad, C_GHOST, {
     font: font(Math.round(fontSize * 0.6), '600'), align: 'center', glow: 8,
   })
