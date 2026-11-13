@@ -36,6 +36,11 @@ truncated or wrongly typed is skipped and the previous valid line is used) as an
 found) yields an error that includes the tail of the output; it never throws an
 unhandled exception and never returns partial or invented metrics.
 
+**R1.5** A run whose *final* progress line (`t+Ns ERR …`, `t+Ns undefined`, a
+reloaded page) is not valid metrics is an error, never the last earlier valid
+line: stale numbers are not a result. `drive.mjs` also exits 2 in that case, and
+the server checks the last `t+N` line itself.
+
 **R1.4** Noise before / between progress lines (`page:`, `monitor:`, `space:`
 lines, blank lines, ANSI-free garbage) is ignored. Property: for any valid
 metrics object and any noise lines, a progress line round-trips unchanged.
@@ -87,8 +92,9 @@ array, never through a shell.
 **R3.5** `run_harness` allows one run at a time (the harness uses fixed ports);
 a concurrent call returns `isError`. The lock also holds across server
 processes: the real harness takes `tools/motion-harness/out/harness.lock`
-(created exclusively, holds the owner pid; a lock whose pid is dead is stale and
-replaced), so a second Kiro session gets `isError` instead of killing the first
+(published atomically with a hard link of a private temp file, so it is never
+visible empty; holds the owner pid; a lock whose pid is dead is stale and
+replaced; an unparsable lock is held unless older than 10 s), so a second Kiro session gets `isError` instead of killing the first
 run's Chrome. A run is killed (whole process group) after `seconds + 60 s`, and
 the result then reports a timeout.
 
@@ -99,7 +105,11 @@ partial metrics are never returned (R1.3).
 
 **R3.5b** The server tracks the active run and kills its whole process group on
 `SIGINT`, `SIGTERM`, `SIGHUP`, stdin end and process `exit`, so a killed server
-never leaves Vite / Chrome behind. Tested with a spawned server.
+never leaves Vite / Chrome behind, and the harness lock is released too. Each
+of SIGINT, SIGTERM, SIGHUP and stdin end is tested with a spawned server.
+
+**R3.2a** A message with `result` or `error` and no `method` (a client's reply
+to a server request) is ignored, not answered with `-32600`.
 
 **R3.6** Local only: no network listener, no HTTP/SSE transport, no `fetch`, no
 runtime package fetch (`run.sh` starts Vite with `npx --no-install`, so a
@@ -152,8 +162,13 @@ reasoning.
 `shell`, no `web`, no `subagent`. Permissions allow writing only the report
 file `tools/motion-harness/out/balancer-report.md` (git-ignored) and deny writes
 to `src/**`, `.kiro/**`, `.git/**`, `package*.json`, `.gitignore`, `README.md`,
-`index.html`, `vite.config.ts`, `tools/*.mjs` and `tools/motion-harness/*.*`
-(single-level globs, so the report in `out/` stays writable). The agent therefore
+`index.html`, `vite.config.ts`, `tools/*.mjs`, `tools/motion-harness/*.*`, plus `.github/**`, `tsconfig*.json`,
+`LICENSE*`, `dist/**`, `node_modules/**`, `tools/*`, `tools/motion-harness/*` and the
+generated files in `out/` (`*.log`, `*.y4m`, `*.lock`, `*.json`, `profile-*/**`).
+The deny globs are single-level where needed so the report in `out/` stays
+writable; a test checks that no deny glob matches the report path and that
+representative other files are all denied. Unmatched paths are not assumed denied,
+so the list covers every top-level entry and the tools directories. The agent therefore
 cannot edit game code, run `git commit` or `git push`.
 
 **R6.3** `resources` point at the three steering docs and the `stages/` and

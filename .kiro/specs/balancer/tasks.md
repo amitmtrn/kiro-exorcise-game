@@ -69,5 +69,17 @@ Files: `tools/motion-harness/mcp-server.mjs`, `run.sh`, `.kiro/settings/mcp.json
 - [x] `npm test` and `npm run build` both clean.
 - [x] Commits: `fix(balancer): ...`
 
+## T9 — Second review fixes
+Files: `tools/motion-harness/run.sh`, `drive.mjs`, `mcp-server.mjs`, `.kiro/agents/balancer.json`, tests, this spec
+
+- [x] `run.sh` fails fast (non-zero) when Vite dies or the port already serves a page, bounded wait (R3.6); drive in background so traps fire; escaped `pkill` pattern.
+- [x] Agent write permissions cover `.github`, `tsconfig*`, `LICENSE*`, `tools/*` and generated `out/` files; test proves the report path is not shadowed (R6.2).
+- [x] Stale metrics are an error: `drive.mjs` exits 2 on a failed evaluation and the server checks the last `t+N` (R1.5).
+- [x] Spawned-server tests for SIGHUP and stdin end (R3.5b); second-process lock holder test (R3.5).
+- [x] Lock published atomically, unparsable lock handled, released by `killActive` (R3.5).
+- [x] Client responses ignored (R3.2a); design drift fixed, wave-order / no-function tests added.
+- [x] `npm test` and `npm run build` both clean.
+- [x] Commits: `fix(balancer): ...`
+
 ## T7 — Manual
 - [ ] In Kiro CLI: `kiro-cli chat --agent balancer`, ask for a balance report; confirm it runs the harness and writes `tools/motion-harness/out/balancer-report.md` without touching `src/`.

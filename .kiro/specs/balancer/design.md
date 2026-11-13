@@ -23,15 +23,15 @@ entry point (`import.meta.url === pathToFileURL(process.argv[1]).href`).
 | `parseHarnessOutput(text)` | R1. Scan lines, keep the last *valid* line that matches `^t\+\d+s (\{.*\})$`, `JSON.parse`, validate field types. Returns `{ ok: true, metrics }` or `{ ok: false, error }` (error includes the last 400 chars). |
 | `validateRunArgs(args)` | R3.4. Returns `{ mode, seconds }` or throws `ArgError`. `seconds` default 30, integer 5–120. |
 | `readStageConfig(root)` | R2. See below. |
-| `runHarness({mode, seconds}, opts)` | spawns `bash <script> <mode> <seconds>` (`detached: true`, argv array), collects stdout+stderr, kills the process group on timeout. |
-| `handleMessage(msg, ctx)` | one JSON-RPC message → response object or `null` (notifications). |
-| `startServer(input, output, ctx)` | line reader over stdin; one JSON object per line; writes responses as one line each. |
+| `runHarness({mode, seconds}, env)` | spawns `bash <script> <mode> <seconds>` (`detached: true`, argv array), collects stdout+stderr, kills the process group on timeout. |
+| `handleMessage(msg, env)` | one JSON-RPC message → response object or `null` (notifications). |
+| `startServer(input, output, env)` | line reader over stdin; one JSON object per line; writes responses as one line each. |
 
 ### JSON-RPC
 `initialize` → `{ protocolVersion, capabilities: { tools: {} }, serverInfo: { name: "motion-harness", version } }`.
 `tools/list` → the two tools with JSON-Schema `inputSchema` (`mode` enum,
 `seconds` min/max). `tools/call` → `{ content: [{ type: "text", text }], structuredContent, isError }`.
-Errors: `-32700` parse, `-32600` invalid request (no `method`), `-32601` unknown
+Errors: `-32700` parse, `-32600` invalid request (no `method`; a message with `result`/`error` and no `method` is a client reply and is ignored), `-32601` unknown
 method, `-32602` bad params (missing tool name / unknown tool). Tool-level
 failures (bad args, busy, harness error, timeout) are `isError: true` results,
 as MCP recommends, so the model can read and react to them.
@@ -44,18 +44,30 @@ Result rules (R3.5a): `timedOut` → error; non-zero exit → error (exit code +
 output tail); no valid line → error; only exit 0 + valid line is a success.
 
 Lifecycle (R3.5b): the active child's pid is kept in a module variable;
-`SIGINT`/`SIGTERM`/`SIGHUP`, stdin `close` and `exit` call `killActive()`
+`SIGINT`/`SIGTERM`/`SIGHUP`, stdin `end` and `exit` call `killActive()`
 (`process.kill(-pid, 'SIGKILL')`) and the signal handlers then `process.exit`.
 
-Cross-process lock (R3.5): only for the default `run.sh`; `out/harness.lock`
-opened with flag `wx`, content = pid, stale when `process.kill(pid, 0)` throws
-ESRCH; released in `finally` and by `killActive`. Custom scripts (tests) skip it.
+Stale results (R1.5): `parseHarnessOutput` also returns `atSeconds` (the `t+N` of
+the valid line) and `lastProgressSeconds(text)` the `t+N` of the last progress
+line of any kind; if the latter is larger the run is an error. `drive.mjs` exits 2
+when a progress evaluation fails.
+
+Cross-process lock (R3.5): only for the default `run.sh`; `out/harness.lock` is
+published by `linkSync` of a private temp file holding the pid (atomic, never
+empty), stale when `process.kill(pid, 0)` throws ESRCH (or unparsable and older
+than 10 s; removal re-checks the owner first); released in `finally` and by
+`killActive` (signal handlers call `process.exit`, which skips `finally`). Custom scripts (tests) skip it.
 
 Unknown argument properties are rejected by `validateRunArgs` (schema says
 `additionalProperties: false`).
 
 Timeout: `seconds * 1000 + 60_000` (test-only override `EXORCISE_HARNESS_TIMEOUT_MS`); `process.kill(-pid, 'SIGTERM')`, then
 `SIGKILL` after 3 s. `run.sh`'s own EXIT trap does the normal cleanup (R4.2).
+
+`run.sh` (R3.6): refuses to start if the dev port already serves the game page,
+waits at most about 60 s for Vite and fails non-zero as soon as the Vite process
+is gone, runs `drive.mjs` in the background and `wait`s so INT/TERM traps fire
+at once, and escapes the profile path before its last-resort `pkill -f`.
 
 ### readStageConfig
 `typescript` (already a devDependency) `transpileModule` compiles
@@ -98,7 +110,7 @@ result `{ stages: STAGES, bonusRound: BONUS_ROUND }` is passed through
     { "capability": "fs_read", "match": ["**"], "effect": "allow" },
     { "capability": "fs_write", "match": ["tools/motion-harness/out/balancer-report.md"], "effect": "allow" },
     { "capability": "fs_write", "match": ["src/**", ".kiro/**", ".git/**", "package*.json", ".gitignore",
-      "README.md", "index.html", "vite.config.ts", "tools/*.mjs", "tools/motion-harness/*.*"], "effect": "deny" } ] },
+      "README.md", "index.html", "vite.config.ts", "tools/*.mjs", "tools/motion-harness/*.*", ".github/**", "tsconfig*.json", "LICENSE*", "dist/**", "node_modules/**", "tools/*", "tools/motion-harness/*", "tools/motion-harness/out/*.log", "tools/motion-harness/out/*.y4m", "tools/motion-harness/out/*.lock", "tools/motion-harness/out/*.json", "tools/motion-harness/out/profile-*/**"], "effect": "deny" } ] },
   "resources": ["file://.kiro/steering/*.md", "file://.kiro/specs/stages/*.md", "file://.kiro/specs/waves/*.md", "file://tools/motion-harness/README.md"] }
 ```
 Exact match patterns are confirmed against `kiro-cli agent validate` output.
