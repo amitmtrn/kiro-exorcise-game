@@ -3,11 +3,11 @@
 ## T1 — Path model (pure)
 Files: `src/game/paths.ts`, `src/game/paths.test.ts`, `src/game/paths.property.test.ts`
 
-- [ ] `PathSpec`, `pathPosition`, `pathDurationMs`, `pathExits`, `marginPx`, `makePath` (line / arc / flyby / drop), `makeSwarm`.
-- [ ] Unit tests: endpoints exact, bounds for every type over time, flyby edge to edge at several heights, arc bulges toward the centre, swarm offsets, `leftRight` edges.
-- [ ] Property tests: positions within the extended box (R1.6); uniform canvas scale by `k` scales positions and keeps the duration (R6.2).
-- [ ] `npm test` and `npm run build` both clean.
-- [ ] Commit: `feat(waves-T1): data-driven path model`
+- [x] `PathSpec`, `pathPosition`, `pathDurationMs`, `pathExits`, `marginPx`, `makePath` (line / arc / flyby / drop), `makeSwarm`.
+- [x] Unit tests: endpoints exact, bounds for every type over time, flyby edge to edge at several heights, arc bulges toward the centre, swarm lanes, `leftRight` edges.
+- [x] Property tests: positions within the extended box (R1.6); uniform canvas scale by `k` scales positions and keeps the duration (R6.2).
+- [x] `npm test` and `npm run build` both clean.
+- [x] Commit: `feat(waves-T1): data-driven path model`
 
 ## T2 — Wave scripts, intensity curves, bonus config
 Files: `src/game/waves.ts`, `src/game/stages.ts`, `src/game/waves.test.ts`

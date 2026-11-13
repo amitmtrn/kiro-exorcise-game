@@ -29,8 +29,8 @@ to a landing point in the play area.
 chosen height (15–80 % of the canvas height, several heights per wave), never
 aimed at the centre, and leaves the screen on the other side.
 
-**R1.4** `swarm` — a small cluster (3–5) of flyby members moving together with
-small lateral and trailing offsets.
+**R1.4** `swarm` — a small cluster (3–5) of flyby members moving together in
+separate lanes (small lateral offsets, ±5 % speed).
 
 **R1.5** Every path is a pure function of the enemy's accumulated path time
 (`pathMs`, advanced by `deltaMs`) and the canvas size. Positions are identical
@@ -53,9 +53,9 @@ costs a life. The enemy is removed ("culled") once it has left the canvas on the
 far side, and at the latest when its path time reaches the path duration. A
 flyby is never culled while any part of it is still on screen before that time.
 
-**R2.3** Bats use `flyby`, `swarm` and `arc`-free paths only: they are points,
-not threats (product: "swatted away for points"). Their path mix may therefore
-contain only `flyby` and `swarm`.
+**R2.3** Bats use `flyby` and `swarm` paths only: they are points, not threats
+(product: "swatted away for points"). Their path mix may therefore contain only
+`flyby` and `swarm`.
 
 **R2.4** Skulls, lunger and the boss keep their existing movement and lifecycle
 (feel-fix R2, stages R6.2, boss-phases). Boss-stage minions keep their existing

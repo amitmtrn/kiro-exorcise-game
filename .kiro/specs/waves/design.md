@@ -60,8 +60,9 @@ Generators (all take an injectable `rand` for tests):
   the other; wobble 0.03–0.06 H.
 - `drop`: x in 0.15–0.85, start above the top, end y 0.45–0.7 (`through: true`
   ends below the bottom instead — used by the bonus round).
-- `makeSwarm(n)`: `n` flyby copies shifted by lateral jitter (±0.07 H) and a
-  trailing offset (k × 0.06 H) along the travel direction, speeds ±5 %.
+- `makeSwarm(n)`: `n` flyby copies of one lead path, one vertical lane each
+  (offsets spanning ±0.12 H, small jitter), speeds ±5 %. Start and end margins
+  are shared, so members start and finish off screen.
 
 ## Enemy fields
 
@@ -142,7 +143,7 @@ property is tested for H ≥ 540 where the margin is purely proportional.
 
 ## Tests
 
-- `paths.test.ts`: per-type bounds, endpoints, exits flag, swarm offsets.
+- `paths.test.ts`: per-type bounds, endpoints, exits flag, swarm lanes.
 - `paths.property.test.ts`: frame-rate independence (via `moveEnemies`), scale invariance, bounds, flyby exit + cull, never culled while visible.
 - `waves.test.ts`: script validation, intensity shape, bonus config.
 - `spawn.waves.test.ts` / property: cap with scripted events, scripted order, bonus harmless over a whole round, `splitReached`.
