@@ -10,12 +10,12 @@
 - [x] Commit: `feat(boss-phases-T1): 3-phase boss state machine`
 
 ## T2 — Hit rules: shield, lunger wind-up, defeat ends the stage
-- [ ] Create `src/game/enemies/vulnerability.ts` (`isHittable`) and check it in `resolveHits` before the frame-diff gate (resets the hit gate when not hittable).
-- [ ] Boss hits go through `onBossHit`; phase change shakes the screen; defeat clears minions and sets `summary` (stages 1–4) or `victory` (final stage).
-- [ ] Update existing lunger collision tests (lunger now needs `windup` / `lunge`).
-- [ ] Unit tests: shielded boss ignores hits, lunger approach ignores hits, windup/lunge/recover hits count, defeat → summary / victory with minions cleared.
-- [ ] `npm test` and `npm run build` both clean.
-- [ ] Commit: `feat(boss-phases-T2): shielded boss, lunger only hittable in wind-up, defeat ends stage`
+- [x] Create `src/game/enemies/vulnerability.ts` (`isHittable`) and check it in `resolveHits` before the frame-diff gate (resets the hit gate when not hittable).
+- [x] Boss hits go through `onBossHit`; phase change shakes the screen; defeat clears minions and sets `summary` (stages 1–4) or `victory` (final stage).
+- [x] Update existing lunger collision tests (lunger now needs `windup` / `lunge`).
+- [x] Unit tests: shielded boss ignores hits, lunger approach ignores hits, windup/lunge/recover hits count, defeat → summary / victory with minions cleared.
+- [x] `npm test` and `npm run build` both clean.
+- [x] Commit: `feat(boss-phases-T2): shielded boss, lunger only hittable in wind-up, defeat ends stage`
 
 ## T3 — Timeout and final-stage flow
 - [ ] `tickTimer`: timer 0 with a live boss → `gameover`.

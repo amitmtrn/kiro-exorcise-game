@@ -111,7 +111,7 @@ aimed at the canvas centre.
    everything else → true. Not hittable → `hitCount: 0`, enemy kept.
 2. Boss hit → `onBossHit`. Not defeated: replace the boss, `sfxBossHit`. If the
    phase changed: `setShake`. Defeated: score 1000 × combo, particles, flash, shake,
-   `sfxBossDefeated`, **then end the stage**:
+   `sfxBossDefeated`, **then end the stage** (applied after all hits of the frame resolve; losing the last life on that frame stays game over):
    `phase = stage >= STAGES.length ? 'victory' : 'summary'`, `enemies = []`.
 
 ### Timeout

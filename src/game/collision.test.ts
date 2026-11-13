@@ -142,6 +142,82 @@ describe('resolveHits — boss multi-hit', () => {
   })
 })
 
+describe('resolveHits — boss phases (boss-phases R3.5, R6)', () => {
+  const boss = (o: Partial<Enemy> = {}) =>
+    enemy('boss', 'b1', { hitCount: 1, hitsNeeded: 10, ...o })
+
+  it('a shielded boss (phase 2, idle) ignores motion and resets its hit gate', () => {
+    mockDiff.mockReturnValue(true)
+    const s = { ...createInitialState(), enemies: [boss({ bossPhase: 2, bossAttack: 'idle', bossHitsReceived: 4 })] }
+    const r = resolveHits(s, FAKE, FAKE, DW, DH, 1000)
+    expect(r.enemies[0].bossHitsReceived).toBe(4)
+    expect(r.enemies[0].hitCount).toBe(0)
+  })
+
+  it.each(['windup', 'lunge', 'recover'] as const)('a phase-2 boss in %s can be hit', (attack) => {
+    mockDiff.mockReturnValue(true)
+    const s = { ...createInitialState(), enemies: [boss({ bossPhase: 2, bossAttack: attack, bossHitsReceived: 4 })] }
+    expect(resolveHits(s, FAKE, FAKE, DW, DH, 1000).enemies[0].bossHitsReceived).toBe(5)
+  })
+
+  it('a boss in its post-hit cooldown ignores motion', () => {
+    mockDiff.mockReturnValue(true)
+    const s = { ...createInitialState(), enemies: [boss({ bossInvulnMs: 200 })] }
+    expect(resolveHits(s, FAKE, FAKE, DW, DH, 1000).enemies[0].bossHitsReceived).toBe(0)
+  })
+
+  it('the hit that crosses a phase threshold shakes the screen', () => {
+    mockDiff.mockReturnValue(true)
+    const s = { ...createInitialState(), enemies: [boss({ bossHitsReceived: 3 })] }
+    const r = resolveHits(s, FAKE, FAKE, DW, DH, 1000)
+    expect(r.enemies[0].bossPhase).toBe(2)
+    expect(r.shakeFrames).toBeGreaterThan(0)
+  })
+
+  it('defeating the boss in stage 5 ends the game with victory, clears minions and keeps the total score', () => {
+    mockDiff.mockReturnValue(true)
+    const minion = enemy('ghost', 'g1', { hitCount: 0, x: 50, y: 50, hitbox: { x: 10, y: 10, w: 80, h: 80 } })
+    mockDiff.mockImplementation((_c: unknown, _p: unknown, hb: { x: number }) => hb.x !== 10)
+    const s = { ...createInitialState(5), phase: 'playing' as const, score: 2000, enemies: [minion, boss({ bossHitsReceived: 9, bossPhase: 3, bossAttack: 'recover' })] }
+    const r = resolveHits(s, FAKE, FAKE, DW, DH, 1000)
+    expect(r.phase).toBe('victory')
+    expect(r.enemies).toHaveLength(0)
+    expect(r.score).toBe(3000)
+  })
+
+  it('defeating a boss in an earlier stage goes to the summary', () => {
+    mockDiff.mockReturnValue(true)
+    const s = { ...createInitialState(3), phase: 'playing' as const, enemies: [boss({ bossHitsReceived: 9, bossPhase: 3, bossAttack: 'recover' })] }
+    expect(resolveHits(s, FAKE, FAKE, DW, DH, 1000).phase).toBe('summary')
+  })
+
+  it('losing the last life on the defeat frame is still game over', () => {
+    mockDiff.mockReturnValue(true)
+    const skull = enemy('skull', 's1', { hitCount: 1 })
+    const s = { ...createInitialState(5), phase: 'playing' as const, lives: 1, enemies: [boss({ bossHitsReceived: 9, bossPhase: 3, bossAttack: 'recover' }), skull] }
+    expect(resolveHits(s, FAKE, FAKE, DW, DH, 1000).phase).toBe('gameover')
+  })
+})
+
+describe('resolveHits — lunger only hittable from wind-up (boss-phases R7.1)', () => {
+  it('ignores an approaching lunger and resets its gate', () => {
+    mockDiff.mockReturnValue(true)
+    const s = { ...createInitialState(), enemies: [enemy('lunger', 'l1', { hitCount: 1, movePhase: 'approach' })] }
+    const r = resolveHits(s, FAKE, FAKE, DW, DH, 1000)
+    expect(r.enemies).toHaveLength(1)
+    expect(r.enemies[0].hitCount).toBe(0)
+    expect(r.score).toBe(0)
+  })
+
+  it.each(['windup', 'lunge'] as const)('banishes a lunger in %s for 150', (phase) => {
+    mockDiff.mockReturnValue(true)
+    const s = { ...createInitialState(), enemies: [enemy('lunger', 'l1', { hitCount: 1, movePhase: phase })] }
+    const r = resolveHits(s, FAKE, FAKE, DW, DH, 1000)
+    expect(r.enemies).toHaveLength(0)
+    expect(r.score).toBe(150)
+  })
+})
+
 describe('resolveHits — screen shake (spooky-skin R4.1)', () => {
   it('a hit that brings the streak to 3 sets shakeFrames', () => {
     mockDiff.mockReturnValue(true)

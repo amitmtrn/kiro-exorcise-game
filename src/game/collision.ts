@@ -10,6 +10,9 @@ import {
 } from './state'
 import { computeFrameDiff, scaleHitbox, MOTION_W, MOTION_H } from '../webcam/diff'
 import type { MotionMask } from '../webcam/diff'
+import { STAGES } from './stages'
+import { onBossHit } from './enemies/bossPhases'
+import { isHittable } from './enemies/vulnerability'
 import { spawnGhostPuff, spawnBatPuff, spawnScoreLabel } from './particles'
 import {
   sfxGhostHit, sfxBatHit, sfxSkullHit,
@@ -99,6 +102,7 @@ export function resolveHits(
   }
 
   let s = state
+  let bossDefeated = false // applied after the loop so same-frame hits all resolve first
   const updatedEnemies: Enemy[] = []
 
   for (const raw of state.enemies) {
@@ -115,6 +119,12 @@ export function resolveHits(
 
     if (now - enemy.spawnedAt < SPAWN_GRACE_MS) {
       updatedEnemies.push(enemy)
+      continue
+    }
+
+    // Shielded boss / approaching lunger: motion does nothing and the gate resets.
+    if (!isHittable(enemy)) {
+      updatedEnemies.push({ ...enemy, hitCount: 0 })
       continue
     }
 
@@ -173,8 +183,8 @@ export function resolveHits(
       try { sfxSkullHit() } catch { /* audio not ready */ }
 
     } else if (enemy.type === 'boss') {
-      const newBossHits = enemy.bossHitsReceived + 1
-      if (newBossHits >= enemy.hitsNeeded) {
+      const hit = onBossHit(enemy)
+      if (hit.defeated) {
         s = scoreWithPop(s, enemy, 1000 * s.combo)
         s = incrementBanished(s)
         s = addParticles(s, spawnGhostPuff(enemy.x, enemy.y))
@@ -182,9 +192,11 @@ export function resolveHits(
         s = setFlash(s, now + 400)
         s = setShake(s, SHAKE_FRAMES * 2) // boss defeat always rocks the screen
         lastBanished.push({ ...enemy, hitFlashFrames: 1 })
+        bossDefeated = true
         try { sfxBossDefeated() } catch { /* audio not ready */ }
       } else {
-        updatedEnemies.push({ ...enemy, bossHitsReceived: newBossHits, hitCount: 0, hitFlashFrames: 1 })
+        updatedEnemies.push(hit.boss)
+        if (hit.phaseChanged) s = setShake(s, SHAKE_FRAMES * 2)
         try { sfxBossHit() } catch { /* audio not ready */ }
       }
 
@@ -193,6 +205,16 @@ export function resolveHits(
     }
   }
 
+  // The boss fell: the stage ends immediately (boss-phases R6.1, R6.2) and the
+  // final stage ends the game with a win. Losing the last life on the very same
+  // frame still counts as game over.
+  if (bossDefeated && s.phase !== 'gameover') {
+    return {
+      ...setEnemies(s, []),
+      phase: s.stage >= STAGES.length ? 'victory' : 'summary',
+      summaryShownMs: 0,
+    }
+  }
   return s.phase === 'gameover'
     ? clearFlashes(setEnemies(s, updatedEnemies))
     : setEnemies(s, updatedEnemies)

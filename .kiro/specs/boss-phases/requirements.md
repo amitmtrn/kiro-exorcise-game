@@ -121,7 +121,7 @@ straight to the stage-1 title card). The high score is saved.
 `gameover` (not `summary`). The normal game-over screen offers "Retry Stage".
 
 **R6.6** If the boss is defeated and the timer would expire on the same tick,
-the defeat wins (victory).
+the defeat wins (victory). If the last life is lost on the same frame as the final hit, game over wins.
 
 ---
 
