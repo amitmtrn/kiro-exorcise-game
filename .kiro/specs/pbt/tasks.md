@@ -52,9 +52,9 @@ Files: `src/game/enemies/movement.property.test.ts`, `movement.ts` (if a bug is 
 ## T7 — Docs
 Files: `README.md`
 
-- [ ] Sync the README unit-test count (`node tools/sync-readme-tests.mjs`) and mention property tests.
-- [ ] Run `npm test` and `npm run build`; both clean.
-- [ ] Commit: `docs(pbt-T7): README test count and PBT note`
+- [x] Sync the README unit-test count (`node tools/sync-readme-tests.mjs`) and mention property tests.
+- [x] Run `npm test` and `npm run build`; both clean.
+- [x] Commit: `docs(pbt-T7): README test count and PBT note`
 
 ## Bugs found by properties
 - **BUG-1 (found by T4, spawner cap, R4.1):** `tickSpawners` computed

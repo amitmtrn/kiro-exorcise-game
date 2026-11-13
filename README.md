@@ -25,7 +25,7 @@ npm run dev
 
 | Command | What it does |
 |---|---|
-| `npm test` | Run all 198 unit tests (Vitest) |
+| `npm test` | Run all 227 unit tests (Vitest) |
 | `npm run build` | Production build → `dist/` |
 | `npm run preview` | Preview the production build locally |
 
@@ -82,10 +82,11 @@ Every feature was planned as a Kiro spec before implementation:
 | `spooky-skin/` | Webcam tint, fog, candle glow, screen shake, score pops |
 | `feel-fix/` | px/s movement scaled to screen height, skull exits, combo tiers |
 | `hooks/` | Kiro hooks: test on save, spec/code drift report, README test-count sync |
+| `pbt/` | Property-based tests (fast-check): lives, score, spawner cap, mirror parity, combo tiers, frame-rate independence |
 
 Each spec has `requirements.md`, `design.md`, and `tasks.md`. Writing requirements and design before tasks surfaced design gaps (e.g. skull penalty rules, hitbox coordinate system, mirror parity bug) that would have been painful to fix mid-implementation.
 
-All nine specs are implemented. Every task in `tasks.md` is ticked except the manual smoke tests (a webcam playthrough, enabling GitHub Pages in the repo settings), and `boss-combo/` carries a status note explaining it was superseded by `stages/`.
+All ten specs are implemented. Every task in `tasks.md` is ticked except the manual smoke tests (a webcam playthrough, enabling GitHub Pages in the repo settings), and `boss-combo/` carries a status note explaining it was superseded by `stages/`.
 
 ### Kiro hooks (`.kiro/hooks/`)
 Standalone `v1` hook files, loaded by Kiro IDE and Kiro CLI V3. Spec: `.kiro/specs/hooks/`.
@@ -158,6 +159,7 @@ src/
     audio/              Procedural music + SFX spec
     spooky-skin/        Visual polish spec
     hooks/              Kiro hooks spec
+    pbt/                Property-based tests spec (`*.property.test.ts`, fast-check)
   hooks/                test-on-save.json, spec-drift-check.json, readme-test-count.json (save/create/delete)
 tools/
   sync-readme-tests.mjs Run tests and sync the README test count (used by a hook)
