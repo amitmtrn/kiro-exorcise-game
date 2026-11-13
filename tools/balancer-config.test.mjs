@@ -37,7 +37,9 @@ describe('workspace MCP config (R5)', () => {
     const e = mcp.mcpServers['motion-harness']
     checkServerEntry('mcp.json', e)
     expect(e.args).toEqual(['tools/motion-harness/mcp-server.mjs'])
+    // Which field Kiro treats as the per-request limit is unconfirmed: both must exceed the longest run.
     expect(e.requestTimeout).toBeGreaterThan(120_000 + 60_000) // > longest run (120 s + 60 s grace)
+    expect(e.timeout).toBeGreaterThan(120_000 + 60_000)
   })
   it('has no secrets, urls, tokens or env', () => {
     const all = [...strings(mcp), ...keys(mcp)].join('\n')
@@ -64,6 +66,9 @@ describe('run.sh hygiene (R4)', () => {
     expect(urls.length).toBeGreaterThan(0)
     for (const u of urls) expect(u).toMatch(/^https?:\/\/127\.0\.0\.1[:/]/)
   })
+  it('never fetches packages at runtime (npx --no-install)', () => {
+    for (const l of sh.split('\n').filter((x) => /\bnpx\b/.test(x) && !x.trim().startsWith('#'))) expect(l).toContain('npx --no-install')
+  })
   it('cleans up Vite and Chrome (and children) on EXIT', () => {
     expect(sh).toMatch(/trap cleanup EXIT/)
     expect(sh).toMatch(/kill_tree "\$CHROME_PID"/)
@@ -74,7 +79,18 @@ describe('run.sh hygiene (R4)', () => {
 const agentsDir = join(root, '.kiro', 'agents')
 const agentFiles = existsSync(agentsDir) ? readdirSync(agentsDir).filter((f) => f.endsWith('.json')) : []
 
-describe.skipIf(!agentFiles.includes('balancer.json'))('balancer agent (R6)', () => {
+describe('agent configs (R5.2, R6.5)', () => {
+  it('balancer.json exists (a missing file fails, not skips)', () => {
+    expect(agentFiles).toContain('balancer.json')
+  })
+  it.each(agentFiles)('%s has only local, relative, non-fetching MCP servers', (f) => {
+    const a = JSON.parse(read(`.kiro/agents/${f}`))
+    for (const [n, e] of Object.entries(a.mcpServers ?? {})) checkServerEntry(`${f}:${n}`, e)
+    expect(keys(a.mcpServers ?? {})).not.toContain('env')
+  })
+})
+
+describe('balancer agent (R6)', () => {
   const agent = () => JSON.parse(read('.kiro/agents/balancer.json'))
 
   it('is named balancer and has a real prompt', () => {
@@ -96,9 +112,13 @@ describe.skipIf(!agentFiles.includes('balancer.json'))('balancer agent (R6)', ()
     const allow = writes.filter((r) => r.effect === 'allow').flatMap((r) => r.match)
     const deny = writes.filter((r) => r.effect === 'deny').flatMap((r) => r.match)
     expect(allow).toEqual(['tools/motion-harness/out/balancer-report.md'])
-    for (const p of ['src/**', '.kiro/**', 'package*.json', '.gitignore']) expect(deny).toContain(p)
+    for (const p of ['src/**', '.kiro/**', '.git/**', 'package*.json', '.gitignore', 'README.md', 'index.html', 'vite.config.ts', 'tools/*.mjs', 'tools/motion-harness/*.*']) expect(deny).toContain(p)
+    expect(deny).not.toContain('tools/**') // would shadow the report path under tools/motion-harness/out/
     expect(rules.some((r) => r.capability === 'shell' && r.effect === 'allow')).toBe(false)
     expect(rules.some((r) => r.effect === 'allow' && /^(all|builtin|filesystem)$/.test(r.capability))).toBe(false)
+  })
+  it('prompt says highScoreSaved null is expected for short runs (R6.4)', () => {
+    expect(agent().prompt).toMatch(/highScoreSaved[^.]*null[^.]*(expected|not a failure)/i)
   })
   it('report path is git-ignored', () => {
     expect(read('.gitignore')).toMatch(/tools\/motion-harness\/out\//)

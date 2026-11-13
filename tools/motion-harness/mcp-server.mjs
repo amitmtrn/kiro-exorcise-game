@@ -5,7 +5,7 @@
 import { spawn } from 'node:child_process'
 import { createRequire } from 'node:module'
 import { createInterface } from 'node:readline'
-import { readFileSync } from 'node:fs'
+import { closeSync, mkdirSync, openSync, readFileSync, rmSync, writeSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import vm from 'node:vm'
@@ -60,6 +60,8 @@ export function parseHarnessOutput(text) {
 export function validateRunArgs(args) {
   const a = args ?? {}
   if (typeof a !== 'object' || Array.isArray(a)) throw new ArgError('arguments must be an object')
+  const extra = Object.keys(a).filter((k) => k !== 'mode' && k !== 'seconds')
+  if (extra.length) throw new ArgError(`unknown argument(s): ${extra.map((k) => JSON.stringify(k)).join(', ')}`)
   if (!MODES.includes(a.mode)) throw new ArgError(`mode must be one of ${MODES.join(', ')}`)
   const seconds = a.seconds === undefined ? DEFAULT_SECONDS : a.seconds
   if (!Number.isInteger(seconds) || seconds < MIN_SECONDS || seconds > MAX_SECONDS) {
@@ -69,6 +71,26 @@ export function validateRunArgs(args) {
 }
 
 // ----------------------------------------------------------- R2 stage config
+
+/**
+ * Evaluate CommonJS `code` in a fresh vm context. `require`, `module` and
+ * `exports` are created inside the context, so no host object or host
+ * `Function` is reachable from the evaluated code. `table` maps the module ids
+ * `require` may resolve; everything else throws.
+ */
+export function evalSandboxed(code, table = {}) {
+  const makeRequire = vm.runInNewContext(
+    '(function (table) { return function require(id) {' +
+    ' if (Object.prototype.hasOwnProperty.call(table, id)) return table[id];' +
+    ' throw new Error("blocked require: " + id) } })',
+  )
+  const sandbox = { __require: makeRequire(table) }
+  return vm.runInNewContext(
+    `var module = { exports: {} }; var exports = module.exports; var require = __require;\n${code}\n;module.exports`,
+    sandbox,
+    { timeout: 2000 },
+  )
+}
 
 /**
  * Current tuning from src/game/stages.ts + waves.ts, read at call time.
@@ -81,16 +103,8 @@ export function readStageConfig(root = ROOT) {
     ts.transpileModule(readFileSync(join(root, 'src', 'game', file), 'utf8'), {
       compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 },
     }).outputText
-  const run = (code, requireFn) => {
-    const module = { exports: {} }
-    vm.runInNewContext(code, { module, exports: module.exports, require: requireFn }, { timeout: 2000 })
-    return module.exports
-  }
-  const waves = run(compile('waves.ts'), (id) => { throw new Error(`blocked require: ${id}`) })
-  const stages = run(compile('stages.ts'), (id) => {
-    if (id === './waves') return waves
-    throw new Error(`blocked require: ${id}`)
-  })
+  const waves = evalSandboxed(compile('waves.ts'), {})
+  const stages = evalSandboxed(compile('stages.ts'), { './waves': waves })
   return JSON.parse(JSON.stringify({ stages: stages.STAGES, bonusRound: waves.BONUS_ROUND }))
 }
 
@@ -99,6 +113,36 @@ export function readStageConfig(root = ROOT) {
 export const KILL_GRACE_MS = 3000
 const DEFAULT_SCRIPT = join(HERE, 'run.sh')
 let running = false
+export const LOCK_FILE = join(HERE, 'out', 'harness.lock')
+
+// ---- active run tracking (R3.5b): a killed server must not orphan Vite / Chrome
+let activePid = null
+export function killActive() {
+  if (activePid === null) return
+  try { process.kill(-activePid, 'SIGKILL') } catch { /* already gone */ }
+  activePid = null
+}
+
+/** Cross-process lock for the real harness (fixed ports). Returns a release fn, or throws ArgError. */
+export function acquireLock(file = LOCK_FILE) {
+  mkdirSync(dirname(file), { recursive: true })
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const fd = openSync(file, 'wx')
+      writeSync(fd, String(process.pid))
+      closeSync(fd)
+      return () => { try { if (readFileSync(file, 'utf8') === String(process.pid)) rmSync(file, { force: true }) } catch { /* gone */ } }
+    } catch (e) {
+      if (e.code !== 'EEXIST') throw e
+      const owner = Number(readFileSync(file, 'utf8').trim())
+      let alive = Number.isInteger(owner) && owner > 0
+      if (alive) { try { process.kill(owner, 0) } catch (err) { alive = err.code === 'EPERM' } }
+      if (alive) throw new ArgError(`a harness run is already in progress in another server process (pid ${owner}); try again when it finishes`)
+      rmSync(file, { force: true }) // stale lock
+    }
+  }
+  throw new ArgError('could not acquire the harness lock')
+}
 
 /**
  * Spawn `bash <script> <mode> <seconds>` (argv array, never a shell string) in
@@ -109,6 +153,7 @@ export function runScript(script, mode, seconds, timeoutMs) {
     const child = spawn('bash', [script, mode, String(seconds)], {
       cwd: ROOT, detached: true, stdio: ['ignore', 'pipe', 'pipe'],
     })
+    activePid = child.pid
     let output = ''
     let timedOut = false
     const onData = (d) => { output += d; if (output.length > 200_000) output = output.slice(-100_000) }
@@ -120,10 +165,11 @@ export function runScript(script, mode, seconds, timeoutMs) {
       killGroup('SIGTERM')
       setTimeout(() => killGroup('SIGKILL'), KILL_GRACE_MS).unref()
     }, timeoutMs)
-    child.on('error', (e) => { clearTimeout(timer); resolveRun({ code: -1, output: output + String(e), timedOut }) })
+    child.on('error', (e) => { clearTimeout(timer); activePid = null; resolveRun({ code: -1, output: output + String(e), timedOut }) })
     child.on('close', (code) => {
       clearTimeout(timer)
       killGroup('SIGKILL') // reap any stragglers left in the group
+      activePid = null
       resolveRun({ code, output, timedOut })
     })
   })
@@ -132,9 +178,11 @@ export function runScript(script, mode, seconds, timeoutMs) {
 export async function runHarness(args, env = process.env) {
   const { mode, seconds } = validateRunArgs(args)
   if (running) throw new ArgError('a harness run is already in progress (fixed ports); try again when it finishes')
+  const custom = env.EXORCISE_HARNESS_SCRIPT
+  const release = custom ? () => {} : acquireLock() // R3.5: lock across server processes
   running = true
   try {
-    const script = env.EXORCISE_HARNESS_SCRIPT || DEFAULT_SCRIPT
+    const script = custom || DEFAULT_SCRIPT
     const override = Number(env.EXORCISE_HARNESS_TIMEOUT_MS)
     const timeoutMs = Number.isFinite(override) && override > 0 ? override : seconds * 1000 + 60_000
     const started = Date.now()
@@ -142,10 +190,12 @@ export async function runHarness(args, env = process.env) {
     const elapsedMs = Date.now() - started
     if (r.timedOut) throw new Error(`harness timed out after ${Math.round(timeoutMs / 1000)} s and was killed. Tail: ${r.output.slice(-400)}`)
     const parsed = parseHarnessOutput(r.output)
+    if (r.code !== 0) throw new Error(`harness exited with code ${r.code} (no metrics returned; a crashed run is not reported as success). Tail: ${r.output.slice(-400)}`)
     if (!parsed.ok) throw new Error(`${parsed.error} (exit code ${r.code})`)
     return { mode, seconds, elapsedMs, exitCode: r.code, ...parsed.metrics }
   } finally {
     running = false
+    release()
   }
 }
 
@@ -247,5 +297,8 @@ export function startServer(input, output, env = process.env) {
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   startServer(process.stdin, process.stdout)
+  process.on('exit', killActive)
+  for (const sig of ['SIGINT', 'SIGTERM', 'SIGHUP']) process.on(sig, () => { killActive(); process.exit(0) })
+  process.stdin.on('end', killActive) // client went away: stop the run; the process ends once stdin is drained
   console.error('motion-harness MCP server ready (stdio)')
 }

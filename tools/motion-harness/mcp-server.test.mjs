@@ -1,6 +1,6 @@
 // Unit tests for the motion-harness MCP server (balancer spec). Chrome is never launched.
 import { describe, it, expect } from 'vitest'
-import { parseHarnessOutput, validateRunArgs, readStageConfig, ArgError } from './mcp-server.mjs'
+import { parseHarnessOutput, validateRunArgs, readStageConfig, evalSandboxed, acquireLock, ArgError } from './mcp-server.mjs'
 
 const M = { frames: 1800, hits: 12, motionFrames: 400, maxMotion: 900, playFrames: 1500, firstPlayAtMs: 120, threshold: 24, highScoreSaved: '4200' }
 const line = (m, t = 5) => `t+${t}s ${JSON.stringify(m)}`
@@ -48,7 +48,43 @@ describe('validateRunArgs (R3.4)', () => {
     [{}], [{ mode: 'bogus' }], [{ mode: 'sweep; rm -rf /' }], [{ mode: 'sweep', seconds: 4 }],
     [{ mode: 'sweep', seconds: 121 }], [{ mode: 'sweep', seconds: 1.5 }], [{ mode: 'sweep', seconds: '30' }],
     [{ mode: 'sweep', seconds: NaN }], [[]], ['sweep'],
+    [{ mode: 'sweep', extra: '; rm -rf /' }], [{ mode: 'wave', seconds: 10, cmd: 'x' }],
   ])('rejects %j', (args) => expect(() => validateRunArgs(args)).toThrow(ArgError))
+})
+
+describe('evalSandboxed (R2.3)', () => {
+  it('returns module.exports and resolves only the table', () => {
+    expect(evalSandboxed('exports.a = require("./w").b + 1', { './w': { b: 1 } })).toEqual({ a: 2 })
+  })
+  it('has no process, fetch, fs or arbitrary require', () => {
+    expect(evalSandboxed('exports.t = [typeof process, typeof fetch, typeof setTimeout, typeof Buffer]')).toEqual({ t: ['undefined', 'undefined', 'undefined', 'undefined'] })
+    expect(() => evalSandboxed('require("fs")')).toThrow(/blocked require/)
+    expect(() => evalSandboxed('require("node:child_process")')).toThrow(/blocked require/)
+    expect(() => evalSandboxed('require("constructor")')).toThrow(/blocked require/)
+  })
+  it('cannot escape through host constructors', () => {
+    expect(() => evalSandboxed('exports.p = require.constructor("return process")()')).toThrow(/process is not defined/)
+    expect(() => evalSandboxed('exports.p = module.constructor.constructor("return process")()')).toThrow(/process is not defined/)
+    expect(() => evalSandboxed('exports.p = exports.constructor.constructor("return process")()')).toThrow(/process is not defined/)
+  })
+  it('times out a runaway script', () => {
+    expect(() => evalSandboxed('while (true) {}')).toThrow(/timed out/)
+  })
+})
+
+describe('acquireLock (R3.5)', () => {
+  const lock = join(tmp, 'locks', 'h.lock')
+  it('is exclusive, released, and replaces a stale lock', () => {
+    const release = acquireLock(lock)
+    expect(readFileSync(lock, 'utf8')).toBe(String(process.pid))
+    expect(() => acquireLock(lock)).toThrow(/already in progress/)
+    release()
+    expect(existsSync(lock)).toBe(false)
+    writeFileSync(lock, '2147483646') // no such pid
+    const again = acquireLock(lock)
+    expect(readFileSync(lock, 'utf8')).toBe(String(process.pid))
+    again()
+  })
 })
 
 describe('readStageConfig (R2)', () => {
@@ -75,7 +111,7 @@ describe('readStageConfig (R2)', () => {
 
 // ---------------------------------------------------------- spawned server (R3)
 import { spawn } from 'node:child_process'
-import { mkdtempSync, writeFileSync, chmodSync, rmSync } from 'node:fs'
+import { mkdtempSync, writeFileSync, chmodSync, rmSync, readFileSync, existsSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -172,7 +208,7 @@ describe('spawned MCP server', () => {
     const fail = await c.request('tools/call', { name: 'run_harness', arguments: { mode: 'sweep', seconds: 10 } })
     expect(fail.result.isError).toBe(true)
     expect(fail.result.content[0].text).toContain('no page target')
-    expect(fail.result.content[0].text).toContain('exit code 1')
+    expect(fail.result.content[0].text).toContain('code 1')
     c.close()
   })
 
@@ -195,11 +231,42 @@ describe('spawned MCP server', () => {
     const r = await c.request('tools/call', { name: 'run_harness', arguments: { mode: 'sweep', seconds: 10 } })
     expect(r.result.isError).toBe(true)
     expect(r.result.content[0].text).toMatch(/timed out/)
-    const { readFileSync } = await import('node:fs')
     const pid = Number(readFileSync(marker, 'utf8').trim())
     await new Promise((res) => setTimeout(res, 300))
     expect(() => process.kill(pid, 0)).toThrow() // grandchild is gone
     c.close()
+  })
+
+  it('a crash after a valid progress line is an error, not partial metrics (R3.5a)', async () => {
+    const c = client({ EXORCISE_HARNESS_SCRIPT: mockScript('crash.sh', `echo 't+5s ${JSON.stringify(M)}'\nexit 3`) })
+    const r = await c.request('tools/call', { name: 'run_harness', arguments: { mode: 'sweep', seconds: 10 } })
+    expect(r.result.isError).toBe(true)
+    expect(r.result.content[0].text).toContain('code 3')
+    expect(r.result.structuredContent).toBeUndefined()
+    c.close()
+  })
+
+  it('rejects unknown properties through the tool call (R3.4)', async () => {
+    const c = client({ EXORCISE_HARNESS_SCRIPT: OK_SCRIPT })
+    const r = await c.request('tools/call', { name: 'run_harness', arguments: { mode: 'sweep', extra: '; rm -rf /' } })
+    expect(r.result.isError).toBe(true)
+    expect(r.result.content[0].text).toMatch(/unknown argument/)
+    c.close()
+  })
+
+  it.each(['SIGTERM', 'SIGINT'])('killing the server with %s kills the running harness group (R3.5b)', async (sig) => {
+    const marker = join(tmp, `orphan-${sig}.pid`)
+    const script = mockScript(`orphan-${sig}.sh`, `sleep 30 &\necho $! > "${marker}"\nwait`)
+    const c = client({ EXORCISE_HARNESS_SCRIPT: script })
+    c.request('tools/call', { name: 'run_harness', arguments: { mode: 'sweep', seconds: 10 } })
+    for (let i = 0; i < 50 && !existsSync(marker); i++) await new Promise((r) => setTimeout(r, 100))
+    await new Promise((r) => setTimeout(r, 100))
+    const pid = Number(readFileSync(marker, 'utf8').trim())
+    expect(() => process.kill(pid, 0)).not.toThrow() // running
+    c.child.kill(sig)
+    await new Promise((r) => c.child.once('exit', r))
+    await new Promise((r) => setTimeout(r, 300))
+    expect(() => process.kill(pid, 0)).toThrow() // gone
   })
 
   it('read_stage_config returns the live tuning', async () => {

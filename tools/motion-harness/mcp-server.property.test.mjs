@@ -39,6 +39,11 @@ describe('validateRunArgs properties', () => {
       expect(ok).toBe(valid)
     }), { numRuns: 500 })
   })
+  it('rejects any extra property', () => {
+    fc.assert(fc.property(fc.string().filter((k) => k !== 'mode' && k !== 'seconds' && k !== '__proto__'), fc.anything(), (k, v) => {
+      expect(() => validateRunArgs({ mode: 'sweep', [k]: v })).toThrow(ArgError)
+    }))
+  })
   it('accepted values are always safe argv tokens', () => {
     fc.assert(fc.property(fc.constantFrom(...MODES), fc.integer({ min: MIN_SECONDS, max: MAX_SECONDS }), (mode, seconds) => {
       const r = validateRunArgs({ mode, seconds })
