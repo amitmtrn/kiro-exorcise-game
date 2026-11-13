@@ -298,7 +298,39 @@ describe('review fixes', () => {
     const out = Object.assign(new FakeParam(0.5), { cancelAndHoldAtTime: (t: number) => { calls.push(t) } })
     crossfade(out as unknown as AudioParam, null, 4, 0.5)
     expect(calls).toEqual([4])
-    expect(out.calls).toEqual([{ kind: 'linear', value: 0, time: 4.5 }])
+    // an explicit anchor at `now` precedes the ramp
+    expect(out.calls).toEqual([
+      { kind: 'set', value: 0.5, time: 4 },
+      { kind: 'linear', value: 0, time: 4.5 },
+    ])
+  })
+
+  it('anchors the ramp at now on the fallback path too', () => {
+    const out = new FakeParam(0.5)
+    crossfade(out as unknown as AudioParam, null, 4, 0.5)
+    const i = out.calls.findIndex(c => c.kind === 'linear')
+    expect(out.calls[i - 1]).toEqual({ kind: 'set', value: 0.5, time: 4 })
+  })
+
+  it('play() while paused does not schedule a window', () => {
+    const { engine, ctx } = setup()
+    engine.setPaused(true)
+    engine.play('title')
+    expect(ctx.started('osc')).toEqual([])
+  })
+
+  it('retries resume() if one stays pending', () => {
+    const { engine, ctx } = setup()
+    ctx.state = 'suspended'
+    ctx.resume = () => { ctx.resumeCalls++; return new Promise<void>(() => {}) }
+    const now = vi.spyOn(Date, 'now')
+    now.mockReturnValue(1000)
+    engine.play('title'); engine.tick()
+    expect(ctx.resumeCalls).toBe(1)
+    now.mockReturnValue(2500)
+    engine.tick()
+    expect(ctx.resumeCalls).toBe(2)
+    now.mockRestore()
   })
 
   it('calls ctx.resume() once while a resume is in flight', async () => {

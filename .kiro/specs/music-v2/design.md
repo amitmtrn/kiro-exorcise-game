@@ -82,7 +82,7 @@ voice nodes → layer gain → track bus gain → destination (= getMasterGain()
 `crossfade(prevBus.gain, newBus.gain, now, 0.5)`:
 
 ```
-out: cancelAndHoldAtTime(now) [fallback: cancelScheduledValues + setValueAtTime(param.value)]; linearRampToValueAtTime(0, now+dur)
+out: cancelAndHoldAtTime(now) [fallback: cancelScheduledValues(now)]; setValueAtTime(param.value, now) (explicit anchor in both paths); linearRampToValueAtTime(0, now+dur)
 in : cancelScheduledValues(now); setValueAtTime(0, now);        linearRampToValueAtTime(1, now+dur)
 ```
 
@@ -128,8 +128,9 @@ by ear that full volume does not clip.
 
 Hidden tab: `engine.setPaused(true)` (wired to `visibilitychange` in
 `music.ts`) clears the interval; on return the scheduler resyncs and skips
-stale steps. `ctx.resume()` is guarded by an in-flight flag. Fades start from
-`cancelAndHoldAtTime` when the browser has it, else from `param.value`.
+stale steps. `ctx.resume()` is guarded by an in-flight flag. Fades freeze the param with
+`cancelAndHoldAtTime` (else `cancelScheduledValues`) and always add an explicit
+`setValueAtTime(param.value, now)` anchor so the ramp starts at `now`.
 
 ## Testing
 

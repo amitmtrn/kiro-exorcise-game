@@ -12,6 +12,8 @@ import { playArp, playBass, playHat, playKick, playLead, playSnare } from './voi
 export const CROSSFADE_SEC = 0.5
 export const LAYER_FADE_SEC = 0.15
 const START_DELAY_SEC = 0.05
+/** A resume() still pending after this long is retried (needs a gesture). */
+const RESUME_RETRY_MS = 1000
 
 export interface EngineDeps {
   ctx: AudioContext
@@ -31,10 +33,17 @@ interface Playback {
   retireAt: number
 }
 
-/** Freeze an AudioParam at its current level from `now` (robust mid-ramp). */
+/**
+ * Freeze an AudioParam at its current level from `now` and leave an explicit
+ * anchor event at `now`, so the next ramp starts here (not at an older event).
+ */
 function hold(p: AudioParam, now: number): void {
   const h = (p as AudioParam & { cancelAndHoldAtTime?: (t: number) => unknown }).cancelAndHoldAtTime
-  if (typeof h === 'function') { h.call(p, now); return }
+  if (typeof h === 'function') {
+    h.call(p, now)
+    p.setValueAtTime(p.value, now)
+    return
+  }
   const from = p.value
   p.cancelScheduledValues(now)
   p.setValueAtTime(from, now)
@@ -65,6 +74,7 @@ export function createMusicEngine(deps: EngineDeps) {
   let combo = 1
   let timer: unknown = null
   let resuming = false
+  let resumeStartedAt = 0
   let paused = false
 
   function parsed(def: TrackDef): ParsedTrack {
@@ -116,8 +126,9 @@ export function createMusicEngine(deps: EngineDeps) {
 
   function tick(): void {
     const now = ctx.currentTime
-    if ((ctx.state === 'suspended' || (ctx.state as string) === 'interrupted') && !resuming) {
+    if ((ctx.state === 'suspended' || (ctx.state as string) === 'interrupted') && (!resuming || Date.now() - resumeStartedAt > RESUME_RETRY_MS)) {
       resuming = true
+      resumeStartedAt = Date.now()
       ctx.resume().catch(() => { /* needs a user gesture */ }).finally(() => { resuming = false })
     }
     if (retiring.length > 0) {
@@ -151,7 +162,7 @@ export function createMusicEngine(deps: EngineDeps) {
       crossfade(null, next.bus.gain, now, CROSSFADE_SEC)
       current = next
       ensureTimer()
-      tick()
+      if (!paused) tick()
     },
 
     stop(): void {

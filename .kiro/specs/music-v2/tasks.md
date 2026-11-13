@@ -67,3 +67,11 @@ Files: `src/audio/music.ts`, `src/audio/index.ts`, `src/game/loop.ts`, `src/audi
 - [x] Docs: renumber R1.7, kick click level, `cancelAndHoldAtTime` pseudo-code, README manual-task list.
 - Skipped: Firefox `hold()` fallback (untestable here, level step only); retire cleanup while suspended (bounded, clears on resume).
 - [x] Run `npm test` and `npm run build`; commit.
+
+## T10 — Third review fixes
+- [x] BLOCKER/SHOULD-FIX: `hold()` always leaves an explicit `setValueAtTime(value, now)` anchor so fades start at `now` even when `cancelAndHoldAtTime` inserts no event (R5.2, R3.3). Covers the Firefox fallback noted in T9.
+- [x] `play()` does not tick while paused (R1.7).
+- [x] A `resume()` pending longer than 1 s is retried (R1.8).
+- Not changed: layer gating at note onset (a deliberate simplification; a raised tier is heard from the next onset) and the title-music `AudioContext` created before a gesture (silent, only a console warning).
+- [x] Tests: anchor precedes ramp on both paths, no window while paused, resume retry.
+- [x] Run `npm test` and `npm run build`; commit.
