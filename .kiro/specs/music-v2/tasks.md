@@ -11,11 +11,11 @@ Files: `src/audio/music/patterns.ts`, `src/audio/music/patterns.test.ts`
 ## T2 — Look-ahead step scheduler
 Files: `src/audio/music/scheduler.ts`, `src/audio/music/scheduler.test.ts`, `src/audio/music/scheduler.property.test.ts`
 
-- [ ] `StepScheduler` per design (fake-clock friendly, no timers inside).
-- [ ] Tests: exactly once, no drift after 10 000 steps, look-ahead window respected, stall skip, tempo math.
-- [ ] Property test: any non-decreasing tick sequence schedules strictly increasing step times, none beyond `now + lookAhead`, none twice.
-- [ ] Run `npm test` and `npm run build`; both clean.
-- [ ] Commit: `feat(music-v2-T2): look-ahead step scheduler`
+- [x] `StepScheduler` per design (fake-clock friendly, no timers inside).
+- [x] Tests: exactly once, no drift after 10 000 steps, look-ahead window respected, stall skip, tempo math.
+- [x] Property test: any non-decreasing tick sequence schedules strictly increasing step times, none beyond `now + lookAhead`, none twice.
+- [x] Run `npm test` and `npm run build`; both clean.
+- [x] Commit: `feat(music-v2-T2): look-ahead step scheduler`
 
 ## T3 — Intensity layers
 Files: `src/audio/music/layers.ts`, `src/audio/music/layers.test.ts`
