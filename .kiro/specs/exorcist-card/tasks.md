@@ -9,12 +9,12 @@
 - [x] Commit: `feat(exorcist-card-T1): rank titles and run-wide stats`
 
 ## T2 — Snapshot store and card layout (pure)
-- [ ] `src/card/snapshotStore.ts`: one in-memory slot, strictly-better replacement, lazy grab, release on replace / discard.
-- [ ] `src/card/layout.ts`: `layoutCard`, `fitText`, `coverRect`, `scaleToFit`.
-- [ ] Unit tests: snapshot lifecycle (taken, replaced by better, kept on equal / worse, discarded + released); layout positions, `fitText`, `coverRect`.
-- [ ] Property test: every rect and text extent stays inside the card for any size ≥ 200 × 280 and any score / rank / number lengths.
-- [ ] `npm test` and `npm run build` both clean.
-- [ ] Commit: `feat(exorcist-card-T2): snapshot store and pure card layout`
+- [x] `src/card/snapshotStore.ts`: one in-memory slot, strictly-better replacement, lazy grab, release on replace / discard.
+- [x] `src/card/layout.ts`: `layoutCard`, `fitText`, `coverRect`, `scaleToFit`.
+- [x] Unit tests: snapshot lifecycle (taken, replaced by better, kept on equal / worse, discarded + released); layout positions, `fitText`, `coverRect`.
+- [x] Property test: every rect and text extent stays inside the card for any size ≥ 200 × 280 and any score / rank / number lengths.
+- [x] `npm test` and `npm run build` both clean.
+- [x] Commit: `feat(exorcist-card-T2): snapshot store and pure card layout`
 
 ## T3 — Card drawing and local download
 - [ ] `src/card/draw.ts`: procedural frame, photo (cover-fit) or silhouette, Creepster title, stats.
