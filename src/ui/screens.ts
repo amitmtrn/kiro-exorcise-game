@@ -78,7 +78,7 @@ export function renderStartScreen(
   const ring = last === 1 ? startBtn : twoBtn
   ctx.beginPath()
   ctx.arc(ring.cx, ring.cy, r + 8, 0, Math.PI * 2)
-  ctx.strokeStyle = '#ffd166'; ctx.lineWidth = 3; ctx.shadowColor = '#ffd166'; ctx.shadowBlur = 10
+  ctx.strokeStyle = '#ff6b1a'; ctx.lineWidth = 3; ctx.shadowColor = '#ff6b1a'; ctx.shadowBlur = 10
   ctx.stroke()
 
   // Instruction

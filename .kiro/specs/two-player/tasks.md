@@ -49,6 +49,22 @@ Files: `src/game/loop.ts`, `src/game/render.ts`, `src/ui/hud.ts`, `src/ui/screen
 - [x] `npm test` and `npm run build` both clean.
 - [x] Commit: `docs(two-player-T5): README`
 
+## T7 — Review fixes
+Files: `src/game/loop.ts`, `src/game/twoPlayer.ts`, `src/ui/hud.ts`, `src/ui/screens.ts`,
+`src/ui/splitscreen.ts`, tests, `design.md`
+
+- [x] BLOCKER: 2P button callbacks (PLAY AGAIN, MAIN MENU, NEXT) are applied after the tick instead of being overwritten by `tickTwo`'s result (R3.4, R5.2, R6.3); loop tests drive them.
+- [x] CLEARED is shown for a seat whose boss is defeated while the session is still playing (`seatStatus` → `cleared`) (R4.2, R3.3); test.
+- [x] `startRequest` is cleared during a 2P game so keys do not leak to the start screen (R6.2); test.
+- [x] Shared mute button moved below the top HUD row; test updated.
+- [x] Divider drawn below the HUD layer (R1.5).
+- [x] A seat that goes out has its enemies cleared (R4.1); test.
+- [x] Remembered-mode ring is Pumpkin Orange.
+- [x] `design.md` corrected (function names, signatures, `ui/splitscreen.ts`, `toHalfPoints`).
+- [x] Summary `nextBtn` rebuilt on a height-only resize.
+- [x] `npm test` and `npm run build` both clean.
+- [x] Commit: `fix(two-player): review fixes`
+
 ## T6 — Manual smoke test (webcam, two people)
 - [ ] Start screen: wave over 1 PLAYER → normal game; MENU → wave over 2 PLAYERS → split screen; keys 1 / 2 / Space.
 - [ ] Person on the left of the room plays the left half (their reflection is on the left); motion in the other half never hits.

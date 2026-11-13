@@ -153,6 +153,19 @@ describe('independent state (R2.1)', () => {
 })
 
 describe('player out (R4.1, R4.5)', () => {
+  it('a seat going out on its last life is emptied of enemies on that tick', () => {
+    let t = playing()
+    const skull = makeEnemy({
+      id: 'sk', type: 'skull', x: W / 4, y: H / 2, targetX: W / 4, targetY: H / 2, speed: 0.0001,
+      hitbox: { x: W / 4 - 40, y: H / 2 - 40, w: 80, h: 80 }, spawnedAt: 0, hitCount: 1,
+    })
+    const bystander = ghost('G', 100, 100, { hitCount: 1 })
+    t = withSeat(t, 0, (s) => ({ ...s, lives: 1, enemies: [skull, bystander] }))
+    const after = tickTwoPlayer(t, 16, W, H, frames([{ x: 0, y: 0, w: 160, h: MOTION_H }]))
+    expect(after.seats[0].phase).toBe('gameover')
+    expect(after.seats[0].enemies).toHaveLength(0)
+  })
+
   function outLeft(): TwoPlayerState {
     let t = playing()
     for (let i = 0; i < 3; i++) t = withSeat(t, 0, (s) => decrementLife(s))
@@ -272,6 +285,8 @@ describe('boss stage (R3.3, R4.2, R4.3)', () => {
     const my = Math.round((bossBox.y + bossBox.h / 2) * MOTION_H / H)
     const after = tickTwoPlayer(t, 16, W, H, frames([{ x: mx - 15, y: my - 15, w: 30, h: 30 }]))
     expect(after.seats[1].phase).toBe('victory')
+    expect(seatStatus(after, 1)).toBe('cleared') // R4.2: shown as CLEARED while the other half plays
+    expect(seatStatus(after, 0)).toBe('playing')
     expect(after.seats[1].score).toBeGreaterThanOrEqual(1000)
     expect(after.seats[0].phase).toBe('playing')
     expect(after.seats[0].score).toBe(0)

@@ -109,7 +109,7 @@ export function renderTwoPlayerSummary(
     })
   })
 
-  if (!nextBtn || nextBtn.cx !== W / 2) {
+  if (!nextBtn || nextBtn.cx !== W / 2 || nextBtn.cy !== H * 0.84) {
     nextBtn = new MotionButton(W / 2, H * 0.84, clamp(W / 8, 50, 80), '▶ NEXT')
   }
   const res = nextBtn.update(now)

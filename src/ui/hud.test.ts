@@ -67,7 +67,9 @@ describe('muteButtonRect2P', () => {
     const W = 1280
     const r = muteButtonRect2P(W, hudFontSize(W))
     expect(Math.abs(r.x + r.w / 2 - W / 2)).toBeLessThanOrEqual(1)
-    expect(r.y).toBeLessThan(50)
+    // below the top HUD row (hearts / timer), so it overlaps neither P1's timer nor P2's hearts
+    expect(r.y).toBeGreaterThanOrEqual(20 + hudFontSize(W))
+    expect(r.y).toBeLessThan(120)
     expect(r.w).toBeGreaterThanOrEqual(24)
     expect(r.h).toBe(r.w)
   })

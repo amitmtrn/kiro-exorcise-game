@@ -106,6 +106,9 @@ export async function startLoop(
   let prevTwoPhase: TwoPlayerState['phase'] | null = null
   const halfCanvases: HTMLCanvasElement[] = []
   const pulses: HudPulse[] = [] // created on first use per seat
+  const hudCanvases: HTMLCanvasElement[] = [] // transparent per-seat HUD layers, drawn above the divider
+  /** Action requested by a 2P screen button during a tick; applied after the tick returns (so it is not overwritten). */
+  let twoAction: 'next' | 'again' | 'menu' | null = null
 
   /** Start a game in `mode` (remembered for the session). */
   function begin(mode: PlayerMode): void {
@@ -135,6 +138,16 @@ export async function startLoop(
     return c.getContext('2d')!
   }
 
+  function hudCtx(seat: Seat, w: number, h: number): CanvasRenderingContext2D {
+    let c = hudCanvases[seat]
+    if (!c) { c = document.createElement('canvas'); hudCanvases[seat] = c }
+    if (c.width !== w) c.width = w
+    if (c.height !== h) c.height = h
+    const x = c.getContext('2d')!
+    x.clearRect(0, 0, w, h)
+    return x
+  }
+
   /** One tick of a two-player game: simulate both seats, then draw the halves, divider and overlays. */
   function tickTwo(t: TwoPlayerState, deltaMs: number, now: number, W: number, H: number,
     cur: ImageData, prev: ImageData, frameIsNew: boolean): TwoPlayerState {
@@ -156,6 +169,7 @@ export async function startLoop(
 
     gameCtx.clearRect(0, 0, W, H)
     const hw = W / 2
+    const huds: Array<[CanvasRenderingContext2D, Seat]> = []
     for (const seat of SEATS) {
       const s = t.seats[seat]
       const hctx = halfCtx(seat, hw, H)
@@ -164,22 +178,26 @@ export async function startLoop(
         motionPixels: displayPointsInHalf(lastMotionPixels, seat, W),
       })
       const pulse = (pulses[seat] ??= createHudPulse())
-      if (s.phase === 'playing') renderHUD(hctx, s, now, { pulse, showMute: false, label: `P${seat + 1}` })
-      else pulse.lastCombo = 1
+      if (s.phase === 'playing') {
+        const hud = hudCtx(seat, hw, H)
+        renderHUD(hud, s, now, { pulse, showMute: false, label: `P${seat + 1}` })
+        huds.push([hud, seat])
+      } else pulse.lastCombo = 1
       if (t.phase === 'stageTitle' && s.phase === 'stageTitle') renderStageTitle(hctx, s)
       const status = seatStatus(t, seat)
       if (t.phase !== 'final' && (status === 'out' || status === 'cleared')) drawSeatOverlay(hctx, status, s.score, now)
       gameCtx.drawImage(hctx.canvas, halfOffset(seat, W), 0)
     }
-    drawDivider(gameCtx)
+    drawDivider(gameCtx) // below the HUD text (R1.5)
+    for (const [hud, seat] of huds) gameCtx.drawImage(hud.canvas, halfOffset(seat, W), 0)
     drawMuteButton(gameCtx, muteButtonRect2P(W, hudFontSize(W)))
 
     if (t.phase === 'summary') {
-      renderTwoPlayerSummary(gameCtx, t, now, () => { if (two && two.phase === 'summary') two = advanceSession(two, W, H) })
+      renderTwoPlayerSummary(gameCtx, t, now, () => { twoAction = 'next' })
     } else if (t.phase === 'final') {
       renderTwoPlayerFinal(gameCtx, t, now,
-        () => { two = createTwoPlayer(); prevTwoPhase = null },
-        () => { toMenu() },
+        () => { twoAction = 'again' },
+        () => { twoAction = 'menu' },
       )
     }
     return t
@@ -210,7 +228,15 @@ export async function startLoop(
     // ── Two-player game (own state machine; the 1P branches below are untouched) ──
     twoPlayerActive = two !== null
     if (two) {
+      twoAction = null
       two = tickTwo(two, deltaMs, now, displayW, displayH, currentData, prevData, frameIsNew)
+      // Apply a button pressed during this tick *after* the tick result is stored.
+      const action: typeof twoAction = twoAction
+      twoAction = null
+      if (action === 'next' && two.phase === 'summary') two = advanceSession(two, displayW, displayH)
+      else if (action === 'again') { two = createTwoPlayer(); prevTwoPhase = null }
+      else if (action === 'menu') toMenu()
+      startRequest = null // keys pressed during a 2P game must not leak to the start screen (R6.2)
       prevCtx.drawImage(currentCanvas, 0, 0)
       rafId = requestAnimationFrame(tick)
       return

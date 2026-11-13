@@ -31,7 +31,8 @@ export function seatOfRawColumn(col: number, rawW: number): Seat
 export function cropMotionHalf(d: ImageData, seat: Seat, w = MOTION_W, h = MOTION_H): ImageData
                                                            // copies columns [seat*w/2, (seat+1)*w/2)
 export function motionHalfWidth(): number                  // MOTION_W / 2
-export function toHalfPoints(points, seat, motionW): Pt[]  // mask points → half-local x
+export function displayPointsInHalf(points, seat, w): Pt[]  // debug-overlay mask points → half-local x
+                                                           // (toHalfPoints is the motion-space helper; tested, not used in the loop)
 export function pickWinner(a: number, b: number): 0 | 1 | 'tie'
 ```
 
@@ -77,13 +78,14 @@ export interface TwoPlayerState {
   summaryShownMs: number
 }
 
-export function createTwoPlayer(highScore = 0): TwoPlayerState   // both seats → stageTitle, stage 1
-export function seatStatus(s: GameState): 'playing' | 'out' | 'cleared' | 'summary' | 'winner' | ...
+export function createTwoPlayer(): TwoPlayerState   // both seats → stageTitle, stage 1; no high score is kept in 2P
+export function seatStatus(t, seat): 'title' | 'playing' | 'out' | 'cleared' | 'summary' | 'won'
+// a boss defeat (seat phase `victory`) is 'cleared' while the session is still `playing`, 'won' afterwards
 export function isOut(s: GameState): boolean         // phase === 'gameover'
-export function tickSessionClock(t, deltaMs, W, H): TwoPlayerState
+export function tickTwoPlayer(t, deltaMs, W, H, motion | null): TwoPlayerState  // clock + seats + phase sync
 export function advanceSession(t, W, H): TwoPlayerState
 export function winnerOf(t): 0 | 1 | 'tie'           // pickWinner(scores)
-export function stepSeat(state, deltaMs, W, H): GameState   // per-seat simulation, see below
+// per-seat simulation (`stepSeat`, internal) is described below
 ```
 
 ### Seat simulation — `src/game/step.ts`
@@ -127,7 +129,10 @@ In the loop a `two: TwoPlayerState | null` is kept next to the 1P `state`. The
 start screen branch returns a mode when a motion button triggers or key 1 / 2 /
 Space is requested (`requestStart(mode?)`). Mode 2 creates `two`; the 2P branch of
 `tick` runs instead of the 1P phase branches (they stay untouched). `MENU` and
-"play again" drop `two` / recreate it.
+"play again" drop `two` / recreate it. Button callbacks fired by the 2P screens
+during a tick only record a pending action (`twoAction`); the loop applies it
+*after* `tickTwo` returns so the tick result cannot overwrite it. A `startRequest`
+key pressed during a 2P game is discarded (R6.2).
 
 Per tick in 2P: compute the full mask as today; for each seat crop current / prev
 `ImageData`, run the seat step and `resolveHits` with `W/2` and `motionW = 160`;
@@ -149,12 +154,18 @@ can draw across the divider.
   default the module one), `opts.showMute = false` and `opts.label` ("P1"/"P2").
   `drawMuteButton` is extracted and called once at top centre in 2P
   (`muteButtonRect2P`); `main.ts` picks the rect by mode for pointer taps.
-- Divider: a vertical line at `W/2`, `#ff6b1a`, 4 px, glow, drawn after the halves.
+- Divider: a vertical line at `W/2`, `#ff6b1a`, 4 px, glow, drawn after the halves
+  but *before* the HUD layer: each seat's HUD is rendered on a separate transparent
+  half canvas and composited over the divider (R1.5).
+- Shared mute button: top centre, *below* the top HUD row (`y = 20 + fontSize + 8`)
+  so it overlaps neither P1's timer nor P2's hearts.
+- A seat that goes out has its enemies cleared on that tick (R4.1); a seat whose
+  boss is defeated shows CLEARED while the session is still `playing` (R4.2).
 - Out / cleared overlay on a seat: dim, big "OUT" (Blood Red) or "CLEARED"
   (Candlelight Yellow), the score; wobble-in is optional polish.
 - 2P stage title / summary / end screens are drawn over the full canvas by
-  `renderTwoPlayerTitle`, `renderTwoPlayerSummary`, `renderTwoPlayerFinal` in
-  `ui/screens.ts` (both scores side by side; `final` has the winner banner,
+  `renderStageTitle` (per half, existing), `renderTwoPlayerSummary` and
+  `renderTwoPlayerFinal` in `ui/splitscreen.ts` (start screen stays in `ui/screens.ts`) (both scores side by side; `final` has the winner banner,
   PLAY AGAIN / MAIN MENU motion buttons with the 1.5 s lock-out).
 
 ## Start screen
@@ -187,7 +198,7 @@ players hit — it needs cross-half collision, the thing R1.4 forbids.
 | `twoPlayer.test.ts` | independent lives / score / combo, out behaviour (no spawn, other continues), cleared boss, shared clock, phase sync, final, winner / tie, out stays out |
 | `twoPlayer.property.test.ts` | clock monotone and equal for both seats; one seat's inputs never change the other; deltaMs split-invariance |
 | `playerMode.test.ts` | default 1, set / get, no storage use |
-| `loop.mode.test.ts` | start request → mode mapping (keys 1 / 2 / Space), 1P path unaffected |
+| `loop.mode.test.ts` | start request → mode mapping (keys 1 / 2 / Space), 1P path unaffected; 2P PLAY AGAIN / MAIN MENU / NEXT callbacks take effect, stray keys do not leak |
 | `ui/hud.test.ts` | `muteButtonRect2P` centred, per-seat pulse isolation, `showMute` / `label` options |
 | `ui/splitscreen.test.ts` | winner text, divider line, OUT / CLEARED overlays |
 | `game/render.opts.test.ts` | `renderFrame` options: defaults unchanged for 1P, per-seat banished flash |

@@ -59,7 +59,7 @@ export function seatStatus(t: TwoPlayerState, seat: Seat): SeatStatus {
   if (s.phase === 'gameover') return 'out'
   if (s.phase === 'stageTitle' || s.phase === 'start') return 'title'
   if (s.phase === 'playing') return 'playing'
-  if (s.phase === 'victory') return 'won'
+  if (s.phase === 'victory') return t.phase === 'playing' ? 'cleared' : 'won'
   return t.phase === 'playing' ? 'cleared' : 'summary'
 }
 
@@ -91,6 +91,7 @@ function stepSeat(seat: Seat, s: GameState, deltaMs: number, clockMs: number, W:
   }
   // Shared clock: expiry rule per seat (boss alive → out, else summary). A defeat on this tick already left 'playing'.
   if (s.phase === 'playing') s = tickTimer(s, 0)
+  if (s.phase === 'gameover' && s.enemies.length > 0) s = { ...s, enemies: [] } // out: no enemies (R4.1)
   return { s, banished }
 }
 

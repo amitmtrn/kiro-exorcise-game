@@ -42,11 +42,11 @@ export function muteButtonRect(canvasW: number, fontSize: number) {
   return { x: canvasW - pad - size, y: pad + fontSize + 8, w: size, h: size }
 }
 
-/** Hit rectangle for the single shared mute button in two-player mode (top centre). */
+/** Hit rectangle for the single shared mute button in two-player mode (top centre, below the HUD row so it overlaps no timer / hearts). */
 export function muteButtonRect2P(canvasW: number, fontSize: number) {
   const pad = 20
   const size = Math.round(fontSize * 1.1)
-  return { x: Math.round(canvasW / 2 - size / 2), y: pad, w: size, h: size }
+  return { x: Math.round(canvasW / 2 - size / 2), y: pad + fontSize + 8, w: size, h: size }
 }
 
 // ─── Combo-pulse animation state (one per HUD: each two-player seat has its own) ──
