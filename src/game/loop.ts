@@ -44,7 +44,7 @@ import {
   advanceToNextStage,
   spawnBoss,
 } from './round'
-import { sfxLifeLost, sfxStageClear, startMusic, stopMusic } from '../audio/index'
+import { sfxLifeLost, sfxStageClear, startMusic, startTitleMusic, stopMusic, setMusicCombo } from '../audio/index'
 
 let rafId = 0
 
@@ -127,6 +127,7 @@ export async function startLoop(
 
     // ── Start screen ──────────────────────────────────────────────────────────
     if (state.phase === 'start') {
+      try { startTitleMusic() } catch { /* ignore */ }
       renderFrame(gameCtx, state, now)
       renderStartScreen(gameCtx, state, now, () => {
         state = startGame(state)
@@ -266,6 +267,11 @@ export async function startLoop(
 
     renderFrame(gameCtx, state, now)
     renderHUD(gameCtx, state, now)
+
+    // Music intensity follows the combo tier (cheap when unchanged)
+    if (state.phase === 'playing') {
+      try { setMusicCombo(state.combo) } catch { /* ignore */ }
+    }
 
     // Phase transition hooks
     if (prevPhase !== state.phase) {

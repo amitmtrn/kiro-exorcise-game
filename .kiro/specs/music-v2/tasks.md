@@ -37,11 +37,11 @@ Files: `src/audio/music/voices.ts`, `src/audio/music/engine.ts`, `src/test/fakeA
 ## T5 — Public API and game wiring
 Files: `src/audio/music.ts`, `src/audio/index.ts`, `src/game/loop.ts`, `src/audio/music.test.ts`
 
-- [ ] Replace the old `setTimeout` sequencer in `music.ts` with the engine; export `startTitleMusic`, `setMusicCombo`.
-- [ ] `loop.ts`: title music on the start screen, `setMusicCombo(state.combo)` while playing.
-- [ ] Tests: stage → track mapping (5 → boss), title idempotence without touching the audio context, mute path (voices connect to the master gain).
-- [ ] Run `npm test` and `npm run build`; both clean.
-- [ ] Commit: `feat(music-v2-T5): wire engine into game`
+- [x] Replace the old `setTimeout` sequencer in `music.ts` with the engine; export `startTitleMusic`, `setMusicCombo`.
+- [x] `loop.ts`: title music on the start screen, `setMusicCombo(state.combo)` while playing.
+- [x] Tests: stage → track mapping (5 → boss), title idempotence without touching the audio context, mute path (voices connect to the master gain).
+- [x] Run `npm test` and `npm run build`; both clean.
+- [x] Commit: `feat(music-v2-T5): wire engine into game`
 
 ## T6 — Docs
 - [ ] README: spec table row, spec count, test count; `audio/design.md` note that music is superseded by `music-v2/`.
