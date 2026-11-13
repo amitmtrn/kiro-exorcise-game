@@ -71,22 +71,29 @@ export interface Knock {
   ageMs: number; lifeMs: number
 }
 export const KNOCK_LIFE_MS = 600, KNOCK_SPEED = 2.2 /* heights/s */, KNOCK_DRAG = 4 /* 1/s */
-export const KNOCK_MIN_SCALE = 0.4
+export const KNOCK_MIN_SCALE = 0.4, KNOCK_SPIN /* rad/s, signed by ux */
+export const MAX_KNOCKS = 16
 
 export function makeKnock(enemy: Enemy, swipe: Swipe, canvasH: number): Knock
-export function knockPose(k: Knock): { x: number; y: number; angle: number; scale: number; alpha: number }
+export function knockPose(k: Knock): KnockPose   // { x, y, angle, scale, alpha, distance (px from origin) }
 export function tickKnocks(ks: Knock[], deltaMs: number): Knock[]
+export function addKnock(ks: Knock[], k: Knock): Knock[]   // drops the oldest beyond MAX_KNOCKS
 ```
 
 * distance(t) = `speed · (1 − e^(−k t)) / k` (t in s); position = origin + u · distance.
-* alpha = `1 − (age/life)²`‑style ease would not be monotone-simple; use
-  `alpha = 1 − age/life` (linear), `scale = 1 − (1 − MIN) · age/life`, `angle = spin · t`.
+* `alpha = 1 − age/life` (linear), `scale = 1 − (1 − MIN) · age/life`, `angle = spin · t`.
 * Strength = `clamp(swipe.mag / (0.1 × canvasH), 0.6, 1.5)`; fallbacks use 1.
 * `tickKnocks` adds `deltaMs` to age and drops expired knocks; the pose is a
   function of age only, so stepping is irrelevant.
 
 State: `GameState.knocks: Knock[]`. `render.ts` draws them after enemies:
-translate to pose, rotate, scale, `globalAlpha`, then the existing `drawEnemy`.
+translate to pose, rotate, scale, `globalAlpha`, then the existing `drawEnemy` on a
+snapshot at the local origin with `targetX/Y` made relative (ghost wisps) and, for a
+boss, `bossAttack: 'idle'` and a non-zero flash so no wind-up / shield visuals fly off.
+The white hit flash of `lastBanished` is drawn after the knocks so it is not covered.
+Call-out anchors are clamped to 20–80 % of the canvas width so wide text stays on screen.
+The loop ages knocks and call-outs *before* `resolveHits`, so effects spawned this tick
+start at age 0 and look identical through the freeze at any frame rate.
 
 ## hitstop.ts
 
@@ -163,6 +170,6 @@ export function outroRowAlpha(summaryMs: number, index: number): number
   mirrored masks, ImageData round-trip through `motionPointsIn`, fallbacks, unit length, no NaN.
 * `knock.test.ts`, `knock.property.test.ts`: direction, monotone distance/alpha/scale, step independence, expiry.
 * `hitstop.test.ts`, `hitstop.property.test.ts`: duration at 30/60/144 Hz and a 100 ms stall, conservation, max-merge.
-* `callouts.test.ts`: selection per tier, tier-up vs praise, clamping, cap, expiry.
+* `callouts.test.ts`, `callouts.property.test.ts`: selection per tier, tier-up vs praise (property against `comboForStreak`), clamping, cap, expiry.
 * `transitions.test.ts`: poses at t = 0, rest, end; wobble settles; recording-context checks of the screens.
 * `collision.test.ts`: hit records a swipe, spawns a knock, sets hit-stop and a call-out.

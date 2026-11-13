@@ -48,7 +48,7 @@ export function selectCallout(prevCombo: number, newCombo: number, streak: numbe
 
 /** Starts above the enemy and stays inside the canvas. */
 export function makeCallout(x: number, y: number, choice: CalloutChoice, canvasW: number, canvasH: number): Callout {
-  const cx = Math.min(canvasW * 0.85, Math.max(canvasW * 0.15, x))
+  const cx = Math.min(canvasW * 0.8, Math.max(canvasW * 0.2, x))
   const cy = Math.min(canvasH * 0.9, Math.max(canvasH * 0.14, y - 70))
   return { x: cx, y: cy, text: choice.text, kind: choice.kind, ageMs: 0, lifeMs: CALLOUT_LIFE_MS }
 }

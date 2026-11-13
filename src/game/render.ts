@@ -59,13 +59,14 @@ export function renderFrame(
   for (const enemy of state.enemies) {
     drawEnemy(enemy.hitFlashFrames > 0 ? whiteCtx : ctx, enemy, now)
   }
-  // Enemies banished this frame are gone from state but flash white once
+  // Knocked-away enemies (juice R2): the normal enemy routines, rotated, shrunk and faded
+  for (const k of state.knocks) drawKnock(ctx, k, now)
+
+  // Enemies banished this frame are gone from state but flash white once;
+  // drawn after the knocks so the flash is not covered by the knock's first frame.
   if (state.phase === 'playing') {
     for (const enemy of lastBanished) drawEnemy(whiteCtx, enemy, now)
   }
-
-  // Knocked-away enemies (juice R2): the normal enemy routines, rotated, shrunk and faded
-  for (const k of state.knocks) drawKnock(ctx, k, now)
 
   for (const p of state.particles) drawParticle(ctx, p)
   for (const l of state.scoreLabels) drawScoreLabel(ctx, l)
@@ -98,7 +99,14 @@ function drawKnock(ctx: CanvasRenderingContext2D, k: Knock, now: number): void {
   ctx.rotate(pose.angle)
   ctx.scale(pose.scale, pose.scale)
   // drawEnemy translates to enemy.x/y, so draw the snapshot at the local origin.
-  drawEnemy(ctx, { ...k.enemy, x: 0, y: 0 }, now)
+  // Targets are made relative too (ghost wisps trail away from the target), and a
+  // boss's wind-up / shield visuals are dropped so only its body flies off.
+  const e = k.enemy
+  drawEnemy(ctx, {
+    ...e, x: 0, y: 0,
+    targetX: e.targetX - e.x, targetY: e.targetY - e.y,
+    ...(e.type === 'boss' ? { bossAttack: 'idle' as const, hitFlashFrames: 1 } : {}),
+  }, now)
   ctx.restore()
 }
 

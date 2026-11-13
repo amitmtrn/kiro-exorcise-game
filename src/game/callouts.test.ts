@@ -63,10 +63,10 @@ describe('callout lifecycle', () => {
     const mid = makeCallout(500, 400, choice, 1000, 800)
     expect(mid.y).toBeLessThan(400)
     const edge = makeCallout(-50, -50, choice, 1000, 800)
-    expect(edge.x).toBe(150)
+    expect(edge.x).toBe(200)
     expect(edge.y).toBeGreaterThan(0)
     const far = makeCallout(5000, 5000, choice, 1000, 800)
-    expect(far.x).toBe(850)
+    expect(far.x).toBe(800)
     expect(far.y).toBeLessThanOrEqual(720)
   })
 

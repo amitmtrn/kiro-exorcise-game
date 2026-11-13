@@ -57,6 +57,15 @@ Files: `src/game/transitions.ts`, `src/ui/screens.ts`, `src/game/transitions.tes
 - [x] Run `npm test` and `npm run build`; both clean.
 - [x] Commit: `docs(juice-T6): README`
 
+## T8 — Review fixes
+- [x] Knock render: ghost wisps use relative target; boss knock drops wind-up/shield visuals; white flash drawn after knocks.
+- [x] Loop ages knocks/call-outs before `resolveHits` (no age on spawn tick).
+- [x] Call-out anchor clamp widened to 20–80 % of width; test updated.
+- [x] `callouts.property.test.ts` ties `selectCallout` to `comboForStreak`; design.md knock section synced.
+- Skipped: spawn grace in game time (pre-existing, ≤60 ms); loop wiring test (loop is untested repo-wide).
+- [x] Run `npm test` and `npm run build`; both clean.
+- [x] Commit: `fix(juice): review nits`
+
 ## T7 — Manual smoke test (webcam)
 - [ ] Swat a ghost to the right: it flies right, spinning and fading; swat left / up: it flies that way.
 - [ ] A hit feels like a short freeze (~60 ms); the camera image keeps moving.

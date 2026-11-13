@@ -250,13 +250,18 @@ export async function startLoop(
       }
     }
 
+    // Age effects *before* resolveHits so ones spawned this tick start at age 0
+    // (identical pose through the freeze at any frame rate).
+    if (simMs > 0) {
+      state = { ...state, knocks: tickKnocks(state.knocks, simMs), callouts: tickCallouts(state.callouts, simMs) }
+    }
+
     state = resolveHits(state, currentData, prevData, displayW, displayH, now, frameIsNew, deltaMs)
 
     if (simMs > 0) {
       state = tickTimer(state, simMs)
       state = setParticles(state, tickParticles(state.particles, simMs))
       state = setScoreLabels(state, tickScoreLabels(state.scoreLabels, simMs))
-      state = { ...state, knocks: tickKnocks(state.knocks, simMs), callouts: tickCallouts(state.callouts, simMs) }
     }
 
     renderFrame(gameCtx, state, now)
