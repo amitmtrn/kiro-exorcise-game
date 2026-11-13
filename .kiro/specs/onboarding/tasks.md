@@ -42,6 +42,6 @@ Files: `src/ui/onboarding.ts`, `src/ui/onboarding.test.ts`, `src/ui/screens.ts`,
 ## T5 — Docs
 Files: `README.md`
 
-- [ ] Credit Creepster (Font Diner, OFL 1.1, link to `src/assets/fonts/OFL.txt`); onboarding + privacy note; specs table row and file tree; test count synced (`node tools/sync-readme-tests.mjs`).
-- [ ] `npm test` and `npm run build` both clean.
-- [ ] Commit: `docs(onboarding-T5): README font credit and onboarding notes`
+- [x] Credit Creepster (Font Diner, OFL 1.1, link to `src/assets/fonts/OFL.txt`); onboarding + privacy note; specs table row and file tree; test count synced (`node tools/sync-readme-tests.mjs`).
+- [x] `npm test` and `npm run build` both clean.
+- [x] Commit: `docs(onboarding-T5): README font credit and onboarding notes`

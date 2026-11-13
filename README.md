@@ -25,11 +25,13 @@ npm run dev
 
 | Command | What it does |
 |---|---|
-| `npm test` | Run all 721 unit tests (Vitest) |
+| `npm test` | Run all 777 unit tests (Vitest) |
 | `npm run build` | Production build → `dist/` |
 | `npm run preview` | Preview the production build locally |
 
 ## Gameplay
+
+On your first visit a short onboarding shows a head-and-hands silhouette over your live camera (with a quick framing check), three how-to-play cards and a privacy note. It is skippable (Skip / `Esc`) and remembered in `localStorage`. **Your video stays on your device. Nothing is uploaded.** If the camera is blocked you get step-by-step instructions to allow it.
 
 Five Kung Foo-style stages, each 60 seconds, each with its own enemy mix and music.
 
@@ -87,11 +89,12 @@ Every feature was planned as a Kiro spec before implementation:
 | `waves/` | Data-driven wave scripts (line / arc / flyby / drop / swarm paths), per-stage intensity curves, harmless candy bonus round |
 | `juice/` | Swipe-direction estimate from the motion mask, knock-back with spin and fade, 60 ms hit-stop, combo call-outs, stage intro / outro animations |
 | `music-v2/` | 3-voice procedural sequencer (bass, noise drums, lead) on a look-ahead scheduler, combo-tier layers, title and boss themes, real 0.5 s crossfade |
+| `onboarding/` | First-run silhouette guide with framing check, 3-step how-to, privacy line, camera-denied help, self-hosted Creepster font |
 | `balancer/` | Local stdio MCP server for the motion harness and a report-only `balancer` playtest-tuner agent |
 
 Each spec has `requirements.md`, `design.md`, and `tasks.md`. Writing requirements and design before tasks surfaced design gaps (e.g. skull penalty rules, hitbox coordinate system, mirror parity bug) that would have been painful to fix mid-implementation.
 
-All fifteen specs are implemented. Every task in `tasks.md` is ticked except the manual smoke tests (a webcam playthrough, the music-v2 listening test, enabling GitHub Pages in the repo settings), and `boss-combo/` carries a status note explaining it was superseded by `stages/`.
+All sixteen specs are implemented. Every task in `tasks.md` is ticked except the manual smoke tests (a webcam playthrough, the music-v2 listening test, enabling GitHub Pages in the repo settings), and `boss-combo/` carries a status note explaining it was superseded by `stages/`.
 
 ### Kiro hooks (`.kiro/hooks/`)
 Standalone `v1` hook files, loaded by Kiro IDE and Kiro CLI V3. Spec: `.kiro/specs/hooks/`.
@@ -138,6 +141,7 @@ src/
                         mute-button tap target
   webcam/
     capture.ts          getUserMedia, mirrored canvas draw
+    framing.ts          Onboarding framing check (too dark / too close / low detail)
     diff.ts             Frame differencing — mirrored capture, MOTION_W/H,
                         scaleHitbox, calibrateDiffThreshold
   game/
@@ -174,7 +178,9 @@ src/
     hud.ts              Hearts, timer, stage, score, combo (pulse), mute button —
                         outlined glow text, clamp(W/20, 24, 48) font
     motionButton.ts     Wave-to-press buttons driven by frame differencing
-    screens.ts          Start, stage title, summary (stars), victory, game over, webcam error
+    screens.ts          Start, stage title, summary (stars), victory, game over
+    onboarding.ts       First-run guide, how-to cards, camera-denied screen
+    fonts.ts            TITLE_FONT_FAMILY + local font preload (Creepster)
   test/
     prng.ts             Seeded PRNG for deterministic tests
   audio/
@@ -211,6 +217,10 @@ tools/
   motion-harness/
     mcp-server.mjs      stdio MCP server: run_harness, read_stage_config (+ unit and property tests)
 ```
+
+## Credits
+
+- **Creepster** display font — designed by Font Diner, Inc (<diner@fontdiner.com>), licensed under the SIL Open Font License 1.1. Self-hosted from `src/assets/fonts/Creepster-Regular.ttf`; no CDN. Licence text: [`src/assets/fonts/OFL.txt`](src/assets/fonts/OFL.txt). Source: the `ofl/creepster` directory of the [google/fonts](https://github.com/google/fonts) repository.
 
 ## License
 
