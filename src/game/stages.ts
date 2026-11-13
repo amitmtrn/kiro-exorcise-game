@@ -91,7 +91,7 @@ export const STAGES: StageConfig[] = [
     durationMs: 60_000,
     enemyMix: { ghost: false, bat: false, skull: false, lunger: false, pumpkin: false, boss: true },
     spawnEdges: 'all',
-    spawnIntervalMs: { ghost: 4000, bat: 99999, skull: 99999, lunger: 99999, pumpkin: 99999 },
+    spawnIntervalMs: { ghost: 99999, bat: 99999, skull: 99999, lunger: 99999, pumpkin: 99999 },
     speedMultiplier: 1.0,
     maxEnemies: 4,
   },

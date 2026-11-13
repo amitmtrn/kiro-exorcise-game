@@ -63,6 +63,9 @@ function entryPx(H: number): number {
   return 0.9 * marginPx(H)
 }
 
+/** Shortest time a landing drop takes from spawn to landing, seconds. */
+export const MIN_DROP_S = 1.8
+
 const clampLane = (y: number) => Math.min(LANE_MAX, Math.max(LANE_MIN, y))
 /** Swarm lanes spread at most this far (H) either side of the lead's centre. */
 const LANE_SPREAD = 0.13
@@ -100,7 +103,8 @@ export function pathPosition(p: PathSpec, ageMs: number, W: number, H: number): 
   const bx = p.x1 * W, by = p.y1 * H
   const len = Math.hypot(bx - ax, by - ay)
   const s = pathProgress(p, ageMs, W, H)
-  const e = p.kind === 'drop' ? 1 - (1 - s) * (1 - s) : s
+  // A landing drop eases out; one that falls through the bottom keeps falling at full pace.
+  const e = p.kind === 'drop' && !pathExits(p) ? 1 - (1 - s) * (1 - s) : s
   let x = ax + (bx - ax) * e
   let y = ay + (by - ay) * e
   if (len > 0) {
@@ -179,10 +183,14 @@ export function makePath(kind: PathKind, o: PathOptions): PathSpec {
 
   if (kind === 'drop') {
     const x = between(r, 0.15, 0.85)
+    const y1 = o.through ? 1 + my : between(r, 0.45, 0.7)
+    // A landing drop costs a life when its path time runs out, so it never falls
+    // faster than MIN_DROP_S seconds for its whole length (any canvas size).
+    const dropSpeed = o.through ? speed : Math.min(speed, (y1 + my) / MIN_DROP_S)
     return {
-      ...base, kind,
+      ...base, kind, speed: dropSpeed,
       x0: x, y0: -my,
-      x1: x, y1: o.through ? 1 + my : between(r, 0.45, 0.7),
+      x1: x, y1,
       wobble: 0.02, wobbleRate: between(r, 3, 5),
     }
   }

@@ -67,6 +67,8 @@ function enemyOnPath(kind: WaveKind, path: PathSpec, o: SpawnOptions): Enemy {
  * `count` members; `flyby` with count > 1 is a row at several heights.
  */
 export function spawnWave(kind: WaveKind, path: WavePath, count: number, o: SpawnOptions): Enemy[] {
+  // Left / right-only stages never enter from the top (R3.3): a drop becomes a flyby.
+  if (path === 'drop' && o.edges === 'leftRight') path = 'flyby'
   const rand = o.rand ?? Math.random
   const speed = BASE_SPEED[kind] * o.speedMult
   const base = { W: o.W, H: o.H, speed, rand, edges: o.edges, through: !!o.bonus }

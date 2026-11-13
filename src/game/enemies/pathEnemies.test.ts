@@ -5,7 +5,7 @@ import type { Enemy } from '../state'
 import { moveEnemies, cullExitedEnemies, hitboxFor } from './movement'
 import { isThreat, splitReached, CENTER_THRESHOLD } from './reach'
 import { spawnWave, rowHeights } from './waveSpawn'
-import { makePath, pathDurationMs, pathExits } from '../paths'
+import { makePath, pathDurationMs, pathExits, pathPosition, MIN_DROP_S } from '../paths'
 
 const W = 960, H = 540
 const opts = (extra = {}) => ({ W, H, speedMult: 1, rand: mulberry32(7), ...extra })
@@ -130,20 +130,60 @@ describe('cullExitedEnemies with paths', () => {
   })
 })
 
+describe('landing drops (fair reaction window)', () => {
+  /** Simulates a lone ghost drop in 16 ms ticks; returns ms from spawn until it costs a life. */
+  function timeToMiss(seed: number, w: number, h: number, speedMult: number): number {
+    let es = spawnWave('ghost', 'drop', 1, { W: w, H: h, speedMult, rand: mulberry32(seed) })
+    for (let t = 16; t < 20_000; t += 16) {
+      es = cullExitedEnemies(moveEnemies(es, 16, w, h), w, h)
+      if (splitReached(es, false, w, h).missed > 0) return t
+    }
+    return Infinity
+  }
+
+  it('never costs a life sooner than MIN_DROP_S, at any canvas size or speed', () => {
+    for (const [w, h] of [[640, 360], [960, 540], [1920, 1080], [1000, 1080]]) {
+      for (const speedMult of [1, 1.6, 3]) {
+        for (let seed = 1; seed <= 30; seed++) {
+          expect(timeToMiss(seed, w, h, speedMult)).toBeGreaterThanOrEqual(MIN_DROP_S * 1000 - 16)
+        }
+      }
+    }
+  })
+
+  it('is not a miss while the drop is still falling, and is one once its time is up', () => {
+    const [g] = spawnWave('ghost', 'drop', 1, opts())
+    const dur = pathDurationMs(g.path!, W, H)
+    expect(splitReached([moveEnemies([g], dur - 50, W, H)[0]], false, W, H).missed).toBe(0)
+    expect(splitReached([moveEnemies([g], dur, W, H)[0]], false, W, H).missed).toBe(1)
+  })
+
+  it('a falling-through (bonus) drop keeps its pace: linear, not eased', () => {
+    const p = makePath('drop', { W, H, speed: 0.3, rand: mulberry32(3), through: true })
+    const half = pathPosition({ ...p, wobble: 0 }, pathDurationMs(p, W, H) / 2, W, H)
+    expect(half.y).toBeCloseTo((p.y0 + p.y1) / 2 * H, 3)
+  })
+
+  it('a drop on a left/right-only stage becomes a flyby (R3.3)', () => {
+    const es = spawnWave('ghost', 'drop', 3, opts({ edges: 'leftRight' }))
+    expect(es.every((e) => e.path?.kind === 'flyby')).toBe(true)
+  })
+})
+
 describe('reach rule', () => {
   const at = (e: Enemy): Enemy => ({ ...e, x: e.targetX, y: e.targetY })
 
   it('a converging ghost that reaches its target is missed', () => {
     const [g] = spawnWave('ghost', 'arc', 1, opts())
     expect(isThreat(g)).toBe(true)
-    const r = splitReached([at(g)], false)
+    const r = splitReached([at(g)], false, W, H)
     expect(r.missed).toBe(1)
     expect(r.survivors).toHaveLength(0)
   })
 
   it('a ghost still far from its target survives', () => {
     const [g] = spawnWave('ghost', 'line', 1, opts())
-    const r = splitReached([g], false)
+    const r = splitReached([g], false, W, H)
     expect(r.missed).toBe(0)
     expect(r.survivors).toEqual([g])
   })
@@ -151,37 +191,37 @@ describe('reach rule', () => {
   it('reaches within CENTER_THRESHOLD px', () => {
     const [g] = spawnWave('ghost', 'line', 1, opts())
     const near = { ...g, x: g.targetX + CENTER_THRESHOLD - 1, y: g.targetY }
-    expect(splitReached([near], false).missed).toBe(1)
+    expect(splitReached([near], false, W, H).missed).toBe(1)
     const far = { ...g, x: g.targetX + CENTER_THRESHOLD + 1, y: g.targetY }
-    expect(splitReached([far], false).missed).toBe(0)
+    expect(splitReached([far], false, W, H).missed).toBe(0)
   })
 
   it('a flyby at its off-screen end point is not a miss', () => {
     const g = at(flybyGhost())
     expect(isThreat(g)).toBe(false)
-    expect(splitReached([g], false).missed).toBe(0)
+    expect(splitReached([g], false, W, H).missed).toBe(0)
   })
 
   it('bats and candy never cost a life', () => {
     const bat = at(spawnWave('bat', 'flyby', 1, opts())[0])
     const candy = at(spawnWave('candy', 'drop', 1, opts({ bonus: true }))[0])
-    expect(splitReached([bat, candy], false).missed).toBe(0)
+    expect(splitReached([bat, candy], false, W, H).missed).toBe(0)
   })
 
   it('skulls and the boss are never "reached"', () => {
     const skull = makeEnemy({ id: 's', type: 'skull', x: 100, y: 100, targetX: 100, targetY: 100, speed: 0.1, hitbox: { x: 0, y: 0, w: 1, h: 1 } })
     const boss = { ...skull, id: 'b', type: 'boss' as const }
-    expect(splitReached([skull, boss], false)).toEqual({ survivors: [skull, boss], missed: 0 })
+    expect(splitReached([skull, boss], false, W, H)).toEqual({ survivors: [skull, boss], missed: 0 })
   })
 
   it('legacy ghosts (no path) are still missed at their target', () => {
     const g = makeEnemy({ id: 'g', type: 'ghost', x: 480, y: 270, targetX: 480, targetY: 270, speed: 0.1, hitbox: { x: 0, y: 0, w: 1, h: 1 } })
-    expect(splitReached([g], false).missed).toBe(1)
+    expect(splitReached([g], false, W, H).missed).toBe(1)
   })
 
   it('bonus: nothing is ever missed, even a converging ghost on its target', () => {
     const [g] = spawnWave('ghost', 'line', 1, opts())
-    const r = splitReached([at(g)], true)
+    const r = splitReached([at(g)], true, W, H)
     expect(r.missed).toBe(0)
     expect(r.survivors).toHaveLength(1)
   })

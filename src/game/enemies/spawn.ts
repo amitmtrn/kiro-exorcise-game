@@ -52,7 +52,7 @@ export function tickSpawners(
 
   // Wave script (waves spec): the stage clock drives an intensity level that
   // scales the spawn timers and the speed of new enemies. No script (boss
-  // stage) → the original flat spawner.
+  // stage) → no random spawns at all; the boss spawns its own minions.
   const script = bonus ? BONUS_ROUND.script : stageCfg.waves
   const elapsed = Math.min(cfg.durationMs, Math.max(0, cfg.durationMs - state.roundTimeMs))
   const level = script ? intensityAt(script.intensity, elapsed / cfg.durationMs) : 0.5

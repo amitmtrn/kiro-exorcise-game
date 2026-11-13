@@ -49,9 +49,19 @@ describe('path enemies — properties', () => {
         let elapsed = 0
         const culledAt = new Map<string, number>()
         for (const d of deltas) {
-          es = cullExitedEnemies(moveEnemies(es, d, W, H), W, H)
+          const moved = moveEnemies(es, d, W, H)
+          es = cullExitedEnemies(moved, W, H)
           elapsed += d
-          for (const id of ids) if (!culledAt.has(id) && !es.some((e) => e.id === id)) culledAt.set(id, elapsed)
+          for (const id of ids) {
+            if (culledAt.has(id) || es.some((e) => e.id === id)) continue
+            culledAt.set(id, elapsed)
+            // Culled before its path time ran out ⇒ it must already be fully off screen.
+            const m = moved.find((e) => e.id === id)!
+            if (m.pathMs < durations[ids.indexOf(id)]) {
+              const { x, y, w, h } = m.hitbox
+              expect(x + w < 0 || x > W || y + h < 0 || y > H).toBe(true)
+            }
+          }
           // Whatever is still alive overlaps the canvas or has not yet reached half its path.
           for (const e of es) {
             const { x, y, w, h } = e.hitbox

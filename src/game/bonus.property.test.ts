@@ -13,7 +13,7 @@ import { withSeededRandom } from '../test/prng'
 function tick(s: GameState, ms: number, W: number, H: number): { state: GameState; missed: number } {
   s = tickSpawners(s, ms, W, H)
   s = { ...s, enemies: cullExitedEnemies(moveEnemies(s.enemies, ms, W, H), W, H) }
-  const { survivors, missed } = splitReached(s.enemies, s.bonus)
+  const { survivors, missed } = splitReached(s.enemies, s.bonus, W, H)
   s = { ...s, enemies: survivors }
   for (let i = 0; i < missed; i++) s = decrementLife(s)
   return { state: tickTimer(s, ms), missed }
@@ -65,8 +65,8 @@ describe('bonus round — never costs a life (R5.3)', () => {
     fc.assert(fc.property(fc.integer({ min: 0, max: 6 }), fc.integer({ min: 1, max: 1e6 }), (n, seed) => {
       const threats = withSeededRandom(seed, () => spawnWave('ghost', 'line', n, { W: 960, H: 540, speedMult: 1 }))
         .map((e) => ({ ...e, x: e.targetX, y: e.targetY }))
-      expect(splitReached(threats, true)).toEqual({ survivors: threats, missed: 0 })
-      expect(splitReached(threats, false).missed).toBe(n)
+      expect(splitReached(threats, true, 960, 540)).toEqual({ survivors: threats, missed: 0 })
+      expect(splitReached(threats, false, 960, 540).missed).toBe(n)
     }))
   })
 })

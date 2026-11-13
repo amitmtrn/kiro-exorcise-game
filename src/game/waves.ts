@@ -123,7 +123,7 @@ export const BONUS_ROUND: BonusRound = {
     events: [
       { atMs: 3_000, kind: 'candy', path: 'swarm', count: 5 },
       { atMs: 8_000, kind: 'candy', path: 'flyby', count: 4 },
-      { atMs: 12_000, kind: 'pumpkin', path: 'flyby', count: 2 },
+      { atMs: 10_000, kind: 'pumpkin', path: 'drop', count: 2 },
     ],
   },
 }

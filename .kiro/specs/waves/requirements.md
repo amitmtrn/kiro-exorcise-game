@@ -23,7 +23,8 @@ spawning; lunger and skull behaviour are unchanged).
 **R1.2** `line` — edge to a point in the play area (x 20–80 %, y 25–75 % of the
 canvas), not the centre. `arc` — the same, along a curve that bulges toward the
 canvas centre. `drop` — enters above the top edge and falls (fast, then slowing)
-to a landing point in the play area. A `line` / `arc` walk is at least 0.85
+to a landing point in the play area. It costs a life only when its fall time is
+up, and that takes at least 1.8 s on any canvas size (R1.5). A `line` / `arc` walk is at least 0.85
 canvas heights long, so even the fastest stage 1 ghost needs about 4 s to cost
 a life. The bound is constructed, not sampled: a random target that is too close
 is replaced by the point 0.85 H away in the same direction (clamped to the play

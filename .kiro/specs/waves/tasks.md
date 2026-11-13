@@ -89,3 +89,15 @@ Files: `src/game/paths.ts`, `src/game/enemies/spawn.ts`, `src/game/loop.ts`, spe
 - [x] Tests: `'all'` edges and narrow canvases, distinct lanes, flyby band, candy reserve (swarm, single, pumpkin, scripted); README count 435.
 - [x] `npm test` and `npm run build` clean.
 - [x] Commit: `fix(waves): constructed walk targets, candy-only slot reserve, lane and loop fixes`
+
+## T10 — Third review fixes
+Files: `src/game/paths.ts`, `src/game/enemies/reach.ts`, `waveSpawn.ts`, `spawn.ts`, `src/game/waves.ts`, `src/game/stages.ts`, `src/game/loop.ts`, spec docs, tests
+
+- [x] R1.2 / R1.5: a landing drop is a miss only when `pathMs ≥ pathDurationMs` (not within 40 px), and its speed is capped so the fall takes ≥ `MIN_DROP_S` (1.8 s); `splitReached` takes the canvas size.
+- [x] Falling-through (bonus) drops are linear, not eased out.
+- [x] R3.3 enforced at spawn: `drop` on a `leftRight` stage becomes a `flyby`.
+- [x] Bonus pumpkin pair at 10 s is a `drop` (a flyby could not cross in time); stale spawner comment and dead stage 5 ghost interval fixed.
+- [x] Tests: minimum time-to-miss across canvases and speeds, drop not missed before its time, linear through-drop, leftRight drop, and the cull property now asserts an early-culled enemy was fully off screen.
+- [x] Design doc drift fixed (reach rule, easing, test file locations); README count 439.
+- [x] `npm test` and `npm run build` clean.
+- [x] Commit: `fix(waves): fair landing-drop window, off-screen cull test, spawn-time edge rule`

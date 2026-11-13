@@ -220,7 +220,7 @@ export async function startLoop(
     state = setEnemies(state, movedEnemies)
 
     // Enemies reaching their target cost a life (never in the bonus round, never flybys)
-    const { survivors, missed: missedCount } = splitReached(state.enemies, state.bonus)
+    const { survivors, missed: missedCount } = splitReached(state.enemies, state.bonus, displayW, displayH)
     state = setEnemies(state, survivors)
     for (let i = 0; i < missedCount; i++) {
       if (state.phase === 'gameover') break // nothing else happens after the last life

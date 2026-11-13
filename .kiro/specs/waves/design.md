@@ -39,7 +39,7 @@ on the tick size):
 ```
 L   = hypot((x1-x0)·W, (y1-y0)·H)
 s   = clamp(ageMs/1000 · speed·H / L, 0, 1)
-e   = kind === 'drop' ? 1-(1-s)² : s
+e   = kind === 'drop' && !pathExits ? 1-(1-s)² : s     // falling-through drops stay linear
 pos = lerp(p0, p1, e) + n · H · (bend·sin(πs) + wobble·sin(phase + rate·ageSec)·sin(πs))
 ```
 
@@ -85,11 +85,15 @@ this way; converging paths end at their target and are handled by `splitReached`
 
 ```ts
 isThreat(e) = !e.harmless && type ∉ {skull, boss, candy} && !(e.path && pathExits(e.path))
-splitReached(enemies, bonus) → { survivors, missed }   // bonus ⇒ nothing is ever missed
+splitReached(enemies, bonus, W, H) → { survivors, missed }   // bonus ⇒ nothing is ever missed
 ```
 
 Skulls and the boss stay in `survivors`; a threat within `CENTER_THRESHOLD` (40 px)
-of its target is a miss, as before.
+of its target is a miss, as before. A landing `drop` is the exception: it is a miss
+only once `pathMs ≥ pathDurationMs` (it eases in slowly, so a pixel radius would
+cost the life early and depend on canvas height). `makePath` caps a landing drop's
+speed so it takes at least `MIN_DROP_S` (1.8 s) to land. `spawnWave` turns a `drop`
+on a `leftRight` stage into a `flyby` (R3.3 enforced at spawn).
 
 ## Wave scripts
 
@@ -148,7 +152,9 @@ property is tested for H ≥ 540 where the margin is purely proportional.
 
 - `paths.test.ts`: per-type bounds, endpoints, exits flag, swarm lanes (band, distinct after clamping), flyby band, ≥ 0.85 H walks (all edges, several aspect ratios) and the narrow-canvas best effort.
 - `enemies/pathEnemies.property.test.ts`: frame-rate independence (via `moveEnemies`), flyby exit + cull.
-- `paths.property.test.ts`: scale invariance, bounds, never culled while visible.
+- `paths.property.test.ts`: scale invariance, bounds.
+- `enemies/pathEnemies.property.test.ts` also covers: an enemy culled before its path time is up was fully off screen.
+- `enemies/pathEnemies.test.ts`: landing-drop minimum time-to-miss (several canvases and speeds).
 - `waves.test.ts`: script validation, intensity shape, bonus config.
 - `enemies/pathEnemies.test.ts`: `splitReached`.
 - `enemies/spawn.waves.test.ts` / property: cap with scripted events, scripted order and deferral.
