@@ -95,9 +95,13 @@ never while `bossInvulnMs > 0`.
 Called from the loop after `moveEnemies`, only while `phase === 'playing'`:
 1. If the boss has `bossStrike`: clear it, `decrementLife`, `resetCombo`, `setShake`.
    (The loop compares lives before/after to play `sfxLifeLost`.)
-2. If `attack === 'idle'` and `summonTimerMs ≤ 0`: add
+2. If `attack === 'idle'`, the boss is at its hover line (`atHover`) and `summonTimerMs ≤ 0`: add
    `min(summonCount, maxMinions − aliveGhosts)` minions, reset the timer to
-   `summonEveryMs` (even if none were added, to avoid retry spam).
+   `summonEveryMs` (even if none were added, to avoid retry spam). A summon due while the boss is
+   flying home stays queued (timer ≤ 0) until it reaches the hover line.
+
+Timer overshoot is carried across idle → windup and recover → idle (`windupMs + remainder`).
+The lunge aims at the live canvas centre (`canvasW/2, canvasH/2`), not the spawn-time target.
 
 `createMinion` is a ghost (`GHOST_SPEED × 0.9`) spawned at the boss position ±60 px,
 aimed at the canvas centre.
@@ -110,7 +114,7 @@ aimed at the canvas centre.
    frame-diff gate: lunger → `movePhase !== 'approach'`; boss → `isBossVulnerable`;
    everything else → true. Not hittable → `hitCount: 0`, enemy kept.
 2. Boss hit → `onBossHit`. Not defeated: replace the boss, `sfxBossHit`. If the
-   phase changed: `setShake`. Defeated: score 1000 × combo, particles, flash, shake,
+   phase changed: `setShake`. Defeated: recorded as pending and applied after the loop (unless the frame ended in game over, which leaves the boss alive and unscored): score 1000 × combo, particles, flash, shake,
    `sfxBossDefeated`, **then end the stage** (applied after all hits of the frame resolve; losing the last life on that frame stays game over):
    `phase = stage >= STAGES.length ? 'victory' : 'summary'`, `enemies = []`.
 

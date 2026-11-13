@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import fc from 'fast-check'
 import { bossPhaseFor, onBossHit, moveBoss, isBossVulnerable, PHASE_PARAMS } from './bossPhases'
-import { createBoss } from './boss'
+import { createBoss, BOSS_SIZE } from './boss'
 import type { Enemy } from '../state'
 
 const W = 1920
@@ -42,6 +42,7 @@ describe('boss phases (properties)', () => {
         expect(b.bossPhase).toBe(bossPhaseFor(b.bossHitsReceived, b.hitsNeeded))
         expect(b.x).toBeGreaterThanOrEqual(-1)
         expect(b.x).toBeLessThanOrEqual(W + 1)
+        expect(b.y).toBeGreaterThanOrEqual(-BOSS_SIZE - 1)
         expect(b.y).toBeLessThanOrEqual(H)
       }
     }))
@@ -65,6 +66,28 @@ describe('boss phases (properties)', () => {
         const start = t
         while (b.bossAttack === 'windup' && t < 20_000) { b = moveBoss(b, dt, W, H); t += dt }
         expect(Math.abs(t - start - PHASE_PARAMS[phase].windupMs)).toBeLessThanOrEqual(dt + 1)
+      },
+    ))
+  })
+
+  it('lunge and recover durations are frame-rate independent', () => {
+    fc.assert(fc.property(
+      fc.constantFrom(2, 3) as fc.Arbitrary<2 | 3>,
+      fc.constantFrom(30, 60, 120, 144, 240),
+      (phase, hz) => {
+        const P = PHASE_PARAMS[phase]
+        let b: Enemy = { ...createBoss(W, H), x: W / 2, y: 216, bossPhase: phase,
+          bossHitsReceived: phase === 2 ? 4 : 7, hitsNeeded: 10, bossAttack: 'lunge' }
+        const dt = 1000 / hz
+        let t = 0
+        while (b.bossAttack === 'lunge' && t < 10_000) { b = moveBoss(b, dt, W, H); t += dt }
+        // distance to the strike radius at lunge speed
+        const expected = ((H / 2 - 216) - 40) / (P.lungeSpeed * H) * 1000
+        expect(Math.abs(t - expected)).toBeLessThanOrEqual(dt + 1)
+        expect(b.bossAttack).toBe('recover')
+        const start = t
+        while (b.bossAttack === 'recover' && t < 20_000) { b = moveBoss(b, dt, W, H); t += dt }
+        expect(Math.abs(t - start - P.recoverMs)).toBeLessThanOrEqual(dt + 1)
       },
     ))
   })

@@ -20,7 +20,7 @@
 ## T3 — Timeout and final-stage flow
 - [x] `tickTimer`: timer 0 with a live boss → `gameover`.
 - [x] `advanceToNextStage` from the last stage → `victory` (no wrap to stage 1); `tickRound` saves the high score in `victory`.
-- [x] Unit tests: timeout with boss → game over, without → summary, defeat on the expiry tick → victory, last stage never loops.
+- [x] Unit tests: timeout with boss → game over, without → summary, defeat on the expiry tick → victory (`collision.test.ts`, R6.6), last stage never loops.
 - [x] `npm test` and `npm run build` both clean.
 - [x] Commit: `feat(boss-phases-T3): timeout game over and victory flow`
 
@@ -43,3 +43,13 @@
 - [ ] 10th hit: stage ends at once; stage 5 shows YOU WIN with total score; no loop to stage 1.
 - [ ] Let the timer run out with the boss alive: game over.
 - [ ] A lunger ignores swats while approaching and is hittable once it winds up.
+
+## T7 — Review fixes
+- [x] Summons only fire at the hover line; a phase change during recover at the centre keeps the summon queued until the boss is home (R3.7); test added.
+- [x] Test: defeat on the timer-expiry tick → victory (R6.6).
+- [x] Same-frame game over leaves the boss alive and unscored (`collision.ts` pending defeat); test added.
+- [x] Lunge aims at the live canvas centre; timer overshoot carried across idle → windup and recover → idle; tests added.
+- [x] Victory buttons labelled "PLAY AGAIN" / "MAIN MENU"; input lockout keyed off the phase transition (`resetVictoryScreen`); redundant `stopMusic()` removed from the victory branch.
+- [x] Property tests: lower y bound; lunge and recover durations frame-rate independent.
+- [x] `npm test` and `npm run build` both clean.
+- [x] Commit: `fix(boss-phases): review fixes`

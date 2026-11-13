@@ -31,6 +31,7 @@ import {
   renderSummary,
   renderGameOver,
   renderVictory,
+  resetVictoryScreen,
 } from '../ui/screens'
 import {
   tickRound,
@@ -178,7 +179,6 @@ export async function startLoop(
     // ── Victory (boss-phases R6.3) ────────────────────────────────────────────
     if (state.phase === 'victory') {
       saveHighScore(state.highScore)
-      if (prevPhase !== 'victory') { try { stopMusic() } catch { /* ignore */ } }
       prevPhase = 'victory'
       state = tickEffects(state, deltaMs)
       renderFrame(gameCtx, state, now)
@@ -253,6 +253,7 @@ export async function startLoop(
       if (state.phase === 'playing') {
         try { startMusic(state.stage) } catch { /* ignore */ }
       } else if (state.phase === 'summary' || state.phase === 'victory') {
+        if (state.phase === 'victory') resetVictoryScreen()
         try { sfxStageClear(); stopMusic() } catch { /* ignore */ }
       } else if (state.phase === 'gameover') {
         try { stopMusic() } catch { /* ignore */ }

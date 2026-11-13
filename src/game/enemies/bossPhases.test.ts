@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import {
   bossPhaseFor, isBossVulnerable, onBossHit, moveBoss, tickBoss, createMinion,
-  PHASE_PARAMS, HIT_COOLDOWN_MS, hoverY,
+  PHASE_PARAMS, HIT_COOLDOWN_MS, hoverY, atHover,
 } from './bossPhases'
 import { createBoss, BOSS_HITS_NEEDED } from './boss'
 import { createInitialState } from '../state'
@@ -161,10 +161,10 @@ describe('phase 2 — telegraphed lunge', () => {
     expect(b.bossAttack).toBe('windup')
     expect(isBossVulnerable(b)).toBe(true)
     const y = b.y
-    b = run(b, 500)
+    b = run(b, 450)
     expect(b.bossAttack).toBe('windup')
     expect(b.y).toBe(y) // stationary telegraph
-    b = run(b, 160)
+    b = run(b, 200)
     expect(b.bossAttack).toBe('lunge')
   })
 
@@ -275,5 +275,41 @@ describe('phase 3 — enrage', () => {
       s = tickBoss(s, W, H)
     }
     expect(s.enemies.filter((e) => e.type === 'ghost')).toHaveLength(5)
+  })
+})
+
+describe('review fixes', () => {
+  const atCentre = (o: Partial<Enemy> = {}): Enemy =>
+    ({ ...hitTimes(hovering(), 3), x: W / 2, y: H / 2, bossAttack: 'recover', bossTimerMs: 800, ...o })
+
+  it('a phase change in recover at the centre does not summon until the boss is home (R3.7)', () => {
+    const r = onBossHit(atCentre())
+    expect(r.phaseChanged).toBe(true)
+    expect(r.boss.bossAttack).toBe('idle')
+    expect(r.boss.summonTimerMs).toBe(0)
+    let s = tickBoss(play([r.boss]), W, H)
+    expect(s.enemies.filter((e) => e.type === 'ghost')).toHaveLength(0)
+    // fly home; the queued summon then fires, at the hover line
+    let b = s.enemies[0]
+    for (let i = 0; i < 300 && !atHover(b, H); i++) b = moveBoss(b, 16, W, H)
+    expect(atHover(b, H)).toBe(true)
+    s = tickBoss(play([b]), W, H)
+    const minions = s.enemies.filter((e) => e.type === 'ghost')
+    expect(minions).toHaveLength(1)
+    expect(Math.abs(minions[0].y - hoverY(H))).toBeLessThanOrEqual(4)
+  })
+
+  it('carries timer overshoot across idle → windup and recover → idle', () => {
+    const idle = hovering({ bossPhase: 2, bossHitsReceived: 4, bossAttack: 'idle', bossTimerMs: 10 })
+    expect(moveBoss(idle, 40, W, H).bossTimerMs).toBe(PHASE_PARAMS[2].windupMs - 30)
+    const rec = hovering({ bossPhase: 2, bossHitsReceived: 4, bossAttack: 'recover', bossTimerMs: 10 })
+    expect(moveBoss(rec, 40, W, H).bossTimerMs).toBe(PHASE_PARAMS[2].idleMs - 30)
+  })
+
+  it('a lunge aims at the current canvas centre, not the spawn-time one', () => {
+    let b = hovering({ bossPhase: 2, bossHitsReceived: 4, bossAttack: 'lunge', targetX: 5, targetY: 5 })
+    for (let i = 0; i < 200 && b.bossAttack === 'lunge'; i++) b = moveBoss(b, 16, W, H)
+    expect(b.bossStrike).toBe(true)
+    expect(Math.hypot(b.x - W / 2, b.y - H / 2)).toBeLessThanOrEqual(40)
   })
 })

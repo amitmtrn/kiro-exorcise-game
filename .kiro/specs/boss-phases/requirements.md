@@ -74,8 +74,10 @@ hits are ignored (the 2-frame hit gate is reset).
 **R3.6** A hit during wind-up or lunge staggers the boss: the attack is cancelled
 and it enters recover without striking.
 
-**R3.7** Phase-2 summons continue every 6 s, only while the boss is idle (so
-minions never spawn on top of the player at the centre).
+**R3.7** Phase-2 summons continue every 6 s, only while the boss is idle
+**and on its hover line**. A summon that falls due while the boss is flying home
+from the centre (for example after a phase change during recover) stays queued
+until it arrives, so minions never spawn on top of the player at the centre.
 
 ---
 
@@ -111,7 +113,9 @@ burst, orange-ish flash, shake and fanfare play.
 
 **R6.3** The `victory` screen shows "YOU WIN!", the **total score** (carried
 across all stages), the best score if higher, and "Play Again" / "Main Menu"
-motion buttons. Both reset to a fresh game from stage 1 (Play Again goes
+motion buttons (labels "PLAY AGAIN" / "MAIN MENU"). The buttons ignore motion for
+1.5 s after the game enters `victory` (the lockout is keyed off the phase
+transition, not the render clock, so a backgrounded tab does not restart it). Both reset to a fresh game from stage 1 (Play Again goes
 straight to the stage-1 title card). The high score is saved.
 
 **R6.4** After the final stage the game never loops to stage 1 on its own:
@@ -121,7 +125,8 @@ straight to the stage-1 title card). The high score is saved.
 `gameover` (not `summary`). The normal game-over screen offers "Retry Stage".
 
 **R6.6** If the boss is defeated and the timer would expire on the same tick,
-the defeat wins (victory). If the last life is lost on the same frame as the final hit, game over wins.
+the defeat wins (victory). If the last life is lost on the same frame as the final hit, game over wins:
+the boss stays alive and the 1000-point bonus is not awarded.
 
 ---
 

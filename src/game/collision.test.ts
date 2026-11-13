@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { resolveHits, lastBanished, updateMotionPixels, lastMotionPixels } from './collision'
-import { createInitialState, makeEnemy, SHAKE_FRAMES } from './state'
+import { createInitialState, makeEnemy, tickTimer, SHAKE_FRAMES } from './state'
 import type { Enemy } from './state'
 
 vi.mock('../webcam/diff', () => ({
@@ -195,7 +195,18 @@ describe('resolveHits — boss phases (boss-phases R3.5, R6)', () => {
     mockDiff.mockReturnValue(true)
     const skull = enemy('skull', 's1', { hitCount: 1 })
     const s = { ...createInitialState(5), phase: 'playing' as const, lives: 1, enemies: [boss({ bossHitsReceived: 9, bossPhase: 3, bossAttack: 'recover' }), skull] }
-    expect(resolveHits(s, FAKE, FAKE, DW, DH, 1000).phase).toBe('gameover')
+    const r = resolveHits(s, FAKE, FAKE, DW, DH, 1000)
+    expect(r.phase).toBe('gameover')
+    // the boss is left alive and unscored
+    expect(r.enemies.some((e) => e.type === 'boss')).toBe(true)
+    expect(r.score).toBe(0)
+  })
+
+  it('defeat on the same tick the timer would expire wins (R6.6)', () => {
+    mockDiff.mockReturnValue(true)
+    const s = { ...createInitialState(5), phase: 'playing' as const, roundTimeMs: 10, enemies: [boss({ bossHitsReceived: 9, bossPhase: 3, bossAttack: 'recover' })] }
+    const r = tickTimer(resolveHits(s, FAKE, FAKE, DW, DH, 1000), 16)
+    expect(r.phase).toBe('victory')
   })
 })
 

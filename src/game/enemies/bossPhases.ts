@@ -63,6 +63,11 @@ export function hoverY(canvasH: number): number {
   return Math.max(0.2 * canvasH, BOSS_SIZE * 0.75)
 }
 
+/** True when the boss is on its hover line (summons and wind-ups only start here, R3.7). */
+export function atHover(boss: Enemy, canvasH: number): boolean {
+  return Math.abs(boss.y - hoverY(canvasH)) <= HOVER_TOLERANCE_PX
+}
+
 /** Shielded in phases 2–3 while idle; every hit is followed by i-frames (R3.5, R5.1). */
 export function isBossVulnerable(boss: Enemy): boolean {
   if (boss.bossInvulnMs > 0) return false
@@ -133,10 +138,11 @@ export function moveBoss(boss: Enemy, deltaMs: number, canvasW: number, canvasH:
       const homeY = hoverY(canvasH)
       b = steer({ ...b, sineOffset, summonTimerMs: b.summonTimerMs - deltaMs },
         homeX, homeY, HOME_SPEED * canvasH, dt)
-      if (p.attacks && Math.abs(b.y - homeY) <= HOVER_TOLERANCE_PX) {
+      if (p.attacks && atHover(b, canvasH)) {
         const bossTimerMs = b.bossTimerMs - deltaMs
+        // Carry the overshoot into the next stage so frame rate doesn't add drift.
         b = bossTimerMs <= 0
-          ? { ...b, bossAttack: 'windup', bossTimerMs: p.windupMs }
+          ? { ...b, bossAttack: 'windup', bossTimerMs: p.windupMs + bossTimerMs }
           : { ...b, bossTimerMs }
       }
       return b
@@ -144,12 +150,13 @@ export function moveBoss(boss: Enemy, deltaMs: number, canvasW: number, canvasH:
     case 'windup': {
       const bossTimerMs = b.bossTimerMs - deltaMs
       return bossTimerMs <= 0
-        ? { ...b, bossAttack: 'lunge', bossTimerMs: 0 }
+        ? { ...b, bossAttack: 'lunge', bossTimerMs: 0 } // overshoot ignored: lunge is distance-driven
         : { ...b, bossTimerMs }
     }
     case 'lunge': {
-      b = steer(b, b.targetX, b.targetY, p.lungeSpeed * canvasH, dt)
-      const dist = Math.hypot(b.targetX - b.x, b.targetY - b.y)
+      const tx = canvasW / 2, ty = canvasH / 2 // current centre, survives a resize
+      b = steer(b, tx, ty, p.lungeSpeed * canvasH, dt)
+      const dist = Math.hypot(tx - b.x, ty - b.y)
       return dist <= STRIKE_RADIUS
         ? { ...b, bossAttack: 'recover', bossTimerMs: p.recoverMs, bossStrike: true }
         : b
@@ -157,7 +164,7 @@ export function moveBoss(boss: Enemy, deltaMs: number, canvasW: number, canvasH:
     case 'recover': {
       const bossTimerMs = b.bossTimerMs - deltaMs
       return bossTimerMs <= 0
-        ? { ...b, bossAttack: 'idle', bossTimerMs: p.idleMs }
+        ? { ...b, bossAttack: 'idle', bossTimerMs: p.idleMs + bossTimerMs }
         : { ...b, bossTimerMs }
     }
   }
@@ -198,7 +205,8 @@ export function tickBoss(state: GameState, canvasW: number, canvasH: number): Ga
     if (s.phase !== 'playing') return s
   }
 
-  if (b.bossAttack === 'idle' && b.summonTimerMs <= 0) {
+  // Only at the hover line: a boss flying home from the centre keeps the summon queued.
+  if (b.bossAttack === 'idle' && b.summonTimerMs <= 0 && atHover(b, canvasH)) {
     const p = PHASE_PARAMS[b.bossPhase]
     const alive = s.enemies.filter((e) => e.type === 'ghost').length
     const n = Math.max(0, Math.min(p.summonCount, p.maxMinions - alive))

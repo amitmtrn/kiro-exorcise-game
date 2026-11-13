@@ -16,8 +16,7 @@ let nextBtn: MotionButton | null = null
 let winBtn: MotionButton | null = null
 let winMenuBtn: MotionButton | null = null
 // Victory: ignore the buttons briefly so the wave that beat the boss can't trigger them.
-let victoryShownAt = -Infinity
-let victoryLastSeen = -Infinity
+let victoryShownAt: number | null = null
 const VICTORY_INPUT_DELAY_MS = 1500
 
 // ─── Start screen ─────────────────────────────────────────────────────────────
@@ -201,6 +200,11 @@ export function renderGameOver(
 
 // ─── Victory (boss-phases R6.3) ──────────────────────────────────────────────
 
+/** Call once when the game enters `victory`: restarts the banner and input lockout. */
+export function resetVictoryScreen(): void {
+  victoryShownAt = null
+}
+
 export function renderVictory(
   ctx: CanvasRenderingContext2D,
   state: GameState,
@@ -209,8 +213,7 @@ export function renderVictory(
   onMenu: () => void,
 ): void {
   const { width: W, height: H } = ctx.canvas
-  if (now - victoryLastSeen > 500) victoryShownAt = now
-  victoryLastSeen = now
+  if (victoryShownAt === null) victoryShownAt = now
   const t = now - victoryShownAt
 
   ctx.save()
@@ -246,9 +249,9 @@ export function renderVictory(
   }
 
   const r = clamp(W / 9, 48, 76)
-  if (!winBtn) winBtn = new MotionButton(W * 0.35, H * 0.74, r, '↩ AGAIN')
+  if (!winBtn) winBtn = new MotionButton(W * 0.35, H * 0.74, r, 'PLAY AGAIN')
   else { winBtn.cx = W * 0.35; winBtn.cy = H * 0.74 }
-  if (!winMenuBtn) winMenuBtn = new MotionButton(W * 0.65, H * 0.74, r, '⌂ MENU')
+  if (!winMenuBtn) winMenuBtn = new MotionButton(W * 0.65, H * 0.74, r, 'MAIN MENU')
   else { winMenuBtn.cx = W * 0.65; winMenuBtn.cy = H * 0.74 }
   const r1 = winBtn.update(now)
   winBtn.render(ctx, now)

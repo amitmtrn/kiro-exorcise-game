@@ -102,7 +102,7 @@ export function resolveHits(
   }
 
   let s = state
-  let bossDefeated = false // applied after the loop so same-frame hits all resolve first
+  let pendingDefeat: { enemy: Enemy; combo: number } | null = null // applied after the loop so same-frame hits all resolve first
   const updatedEnemies: Enemy[] = []
 
   for (const raw of state.enemies) {
@@ -185,15 +185,8 @@ export function resolveHits(
     } else if (enemy.type === 'boss') {
       const hit = onBossHit(enemy)
       if (hit.defeated) {
-        s = scoreWithPop(s, enemy, 1000 * s.combo)
-        s = incrementBanished(s)
-        s = addParticles(s, spawnGhostPuff(enemy.x, enemy.y))
-        s = addParticles(s, spawnBatPuff(enemy.x, enemy.y))
-        s = setFlash(s, now + 400)
-        s = setShake(s, SHAKE_FRAMES * 2) // boss defeat always rocks the screen
-        lastBanished.push({ ...enemy, hitFlashFrames: 1 })
-        bossDefeated = true
-        try { sfxBossDefeated() } catch { /* audio not ready */ }
+        // Applied after the loop so a same-frame game over leaves the boss alive and unscored.
+        pendingDefeat = { enemy, combo: s.combo }
       } else {
         updatedEnemies.push(hit.boss)
         if (hit.phaseChanged) s = setShake(s, SHAKE_FRAMES * 2)
@@ -207,12 +200,25 @@ export function resolveHits(
 
   // The boss fell: the stage ends immediately (boss-phases R6.1, R6.2) and the
   // final stage ends the game with a win. Losing the last life on the very same
-  // frame still counts as game over.
-  if (bossDefeated && s.phase !== 'gameover') {
-    return {
-      ...setEnemies(s, []),
-      phase: s.stage >= STAGES.length ? 'victory' : 'summary',
-      summaryShownMs: 0,
+  // frame still counts as game over, and the boss then stays alive and unscored.
+  if (pendingDefeat) {
+    const { enemy, combo } = pendingDefeat
+    if (s.phase === 'gameover') {
+      updatedEnemies.push(enemy)
+    } else {
+      s = scoreWithPop(s, enemy, 1000 * combo)
+      s = incrementBanished(s)
+      s = addParticles(s, spawnGhostPuff(enemy.x, enemy.y))
+      s = addParticles(s, spawnBatPuff(enemy.x, enemy.y))
+      s = setFlash(s, now + 400)
+      s = setShake(s, SHAKE_FRAMES * 2) // boss defeat always rocks the screen
+      lastBanished.push({ ...enemy, hitFlashFrames: 1 })
+      try { sfxBossDefeated() } catch { /* audio not ready */ }
+      return {
+        ...setEnemies(s, []),
+        phase: s.stage >= STAGES.length ? 'victory' : 'summary',
+        summaryShownMs: 0,
+      }
     }
   }
   return s.phase === 'gameover'
