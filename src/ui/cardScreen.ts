@@ -85,8 +85,8 @@ export function lockEndButtons(now: number): void {
 
 export function endButtonsLive(now: number): boolean { return now >= endButtonsLiveAt }
 
-function offerGeometry(W: number, H: number, baseY: number, mainR: number) {
-  const r = clamp(Math.min(W / 14, H * 0.065), 28, 52)
+export function offerGeometry(W: number, H: number, baseY: number, mainR: number) {
+  const r = clamp(Math.min(W / 14, H * 0.065), 36, 52)
   const cy = Math.min(baseY + mainR + r + 10, H - r - 6)
   return { cx: W / 2, cy, r }
 }
@@ -129,6 +129,7 @@ export class CardPreview {
 
   open(now: number): void {
     this.openedAt = now
+    this.lastLayout = null
     this.buttons.clear()
     this.statusText = ''
     this.statusAt = Number.NEGATIVE_INFINITY
@@ -181,7 +182,8 @@ export class CardPreview {
       ctx.fillStyle = '#39ff14'
       ctx.shadowColor = '#39ff14'
       ctx.shadowBlur = 10
-      ctx.fillText(this.statusText, W / 2, Math.max(16, L.card.y + L.card.h + 4))
+      ctx.textBaseline = 'top'
+      ctx.fillText(this.statusText, W / 2, Math.min(H - 30, L.card.y + L.card.h + 6))
     }
     ctx.restore()
     return triggered

@@ -38,7 +38,7 @@ interface Moment { kind: MomentKind; rank: number }   // boss 100, combo tier×1
 store is empty); the replaced value goes through `release`. `discard()` releases
 and clears. The grab in the loop draws the video with `drawWebcamFrame` (the same
 mirror transform as the live view) into an off-screen canvas sized by `scaleToFit`
-(≤ 640 px wide). Memory only — nothing is serialised.
+(≤ 640 × 480 px). Memory only — nothing is serialised.
 
 ## Layout (card 600 × 840 by default, any size ≥ 200 × 280)
 
@@ -73,12 +73,12 @@ Background vertical gradient `#0d0014` (top) `→ #2a0845` (bottom); outer frame
 inner `#ffd166` (1.5 px) rounded rects; corner cobwebs (arcs and lines), a moon,
 two bats (path shapes, ghost white so they show on the dark band). Title: Creepster with orange glow. Numbers
 `#ffd166`, combo `#39ff14`. Silhouette: circle head + rounded shoulders in
-`#2a0845` on a purple gradient; shapes only, no text.
+`#12001f` on a purple gradient; shapes only, no text.
 
 ## Download
 
 ```ts
-interface DownloadDeps { URL: Pick<typeof URL,'createObjectURL'|'revokeObjectURL'>; document: Document;
+interface DownloadDeps { URL: Pick<typeof URL,'createObjectURL'|'revokeObjectURL'>; document: Pick<Document,'createElement'|'body'>;
   schedule: (fn: () => void) => void }
 downloadCanvasPng(canvas, filename, deps): Promise<boolean>
 ```

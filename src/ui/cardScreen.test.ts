@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { cardKeyAction, previewLayout, buttonAt, CARD_ASPECT, lockEndButtons, endButtonsLive, PREVIEW_INPUT_DELAY_MS } from './cardScreen'
+import { cardKeyAction, previewLayout, buttonAt, CARD_ASPECT, lockEndButtons, endButtonsLive, PREVIEW_INPUT_DELAY_MS, offerGeometry, CardPreview } from './cardScreen'
 
 describe('cardKeyAction', () => {
   it('only C opens the card from the game-over / victory screen', () => {
@@ -75,5 +75,19 @@ describe('preview buttons on a narrow portrait canvas', () => {
     for (let i = 1; i < L.buttons.length; i++) {
       expect(L.buttons[i].cx - L.buttons[i - 1].cx).toBeGreaterThanOrEqual(L.buttons[i].r * 2)
     }
+  })
+})
+
+describe('offer geometry and preview reopen (review fixes)', () => {
+  it('keeps an offer radius of at least 36 px on a small canvas', () => {
+    expect(offerGeometry(320, 400, 200, 40).r).toBeGreaterThanOrEqual(36)
+  })
+  it('open() forgets the previous layout so a stale click cannot hit', () => {
+    const p = new CardPreview()
+    ;(p as unknown as { lastLayout: unknown }).lastLayout = previewLayout(600, 800, false, true)
+    const b = previewLayout(600, 800, false, true).buttons[0]
+    expect(p.hit(b.cx, b.cy)).not.toBeNull()
+    p.open(0)
+    expect(p.hit(b.cx, b.cy)).toBeNull()
   })
 })

@@ -14,6 +14,7 @@ export interface DownloadDeps {
 }
 
 export const REVOKE_DELAY_MS = 1000
+export const TO_BLOB_TIMEOUT_MS = 5000
 export const CARD_FILENAME = 'exorcist-card.png'
 
 export function defaultDownloadDeps(): DownloadDeps {
@@ -27,7 +28,8 @@ export function defaultDownloadDeps(): DownloadDeps {
 function toPngBlob(canvas: Pick<HTMLCanvasElement, 'toBlob'>): Promise<Blob | null> {
   return new Promise((resolve) => {
     try {
-      canvas.toBlob((b) => resolve(b), 'image/png')
+      const t = setTimeout(() => resolve(null), TO_BLOB_TIMEOUT_MS)
+      canvas.toBlob((b) => { clearTimeout(t); resolve(b) }, 'image/png')
     } catch {
       resolve(null)
     }

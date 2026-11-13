@@ -50,3 +50,11 @@
 - [ ] NO PHOTO shows a silhouette; CLOSE returns to the buttons.
 - [ ] Win: photo is from the boss-defeat moment; Retry / Menu discards it (next game over shows a new photo).
 - [ ] DevTools Network tab stays empty and Application → Storage holds no image.
+
+## T8 — Review fixes (round 2, NITs)
+- [x] README / design.md match the code (button label, silhouette colour, snapshot size, download deps type).
+- [x] Save status drawn below the card (top baseline); offer radius ≥ 36 px; moon moved clear of the right bat.
+- [x] Run-best combo also folds in the per-stage `bestCombo` (R2: no missed tier/moment within one tick).
+- [x] Status wording "Download started!" (a click cannot prove the file was saved); `toBlob` 5 s timeout resolves null so SAVE recovers; `CardPreview.open()` clears the stale layout.
+- [x] Tests added for each; `npm test` and `npm run build` both clean.
+- Skipped: none purely cosmetic beyond the above.

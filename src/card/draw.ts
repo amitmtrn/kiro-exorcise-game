@@ -117,7 +117,7 @@ export function drawCard(
 
   // Moon + stars
   ctx.fillStyle = 'rgba(255,209,102,0.9)'
-  ctx.beginPath(); ctx.arc(w * 0.84, h * 0.06, w * 0.035, 0, Math.PI * 2); ctx.fill()
+  ctx.beginPath(); ctx.arc(w * 0.92, h * 0.06, w * 0.03, 0, Math.PI * 2); ctx.fill()
   ctx.fillStyle = 'rgba(232,232,240,0.7)'
   for (let i = 0; i < 12; i++) {
     const sx = L.frameInner.x + ((i * 53) % 100) / 100 * L.frameInner.w

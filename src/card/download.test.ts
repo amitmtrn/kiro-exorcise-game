@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest'
-import { downloadCanvasPng, defaultDownloadDeps, REVOKE_DELAY_MS, CARD_FILENAME } from './download'
+import { downloadCanvasPng, defaultDownloadDeps, REVOKE_DELAY_MS, CARD_FILENAME, TO_BLOB_TIMEOUT_MS } from './download'
 import type { DownloadDeps } from './download'
 
 interface FakeAnchor {
@@ -119,5 +119,19 @@ describe('downloadCanvasPng', () => {
     await downloadCanvasPng(t.canvas, CARD_FILENAME, t.deps)
     expect(store.setItem).not.toHaveBeenCalled()
     expect((globalThis as unknown as { indexedDB: { open: ReturnType<typeof vi.fn> } }).indexedDB.open).not.toHaveBeenCalled()
+  })
+})
+
+describe('downloadCanvasPng timeout', () => {
+  it('resolves false when toBlob never calls back', async () => {
+    vi.useFakeTimers()
+    try {
+      const t = setup()
+      const canvas = { toBlob: () => {} } as unknown as HTMLCanvasElement
+      const p = downloadCanvasPng(canvas, CARD_FILENAME, t.deps)
+      await vi.advanceTimersByTimeAsync(TO_BLOB_TIMEOUT_MS + 1)
+      await expect(p).resolves.toBe(false)
+      expect(t.createObjectURL).not.toHaveBeenCalled()
+    } finally { vi.useRealTimers() }
   })
 })

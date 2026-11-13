@@ -165,7 +165,7 @@ export async function startLoop(
       }
     }
     const st = session.takeStatus()
-    if (st) preview.setStatus(st === 'saved' ? 'Saved to your device!' : "Couldn't save the card", now)
+    if (st) preview.setStatus(st === 'saved' ? 'Download started!' : "Couldn't save the card", now)
   }
 
   /** Renders the card preview over the end screen; true while it is open. */

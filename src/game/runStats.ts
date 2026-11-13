@@ -28,7 +28,10 @@ export interface RunStats {
   phase: GamePhase | null
 }
 
-export type ObservedState = Pick<GameState, 'phase' | 'stage' | 'stageBanished' | 'combo'>
+export type ObservedState = Pick<GameState, 'phase' | 'stage' | 'stageBanished' | 'combo'> & {
+  /** Per-stage best combo; catches a tier gained and lost within one tick. */
+  bestCombo?: number
+}
 
 export const BOSS_MOMENT_RANK = 100
 export const END_MOMENT_RANK = 0
@@ -62,19 +65,20 @@ export function observeRun(
     ? stats.banked + stats.lastStageBanished
     : stats.banked
 
+  const peak = Math.max(s.combo, s.bestCombo ?? 1)
   let moment: Moment | null = null
   const entered = s.phase !== stats.phase
   if (entered && s.phase === 'victory') moment = { kind: 'boss', rank: BOSS_MOMENT_RANK }
   else if (entered && s.phase === 'gameover') moment = { kind: 'end', rank: END_MOMENT_RANK }
-  else if (s.combo >= 2 && s.combo > stats.bestCombo) {
-    moment = { kind: 'combo', rank: momentRank('combo', s.combo) }
+  else if (peak >= 2 && peak > stats.bestCombo) {
+    moment = { kind: 'combo', rank: momentRank('combo', peak) }
   }
 
   return {
     stats: {
       banked,
       lastStageBanished: s.stageBanished,
-      bestCombo: Math.max(stats.bestCombo, s.combo),
+      bestCombo: Math.max(stats.bestCombo, peak),
       stage: Math.max(stats.stage, s.stage),
       phase: s.phase,
     },

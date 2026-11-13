@@ -71,3 +71,11 @@ describe('momentRank', () => {
     expect(momentRank('combo', 2)).toBeGreaterThan(momentRank('end'))
   })
 })
+
+describe('observeRun: per-stage best combo (review fix)', () => {
+  it('counts a combo tier gained and lost inside one tick', () => {
+    const o = observeRun(createRunStats(), st({ combo: 1, bestCombo: 3 }))
+    expect(o.stats.bestCombo).toBe(3)
+    expect(o.moment).toEqual({ kind: 'combo', rank: momentRank('combo', 3) })
+  })
+})
