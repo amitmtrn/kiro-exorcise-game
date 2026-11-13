@@ -87,3 +87,13 @@ describe('music public API', () => {
     expect(ctx.nodes.length).toBeGreaterThan(nodes)
   })
 })
+
+describe('visibility pause', () => {
+  it('setMusicPaused pauses and resumes the engine timer', () => {
+    music.startTitleMusic()
+    music.setMusicPaused(true)
+    expect(vi.getTimerCount()).toBe(0)
+    music.setMusicPaused(false)
+    expect(vi.getTimerCount()).toBe(1)
+  })
+})

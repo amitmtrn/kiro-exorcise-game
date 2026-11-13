@@ -32,6 +32,9 @@ cumulative drift however many loops have played.
 **R1.4** A step is never scheduled further than the look-ahead window ahead of
 `now`.
 
+**R1.6** While the tab is hidden the scheduler is paused (no throttled, sparse
+stuttering) and resumes with a resync when the tab is visible again.
+
 **R1.5** If the timer stalls (background tab) and steps are already more than
 50 ms in the past, those steps are skipped rather than played in a burst. The
 scheduler resynchronises with the clock and never schedules a step twice.

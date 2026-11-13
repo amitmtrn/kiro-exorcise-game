@@ -31,12 +31,19 @@ interface Playback {
   retireAt: number
 }
 
+/** Freeze an AudioParam at its current level from `now` (robust mid-ramp). */
+function hold(p: AudioParam, now: number): void {
+  const h = (p as AudioParam & { cancelAndHoldAtTime?: (t: number) => unknown }).cancelAndHoldAtTime
+  if (typeof h === 'function') { h.call(p, now); return }
+  const from = p.value
+  p.cancelScheduledValues(now)
+  p.setValueAtTime(from, now)
+}
+
 /** Ramp `out` to 0 and `in` up to 1 over `dur`, both starting at `now`. */
 export function crossfade(out: AudioParam | null, inn: AudioParam | null, now: number, dur: number): void {
   if (out) {
-    const from = out.value
-    out.cancelScheduledValues(now)
-    out.setValueAtTime(from, now)
+    hold(out, now)
     out.linearRampToValueAtTime(0, now + dur)
   }
   if (inn) {
@@ -57,6 +64,8 @@ export function createMusicEngine(deps: EngineDeps) {
   let retiring: Playback[] = []
   let combo = 1
   let timer: unknown = null
+  let resuming = false
+  let paused = false
 
   function parsed(def: TrackDef): ParsedTrack {
     let p = parsedCache.get(def.id)
@@ -107,7 +116,10 @@ export function createMusicEngine(deps: EngineDeps) {
 
   function tick(): void {
     const now = ctx.currentTime
-    if (ctx.state === 'suspended') ctx.resume().catch(() => { /* needs a user gesture */ })
+    if (ctx.state === 'suspended' && !resuming) {
+      resuming = true
+      ctx.resume().catch(() => { /* needs a user gesture */ }).finally(() => { resuming = false })
+    }
     if (retiring.length > 0) {
       const keep: Playback[] = []
       for (const pb of retiring) {
@@ -125,7 +137,7 @@ export function createMusicEngine(deps: EngineDeps) {
   }
 
   function ensureTimer(): void {
-    if (timer === null) timer = setI(tick, TICK_MS)
+    if (timer === null && !paused) timer = setI(tick, TICK_MS)
   }
 
   return {
@@ -159,10 +171,24 @@ export function createMusicEngine(deps: EngineDeps) {
       const now = ctx.currentTime
       for (const l of LAYERS) {
         const p = current.layerGains[l].gain
-        const from = p.value
-        p.cancelScheduledValues(now)
-        p.setValueAtTime(from, now)
+        hold(p, now)
         p.linearRampToValueAtTime(active[l] ? 1 : 0, now + LAYER_FADE_SEC)
+      }
+    },
+
+    /**
+     * Hidden tab: browsers throttle timers to ~1 Hz, which would leave a sparse
+     * stutter. Stop the scheduler (already-scheduled notes finish within the
+     * look-ahead); resume re-syncs and skips stale steps (R1.5).
+     */
+    setPaused(p: boolean): void {
+      if (p === paused) return
+      paused = p
+      if (p) {
+        if (timer !== null) { clearI(timer); timer = null }
+      } else if (current || retiring.length > 0) {
+        ensureTimer()
+        tick()
       }
     },
 

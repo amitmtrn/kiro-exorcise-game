@@ -73,7 +73,7 @@ export function playBass(ctx: AudioContext, dest: AudioNode, t: number, midi: nu
 }
 
 export function playKick(ctx: AudioContext, dest: AudioNode, t: number, accent: boolean): void {
-  const peak = accent ? 0.45 : 0.36
+  const peak = accent ? 0.34 : 0.28
   const g = ctx.createGain()
   g.gain.setValueAtTime(peak, t)
   g.gain.exponentialRampToValueAtTime(0.001, t + 0.2)
@@ -81,16 +81,16 @@ export function playKick(ctx: AudioContext, dest: AudioNode, t: number, accent: 
   const o = osc(ctx, 'sine', 150, t, t + 0.22, g)
   o.frequency.exponentialRampToValueAtTime(45, t + 0.12)
   // short noise click for the beater
-  const cg = env(ctx, g, t, 0.25, 0.001, t + 0.005, t + 0.015)
+  const cg = env(ctx, g, t, 0.18, 0.001, t + 0.005, t + 0.015)
   noise(ctx, t, t + 0.02, cg)
 }
 
 export function playSnare(ctx: AudioContext, dest: AudioNode, t: number, accent: boolean): void {
-  const peak = accent ? 0.26 : 0.2
+  const peak = accent ? 0.2 : 0.15
   const g = env(ctx, dest, t, peak, 0.002, t + 0.03, t + 0.16)
   const bp = filter(ctx, 'bandpass', 1800, g, 0.8)
   noise(ctx, t, t + 0.17, bp)
-  const tg = env(ctx, dest, t, 0.12, 0.002, t + 0.02, t + 0.1)
+  const tg = env(ctx, dest, t, 0.08, 0.002, t + 0.02, t + 0.1)
   osc(ctx, 'triangle', 190, t, t + 0.11, tg)
 }
 

@@ -50,3 +50,12 @@ Files: `src/audio/music.ts`, `src/audio/index.ts`, `src/game/loop.ts`, `src/audi
 
 ## T7 — Manual listening test
 - [ ] Title theme loops without drift; combo x1→x4 adds hat/bass, then drums, lead, arpeggio; crossfade between stages is smooth; boss theme at stage 5; mute and `M` silence it.
+
+## T8 — Review fixes
+- [x] Pause scheduler on hidden tab (R1.6); guard `ctx.resume()` in flight.
+- [x] Lower voice levels and correct design levels; stale `context.ts` comment.
+- [x] Fades use `cancelAndHoldAtTime` when available.
+- [x] `request()` latches `wanted` before engine creation (no per-frame retry).
+- [x] Tests: non-tautological ramp start, noise buffer (R2.2), no setTimeout, pause, resume guard, hold.
+- [x] Run `npm test` and `npm run build`; both clean.
+- [x] Commit: `fix(music-v2): review fixes`

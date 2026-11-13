@@ -14,19 +14,25 @@ import { trackForStage, type TrackId } from './music/patterns'
 let engine: MusicEngine | null = null
 let wanted: TrackId | null = null     // last requested track (cheap idempotence check)
 let lastCombo = 1
+let pausedWanted = false
+
+if (typeof document !== 'undefined') {
+  document.addEventListener('visibilitychange', () => setMusicPaused(document.hidden))
+}
 
 function getEngine(): MusicEngine {
   if (!engine) {
     engine = createMusicEngine({ ctx: getAudioContext(), destination: getMasterGain() })
     engine.setCombo(lastCombo)
+    if (pausedWanted) engine.setPaused(true)
   }
   return engine
 }
 
 function request(id: TrackId): void {
   if (wanted === id) return
+  wanted = id   // set first: a failing AudioContext must not be retried every frame
   getEngine().play(id)
-  wanted = id
 }
 
 /** Stages 1–4 play their own theme; stage 5 plays the boss theme. */
@@ -50,9 +56,16 @@ export function setMusicCombo(combo: number): void {
   if (engine) engine.setCombo(combo)
 }
 
+/** Pause/resume the scheduler with tab visibility. */
+export function setMusicPaused(p: boolean): void {
+  if (engine) engine.setPaused(p)
+  pausedWanted = p
+}
+
 /** Test hook: forget the engine and request state. */
 export function resetMusicForTests(): void {
   engine = null
   wanted = null
   lastCombo = 1
+  pausedWanted = false
 }

@@ -120,8 +120,16 @@ branch, `startMusic(stage)` on entering `playing` (unchanged), and
 | lead | triangle + detuned square (quiet) → low-pass 2200 Hz | 15 ms attack, 85 % sustain |
 | arp | triangle | 0.1 s pluck |
 
-Volumes are chosen so the sum stays below the old single voice's peak range
-(~0.12–0.16 per voice at most).
+Peak levels per voice: kick 0.28 (0.34 accented) plus a 0.18 click, snare 0.15
+(0.20 accented) plus 0.08 body, bass 0.18, lead about 0.15, hat 0.07–0.11, arp
+below 0.1. Peaks rarely coincide (kick and snare sit on different steps), so a
+tier-4 downbeat sums to about 0.8 before SFX. There is no limiter; T7 confirms
+by ear that full volume does not clip.
+
+Hidden tab: `engine.setPaused(true)` (wired to `visibilitychange` in
+`music.ts`) clears the interval; on return the scheduler resyncs and skips
+stale steps. `ctx.resume()` is guarded by an in-flight flag. Fades start from
+`cancelAndHoldAtTime` when the browser has it, else from `param.value`.
 
 ## Testing
 

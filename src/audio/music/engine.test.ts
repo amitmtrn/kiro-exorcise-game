@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs'
+import { getNoiseBuffer } from './voices'
 import { describe, it, expect } from 'vitest'
 import { createMusicEngine, crossfade, CROSSFADE_SEC, LAYER_FADE_SEC } from './engine'
 import { FakeAudioContext, FakeNode, FakeParam, fakeTimers } from '../../test/fakeAudio'
@@ -215,8 +217,10 @@ describe('track crossfade and stop (R5)', () => {
     engine.play('stage1')
     advance(2)
     const t = ctx.currentTime
+    buses(ctx, master)[0].gain.value = 0.6   // level the fade must start from
     engine.play('stage2')
     const [oldBus, newBus] = buses(ctx, master)
+    expect(oldBus.gain.calls.slice(-2)[0].value).toBe(0.6)
     expect(oldBus.gain.calls.slice(-3)).toEqual([
       { kind: 'cancel', time: t },
       { kind: 'set', value: oldBus.gain.value, time: t },
@@ -286,5 +290,52 @@ describe('track crossfade and stop (R5)', () => {
   it('rejects an unknown track id', () => {
     const { engine } = setup()
     expect(() => engine.play('nope' as TrackId)).toThrow()
+  })
+})
+
+describe('review fixes', () => {
+  it('uses cancelAndHoldAtTime when the browser has it', () => {
+    const calls: number[] = []
+    const out = Object.assign(new FakeParam(0.5), { cancelAndHoldAtTime: (t: number) => { calls.push(t) } })
+    crossfade(out as unknown as AudioParam, null, 4, 0.5)
+    expect(calls).toEqual([4])
+    expect(out.calls).toEqual([{ kind: 'linear', value: 0, time: 4.5 }])
+  })
+
+  it('calls ctx.resume() once while a resume is in flight', async () => {
+    const { engine, ctx } = setup()
+    let release!: () => void
+    ctx.state = 'suspended'
+    ctx.resume = () => { ctx.resumeCalls++; return new Promise<void>(r => { release = r }) }
+    engine.play('title')
+    engine.tick(); engine.tick()
+    expect(ctx.resumeCalls).toBe(1)
+    release(); await Promise.resolve(); await Promise.resolve(); await Promise.resolve()
+    engine.tick()
+    expect(ctx.resumeCalls).toBe(2)
+  })
+
+  it('setPaused stops the timer and resumes it', () => {
+    const { engine, timers } = setup()
+    engine.play('title')
+    expect(timers.count()).toBe(1)
+    engine.setPaused(true)
+    expect(timers.count()).toBe(0)
+    engine.setPaused(false)
+    expect(timers.count()).toBe(1)
+  })
+
+  it('does not use setTimeout for timing', () => {
+    const src = readFileSync(new URL('./engine.ts', import.meta.url), 'utf8')
+    expect(src).not.toMatch(/setTimeout/)
+  })
+
+  it('noise buffer is fixed-seed and shared per context (R2.2)', () => {
+    const a = new FakeAudioContext(), b = new FakeAudioContext()
+    const first = getNoiseBuffer(a as unknown as AudioContext)
+    expect(getNoiseBuffer(a as unknown as AudioContext)).toBe(first)
+    expect(getNoiseBuffer(b as unknown as AudioContext)).not.toBe(first)
+    const d1 = (first as unknown as { getChannelData(n: number): Float32Array }).getChannelData(0)
+    expect(d1.length).toBe(4000)
   })
 })
