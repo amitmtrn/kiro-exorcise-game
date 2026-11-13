@@ -109,6 +109,7 @@ function drawEnemy(ctx: CanvasRenderingContext2D, enemy: Enemy, now: number): vo
     case 'skull':   drawSkull(ctx, now); break
     case 'lunger':  drawLunger(ctx, enemy, now); break
     case 'pumpkin': drawPumpkin(ctx, enemy); break
+    case 'candy':   drawCandy(ctx, enemy, now); break
     case 'boss':    drawBoss(ctx, enemy, now); break
   }
   ctx.restore()
@@ -291,6 +292,25 @@ function drawPumpkin(ctx: CanvasRenderingContext2D, enemy: Enemy): void {
   ctx.moveTo(-12,8); ctx.lineTo(-8,14); ctx.lineTo(-4,10);
   ctx.lineTo(0,14); ctx.lineTo(4,10); ctx.lineTo(8,14); ctx.lineTo(12,8)
   ctx.stroke()
+}
+
+// ─── Candy (waves bonus round) ────────────────────────────────────────────────
+// A wrapped sweet: palette-coloured body, twisted wrapper ends, a gentle spin.
+const CANDY_COLOURS = ['#ff6b1a', '#ffd166', '#39ff14', '#9b59b6']
+function drawCandy(ctx: CanvasRenderingContext2D, enemy: Enemy, now: number): void {
+  const colour = CANDY_COLOURS[Math.floor(enemy.sineOffset * 4 / (Math.PI * 2)) % CANDY_COLOURS.length]
+  ctx.rotate(Math.sin(now / 300 + enemy.sineOffset) * 0.4)
+  ctx.shadowColor = colour; ctx.shadowBlur = 12
+  ctx.fillStyle = colour
+  // Wrapper twists (two triangles)
+  ctx.beginPath(); ctx.moveTo(-10, 0); ctx.lineTo(-24, -11); ctx.lineTo(-24, 11); ctx.closePath(); ctx.fill()
+  ctx.beginPath(); ctx.moveTo(10, 0); ctx.lineTo(24, -11); ctx.lineTo(24, 11); ctx.closePath(); ctx.fill()
+  // Body
+  ctx.fillStyle = C_GHOST
+  ctx.beginPath(); ctx.ellipse(0, 0, 13, 11, 0, 0, Math.PI * 2); ctx.fill()
+  ctx.shadowBlur = 0
+  ctx.strokeStyle = colour; ctx.lineWidth = 3
+  ctx.beginPath(); ctx.moveTo(-7, -7); ctx.lineTo(7, 7); ctx.stroke()
 }
 
 // ─── Boss ─────────────────────────────────────────────────────────────────────

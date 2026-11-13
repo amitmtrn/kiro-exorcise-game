@@ -25,7 +25,7 @@ npm run dev
 
 | Command | What it does |
 |---|---|
-| `npm test` | Run all 307 unit tests (Vitest) |
+| `npm test` | Run all 423 unit tests (Vitest) |
 | `npm run build` | Production build → `dist/` |
 | `npm run preview` | Preview the production build locally |
 
@@ -84,10 +84,11 @@ Every feature was planned as a Kiro spec before implementation:
 | `feel-fix/` | px/s movement scaled to screen height, skull exits, combo tiers |
 | `hooks/` | Kiro hooks: test on save, spec/code drift report, README test-count sync |
 | `pbt/` | Property-based tests (fast-check): lives, score, spawner cap, mirror parity, combo tiers, frame-rate independence |
+| `waves/` | Data-driven wave scripts (line / arc / flyby / drop / swarm paths), per-stage intensity curves, harmless candy bonus round |
 
 Each spec has `requirements.md`, `design.md`, and `tasks.md`. Writing requirements and design before tasks surfaced design gaps (e.g. skull penalty rules, hitbox coordinate system, mirror parity bug) that would have been painful to fix mid-implementation.
 
-All eleven specs are implemented. Every task in `tasks.md` is ticked except the manual smoke tests (a webcam playthrough, enabling GitHub Pages in the repo settings), and `boss-combo/` carries a status note explaining it was superseded by `stages/`.
+All twelve specs are implemented. Every task in `tasks.md` is ticked except the manual smoke tests (a webcam playthrough, enabling GitHub Pages in the repo settings), and `boss-combo/` carries a status note explaining it was superseded by `stages/`.
 
 ### Kiro hooks (`.kiro/hooks/`)
 Standalone `v1` hook files, loaded by Kiro IDE and Kiro CLI V3. Spec: `.kiro/specs/hooks/`.
@@ -128,7 +129,9 @@ src/
     state.ts            GameState types + pure reducers (lives, score, combo,
                         shake, score labels, high score)
     round.ts            Phase machine: start → stageTitle → playing → summary → (victory after stage 5)
-    stages.ts           5 StageConfig entries (enemy mix, spawn rates, music)
+    stages.ts           5 StageConfig entries (enemy mix, spawn rates, music, wave script, bonus round)
+    paths.ts            Closed-form enemy paths (line, arc, flyby, drop, swarm) — frame-rate and canvas-size independent
+    waves.ts            Wave scripts, intensity curves and the bonus round (plain data)
     collision.ts        Per-enemy hit resolution — 2-frame gate, spawn grace,
                         combo scoring, shake, hit flash, score pops
     particles.ts        Puff spawn + tick, score-pop labels
@@ -141,7 +144,10 @@ src/
       bossPhases.ts     3-phase boss behaviour
       vulnerability.ts  Per-enemy vulnerability windows
       movement.ts       Per-type movement + lunge phase machine; hitboxes +20%
-      spawn.ts          Stage-aware spawn timers
+      spawn.ts          Stage-aware, intensity-scaled spawn timers + scripted wave events
+      waveSpawn.ts      Builds path-following enemies (ghost, bat, pumpkin, candy)
+      reach.ts          "Reached its target" rule (never for flybys or in the bonus round)
+      candy.ts          Harmless bonus-round target
   ui/
     hud.ts              Hearts, timer, stage, score, combo (pulse), mute button —
                         outlined glow text, clamp(W/20, 24, 48) font
@@ -167,6 +173,7 @@ src/
     hooks/              Kiro hooks spec
     boss-phases/        3-phase boss + victory spec
     pbt/                Property-based tests spec (`*.property.test.ts`, fast-check)
+    waves/              Wave scripts, intensity curves, bonus round spec
   hooks/                test-on-save.json, spec-drift-check.json, readme-test-count.json (save/create/delete)
 tools/
   sync-readme-tests.mjs Run tests and sync the README test count (used by a hook)

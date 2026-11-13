@@ -54,10 +54,10 @@ Files: `src/game/state.ts` (`bonus`), `src/game/round.ts`, `src/game/enemies/spa
 ## T6 — Candy art and docs
 Files: `src/game/render.ts`, `README.md`
 
-- [ ] Procedural candy sprite (palette colours, no external assets); ghosts trail along their path direction.
-- [ ] README: spec table row, spec count, tree, test count.
-- [ ] `npm test` and `npm run build` both clean.
-- [ ] Commit: `docs(waves-T6): candy art and README`
+- [x] Procedural candy sprite (palette colours, canvas-drawn, no external assets); ghost wisps already trail away from the path end point, which is the travel direction for flybys.
+- [x] README: spec table row, spec count, tree, test count.
+- [x] `npm test` and `npm run build` both clean.
+- [x] Commit: `docs(waves-T6): candy art and README`
 
 ## T7 — Manual smoke test (webcam)
 - [ ] Stage 1 starts calm and gets busier; ghosts arrive from varied points, not one spot; a flyby crosses edge to edge and leaves without a life lost.
