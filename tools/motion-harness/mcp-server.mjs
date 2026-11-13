@@ -5,7 +5,7 @@
 import { spawn } from 'node:child_process'
 import { createRequire } from 'node:module'
 import { createInterface } from 'node:readline'
-import { closeSync, mkdirSync, openSync, readFileSync, rmSync, writeSync } from 'node:fs'
+import { linkSync, mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import vm from 'node:vm'
@@ -50,10 +50,24 @@ export function parseHarnessOutput(text) {
     let obj
     try { obj = JSON.parse(m[1]) } catch { continue }
     const metrics = cleanMetrics(obj)
-    if (metrics) return { ok: true, metrics }
+    if (metrics) return { ok: true, metrics, atSeconds: Number(/^t\+(\d+)s/.exec(lines[i])[1]) }
   }
   const tail = String(text ?? '').slice(-400)
   return { ok: false, error: `no valid metrics line in harness output. Tail: ${tail}` }
+}
+
+/**
+ * R1.5: seconds of the LAST `t+Ns` line, valid or not (null if there is none).
+ * A run is only trustworthy if that last line is also the last valid one;
+ * otherwise the final evaluation failed and the metrics would be stale.
+ */
+export function lastProgressSeconds(text) {
+  const lines = String(text ?? '').split(/\r?\n/)
+  for (let i = lines.length - 1; i >= 0; i--) {
+    const m = /^t\+(\d+)s(?:\s|$)/.exec(lines[i])
+    if (m) return Number(m[1])
+  }
+  return null
 }
 
 /** R3.4: validate tool arguments; returns { mode, seconds } or throws ArgError. */
@@ -118,30 +132,48 @@ export const LOCK_FILE = join(HERE, 'out', 'harness.lock')
 // ---- active run tracking (R3.5b): a killed server must not orphan Vite / Chrome
 let activePid = null
 export function killActive() {
-  if (activePid === null) return
-  try { process.kill(-activePid, 'SIGKILL') } catch { /* already gone */ }
-  activePid = null
+  if (activePid !== null) {
+    try { process.kill(-activePid, 'SIGKILL') } catch { /* already gone */ }
+    activePid = null
+  }
+  if (activeRelease) { activeRelease(); activeRelease = null } // process.exit skips runHarness's finally
 }
 
-/** Cross-process lock for the real harness (fixed ports). Returns a release fn, or throws ArgError. */
+let activeRelease = null
+
+/**
+ * Cross-process lock for the real harness (fixed ports). Returns a release fn, or throws ArgError.
+ * The pid is written to a private temp file that is hard-linked into place, so
+ * the lock file is never visible empty. An unparsable lock is treated as held
+ * unless it is older than 10 s. A stale lock is removed only if it still names
+ * the same dead owner just before removal (narrows the steal race).
+ */
 export function acquireLock(file = LOCK_FILE) {
   mkdirSync(dirname(file), { recursive: true })
-  for (let attempt = 0; attempt < 2; attempt++) {
-    try {
-      const fd = openSync(file, 'wx')
-      writeSync(fd, String(process.pid))
-      closeSync(fd)
-      return () => { try { if (readFileSync(file, 'utf8') === String(process.pid)) rmSync(file, { force: true }) } catch { /* gone */ } }
-    } catch (e) {
-      if (e.code !== 'EEXIST') throw e
-      const owner = Number(readFileSync(file, 'utf8').trim())
-      let alive = Number.isInteger(owner) && owner > 0
-      if (alive) { try { process.kill(owner, 0) } catch (err) { alive = err.code === 'EPERM' } }
-      if (alive) throw new ArgError(`a harness run is already in progress in another server process (pid ${owner}); try again when it finishes`)
-      rmSync(file, { force: true }) // stale lock
+  const mine = `${file}.${process.pid}.tmp`
+  writeFileSync(mine, String(process.pid))
+  const release = () => { try { if (readFileSync(file, 'utf8') === String(process.pid)) rmSync(file, { force: true }) } catch { /* gone */ } }
+  try {
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        linkSync(mine, file)
+        return release
+      } catch (e) {
+        if (e.code !== 'EEXIST') throw e
+        let raw
+        try { raw = readFileSync(file, 'utf8').trim() } catch { continue } // vanished: retry
+        const owner = Number(raw)
+        let alive = Number.isInteger(owner) && owner > 0
+        if (alive) { try { process.kill(owner, 0) } catch (err) { alive = err.code === 'EPERM' } }
+        else { try { alive = Date.now() - statSync(file).mtimeMs < 10_000 } catch { continue } }
+        if (alive) throw new ArgError(`a harness run is already in progress in another server process (pid ${raw || 'unknown'}); try again when it finishes`)
+        try { if (readFileSync(file, 'utf8').trim() === raw) rmSync(file, { force: true }) } catch { /* gone */ } // stale lock
+      }
     }
+    throw new ArgError('could not acquire the harness lock')
+  } finally {
+    rmSync(mine, { force: true })
   }
-  throw new ArgError('could not acquire the harness lock')
 }
 
 /**
@@ -180,6 +212,7 @@ export async function runHarness(args, env = process.env) {
   if (running) throw new ArgError('a harness run is already in progress (fixed ports); try again when it finishes')
   const custom = env.EXORCISE_HARNESS_SCRIPT
   const release = custom ? () => {} : acquireLock() // R3.5: lock across server processes
+  activeRelease = release
   running = true
   try {
     const script = custom || DEFAULT_SCRIPT
@@ -192,10 +225,15 @@ export async function runHarness(args, env = process.env) {
     const parsed = parseHarnessOutput(r.output)
     if (r.code !== 0) throw new Error(`harness exited with code ${r.code} (no metrics returned; a crashed run is not reported as success). Tail: ${r.output.slice(-400)}`)
     if (!parsed.ok) throw new Error(`${parsed.error} (exit code ${r.code})`)
+    const last = lastProgressSeconds(r.output)
+    if (last !== null && last > parsed.atSeconds) {
+      throw new Error(`the final progress line (t+${last}s) is not valid metrics (page reload or lost state?); refusing the stale t+${parsed.atSeconds}s numbers. Tail: ${r.output.slice(-400)}`)
+    }
     return { mode, seconds, elapsedMs, exitCode: r.code, ...parsed.metrics }
   } finally {
     running = false
     release()
+    if (activeRelease === release) activeRelease = null
   }
 }
 
@@ -249,6 +287,8 @@ async function callTool(name, args, env) {
 
 /** One JSON-RPC message → response object, or null for notifications. */
 export async function handleMessage(msg, env = process.env) {
+  // A client's response to a server request (id + result/error, no method): nothing to answer.
+  if (msg && typeof msg === 'object' && !Array.isArray(msg) && typeof msg.method !== 'string' && ('result' in msg || 'error' in msg)) return null
   if (msg === null || typeof msg !== 'object' || Array.isArray(msg) || typeof msg.method !== 'string') {
     return rpcError(msg && typeof msg === 'object' ? msg.id : null, -32600, 'Invalid Request')
   }

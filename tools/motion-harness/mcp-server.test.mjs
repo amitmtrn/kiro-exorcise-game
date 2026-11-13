@@ -1,13 +1,13 @@
 // Unit tests for the motion-harness MCP server (balancer spec). Chrome is never launched.
 import { describe, it, expect } from 'vitest'
-import { parseHarnessOutput, validateRunArgs, readStageConfig, evalSandboxed, acquireLock, ArgError } from './mcp-server.mjs'
+import { parseHarnessOutput, lastProgressSeconds, handleMessage, validateRunArgs, readStageConfig, evalSandboxed, acquireLock, ArgError } from './mcp-server.mjs'
 
 const M = { frames: 1800, hits: 12, motionFrames: 400, maxMotion: 900, playFrames: 1500, firstPlayAtMs: 120, threshold: 24, highScoreSaved: '4200' }
 const line = (m, t = 5) => `t+${t}s ${JSON.stringify(m)}`
 
 describe('parseHarnessOutput (R1)', () => {
   it('parses a progress line', () => {
-    expect(parseHarnessOutput(line(M))).toEqual({ ok: true, metrics: M })
+    expect(parseHarnessOutput(line(M))).toEqual({ ok: true, metrics: M, atSeconds: 5 })
   })
   it('last valid line wins, noise ignored', () => {
     const out = ['page: http://x/kiro-exorcise-game/', 'monitor: ok threshold=24', line({ ...M, hits: 1 }, 5), 'space: sent', '', line({ ...M, hits: 7 }, 10), 'garbage'].join('\n')
@@ -20,7 +20,7 @@ describe('parseHarnessOutput (R1)', () => {
   })
   it('skips a later invalid line and falls back to the previous valid one', () => {
     const out = [line(M, 5), line({ ...M, hits: 'many' }, 10), 't+15s {"frames":'].join('\n')
-    expect(parseHarnessOutput(out)).toEqual({ ok: true, metrics: M })
+    expect(parseHarnessOutput(out)).toEqual({ ok: true, metrics: M, atSeconds: 5 })
   })
   it('rejects wrongly typed or missing fields (no coercion)', () => {
     expect(parseHarnessOutput(line({ ...M, hits: '12' })).ok).toBe(false)
@@ -50,6 +50,25 @@ describe('validateRunArgs (R3.4)', () => {
     [{ mode: 'sweep', seconds: NaN }], [[]], ['sweep'],
     [{ mode: 'sweep', extra: '; rm -rf /' }], [{ mode: 'wave', seconds: 10, cmd: 'x' }],
   ])('rejects %j', (args) => expect(() => validateRunArgs(args)).toThrow(ArgError))
+})
+
+describe('lastProgressSeconds (R1.5)', () => {
+  it('reads the t+N of the last progress line, valid or not', () => {
+    expect(lastProgressSeconds([line(M, 5), 't+10s ERR boom'].join('\n'))).toBe(10)
+    expect(lastProgressSeconds([line(M, 5), 't+10s undefined', ''].join('\n'))).toBe(10)
+    expect(lastProgressSeconds('page: x\nmonitor: ok')).toBeNull()
+  })
+  it('parseHarnessOutput reports which t+N the metrics came from', () => {
+    expect(parseHarnessOutput([line(M, 5), 't+10s ERR x'].join('\n')).atSeconds).toBe(5)
+  })
+})
+
+describe('handleMessage (R3.2)', () => {
+  it('ignores client responses (id + result/error, no method) and still rejects junk', async () => {
+    expect(await handleMessage({ jsonrpc: '2.0', id: 3, result: {} })).toBeNull()
+    expect(await handleMessage({ jsonrpc: '2.0', id: 3, error: { code: -1, message: 'x' } })).toBeNull()
+    expect((await handleMessage({ jsonrpc: '2.0', id: 4 })).error.code).toBe(-32600)
+  })
 })
 
 describe('evalSandboxed (R2.3)', () => {
@@ -85,6 +104,23 @@ describe('acquireLock (R3.5)', () => {
     expect(readFileSync(lock, 'utf8')).toBe(String(process.pid))
     again()
   })
+  it('treats an unparsable fresh lock as held, an old one as stale', () => {
+    writeFileSync(lock, '')
+    expect(() => acquireLock(lock)).toThrow(/already in progress/)
+    const old = new Date(Date.now() - 60_000)
+    utimesSync(lock, old, old)
+    acquireLock(lock)()
+  })
+  it('is held while another server process owns it, and free after that process dies', async () => {
+    const holder = spawn(process.execPath, ['--input-type=module', '-e',
+      `import { acquireLock } from ${JSON.stringify(pathToFileURL(join(dirname(fileURLToPath(import.meta.url)), 'mcp-server.mjs')).href)};` +
+      `acquireLock(${JSON.stringify(lock)}); console.log('held'); setInterval(() => {}, 1000)`], { stdio: ['ignore', 'pipe', 'inherit'] })
+    await new Promise((res) => holder.stdout.once('data', res))
+    expect(() => acquireLock(lock)).toThrow(new RegExp(`pid ${holder.pid}`))
+    holder.kill('SIGKILL')
+    await new Promise((res) => holder.once('exit', res))
+    acquireLock(lock)() // dead owner: stale, replaced
+  })
 })
 
 describe('readStageConfig (R2)', () => {
@@ -103,6 +139,17 @@ describe('readStageConfig (R2)', () => {
     expect(cfg.stages[4].waves).toBeUndefined()
     expect(cfg.bonusRound.name).toBeTypeOf('string')
   })
+  it('wave events are sorted by atMs and the data holds no function values', () => {
+    for (const w of [...cfg.stages.map((s) => s.waves).filter(Boolean), cfg.bonusRound.script]) {
+      const t = w.events.map((e) => e.atMs)
+      expect(t).toEqual([...t].sort((a, b) => a - b))
+    }
+    const walk = (v) => {
+      expect(typeof v).not.toBe('function')
+      if (v && typeof v === 'object') Object.values(v).forEach(walk)
+    }
+    walk(cfg)
+  })
   it('is plain JSON data matching the source constants', async () => {
     expect(JSON.parse(JSON.stringify(cfg))).toEqual(cfg)
     expect(cfg.stages[0].durationMs).toBe(45_000)
@@ -111,10 +158,10 @@ describe('readStageConfig (R2)', () => {
 
 // ---------------------------------------------------------- spawned server (R3)
 import { spawn } from 'node:child_process'
-import { mkdtempSync, writeFileSync, chmodSync, rmSync, readFileSync, existsSync } from 'node:fs'
+import { mkdtempSync, writeFileSync, chmodSync, rmSync, readFileSync, existsSync, utimesSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, dirname } from 'node:path'
-import { fileURLToPath } from 'node:url'
+import { fileURLToPath, pathToFileURL } from 'node:url'
 import { afterAll } from 'vitest'
 
 const SERVER = join(dirname(fileURLToPath(import.meta.url)), 'mcp-server.mjs')
@@ -154,6 +201,19 @@ function client(env = {}) {
     child.stdin.write(JSON.stringify({ jsonrpc: '2.0', id, method, params }) + '\n')
   })
   return { child, raw, request, stderr: () => stderr, write: (s) => child.stdin.write(s), close: () => child.kill() }
+}
+
+/** Start a hanging mock run through a spawned server; resolves once its grandchild is up. */
+async function startHang(tag) {
+  const marker = join(tmp, `hang-${tag}.pid`)
+  const script = mockScript(`hang-${tag}.sh`, `sleep 30 &\necho $! > "${marker}"\nwait`)
+  const c = client({ EXORCISE_HARNESS_SCRIPT: script })
+  c.request('tools/call', { name: 'run_harness', arguments: { mode: 'sweep', seconds: 10 } })
+  for (let i = 0; i < 50 && !existsSync(marker); i++) await new Promise((r) => setTimeout(r, 100))
+  await new Promise((r) => setTimeout(r, 100))
+  const pid = Number(readFileSync(marker, 'utf8').trim())
+  expect(() => process.kill(pid, 0)).not.toThrow() // running
+  return { pid, c }
 }
 
 describe('spawned MCP server', () => {
@@ -267,6 +327,40 @@ describe('spawned MCP server', () => {
     await new Promise((r) => c.child.once('exit', r))
     await new Promise((r) => setTimeout(r, 300))
     expect(() => process.kill(pid, 0)).toThrow() // gone
+  })
+
+  it('killing the server with SIGHUP kills the running harness group (R3.5b)', async () => {
+    const { pid, c } = await startHang('SIGHUP')
+    c.child.kill('SIGHUP')
+    await new Promise((r) => c.child.once('exit', r))
+    await new Promise((r) => setTimeout(r, 300))
+    expect(() => process.kill(pid, 0)).toThrow()
+  })
+
+  it('closing stdin mid-run (client disconnect) kills the harness group and the server exits (R3.5b)', async () => {
+    const { pid, c } = await startHang('stdin')
+    c.child.stdin.end()
+    await new Promise((r) => c.child.once('exit', r))
+    await new Promise((r) => setTimeout(r, 300))
+    expect(() => process.kill(pid, 0)).toThrow()
+  })
+
+  it('a final progress line that is not valid metrics is an error, not stale numbers (R1.5)', async () => {
+    const c = client({ EXORCISE_HARNESS_SCRIPT: mockScript('stale.sh', `echo 't+5s ${JSON.stringify(M)}'\necho 't+10s ERR page reloaded'\nexit 0`) })
+    const r = await c.request('tools/call', { name: 'run_harness', arguments: { mode: 'sweep', seconds: 10 } })
+    expect(r.result.isError).toBe(true)
+    expect(r.result.content[0].text).toMatch(/final progress line \(t\+10s\)/)
+    expect(r.result.structuredContent).toBeUndefined()
+    c.close()
+  })
+
+  it('ignores a client response message without answering it', async () => {
+    const c = client()
+    c.write('{"jsonrpc":"2.0","id":77,"result":{}}\n')
+    const r = await c.request('ping')
+    expect(r.result).toEqual({})
+    expect(c.raw).toHaveLength(1) // only the ping reply
+    c.close()
   })
 
   it('read_stage_config returns the live tuning', async () => {
