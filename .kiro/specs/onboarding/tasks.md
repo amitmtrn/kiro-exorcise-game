@@ -22,12 +22,12 @@ Files: `src/webcam/framing.ts`, `src/webcam/framing.test.ts`, `src/webcam/framin
 ## T3 — Self-hosted Creepster font
 Files: `src/assets/fonts/*`, `src/style.css`, `src/ui/fonts.ts`, `tools/fonts.test.mjs`, `src/ui/screens.ts`, `src/game/render.ts`
 
-- [ ] Bundle `Creepster-Regular.ttf` and `OFL.txt` (one-time download from google/fonts, `ofl/creepster/`).
-- [ ] `@font-face` from the local file; `TITLE_FONT_FAMILY` with fallbacks; `loadTitleFont()`.
-- [ ] Apply to title, stage title, STAGE CLEAR, GAME OVER, YOU WIN, in-game call-outs.
-- [ ] `tools/fonts.test.mjs`: no `http(s)` in font references, files exist, CSS points at the local file.
-- [ ] `npm test` and `npm run build` both clean.
-- [ ] Commit: `feat(onboarding-T3): self-hosted Creepster display font`
+- [x] Bundle `Creepster-Regular.ttf` and `OFL.txt` (one-time download from google/fonts, `ofl/creepster/`).
+- [x] `@font-face` from the local file; `TITLE_FONT_FAMILY` with fallbacks; `loadTitleFont()`.
+- [x] Apply to title, stage title, STAGE CLEAR, GAME OVER, YOU WIN, in-game call-outs.
+- [x] `tools/fonts.test.mjs`: no `http(s)` in font references, files exist, CSS points at the local file.
+- [x] `npm test` and `npm run build` both clean.
+- [x] Commit: `feat(onboarding-T3): self-hosted Creepster display font`
 
 ## T4 — Onboarding and camera-denied UI, wiring
 Files: `src/ui/onboarding.ts`, `src/ui/onboarding.test.ts`, `src/ui/screens.ts`, `src/main.ts`, `src/style.css`

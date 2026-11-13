@@ -6,7 +6,7 @@
 import type { GameState, Enemy, Particle, ScoreLabel } from './state'
 import { calloutPose } from './callouts'
 import type { Callout } from './callouts'
-import { HUD_FONT_FAMILY } from '../ui/hud'
+import { TITLE_FONT_FAMILY } from '../ui/fonts'
 import { SHAKE_AMPLITUDE_PX } from './state'
 import { lastMotionPixels, lastBanished } from './collision'
 import { BOSS_HITS_NEEDED } from './enemies/boss'
@@ -487,7 +487,7 @@ function drawCallout(ctx: CanvasRenderingContext2D, c: Callout): void {
   ctx.translate(c.x, c.y + pose.dy)
   ctx.scale(pose.scale, pose.scale)
   ctx.rotate(c.kind === 'tierUp' ? -0.08 : 0.06)
-  ctx.font = `bold ${size}px ${HUD_FONT_FAMILY}`
+  ctx.font = `${Math.round(size * 1.1)}px ${TITLE_FONT_FAMILY}`
   ctx.textAlign = 'center'
   ctx.textBaseline = 'middle'
   ctx.lineWidth = 6

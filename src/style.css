@@ -1,3 +1,16 @@
+/* === Self-hosted display font (SIL OFL 1.1, see src/assets/fonts/OFL.txt) === */
+@font-face {
+  font-family: 'Creepster';
+  src: url('./assets/fonts/Creepster-Regular.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
+  --font-title: 'Creepster', 'Chalkboard SE', 'Comic Sans MS', 'Arial Rounded MT Bold', fantasy;
+}
+
 /* === Reset & base === */
 *, *::before, *::after {
   box-sizing: border-box;
@@ -55,6 +68,8 @@ html, body {
 }
 
 .screen-gameover h1 {
+  font-family: var(--font-title);
+  font-weight: normal;
   font-size: clamp(3rem, 10vw, 6rem);
   color: #ff6b1a;
   text-shadow: 0 0 20px #ff6b1a, 0 0 40px #ff6b1a88;

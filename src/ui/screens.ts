@@ -8,6 +8,7 @@ import { stageLabel } from '../game/stages'
 import { STAGE_TITLE_DURATION_MS } from '../game/state'
 import { introPose, outroPose, outroRowAlpha } from '../game/transitions'
 import { MotionButton } from './motionButton'
+import { TITLE_FONT_FAMILY } from './fonts'
 
 // ─── Motion buttons (persistent instances reused across frames) ───────────────
 
@@ -39,7 +40,7 @@ export function renderStartScreen(
 
   // Title
   ctx.textAlign = 'center'
-  ctx.font = `bold ${clamp(W / 10, 48, 96)}px sans-serif`
+  ctx.font = `${clamp(W / 8, 56, 120)}px ${TITLE_FONT_FAMILY}`
   ctx.fillStyle = '#ff6b1a'
   ctx.shadowColor = '#ff6b1a'; ctx.shadowBlur = 24
   ctx.fillText('👻 EXORCISE', W / 2, H * 0.28)
@@ -89,7 +90,7 @@ export function renderStageTitle(ctx: CanvasRenderingContext2D, state: GameState
   ctx.fillRect(0, 0, W, H)
 
   ctx.textAlign = 'center'
-  ctx.font = `bold ${clamp(W / 14, 36, 64)}px sans-serif`
+  ctx.font = `${clamp(W / 11, 42, 80)}px ${TITLE_FONT_FAMILY}`
   ctx.fillStyle = '#ff6b1a'
   ctx.shadowColor = '#ff6b1a'; ctx.shadowBlur = 20
   ctx.fillText(cfg.name, W / 2 + pose.nameX * W, H * 0.38)
@@ -127,7 +128,7 @@ export function renderSummary(
   ctx.rotate(outro.bannerAngle)
   ctx.scale(outro.bannerScale, outro.bannerScale)
   ctx.textAlign = 'center'
-  ctx.font = `bold ${clamp(W / 14, 32, 56)}px sans-serif`
+  ctx.font = `${clamp(W / 11, 38, 68)}px ${TITLE_FONT_FAMILY}`
   ctx.fillStyle = '#ffd166'; ctx.shadowColor = '#ffd166'; ctx.shadowBlur = 14
   ctx.fillText(state.bonus ? 'BONUS CLEAR!' : 'STAGE CLEAR!', 0, 0)
   ctx.restore()
@@ -185,7 +186,7 @@ export function renderGameOver(
   ctx.fillRect(0, 0, W, H)
 
   ctx.textAlign = 'center'
-  ctx.font = `bold ${clamp(W / 10, 48, 80)}px sans-serif`
+  ctx.font = `${clamp(W / 8, 56, 100)}px ${TITLE_FONT_FAMILY}`
   ctx.fillStyle = '#c0392b'; ctx.shadowColor = '#c0392b'; ctx.shadowBlur = 24
   ctx.fillText('GAME OVER', W / 2, H * 0.28)
   if (state.lives > 0) {
@@ -194,7 +195,7 @@ export function renderGameOver(
     ctx.font = `bold ${clamp(W / 28, 18, 30)}px sans-serif`
     ctx.fillStyle = '#ff6b1a'
     ctx.fillText("TIME'S UP", W / 2, H * 0.35)
-    ctx.font = `bold ${clamp(W / 10, 48, 80)}px sans-serif`
+    ctx.font = `${clamp(W / 8, 56, 100)}px ${TITLE_FONT_FAMILY}`
     ctx.fillStyle = '#c0392b'
   }
 
@@ -257,7 +258,7 @@ export function renderVictory(
   ctx.rotate(wobble)
   ctx.scale(0.4 + 0.6 * k, 0.4 + 0.6 * k)
   ctx.textAlign = 'center'
-  ctx.font = `bold ${clamp(W / 9, 48, 96)}px sans-serif`
+  ctx.font = `${clamp(W / 7, 56, 120)}px ${TITLE_FONT_FAMILY}`
   ctx.fillStyle = '#ffd166'; ctx.shadowColor = '#ff6b1a'; ctx.shadowBlur = 28
   ctx.fillText('YOU WIN!', 0, 0)
   ctx.restore()

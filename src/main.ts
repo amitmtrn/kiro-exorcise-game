@@ -9,6 +9,7 @@ import { showWebcamError, hideWebcamError } from './ui/screens'
 import { toggleDebug } from './game/render'
 import { toggleMute, getAudioContext } from './audio/index'
 import { installAudioUnlock } from './audio/unlock'
+import { loadTitleFont } from './ui/fonts'
 import { hudFontSize, muteButtonRect } from './ui/hud'
 
 const webcamCanvas = document.getElementById('webcam-canvas') as HTMLCanvasElement
@@ -56,6 +57,7 @@ gameCanvas.addEventListener('pointerdown', (e) => {
 })
 
 async function boot(): Promise<void> {
+  await loadTitleFont()
   let video: HTMLVideoElement
   try {
     video = await initWebcam()
