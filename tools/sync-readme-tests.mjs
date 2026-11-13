@@ -31,7 +31,18 @@ export function evaluateReport(r) {
   if (!Number.isInteger(total) || total <= 0) {
     return { ok: false, reason: 'report has no valid numTotalTests' }
   }
-  if ((r.numFailedTestSuites ?? 0) > 0 && (r.numFailedTests ?? 0) === 0) {
+  // A file that failed to load is a failed testResult with no failed assertion
+  // (its tests never registered). Check per file so an ordinary failure in
+  // another file cannot mask it.
+  if (Array.isArray(r.testResults)) {
+    const unloaded = r.testResults.some(
+      (f) => f?.status === 'failed' &&
+        !(f.assertionResults ?? []).some((a) => a?.status === 'failed'),
+    )
+    if (unloaded) {
+      return { ok: false, reason: 'a test file failed to load; count would be too low' }
+    }
+  } else if ((r.numFailedTestSuites ?? 0) > 0 && (r.numFailedTests ?? 0) === 0) {
     return { ok: false, reason: 'a test file failed to load; count would be too low' }
   }
   return { ok: true, total, failed: r.numFailedTests ?? 0, skipped: r.numPendingTests ?? 0 }

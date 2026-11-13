@@ -5,7 +5,7 @@
       "name": "test-on-src-save",
       "description": "Run npm test after any file under src/ is saved.",
       "trigger": "PostFileSave",
-      "matcher": "^(?!.*(^|/)node_modules/)(?!.*\\.test\\.ts$).*(^|/)src/",
+      "matcher": "^(?!.*(^|[\\\\/])node_modules[\\\\/])(?!.*\\.test\\.(ts|mjs)$).*(^|[\\\\/])src[\\\\/]",
       "action": { "type": "command", "command": "npm test" },
       "timeout": 120,
       "enabled": true

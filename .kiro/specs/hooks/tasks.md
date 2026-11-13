@@ -3,9 +3,9 @@
 ## T1 — Replace the invalid test hook
 Files: `.kiro/hooks/test-on-save.json`, `tools/hooks.test.mjs`
 
-- [x] Rewrite `test-on-save.json` in `version: "v1"` format (`PostFileSave`, matcher `(^|/)src/`, `npm test`, timeout 120).
+- [x] Rewrite `test-on-save.json` in `version: "v1"` format (`PostFileSave`, matcher `(^|/)src/` — superseded by T5/T6, see `test-on-save.json` — `npm test`, timeout 120).
 - [x] `tools/hooks.test.mjs`: every `.kiro/hooks/*.json` parses; has `version: "v1"`; each hook has name/trigger/action; trigger is a known PascalCase name; action type matches command/prompt; matcher compiles.
-- [x] Test: `test-on-save` matcher accepts `src/game/state.ts` and `/abs/src/ui/hud.test.ts`, rejects `README.md`, `.kiro/specs/x/tasks.md`, `tools/a.mjs`.
+- [x] Test: `test-on-save` matcher accepts `src/game/state.ts` (and, as of T5, rejects `/abs/src/ui/hud.test.ts` because readme-test-count runs the suite), rejects `README.md`, `.kiro/specs/x/tasks.md`, `tools/a.mjs`.
 - [x] Run `npm test` and `npm run build`; both clean.
 - [x] Commit: `feat(hooks-T1): valid v1 test-on-save hook with structural tests`
 
@@ -23,7 +23,7 @@ Files: `tools/sync-readme-tests.mjs`, `tools/sync-readme-tests.test.mjs`, `.kiro
 - [x] `updateReadmeCount(text, n)` pure function; throws when no `Run all N unit tests` line.
 - [x] CLI main: run Vitest JSON reporter to a temp file, sync README, `--check` mode, idempotent, no README write when tests cannot run, exit 1 on failing tests, temp report removed.
 - [x] Unit tests for the pure function (replace, idempotent, other text untouched, throws).
-- [x] Add `readme-test-count.json` (`PostFileSave`, matcher `\.test\.(ts|mjs)$`, command `node tools/sync-readme-tests.mjs`) and matcher tests.
+- [x] Add `readme-test-count.json` (`PostFileSave`, matcher `\.test\.(ts|mjs)$` (superseded by T5/T6: excludes `node_modules/`, accepts both separators), command `node tools/sync-readme-tests.mjs`) and matcher tests.
 - [x] Run the script; README count equals the real total; `--check` exits 0.
 - [x] Run `npm test` and `npm run build`; both clean.
 - [x] Commit: `feat(hooks-T3): README test-count sync hook and script`
@@ -49,3 +49,16 @@ Files: `tools/sync-readme-tests.mjs`, `tools/sync-readme-tests.test.mjs`, `tools
 - [x] Not covered by unit tests: the CLI `main()` wrapper (spawns Vitest; testing it inside Vitest would recurse). Its decisions live in the tested pure functions.
 - [x] Run `npm test`, `npm run build`, `node tools/sync-readme-tests.mjs --check`; all clean.
 - [x] Commit: `fix(hooks): harden README sync, tighten matchers, record CLI validation`
+
+## T6 — Second review fixes
+Files: `tools/sync-readme-tests.mjs`, `tools/*.test.mjs`, `.kiro/hooks/*.json`, `README.md`, specs
+
+- [x] `evaluateReport` checks per file: any `failed` testResult with no failed assertion is rejected even if other files have ordinary failures; mixed-case + normal-failure unit tests.
+- [x] test-on-save also excludes `*.test.mjs` (no double run); test added.
+- [x] All matchers accept `/` and `\` separators; Windows-path tests added.
+- [x] `readme-test-count-on-delete` (`PostFileDelete`) hook + test.
+- [x] Design doc: per-pid report file name and cleanup semantics; stale T1/T3 matcher text annotated.
+- [x] Structural test: `action` must be a non-null non-array object; `matcher` must be a string.
+- [x] README file tree lists `sync-readme-tests.test.mjs`.
+- [x] Run `npm test`, `npm run build`, `node tools/sync-readme-tests.mjs --check`; all clean.
+- [x] Commit: `fix(hooks): review round 2 - per-file load-failure check, Windows-safe matchers, delete hook`

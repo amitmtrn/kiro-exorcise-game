@@ -42,4 +42,25 @@ describe('evaluateReport', () => {
     expect(r.ok).toBe(false)
     expect(r.reason).toMatch(/failed to load/)
   })
+  it('rejects a load failure even when another file has a failing test', () => {
+    const r = evaluateReport({
+      numTotalTests: 5, numFailedTests: 1, numFailedTestSuites: 2,
+      testResults: [
+        { status: 'failed', assertionResults: [{ status: 'failed' }, { status: 'passed' }] },
+        { status: 'failed', assertionResults: [] },
+      ],
+    })
+    expect(r.ok).toBe(false)
+    expect(r.reason).toMatch(/failed to load/)
+  })
+  it('accepts ordinary failures when every file loaded', () => {
+    const r = evaluateReport({
+      numTotalTests: 5, numFailedTests: 1, numFailedTestSuites: 1,
+      testResults: [
+        { status: 'failed', assertionResults: [{ status: 'failed' }, { status: 'passed' }] },
+        { status: 'passed', assertionResults: [{ status: 'passed' }] },
+      ],
+    })
+    expect(r.ok).toBe(true)
+  })
 })

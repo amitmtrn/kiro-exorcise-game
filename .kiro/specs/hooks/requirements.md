@@ -24,9 +24,11 @@ tool-name matcher combined with stdin grepping, an `action` that depends on a
 tool payload shape that is not guaranteed) is removed; the file is rewritten
 so it fires.
 
+**R1.5** Matchers accept both `/` and `\` path separators (native Windows paths).
+
 **R1.3** Every hook file parses as JSON and passes a structural check in a unit
 test (`version`, required fields, known trigger names, `action.type` matches
-the supplied `command`/`prompt` field, valid `matcher` regex).
+the supplied `command`/`prompt` field, `action` is a plain object, `matcher` is a string and a valid regex).
 
 **R1.4** `.kiro/` is not listed in `.gitignore`.
 
@@ -35,7 +37,7 @@ the supplied `command`/`prompt` field, valid `matcher` regex).
 ## R2 — Run tests after writes to `src/`
 
 **R2.1** Trigger `PostFileSave`, matcher selects paths containing a `src/`
-directory segment (any file type), except `*.test.ts` files (those are handled
+directory segment (any file type), except `*.test.ts` / `*.test.mjs` files (those are handled
 by R4, which also runs the suite, so the suite never runs twice per save) and
 anything under `node_modules/`.
 
@@ -72,6 +74,8 @@ reported as "manual — not checkable", not as drift.
 **R4.1** Trigger `PostFileSave`, matcher selects test files
 (`*.test.ts` / `*.test.mjs`) anywhere in the repo except under `node_modules/`.
 
+**R4.1a** A second hook on `PostFileDelete` with the same matcher and command re-syncs the count when a test file is removed.
+
 **R4.2** Action is a shell command `node tools/sync-readme-tests.mjs` that
 runs the real test suite (Vitest JSON reporter), reads the total test count,
 and rewrites the count in the README `npm test` row
@@ -82,8 +86,8 @@ number, the file is left byte-identical.
 
 **R4.4** If tests fail to run (non-zero exit with no JSON report), or the
 report is untrustworthy (`numTotalTests` missing / not a positive integer, or
-a test file failed to load — `numFailedTestSuites > 0` with no failed tests,
-which would under-count), the script exits non-zero and does **not** modify
+a test file failed to load — any `testResults[]` entry that is `failed` with no failed assertion,
+which would under-count, even when another file has an ordinary failure), the script exits non-zero and does **not** modify
 the README. The script also exits non-zero whenever Vitest's exit status is
 non-zero. A stale report file from a previous crash is deleted before the run. If some tests fail but a
 report exists, it still syncs the count (the count is the number of tests,

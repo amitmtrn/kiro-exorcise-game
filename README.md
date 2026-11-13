@@ -25,7 +25,7 @@ npm run dev
 
 | Command | What it does |
 |---|---|
-| `npm test` | Run all 191 unit tests (Vitest) |
+| `npm test` | Run all 197 unit tests (Vitest) |
 | `npm run build` | Production build → `dist/` |
 | `npm run preview` | Preview the production build locally |
 
@@ -159,6 +159,7 @@ src/
   hooks/                test-on-save.json, spec-drift-check.json, readme-test-count.json
 tools/
   sync-readme-tests.mjs Run tests and sync the README test count (used by a hook)
+  sync-readme-tests.test.mjs Unit tests for the sync script's pure functions
   hooks.test.mjs        Structural + matcher tests for .kiro/hooks/*.json
 ```
 
