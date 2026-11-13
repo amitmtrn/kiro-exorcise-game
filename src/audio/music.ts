@@ -64,6 +64,7 @@ export function setMusicPaused(p: boolean): void {
 
 /** Test hook: forget the engine and request state. */
 export function resetMusicForTests(): void {
+  if (engine) engine.stop()
   engine = null
   wanted = null
   lastCombo = 1

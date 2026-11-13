@@ -10,7 +10,7 @@ with a 3-voice procedural sequencer driven by the audio clock, intensity
 layers that follow the combo, a title theme, a boss theme and a real 0.5 s
 crossfade.
 
-Unchanged: all SFX (`sfx.ts`), `context.ts` (master gain, mute, volume,
+Unchanged (apart from a comment edit in `context.ts`): all SFX (`sfx.ts`), `context.ts` (master gain, mute, volume,
 `localStorage`), and the public `startMusic(stage)` / `stopMusic()` names.
 All music stays procedural: no audio files, no fetches, no new dependencies.
 All patterns are original compositions written for this project.
@@ -32,14 +32,16 @@ cumulative drift however many loops have played.
 **R1.4** A step is never scheduled further than the look-ahead window ahead of
 `now`.
 
-**R1.6** While the tab is hidden the scheduler is paused (no throttled, sparse
-stuttering) and resumes with a resync when the tab is visible again.
-
 **R1.5** If the timer stalls (background tab) and steps are already more than
 50 ms in the past, those steps are skipped rather than played in a burst. The
 scheduler resynchronises with the clock and never schedules a step twice.
 
 **R1.6** A step is 1/16 note. Tempo is a per-track BPM.
+
+**R1.7** While the tab is hidden the scheduler is paused (no throttled, sparse
+stuttering) and resumes with a resync when the tab is visible again.
+
+**R1.8** The scheduler resumes a context that is `suspended` or `interrupted`.
 
 ## R2 — Voices
 

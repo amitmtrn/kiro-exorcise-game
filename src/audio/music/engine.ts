@@ -116,7 +116,7 @@ export function createMusicEngine(deps: EngineDeps) {
 
   function tick(): void {
     const now = ctx.currentTime
-    if (ctx.state === 'suspended' && !resuming) {
+    if ((ctx.state === 'suspended' || (ctx.state as string) === 'interrupted') && !resuming) {
       resuming = true
       ctx.resume().catch(() => { /* needs a user gesture */ }).finally(() => { resuming = false })
     }

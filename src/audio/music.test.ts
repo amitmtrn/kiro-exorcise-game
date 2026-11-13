@@ -97,3 +97,21 @@ describe('visibility pause', () => {
     expect(vi.getTimerCount()).toBe(1)
   })
 })
+
+describe('visibilitychange wiring', () => {
+  it('pauses on hidden and resumes on visible', async () => {
+    const handlers: Array<() => void> = []
+    const doc = { hidden: false, addEventListener: (_: string, f: () => void) => handlers.push(f) }
+    vi.stubGlobal('document', doc)
+    vi.resetModules()
+    const m = await import('./music')
+    m.startTitleMusic()
+    expect(handlers.length).toBe(1)
+    doc.hidden = true; handlers[0]()
+    expect(vi.getTimerCount()).toBe(0)
+    doc.hidden = false; handlers[0]()
+    expect(vi.getTimerCount()).toBe(1)
+    m.stopMusic()
+    vi.unstubAllGlobals()
+  })
+})

@@ -82,7 +82,7 @@ voice nodes → layer gain → track bus gain → destination (= getMasterGain()
 `crossfade(prevBus.gain, newBus.gain, now, 0.5)`:
 
 ```
-out: cancelScheduledValues(now); setValueAtTime(out.value, now); linearRampToValueAtTime(0, now+dur)
+out: cancelAndHoldAtTime(now) [fallback: cancelScheduledValues + setValueAtTime(param.value)]; linearRampToValueAtTime(0, now+dur)
 in : cancelScheduledValues(now); setValueAtTime(0, now);        linearRampToValueAtTime(1, now+dur)
 ```
 
@@ -120,7 +120,7 @@ branch, `startMusic(stage)` on entering `playing` (unchanged), and
 | lead | triangle + detuned square (quiet) → low-pass 2200 Hz | 15 ms attack, 85 % sustain |
 | arp | triangle | 0.1 s pluck |
 
-Peak levels per voice: kick 0.28 (0.34 accented) plus a 0.18 click, snare 0.15
+Peak levels per voice: kick 0.28 (0.34 accented) plus a noise click routed through the kick gain (real peak about 0.05), snare 0.15
 (0.20 accented) plus 0.08 body, bass 0.18, lead about 0.15, hat 0.07–0.11, arp
 below 0.1. Peaks rarely coincide (kick and snare sit on different steps), so a
 tier-4 downbeat sums to about 0.8 before SFX. There is no limiter; T7 confirms

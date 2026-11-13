@@ -222,7 +222,7 @@ describe('track crossfade and stop (R5)', () => {
     expect(oldBus.gain.calls.slice(-2)[0].value).toBe(0.6)
     expect(oldBus.gain.calls.slice(-3)).toEqual([
       { kind: 'cancel', time: t },
-      { kind: 'set', value: oldBus.gain.value, time: t },
+      { kind: 'set', value: 0.6, time: t },
       { kind: 'linear', value: 0, time: t + 0.5 },
     ])
     expect(newBus.gain.calls.slice(-2)).toEqual([
