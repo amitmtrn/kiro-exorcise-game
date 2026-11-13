@@ -44,19 +44,19 @@ Result rules (R3.5a): `timedOut` → error; non-zero exit → error (exit code +
 output tail); no valid line → error; only exit 0 + valid line is a success.
 
 Lifecycle (R3.5b): the active child's pid is kept in a module variable;
-`SIGINT`/`SIGTERM`/`SIGHUP`, stdin `end` and `exit` call `killActive()`
-(`process.kill(-pid, 'SIGKILL')`) and the signal handlers then `process.exit`.
+`exit` calls `killActive()`
+(`process.kill(-pid, 'SIGKILL')`); `SIGINT`/`SIGTERM`/`SIGHUP` and stdin `end` (while a run is active) and stdin end go through `shutdown()`: `SIGTERM` to the group, wait up to `KILL_GRACE_MS` for the run to end, then `killActive()` and `process.exit`. Only the synchronous `exit` handler kills at once.
 
 Stale results (R1.5): `parseHarnessOutput` also returns `atSeconds` (the `t+N` of
 the valid line) and `lastProgressSeconds(text)` the `t+N` of the last progress
 line of any kind; if the latter is larger the run is an error. `drive.mjs` exits 2
 when a progress evaluation fails.
 
-Cross-process lock (R3.5): only for the default `run.sh`; `out/harness.lock` is
+Cross-process lock (R3.5): for the default `run.sh` (or any script when `EXORCISE_HARNESS_LOCK` is set); `out/harness.lock` is
 published by `linkSync` of a private temp file holding the pid (atomic, never
 empty), stale when `process.kill(pid, 0)` throws ESRCH (or unparsable and older
 than 10 s; removal re-checks the owner first); released in `finally` and by
-`killActive` (signal handlers call `process.exit`, which skips `finally`). Custom scripts (tests) skip it.
+`killActive` (signal handlers call `process.exit`, which skips `finally`). Custom scripts (tests) skip it unless `EXORCISE_HARNESS_LOCK` names a lock file.
 
 Unknown argument properties are rejected by `validateRunArgs` (schema says
 `additionalProperties: false`).

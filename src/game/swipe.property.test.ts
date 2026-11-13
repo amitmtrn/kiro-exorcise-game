@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import fc from 'fast-check'
-import { estimateSwipe, mirrorPoints, centroid } from './swipe'
+import { estimateSwipe, mirrorPoints, centroid, SWIPE_MIN_SHIFT } from './swipe'
 
 const coord = fc.double({ min: -50, max: 400, noNaN: true })
 const pt = fc.record({ x: coord, y: coord })
@@ -21,6 +21,11 @@ describe('swipe estimation (properties)', () => {
     fc.assert(fc.property(pt, pt, pt, canvasH, (prev, cur, enemy, h) => {
       const W = 320
       const m = (p: { x: number; y: number }) => ({ x: W - p.x, y: p.y })
+      // Mirroring (W - x) rounds differently, so skip inputs sitting on a decision boundary
+      // (shift threshold, unit-vector epsilon) where `source` may legitimately flip.
+      const shift = Math.hypot(cur.x - prev.x, cur.y - prev.y)
+      const radial = Math.hypot(enemy.x - cur.x, enemy.y - cur.y)
+      fc.pre(Math.abs(shift - SWIPE_MIN_SHIFT * h) > 1e-6 && radial > 1e-6)
       const a = estimateSwipe(prev, cur, enemy, h)
       const b = estimateSwipe(m(prev), m(cur), m(enemy), h)
       expect(b.source).toBe(a.source)

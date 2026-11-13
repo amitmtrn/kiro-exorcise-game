@@ -1,6 +1,15 @@
-// Unit tests for the motion-harness MCP server (balancer spec). Chrome is never launched.
-import { describe, it, expect } from 'vitest'
-import { parseHarnessOutput, lastProgressSeconds, handleMessage, validateRunArgs, readStageConfig, evalSandboxed, acquireLock, ArgError } from './mcp-server.mjs'
+import { describe, it, expect, afterAll } from 'vitest'
+import { spawn } from 'node:child_process'
+import { createServer } from 'node:http'
+import { mkdtempSync, writeFileSync, chmodSync, rmSync, readFileSync, existsSync, utimesSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join, dirname } from 'node:path'
+import { fileURLToPath, pathToFileURL } from 'node:url'
+import { parseHarnessOutput, lastProgressSeconds, handleMessage, validateRunArgs, readStageConfig, evalSandboxed, acquireLock, killActive, runHarness, ArgError } from './mcp-server.mjs'
+
+const SERVER = join(dirname(fileURLToPath(import.meta.url)), 'mcp-server.mjs')
+const tmp = mkdtempSync(join(tmpdir(), 'mcp-test-'))
+afterAll(() => rmSync(tmp, { recursive: true, force: true }))
 
 const M = { frames: 1800, hits: 12, motionFrames: 400, maxMotion: 900, playFrames: 1500, firstPlayAtMs: 120, threshold: 24, highScoreSaved: '4200' }
 const line = (m, t = 5) => `t+${t}s ${JSON.stringify(m)}`
@@ -123,6 +132,23 @@ describe('acquireLock (R3.5)', () => {
   })
 })
 
+describe('lock release by killActive (R3.5b)', () => {
+  it('kills the run group and releases the lock', async () => {
+    const lock = join(tmp, 'ka', 'h.lock')
+    const marker = join(tmp, 'ka.pid')
+    const script = mockScript('ka.sh', `sleep 30 &\necho $! > "${marker}"\nwait`)
+    const run = runHarness({ mode: 'sweep', seconds: 10 }, { EXORCISE_HARNESS_SCRIPT: script, EXORCISE_HARNESS_LOCK: lock }).catch((e) => e)
+    for (let i = 0; i < 50 && !existsSync(marker); i++) await new Promise((r) => setTimeout(r, 100))
+    expect(readFileSync(lock, 'utf8')).toBe(String(process.pid))
+    killActive()
+    expect(existsSync(lock)).toBe(false) // released synchronously, before the run settles
+    expect(await run).toBeInstanceOf(Error)
+    const pid = Number(readFileSync(marker, 'utf8').trim())
+    await new Promise((r) => setTimeout(r, 200))
+    expect(() => process.kill(pid, 0)).toThrow()
+  })
+})
+
 describe('readStageConfig (R2)', () => {
   const cfg = readStageConfig()
   it('has the five stages with tuning fields', () => {
@@ -157,16 +183,6 @@ describe('readStageConfig (R2)', () => {
 })
 
 // ---------------------------------------------------------- spawned server (R3)
-import { spawn } from 'node:child_process'
-import { mkdtempSync, writeFileSync, chmodSync, rmSync, readFileSync, existsSync, utimesSync } from 'node:fs'
-import { tmpdir } from 'node:os'
-import { join, dirname } from 'node:path'
-import { fileURLToPath, pathToFileURL } from 'node:url'
-import { afterAll } from 'vitest'
-
-const SERVER = join(dirname(fileURLToPath(import.meta.url)), 'mcp-server.mjs')
-const tmp = mkdtempSync(join(tmpdir(), 'mcp-test-'))
-afterAll(() => rmSync(tmp, { recursive: true, force: true }))
 
 function mockScript(name, body) {
   const p = join(tmp, name)
@@ -327,6 +343,53 @@ describe('spawned MCP server', () => {
     await new Promise((r) => c.child.once('exit', r))
     await new Promise((r) => setTimeout(r, 300))
     expect(() => process.kill(pid, 0)).toThrow() // gone
+  })
+
+  it('a signal sends SIGTERM first so the harness cleanup trap runs (R3.5b)', async () => {
+    const mark = join(tmp, 'trap-ran')
+    const script = mockScript('trap.sh', `trap 'echo ran > "${mark}"; exit 143' TERM\nsleep 30 &\nwait`)
+    const c = client({ EXORCISE_HARNESS_SCRIPT: script })
+    c.request('tools/call', { name: 'run_harness', arguments: { mode: 'sweep', seconds: 10 } })
+    await new Promise((r) => setTimeout(r, 600))
+    c.child.kill('SIGTERM')
+    await new Promise((r) => c.child.once('exit', r))
+    expect(existsSync(mark)).toBe(true)
+  })
+
+  it('SIGKILLs a harness that ignores SIGTERM after the grace period (R3.5b)', async () => {
+    const marker = join(tmp, 'stubborn.pid')
+    const script = mockScript('stubborn.sh', `trap '' TERM\necho $$ > "${marker}"\nwhile true; do sleep 1; done`)
+    const c = client({ EXORCISE_HARNESS_SCRIPT: script })
+    c.request('tools/call', { name: 'run_harness', arguments: { mode: 'sweep', seconds: 10 } })
+    for (let i = 0; i < 50 && !existsSync(marker); i++) await new Promise((r) => setTimeout(r, 100))
+    const pid = Number(readFileSync(marker, 'utf8').trim())
+    c.child.kill('SIGTERM')
+    await new Promise((r) => c.child.once('exit', r))
+    await new Promise((r) => setTimeout(r, 300))
+    expect(() => process.kill(pid, 0)).toThrow()
+  }, 15_000)
+
+  it('run.sh refuses to start when the DevTools port already answers (R4.1a)', async () => {
+    const srv = createServer((_q, res) => res.end('[]'))
+    await new Promise((r) => srv.listen(0, '127.0.0.1', r))
+    const port = srv.address().port
+    const run = spawn('bash', [join(dirname(SERVER), 'run.sh'), 'sweep', '5'], { env: { ...process.env, PORT: String(port), DEV_PORT: '1' }, stdio: ['ignore', 'ignore', 'pipe'] })
+    let err = ''
+    run.stderr.on('data', (d) => { err += d })
+    const code = await new Promise((r) => run.once('exit', r))
+    srv.close()
+    expect(code).toBe(1)
+    expect(err).toMatch(/DevTools port \d+ is already in use/)
+  }, 30_000)
+
+  it('read_stage_config rejects arguments (R3.3)', async () => {
+    const r = await handleMessage({ jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name: 'read_stage_config', arguments: { x: 1 } } })
+    expect(r.result.isError).toBe(true)
+    expect(r.result.content[0].text).toMatch(/no arguments/)
+    for (const args of [undefined, {}]) {
+      const ok = await handleMessage({ jsonrpc: '2.0', id: 2, method: 'tools/call', params: { name: 'read_stage_config', arguments: args } })
+      expect(ok.result.isError).toBe(false)
+    }
   })
 
   it('killing the server with SIGHUP kills the running harness group (R3.5b)', async () => {

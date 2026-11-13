@@ -81,5 +81,18 @@ Files: `tools/motion-harness/run.sh`, `drive.mjs`, `mcp-server.mjs`, `.kiro/agen
 - [x] `npm test` and `npm run build` both clean.
 - [x] Commits: `fix(balancer): ...`
 
+## T10 — Third review fixes
+Files: `src/game/swipe.property.test.ts`, `tools/motion-harness/mcp-server.mjs`, `run.sh`, `.kiro/agents/balancer.json`, tests, this spec
+
+- [x] Flaky property test `swipe.property.test.ts` made deterministic: cases within 1e-6 of the swipe threshold / unit epsilon are skipped (`fc.pre`).
+- [x] Signals and stdin end send SIGTERM, then SIGKILL after the grace period (R3.5b); test that the harness's own trap runs.
+- [x] Lock release by `killActive` tested via `EXORCISE_HARNESS_LOCK` (R3.5b).
+- [x] `run.sh` refuses to start when the DevTools port already answers (R4.1a).
+- [x] `read_stage_config` rejects arguments (R3.3); test.
+- [x] Agent denies `out/*.tmp` and `out/*/**`; R6.2 states the unverified glob semantics honestly; T7 stays manual.
+- [x] `mcp-server.test.mjs` setup (tmp, imports) moved above first use.
+- [x] `npm test` and `npm run build` both clean.
+- [x] Commits: `fix(balancer): ...`
+
 ## T7 — Manual
 - [ ] In Kiro CLI: `kiro-cli chat --agent balancer`, ask for a balance report; confirm it runs the harness and writes `tools/motion-harness/out/balancer-report.md` without touching `src/`.

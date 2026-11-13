@@ -15,6 +15,9 @@ MODE=${1:-sweep}; SECS=${2:-55}; PORT=${PORT:-9333}; DEV=${DEV_PORT:-5173}
 CHROME=${CHROME:-google-chrome}
 OUT="$HERE/out"; mkdir -p "$OUT"
 
+# A leftover Chrome on the DevTools port would be attached to by drive.mjs: stale metrics.
+if curl -sf -o /dev/null "http://127.0.0.1:$PORT/json"; then echo "DevTools port $PORT is already in use; refusing to attach to it (set PORT)" >&2; exit 1; fi
+
 [ -f "$OUT/$MODE.y4m" ] || python3 -I "$HERE/make_y4m.py" "$MODE" "$OUT/$MODE.y4m"
 
 URL="http://127.0.0.1:$DEV/kiro-exorcise-game/"

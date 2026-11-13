@@ -82,7 +82,8 @@ returns `-32700`; stdout carries only protocol messages (logs go to stderr).
 - `run_harness { mode: "sweep" | "wave", seconds: integer 5–120 (default 30) }`
   runs `tools/motion-harness/run.sh <mode> <seconds>` and returns the parsed
   metrics as text content (JSON) plus `structuredContent`.
-- `read_stage_config {}` returns R2.1.
+- `read_stage_config {}` returns R2.1. Any argument is rejected with `isError: true`
+  (its schema says `additionalProperties: false`).
 
 **R3.4** Invalid arguments (unknown mode, `seconds` out of range or not an
 integer, extra shell-looking strings, **unknown properties**) return a tool result with
@@ -105,8 +106,12 @@ partial metrics are never returned (R1.3).
 
 **R3.5b** The server tracks the active run and kills its whole process group on
 `SIGINT`, `SIGTERM`, `SIGHUP`, stdin end and process `exit`, so a killed server
-never leaves Vite / Chrome behind, and the harness lock is released too. Each
-of SIGINT, SIGTERM, SIGHUP and stdin end is tested with a spawned server.
+never leaves Vite / Chrome behind, and the harness lock is released too. On a
+signal or stdin end the group first gets `SIGTERM` (so `run.sh`'s cleanup trap,
+including the profile-scoped `pkill`, runs) and `SIGKILL` after a 3 s grace
+period; only the synchronous `exit` handler sends `SIGKILL` at once. Each
+of SIGINT, SIGTERM, SIGHUP and stdin end is tested with a spawned server, and
+lock release by `killActive` is tested directly.
 
 **R3.2a** A message with `result` or `error` and no `method` (a client's reply
 to a server request) is ignored, not answered with `-32600`.
@@ -116,8 +121,10 @@ runtime package fetch (`run.sh` starts Vite with `npx --no-install`, so a
 missing `node_modules` fails instead of downloading). Two environment variables
 exist **for tests only** (unit tests never launch Chrome): `EXORCISE_HARNESS_SCRIPT`
 (script path; default is the repo's `run.sh`) and `EXORCISE_HARNESS_TIMEOUT_MS`
-(timeout override; default `seconds + 60 s`). They are not set in any `.kiro`
-config. A custom script bypasses the cross-process lock.
+(timeout override; default `seconds + 60 s`), plus `EXORCISE_HARNESS_LOCK` (lock
+file path; setting it makes even a custom script take the cross-process lock,
+which lets tests cover lock release). They are not set in any `.kiro`
+config. A custom script without `EXORCISE_HARNESS_LOCK` bypasses the lock.
 
 ---
 
@@ -126,6 +133,10 @@ config. A custom script bypasses the cross-process lock.
 **R4.1** Headless Chrome only loads the local Vite server
 (`http://127.0.0.1:<port>/…`): `run.sh` passes a host-resolver rule that makes
 every other host unresolvable.
+
+**R4.1a** `run.sh` refuses to start (non-zero exit) when the dev port already
+serves the game page **or** the DevTools port already answers, so a leftover
+Chrome can never be attached to by mistake and report plausible but stale metrics.
 
 **R4.2** The harness closes everything it started (Vite and Chrome, including
 their child processes) when it exits, on success, failure and signals.
@@ -164,12 +175,17 @@ file `tools/motion-harness/out/balancer-report.md` (git-ignored) and deny writes
 to `src/**`, `.kiro/**`, `.git/**`, `package*.json`, `.gitignore`, `README.md`,
 `index.html`, `vite.config.ts`, `tools/*.mjs`, `tools/motion-harness/*.*`, plus `.github/**`, `tsconfig*.json`,
 `LICENSE*`, `dist/**`, `node_modules/**`, `tools/*`, `tools/motion-harness/*` and the
-generated files in `out/` (`*.log`, `*.y4m`, `*.lock`, `*.json`, `profile-*/**`).
+generated files in `out/` (`*.log`, `*.y4m`, `*.lock`, `*.tmp`, `*.json`, `profile-*/**`, `*/**`).
 The deny globs are single-level where needed so the report in `out/` stays
 writable; a test checks that no deny glob matches the report path and that
 representative other files are all denied. Unmatched paths are not assumed denied,
-so the list covers every top-level entry and the tools directories. The agent therefore
-cannot edit game code, run `git commit` or `git push`.
+so the list covers every top-level entry and the tools directories. Kiro's glob
+semantics (whether `*` crosses `/`, and precedence of a specific allow over a deny)
+are **not verified** here; the test assumes single-level `*`. Paths that only a
+cross-directory glob would catch (for example a brand-new file in the repo root or a
+nested `tools/x/y.mjs`) are therefore not guaranteed denied by the rules alone; the
+prompt forbids them and T7 (manual) confirms the behaviour in Kiro. Nothing here
+gives the agent a shell, so it cannot run `git commit` or `git push`.
 
 **R6.3** `resources` point at the three steering docs and the `stages/` and
 `waves/` specs; `includeMcpJson` is `false` and the MCP server is declared

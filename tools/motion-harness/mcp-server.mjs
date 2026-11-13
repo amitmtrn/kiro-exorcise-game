@@ -142,6 +142,19 @@ export function killActive() {
 let activeRelease = null
 
 /**
+ * Signal / stdin-end path: SIGTERM first so run.sh's cleanup trap runs (it also
+ * pkills Chrome helpers that left the group), SIGKILL after KILL_GRACE_MS.
+ */
+export async function shutdown(graceMs = KILL_GRACE_MS) {
+  if (activePid !== null) {
+    try { process.kill(-activePid, 'SIGTERM') } catch { /* already gone */ }
+    const end = Date.now() + graceMs
+    while (activePid !== null && Date.now() < end) await new Promise((r) => setTimeout(r, 50))
+  }
+  killActive()
+}
+
+/**
  * Cross-process lock for the real harness (fixed ports). Returns a release fn, or throws ArgError.
  * The pid is written to a private temp file that is hard-linked into place, so
  * the lock file is never visible empty. An unparsable lock is treated as held
@@ -211,7 +224,8 @@ export async function runHarness(args, env = process.env) {
   const { mode, seconds } = validateRunArgs(args)
   if (running) throw new ArgError('a harness run is already in progress (fixed ports); try again when it finishes')
   const custom = env.EXORCISE_HARNESS_SCRIPT
-  const release = custom ? () => {} : acquireLock() // R3.5: lock across server processes
+  const lockFile = env.EXORCISE_HARNESS_LOCK // test-only: lets a custom script take the lock too
+  const release = custom && !lockFile ? () => {} : acquireLock(lockFile || LOCK_FILE) // R3.5: lock across server processes
   activeRelease = release
   running = true
   try {
@@ -278,7 +292,12 @@ const toolError = (message) => ({ content: [{ type: 'text', text: message }], is
 async function callTool(name, args, env) {
   try {
     if (name === 'run_harness') return toolResult(await runHarness(args, env))
-    if (name === 'read_stage_config') return toolResult(readStageConfig())
+    if (name === 'read_stage_config') {
+      if (args !== undefined && args !== null && (typeof args !== 'object' || Array.isArray(args) || Object.keys(args).length)) {
+        throw new ArgError('read_stage_config takes no arguments')
+      }
+      return toolResult(readStageConfig())
+    }
   } catch (e) {
     return toolError(e instanceof Error ? e.message : String(e))
   }
@@ -338,7 +357,7 @@ export function startServer(input, output, env = process.env) {
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   startServer(process.stdin, process.stdout)
   process.on('exit', killActive)
-  for (const sig of ['SIGINT', 'SIGTERM', 'SIGHUP']) process.on(sig, () => { killActive(); process.exit(0) })
-  process.stdin.on('end', killActive) // client went away: stop the run; the process ends once stdin is drained
+  for (const sig of ['SIGINT', 'SIGTERM', 'SIGHUP']) process.on(sig, () => { shutdown().finally(() => process.exit(0)) })
+  process.stdin.on('end', () => { shutdown() }) // client went away: stop the run; the process ends once stdin is drained
   console.error('motion-harness MCP server ready (stdio)')
 }
