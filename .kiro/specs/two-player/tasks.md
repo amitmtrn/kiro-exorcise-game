@@ -16,12 +16,12 @@ Files: `src/game/halves.ts`, `src/webcam/diff.ts`, `src/game/collision.ts`,
 Files: `src/game/step.ts`, `src/game/twoPlayer.ts`, `src/game/loop.ts`,
 `src/game/twoPlayer.test.ts`, `src/game/twoPlayer.property.test.ts`
 
-- [ ] Extract `stepSimulation` from `loop.ts` into `src/game/step.ts` (1P loop calls it; no behaviour change).
-- [ ] Create `src/game/twoPlayer.ts`: `createTwoPlayer`, shared clock, per-seat step (hit-stop, effects), out / cleared handling, phase sync, `advanceSession`, `winnerOf`.
-- [ ] Unit tests: independent lives / score / combo, out seat stops spawning while the other continues, out stays out next stage, boss per seat and cleared, shared stage clock, summary → next stage / final, both out → final, winner and tie.
-- [ ] Property tests: clock identical for both seats and independent of frame split; changes to one seat never alter the other.
-- [ ] `npm test` and `npm run build` both clean.
-- [ ] Commit: `feat(two-player-T2): per-seat simulation and shared-clock session`
+- [x] Extract `stepSimulation` from `loop.ts` into `src/game/step.ts` (1P loop calls it; no behaviour change).
+- [x] Create `src/game/twoPlayer.ts`: `createTwoPlayer`, shared clock, per-seat step (hit-stop, effects), out / cleared handling, phase sync, `advanceSession`, `winnerOf`.
+- [x] Unit tests: independent lives / score / combo, out seat stops spawning while the other continues, out stays out next stage, boss per seat and cleared, shared stage clock, summary → next stage / final, both out → final, winner and tie.
+- [x] Property tests: clock identical for both seats and independent of frame split; changes to one seat never alter the other.
+- [x] `npm test` and `npm run build` both clean.
+- [x] Commit: `feat(two-player-T2): per-seat simulation and shared-clock session`
 
 ## T3 — Mode selection
 Files: `src/game/playerMode.ts`, `src/game/loop.ts`, `src/main.ts`,

@@ -8,20 +8,12 @@ import { captureFrame, calibrateDiffThreshold, computeMotionMask, MOTION_W, MOTI
 import {
   createInitialState,
   tickTimer,
-  setEnemies,
   setParticles,
   setScoreLabels,
-  decrementLife,
-  resetCombo,
-  incrementMissed,
   saveHighScore,
-  tickShake,
 } from './state'
 import type { GameState } from './state'
-import { tickBoss } from './enemies/bossPhases'
-import { tickSpawners } from './enemies/spawn'
-import { moveEnemies, cullExitedEnemies } from './enemies/movement'
-import { splitReached } from './enemies/reach'
+import { stepSimulation, tickEffects } from './step'
 import { resolveHits, updateMotionPixels } from './collision'
 import { tickParticles, tickScoreLabels } from './particles'
 import { tickKnocks } from './knock'
@@ -42,9 +34,8 @@ import {
   startGame,
   retryStage,
   advanceToNextStage,
-  spawnBoss,
 } from './round'
-import { sfxLifeLost, sfxStageClear, startMusic, startTitleMusic, stopMusic, setMusicCombo } from '../audio/index'
+import { sfxStageClear, startMusic, startTitleMusic, stopMusic, setMusicCombo } from '../audio/index'
 
 let rafId = 0
 
@@ -96,14 +87,6 @@ export async function startLoop(
   let state: GameState = createInitialState(initialStage)
   let lastTimestamp = 0
   let prevPhase = state.phase
-
-  /** Keeps shake, particles and labels expiring on the summary / game-over screens. */
-  function tickEffects(s: GameState, ms: number): GameState {
-    s = tickShake(s, ms)
-    s = setParticles(s, tickParticles(s.particles, ms))
-    s = { ...s, knocks: tickKnocks(s.knocks, ms), callouts: tickCallouts(s.callouts, ms) }
-    return setScoreLabels(s, tickScoreLabels(s.scoreLabels, ms))
-  }
 
   function tick(timestamp: number): void {
     const deltaMs = lastTimestamp === 0 ? 16 : Math.min(timestamp - lastTimestamp, 100)
@@ -216,42 +199,7 @@ export async function startLoop(
     state = { ...state, hitStopMs: hs.remainingMs }
     const simMs = hs.liveMs
 
-    if (simMs > 0) {
-      // Screen shake counts down with elapsed time (set by resolveHits below)
-      state = tickShake(state, simMs)
-
-      // Stage 5: spawn boss once
-      if (state.stage === 5 && !state.bossActive) {
-        state = spawnBoss(state, displayW, displayH)
-      }
-
-      state = tickSpawners(state, simMs, displayW, displayH)
-
-      const movedEnemies = cullExitedEnemies(
-        moveEnemies(state.enemies, simMs, displayW, displayH),
-        displayW,
-        displayH,
-      )
-      state = setEnemies(state, movedEnemies)
-
-      // Enemies reaching their target cost a life (never in the bonus round, never flybys)
-      const { survivors, missed: missedCount } = splitReached(state.enemies, state.bonus, displayW, displayH)
-      state = setEnemies(state, survivors)
-      for (let i = 0; i < missedCount; i++) {
-        if (state.phase === 'gameover') break // nothing else happens after the last life
-        state = decrementLife(state)
-        state = resetCombo(state)
-        state = incrementMissed(state)
-        try { sfxLifeLost() } catch { /* audio not ready */ }
-      }
-
-      // Boss attacks: a lunge that lands costs a life (tickBoss resets the combo)
-      const livesBeforeBoss = state.lives
-      state = tickBoss(state, displayW, displayH)
-      if (state.lives < livesBeforeBoss) {
-        try { sfxLifeLost() } catch { /* audio not ready */ }
-      }
-    }
+    if (simMs > 0) state = stepSimulation(state, simMs, displayW, displayH)
 
     // Age effects *before* resolveHits so ones spawned this tick start at age 0
     // (identical pose through the freeze at any frame rate).
