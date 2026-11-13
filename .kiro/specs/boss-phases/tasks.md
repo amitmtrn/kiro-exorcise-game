@@ -1,13 +1,13 @@
 # Boss Phases — Tasks
 
 ## T1 — Boss phase state machine (pure)
-- [ ] Add `'victory'` to `GamePhase`; add boss fields (`bossPhase`, `bossAttack`, `bossTimerMs`, `summonTimerMs`, `bossInvulnMs`, `bossStrike`) to `Enemy` and `makeEnemy`.
-- [ ] Create `src/game/enemies/bossPhases.ts`: `PHASE_PARAMS`, `bossPhaseFor`, `isBossVulnerable`, `onBossHit`, `moveBoss`, `tickBoss`, `createMinion`.
-- [ ] `createBoss` initialises the new fields; `moveSingle` delegates boss movement to `moveBoss`; stage 5 `enemyMix.ghost = false`.
-- [ ] Unit tests: thresholds, every phase transition, attack cycle timing (600 / 350 ms wind-up), stagger, one strike per lunge, summons and caps, hit i-frames, vulnerability windows.
-- [ ] Property tests: phase monotone and consistent with health; timers frame-rate independent; boss stays in bounds.
-- [ ] `npm test` and `npm run build` both clean.
-- [ ] Commit: `feat(boss-phases-T1): 3-phase boss state machine`
+- [x] Add `'victory'` to `GamePhase`; add boss fields (`bossPhase`, `bossAttack`, `bossTimerMs`, `summonTimerMs`, `bossInvulnMs`, `bossStrike`) to `Enemy` and `makeEnemy`.
+- [x] Create `src/game/enemies/bossPhases.ts`: `PHASE_PARAMS`, `bossPhaseFor`, `isBossVulnerable`, `onBossHit`, `moveBoss`, `tickBoss`, `createMinion`.
+- [x] `createBoss` initialises the new fields; `moveSingle` delegates boss movement to `moveBoss`; stage 5 `enemyMix.ghost = false`.
+- [x] Unit tests: thresholds, every phase transition, attack cycle timing (600 / 350 ms wind-up), stagger, one strike per lunge, summons and caps, hit i-frames, vulnerability windows.
+- [x] Property tests: phase monotone and consistent with health; timers frame-rate independent; boss stays in bounds.
+- [x] `npm test` and `npm run build` both clean.
+- [x] Commit: `feat(boss-phases-T1): 3-phase boss state machine`
 
 ## T2 — Hit rules: shield, lunger wind-up, defeat ends the stage
 - [ ] Create `src/game/enemies/vulnerability.ts` (`isHittable`) and check it in `resolveHits` before the frame-diff gate (resets the hit gate when not hittable).

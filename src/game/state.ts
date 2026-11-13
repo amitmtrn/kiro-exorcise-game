@@ -16,6 +16,9 @@ export type EnemyType = 'ghost' | 'bat' | 'skull' | 'lunger' | 'pumpkin' | 'boss
 
 export type MovePhase = 'approach' | 'windup' | 'lunge'
 
+/** Boss attack cycle (boss-phases R3): idle → windup → lunge → recover → idle. */
+export type BossAttack = 'idle' | 'windup' | 'lunge' | 'recover'
+
 export interface Enemy {
   id: string
   type: EnemyType
@@ -36,6 +39,13 @@ export interface Enemy {
   hitsNeeded: number
   // Boss-specific
   bossHitsReceived: number
+  // Boss phases (boss-phases spec)
+  bossPhase: 1 | 2 | 3
+  bossAttack: BossAttack
+  bossTimerMs: number    // idle countdown / windup / recover remaining
+  summonTimerMs: number  // ms until next summon (counts down while idle)
+  bossInvulnMs: number   // post-hit i-frames
+  bossStrike: boolean    // set the tick a lunge lands; consumed by tickBoss
   // Skull-specific (feel-fix R2)
   onScreenMs: number // time the centre has been inside the canvas
   exiting: boolean   // skull is leaving the screen
@@ -63,7 +73,7 @@ export interface ScoreLabel {
   vy: number       // px per frame (negative = upward)
 }
 
-export type GamePhase = 'start' | 'stageTitle' | 'playing' | 'summary' | 'gameover'
+export type GamePhase = 'start' | 'stageTitle' | 'playing' | 'summary' | 'gameover' | 'victory'
 
 export interface SpawnTimers {
   ghost: number
@@ -124,6 +134,12 @@ export function makeEnemy(partial: Partial<Enemy> & Pick<Enemy, 'id' | 'type' | 
     hitsReceived: 0,
     hitsNeeded: 1,
     bossHitsReceived: 0,
+    bossPhase: 1,
+    bossAttack: 'idle',
+    bossTimerMs: 0,
+    summonTimerMs: 0,
+    bossInvulnMs: 0,
+    bossStrike: false,
     hitFlashFrames: 0,
     onScreenMs: 0,
     exiting: false,

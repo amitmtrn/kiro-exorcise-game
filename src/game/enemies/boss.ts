@@ -23,5 +23,6 @@ export function createBoss(canvasW: number, canvasH: number): Enemy {
     hitCount: 0,
     bossHitsReceived: 0,
     hitsNeeded: BOSS_HITS_NEEDED,
+    summonTimerMs: 3000,
   })
 }

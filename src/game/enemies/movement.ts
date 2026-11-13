@@ -10,6 +10,7 @@ import { SKULL_SIZE, SKULL_ON_SCREEN_MS, SKULL_EXIT_SPEED_MULT } from './skull'
 import { LUNGER_SIZE, WINDUP_DURATION_MS } from './lunger'
 import { PUMPKIN_SIZE } from './pumpkin'
 import { BOSS_SIZE } from './boss'
+import { moveBoss } from './bossPhases'
 
 /** Sine phase rate, rad/s (the old per-frame step × 60). */
 const GHOST_WOBBLE_RATE = 3.6
@@ -74,6 +75,7 @@ export function cullExitedEnemies(enemies: Enemy[], canvasW: number, canvasH: nu
 }
 
 function moveSingle(enemy: Enemy, deltaMs: number, canvasW: number, canvasH: number): Enemy {
+  if (enemy.type === 'boss') return moveBoss(enemy, deltaMs, canvasW, canvasH)
   if (enemy.type === 'lunger') return moveLunger(enemy, deltaMs, canvasH)
   if (enemy.type === 'skull') enemy = tickSkull(enemy, deltaMs, canvasW, canvasH)
 
@@ -96,7 +98,7 @@ function moveSingle(enemy: Enemy, deltaMs: number, canvasW: number, canvasH: num
     newX += px * lateral
     newY += py * lateral
   }
-  // skull, pumpkin, boss — straight line
+  // skull, pumpkin — straight line
 
   const hitbox = hitboxFor(enemy.type, newX, newY)
   return { ...enemy, x: newX, y: newY, hitbox, sineOffset: newSineOffset }

@@ -4,7 +4,8 @@ import { moveEnemies } from './movement'
 import { makeEnemy } from '../state'
 import type { Enemy } from '../state'
 
-const STRAIGHT = ['pumpkin', 'skull', 'boss'] as const
+// The boss has its own state machine (bossPhases.property.test.ts).
+const STRAIGHT = ['pumpkin', 'skull'] as const
 const WOBBLY = ['ghost', 'bat'] as const
 
 const scenarioArb = fc.record({
