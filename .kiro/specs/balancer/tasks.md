@@ -52,9 +52,9 @@ Metrics (real run, 2026-11-13, via the MCP server `tools/call run_harness {mode:
 Reading: detection works (7 hits, motion on 93 % of ticks, auto-calibrated threshold 15, game left the menu after Space at ~3 s). `highScoreSaved` is null because a 30 s run ends before the stage-1 summary (45 s); the 55 s default would save one. After the run no `vite` / Chrome process and nothing on ports 5173 / 9333 remained (R4.2).
 
 ## T6 — Docs
-- [ ] README: "Balancer agent and motion-harness MCP server" section, spec table row and count, structure entries, test count (`node tools/sync-readme-tests.mjs`); `tools/motion-harness/README.md` pointer.
-- [ ] `npm test` and `npm run build` both clean.
-- [ ] Commit: `docs(balancer-T6): README and harness docs`
+- [x] README: "Balancer agent and motion-harness MCP server" section, spec table row and count, structure entries, test count (`node tools/sync-readme-tests.mjs`); `tools/motion-harness/README.md` pointer.
+- [x] `npm test` and `npm run build` both clean.
+- [x] Commit: `docs(balancer-T6): README and harness docs`
 
 ## T7 — Manual
 - [ ] In Kiro CLI: `kiro-cli chat --agent balancer`, ask for a balance report; confirm it runs the harness and writes `tools/motion-harness/out/balancer-report.md` without touching `src/`.

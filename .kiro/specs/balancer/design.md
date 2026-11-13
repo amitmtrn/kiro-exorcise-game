@@ -55,9 +55,9 @@ result `{ stages: STAGES, bonusRound: BONUS_ROUND }` is passed through
 ## run.sh changes (R4)
 - Chrome gets `--host-resolver-rules="MAP * ~NOTFOUND , EXCLUDE 127.0.0.1"` so
   nothing but loopback resolves (no component updates, no telemetry, no CDN).
-- Vite is started with `setsid`-free process-group handling replaced by
-  tracking: the EXIT trap kills Vite and Chrome **and their children**
-  (`pkill -P`), then waits for them. Verified after a real run with
+- The EXIT trap (`cleanup`) kills Vite and Chrome **and their children**
+  (`kill_tree` over `pgrep -P`), then a last-resort `pkill` scoped to this run's
+  `--user-data-dir`, then waits. Verified after a real run with
   `pgrep -af "profile-|vite"` (must be empty).
 
 ## Config files

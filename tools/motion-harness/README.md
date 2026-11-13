@@ -24,3 +24,7 @@ while playing), `threshold` (auto-calibrated diff threshold), `highScoreSaved`.
 
 Requirements: `python3` + `numpy`, `google-chrome` (override with `CHROME=`),
 Node ≥ 22. Generated videos and browser profiles land in `out/` (git-ignored).
+
+## MCP server and `balancer` agent
+
+`mcp-server.mjs` exposes `run_harness` and `read_stage_config` to Kiro over stdio (registered in `.kiro/settings/mcp.json`); the report-only `balancer` agent uses them to propose tuning changes. See the README section "Balancer agent and motion-harness MCP server" and `.kiro/specs/balancer/`. Chrome is restricted to loopback (`--host-resolver-rules`) and Vite and Chrome are closed when the run ends.

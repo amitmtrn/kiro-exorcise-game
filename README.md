@@ -25,7 +25,7 @@ npm run dev
 
 | Command | What it does |
 |---|---|
-| `npm test` | Run all 642 unit tests (Vitest) |
+| `npm test` | Run all 689 unit tests (Vitest) |
 | `npm run build` | Production build → `dist/` |
 | `npm run preview` | Preview the production build locally |
 
@@ -87,10 +87,11 @@ Every feature was planned as a Kiro spec before implementation:
 | `waves/` | Data-driven wave scripts (line / arc / flyby / drop / swarm paths), per-stage intensity curves, harmless candy bonus round |
 | `juice/` | Swipe-direction estimate from the motion mask, knock-back with spin and fade, 60 ms hit-stop, combo call-outs, stage intro / outro animations |
 | `music-v2/` | 3-voice procedural sequencer (bass, noise drums, lead) on a look-ahead scheduler, combo-tier layers, title and boss themes, real 0.5 s crossfade |
+| `balancer/` | Local stdio MCP server for the motion harness and a report-only `balancer` playtest-tuner agent |
 
 Each spec has `requirements.md`, `design.md`, and `tasks.md`. Writing requirements and design before tasks surfaced design gaps (e.g. skull penalty rules, hitbox coordinate system, mirror parity bug) that would have been painful to fix mid-implementation.
 
-All fourteen specs are implemented. Every task in `tasks.md` is ticked except the manual smoke tests (a webcam playthrough, the music-v2 listening test, enabling GitHub Pages in the repo settings), and `boss-combo/` carries a status note explaining it was superseded by `stages/`.
+All fifteen specs are implemented. Every task in `tasks.md` is ticked except the manual smoke tests (a webcam playthrough, the music-v2 listening test, enabling GitHub Pages in the repo settings), and `boss-combo/` carries a status note explaining it was superseded by `stages/`.
 
 ### Kiro hooks (`.kiro/hooks/`)
 Standalone `v1` hook files, loaded by Kiro IDE and Kiro CLI V3. Spec: `.kiro/specs/hooks/`.
@@ -104,6 +105,20 @@ Standalone `v1` hook files, loaded by Kiro IDE and Kiro CLI V3. Spec: `.kiro/spe
 Matchers are not anchored to the repo root. If Kiro passes absolute paths and the checkout itself lives under a `src/` directory, every save would run `npm test`; under a `node_modules/` directory all three hooks would be skipped. Keep the checkout out of such paths.
 
 The original `test-on-save.json` never fired (no `version`, camelCase `postToolUse` trigger); it was rewritten in the current format.
+
+### Balancer agent and motion-harness MCP server
+Spec: `.kiro/specs/balancer/`. The [motion harness](tools/motion-harness/README.md) is exposed to Kiro as a **local stdio MCP server** (`tools/motion-harness/mcp-server.mjs`, plain Node ≥ 22, no dependencies, no network listener), registered in `.kiro/settings/mcp.json` with a relative path and no env or secrets.
+
+| Tool | What it does |
+|---|---|
+| `run_harness { mode: "sweep" \| "wave", seconds: 5–120 }` | Runs `tools/motion-harness/run.sh` (headless Chrome, synthetic webcam, loopback only) and returns `frames`, `hits`, `motionFrames`, `maxMotion`, `playFrames`, `firstPlayAtMs`, `threshold`, `highScoreSaved`. One run at a time; killed after `seconds + 60 s`. |
+| `read_stage_config {}` | Returns the live `STAGES` / wave scripts / bonus round, read from `src/game/stages.ts` and `waves.ts` at call time. |
+
+The **`balancer`** agent (`.kiro/agents/balancer.json`, validated with `kiro-cli agent validate`) uses those tools to run the harness and writes a *proposal report* of `stages.ts` / `waves.ts` value changes to `tools/motion-harness/out/balancer-report.md` (git-ignored). It has `read`, `write` and `@motion-harness` only: no shell, so it cannot commit or push, and writes to `src/`, `.kiro/`, `package*.json` and `.gitignore` are denied. The synthetic hand is not a player, so every proposal is a hypothesis for a real webcam playtest.
+
+```bash
+kiro-cli chat --agent balancer
+```
 
 ### What worked well
 - Steering docs meant zero "what stack are we using?" back-and-forth — Kiro knew the constraints from turn one.
@@ -184,11 +199,17 @@ src/
     waves/              Wave scripts, intensity curves, bonus round spec
     juice/              Swipe knock-back, hit-stop, combo call-outs, stage intro / outro spec
     music-v2/           3-voice look-ahead music sequencer spec
+    balancer/           Harness MCP server + balancer agent spec
+  settings/mcp.json     Workspace MCP registration (motion-harness, stdio, relative path)
+  agents/balancer.json  Report-only playtest-tuner agent
   hooks/                test-on-save.json, spec-drift-check.json, readme-test-count.json (save/create/delete)
 tools/
   sync-readme-tests.mjs Run tests and sync the README test count (used by a hook)
   sync-readme-tests.test.mjs Unit tests for the sync script's pure functions
   hooks.test.mjs        Structural + matcher tests for .kiro/hooks/*.json
+  balancer-config.test.mjs  MCP / agent config checks (no secrets, local only, restricted tools)
+  motion-harness/
+    mcp-server.mjs      stdio MCP server: run_harness, read_stage_config (+ unit and property tests)
 ```
 
 ## License
