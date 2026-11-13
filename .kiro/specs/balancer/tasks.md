@@ -3,11 +3,11 @@
 ## T1 — Metric parsing and stage config reader (pure)
 Files: `tools/motion-harness/mcp-server.mjs`, `tools/motion-harness/mcp-server.test.mjs`, `tools/motion-harness/mcp-server.property.test.mjs`
 
-- [ ] `parseHarnessOutput`, `validateRunArgs`, `readStageConfig` exported from `mcp-server.mjs` (no side effects on import).
-- [ ] Unit tests: parsing (valid, noise, last line wins, wrong types, no metrics, truncated JSON), arg validation, stage config shape against the live sources.
-- [ ] Property tests: parse round-trip with arbitrary noise; `validateRunArgs` domain and shell-metacharacter rejection.
-- [ ] `npm test` and `npm run build` both clean.
-- [ ] Commit: `feat(balancer-T1): harness metric parser and stage config reader`
+- [x] `parseHarnessOutput`, `validateRunArgs`, `readStageConfig` exported from `mcp-server.mjs` (no side effects on import).
+- [x] Unit tests: parsing (valid, noise, last line wins, wrong types, no metrics, truncated JSON), arg validation, stage config shape against the live sources.
+- [x] Property tests: parse round-trip with arbitrary noise; `validateRunArgs` domain and shell-metacharacter rejection.
+- [x] `npm test` and `npm run build` both clean.
+- [x] Commit: `feat(balancer-T1): harness metric parser and stage config reader`
 
 ## T2 — JSON-RPC stdio server and tools
 Files: `tools/motion-harness/mcp-server.mjs`, `tools/motion-harness/mcp-server.test.mjs`
