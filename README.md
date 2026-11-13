@@ -138,13 +138,17 @@ src/
                         boss health bar, debug overlay (D key)
     enemies/
       ghost.ts / bat.ts / skull.ts / lunger.ts / pumpkin.ts / boss.ts
+      bossPhases.ts     3-phase boss behaviour
+      vulnerability.ts  Per-enemy vulnerability windows
       movement.ts       Per-type movement + lunge phase machine; hitboxes +20%
       spawn.ts          Stage-aware spawn timers
   ui/
     hud.ts              Hearts, timer, stage, score, combo (pulse), mute button —
                         outlined glow text, clamp(W/20, 24, 48) font
     motionButton.ts     Wave-to-press buttons driven by frame differencing
-    screens.ts          Start, stage title, summary (stars), game over, webcam error
+    screens.ts          Start, stage title, summary (stars), victory, game over, webcam error
+  test/
+    prng.ts             Seeded PRNG for deterministic tests
   audio/
     context.ts          AudioContext singleton, master gain, mute / volume
     sfx.ts              8 procedural Web Audio sound effects
@@ -155,6 +159,7 @@ src/
     mvp/                requirements.md, design.md, tasks.md
     deploy/             GitHub Pages CI/CD spec
     hit-detection-fix/  P0 swatting fix spec
+    feel-fix/           Game-feel fixes spec
     boss-combo/         Boss ghost + combo spec (superseded by stages/)
     stages/             5-stage Kung Foo-style progression spec
     audio/              Procedural music + SFX spec

@@ -45,7 +45,7 @@ Files: `tools/sync-readme-tests.mjs`, `tools/sync-readme-tests.test.mjs`, `tools
 - [x] Matchers: test-on-save skips `*.test.ts` (no double run) and `node_modules/`; readme-test-count skips `node_modules/`; matcher tests added.
 - [x] Structural test checks `action` is an object, `timeout` positive integer, `enabled` boolean.
 - [x] `kiro-cli agent validate` evidence: kiro-cli 3.3.0, a temp agent `{name, hooks}` built from each of the three hook files exited 0 with no output; control inputs (bad JSON, `"hooks":"x"`) exit 1. Temp file deleted. Validation is lenient, so the structural test stays the main guard.
-- [x] README: `hooks/` row in specs table, "nine specs", hook matcher notes.
+- [x] README: `hooks/` row in specs table, "nine specs" (superseded: now eleven, see T8), hook matcher notes.
 - [x] Not covered by unit tests: the CLI `main()` wrapper (spawns Vitest; testing it inside Vitest would recurse). Its decisions live in the tested pure functions.
 - [x] Run `npm test`, `npm run build`, `node tools/sync-readme-tests.mjs --check`; all clean.
 - [x] Commit: `fix(hooks): harden README sync, tighten matchers, record CLI validation`
@@ -74,3 +74,13 @@ Files: `.kiro/hooks/readme-test-count.json`, `tools/*.mjs`, `README.md`, specs
 - [x] Load-failure message mentions `beforeAll`/`afterAll` throws.
 - [x] Run `npm test`, `npm run build`, `node tools/sync-readme-tests.mjs`; all clean.
 - [x] Commit: `fix(hooks): doc/spec sync, create hook, absolute-path test`
+
+## T8 — Fourth review fixes
+Files: `tools/sync-readme-tests.mjs`, `tools/hooks.test.mjs`, `README.md`, specs
+
+- [x] Hooks test asserts the `npm test` timeout of 120 (R2.2) and the drift prompt's unticked, manual and no-commit/push wording (R3.3-R3.5).
+- [x] `sync-readme-tests.mjs` rejects unknown arguments (exit 2) instead of falling through to write mode.
+- [x] T5 "nine specs" annotated as superseded.
+- [x] README tree lists `bossPhases.ts`, `vulnerability.ts`, `src/test/prng.ts`, `specs/feel-fix/` and the victory screen.
+- [x] Run `npm test`, `npm run build`; all clean.
+- [x] Commit: `fix(hooks): reject unknown flags, tighten hook tests, README tree`

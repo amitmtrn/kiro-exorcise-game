@@ -78,6 +78,7 @@ describe('test-on-save matcher (R2)', () => {
     const h = load('test-on-save.json').hooks[0]
     expect(h.trigger).toBe('PostFileSave')
     expect(h.action).toEqual({ type: 'command', command: 'npm test' })
+    expect(h.timeout).toBe(120)
   })
 })
 
@@ -101,6 +102,9 @@ describe('spec-drift-check (R3)', () => {
     expect(p).toMatch(/git log/)
     expect(p).toMatch(/REPORT ONLY/)
     expect(p).toMatch(/do not edit/i)
+    expect(p).toMatch(/do not commit or push/i)
+    expect(p).toMatch(/unticked/i)
+    expect(p).toMatch(/manual - not checkable/i)
   })
 })
 

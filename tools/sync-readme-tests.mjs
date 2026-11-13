@@ -52,7 +52,13 @@ function main() {
   const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
   const readmePath = join(root, 'README.md')
   const report = join(tmpdir(), `exorcise-vitest-${process.pid}.json`)
-  const check = process.argv.includes('--check')
+  const args = process.argv.slice(2)
+  const unknown = args.filter((a) => a !== '--check')
+  if (unknown.length > 0) {
+    console.error(`Unknown argument(s): ${unknown.join(' ')}. Usage: sync-readme-tests.mjs [--check]`)
+    process.exit(2)
+  }
+  const check = args.includes('--check')
 
   rmSync(report, { force: true }) // never read a stale report
   const run = spawnSync(
