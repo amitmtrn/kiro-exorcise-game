@@ -12,7 +12,8 @@ import { toggleMute, getAudioContext } from './audio/index'
 import { installAudioUnlock } from './audio/unlock'
 import { modeForKey } from './game/playerMode'
 import { loadTitleFont } from './ui/fonts'
-import { hudFontSize, muteButtonRect } from './ui/hud'
+import { hudFontSize, muteButtonRect, muteButtonRect2P } from './ui/hud'
+import { isTwoPlayerActive } from './game/loop'
 
 const webcamCanvas = document.getElementById('webcam-canvas') as HTMLCanvasElement
 const gameCanvas   = document.getElementById('game-canvas') as HTMLCanvasElement
@@ -58,7 +59,9 @@ document.addEventListener('keydown', (e) => {
 // Tap / click on the HUD mute button (top-right) toggles audio too.
 // Canvas pixel size equals its CSS size, so client coords map 1:1.
 gameCanvas.addEventListener('pointerdown', (e) => {
-  const r = muteButtonRect(gameCanvas.width, hudFontSize(gameCanvas.width))
+  // Two-player: one shared mute button at the top centre (the 1P one is top-right).
+  const fs = hudFontSize(gameCanvas.width)
+  const r = isTwoPlayerActive() ? muteButtonRect2P(gameCanvas.width, fs) : muteButtonRect(gameCanvas.width, fs)
   if (e.clientX >= r.x && e.clientX <= r.x + r.w && e.clientY >= r.y && e.clientY <= r.y + r.h) {
     toggleMute()
   }

@@ -84,3 +84,14 @@ export function pickWinner(a: number, b: number): Seat | 'tie' {
   if (a === b) return 'tie'
   return a > b ? 0 : 1
 }
+
+/** Display-space points that fall in `seat`'s half, with x made relative to the half. */
+export function displayPointsInHalf(points: Pt[], seat: Seat, displayW: number): Pt[] {
+  const hw = halfWidth(displayW)
+  const from = seat * hw
+  const out: Pt[] = []
+  for (const p of points) {
+    if (p.x >= from && p.x < from + hw) out.push({ x: p.x - from, y: p.y })
+  }
+  return out
+}

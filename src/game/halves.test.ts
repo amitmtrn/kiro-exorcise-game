@@ -106,3 +106,12 @@ describe('pickWinner', () => {
     expect(pickWinner(0, 0)).toBe('tie')
   })
 })
+
+import { displayPointsInHalf } from './halves'
+describe('displayPointsInHalf', () => {
+  it('keeps the seat\'s display points with half-local x', () => {
+    const pts = [{ x: 100, y: 5 }, { x: 639, y: 6 }, { x: 640, y: 7 }, { x: 1279, y: 8 }]
+    expect(displayPointsInHalf(pts, 0, 1280)).toEqual([{ x: 100, y: 5 }, { x: 639, y: 6 }])
+    expect(displayPointsInHalf(pts, 1, 1280)).toEqual([{ x: 0, y: 7 }, { x: 639, y: 8 }])
+  })
+})

@@ -14,9 +14,16 @@ vi.mock('../webcam/diff', () => ({
   calibrateDiffThreshold: () => h.calibrate(),
   computeMotionMask: () => ({ changed: false }),
 }))
-vi.mock('./collision', () => ({ updateMotionPixels: vi.fn(), resolveHits: vi.fn() }))
+vi.mock('./collision', () => ({ updateMotionPixels: vi.fn(), resolveHits: vi.fn(), lastMotionPixels: [] }))
 vi.mock('./render', () => ({ renderFrame: (_c: unknown, s: { phase: string }) => { h.phases.push(s.phase) } }))
-vi.mock('../ui/hud', () => ({ renderHUD: vi.fn(), hudFontSize: () => 16, HUD_FONT_FAMILY: 'x' }))
+vi.mock('../ui/hud', () => ({
+  renderHUD: vi.fn(), hudFontSize: () => 16, HUD_FONT_FAMILY: 'x',
+  createHudPulse: () => ({ lastCombo: 1, start: 0 }), drawMuteButton: vi.fn(), muteButtonRect2P: () => ({ x: 0, y: 0, w: 1, h: 1 }),
+}))
+vi.mock('../ui/splitscreen', () => ({
+  drawDivider: vi.fn(), drawSeatOverlay: vi.fn(), renderTwoPlayerSummary: vi.fn(),
+  renderTwoPlayerFinal: vi.fn(), resetFinalScreen: vi.fn(),
+}))
 vi.mock('../ui/screens', () => ({
   renderStartScreen: (_c: unknown, _s: unknown, _n: unknown, cb: (m: 1 | 2) => void) => { h.onStart = cb }, renderStageTitle: vi.fn(), renderSummary: vi.fn(),
   renderGameOver: vi.fn(), renderVictory: vi.fn(), resetVictoryScreen: vi.fn(),
@@ -105,6 +112,30 @@ describe('mode selection on the start screen (two-player R6)', () => {
     requestStart(2)
     frame(48)
     expect(getPlayerMode()).toBe(1)
+    stop()
+  })
+})
+
+describe('two-player entry (two-player R6, R7)', () => {
+  it('2 PLAYERS renders two seats per tick (title cards) instead of the 1P state machine', async () => {
+    const stop = await startLoop({} as HTMLVideoElement, ctx(), ctx())
+    frame(16)
+    requestStart(2)
+    frame(32) // start branch consumes the request and creates the session
+    const before = h.phases.length
+    frame(48) // 2P branch: one frame per seat
+    expect(h.phases.slice(before)).toEqual(['stageTitle', 'stageTitle'])
+    stop()
+  })
+
+  it('1 PLAYER renders exactly one frame per tick as before', async () => {
+    const stop = await startLoop({} as HTMLVideoElement, ctx(), ctx())
+    frame(16)
+    requestStart(1)
+    frame(32)
+    const before = h.phases.length
+    frame(48)
+    expect(h.phases.length - before).toBe(1)
     stop()
   })
 })

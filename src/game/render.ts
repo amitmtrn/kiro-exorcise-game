@@ -34,10 +34,19 @@ const C_BOSS_ENRAGED = '#c0392b'
 
 // ─── Main entry ───────────────────────────────────────────────────────────────
 
+/** Per-view inputs a two-player seat supplies instead of the single-player module globals. */
+export interface RenderOpts {
+  /** Enemies banished this tick (white flash frame). Default: `lastBanished`. */
+  banished?: Enemy[]
+  /** Moved pixels for the debug overlay, in this canvas's coordinates. Default: `lastMotionPixels`. */
+  motionPixels?: Array<{ x: number; y: number }>
+}
+
 export function renderFrame(
   ctx: CanvasRenderingContext2D,
   state: GameState,
   now: number,
+  opts: RenderOpts = {},
 ): void {
   ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height)
 
@@ -65,7 +74,7 @@ export function renderFrame(
   // Enemies banished this frame are gone from state but flash white once;
   // drawn after the knocks so the flash is not covered by the knock's first frame.
   if (state.phase === 'playing') {
-    for (const enemy of lastBanished) drawEnemy(whiteCtx, enemy, now)
+    for (const enemy of opts.banished ?? lastBanished) drawEnemy(whiteCtx, enemy, now)
   }
 
   for (const p of state.particles) drawParticle(ctx, p)
@@ -85,7 +94,7 @@ export function renderFrame(
     ctx.restore()
   }
 
-  if (debugMode) drawDebugOverlay(ctx, state, now)
+  if (debugMode) drawDebugOverlay(ctx, state, now, opts.motionPixels ?? lastMotionPixels)
 
   ctx.restore() // undo shake translate
 }
@@ -501,7 +510,9 @@ function drawCallout(ctx: CanvasRenderingContext2D, c: Callout): void {
 }
 
 // ─── Debug overlay ────────────────────────────────────────────────────────────
-function drawDebugOverlay(ctx: CanvasRenderingContext2D, state: GameState, now: number): void {
+function drawDebugOverlay(
+  ctx: CanvasRenderingContext2D, state: GameState, now: number, motionPixels: Array<{ x: number; y: number }>,
+): void {
   ctx.save()
   for (const enemy of state.enemies) {
     const inGrace = now - enemy.spawnedAt < 300
@@ -515,7 +526,7 @@ function drawDebugOverlay(ctx: CanvasRenderingContext2D, state: GameState, now: 
     ctx.fillText(`hc:${enemy.hitCount}`, enemy.hitbox.x + 2, enemy.hitbox.y + 12)
   }
   ctx.fillStyle = 'rgba(255,255,255,0.85)'
-  for (const mp of lastMotionPixels) ctx.fillRect(mp.x-1, mp.y-1, 3, 3)
+  for (const mp of motionPixels) ctx.fillRect(mp.x-1, mp.y-1, 3, 3)
   ctx.fillStyle = 'rgba(255,255,0,0.9)'
   ctx.font = 'bold 12px monospace'
   ctx.fillText('DEBUG [D]', 8, ctx.canvas.height - 8)

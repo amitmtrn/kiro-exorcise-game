@@ -14,13 +14,19 @@ import {
 } from './state'
 import type { GameState } from './state'
 import { stepSimulation, tickEffects } from './step'
-import { resolveHits, updateMotionPixels } from './collision'
+import { resolveHits, updateMotionPixels, lastMotionPixels } from './collision'
 import { tickParticles, tickScoreLabels } from './particles'
 import { tickKnocks } from './knock'
 import { splitHitStop } from './hitstop'
 import { tickCallouts } from './callouts'
 import { renderFrame } from './render'
-import { renderHUD, hudFontSize, HUD_FONT_FAMILY } from '../ui/hud'
+import { renderHUD, hudFontSize, HUD_FONT_FAMILY, createHudPulse, drawMuteButton, muteButtonRect2P } from '../ui/hud'
+import type { HudPulse } from '../ui/hud'
+import { drawDivider, drawSeatOverlay, renderTwoPlayerSummary, renderTwoPlayerFinal, resetFinalScreen } from '../ui/splitscreen'
+import { createTwoPlayer, tickTwoPlayer, advanceSession, seatStatus } from './twoPlayer'
+import type { TwoPlayerState } from './twoPlayer'
+import { SEATS, halfOffset, displayPointsInHalf } from './halves'
+import type { Seat } from './halves'
 import {
   renderStartScreen,
   renderStageTitle,
@@ -40,6 +46,10 @@ import type { PlayerMode, StartRequest } from './playerMode'
 import { sfxStageClear, startMusic, startTitleMusic, stopMusic, setMusicCombo } from '../audio/index'
 
 let rafId = 0
+
+/** True while a two-player game is on screen (main.ts uses it to place the mute tap target). */
+let twoPlayerActive = false
+export function isTwoPlayerActive(): boolean { return twoPlayerActive }
 
 // Keyboard fallback for the motion START button — the start screen says
 // "Press Space". main.ts calls requestStart(); the start branch consumes it.
@@ -91,10 +101,88 @@ export async function startLoop(
   let lastTimestamp = 0
   let prevPhase = state.phase
 
+  // ── Two-player session (two-player spec). `two` is non-null while a 2P game is on screen. ──
+  let two: TwoPlayerState | null = null
+  let prevTwoPhase: TwoPlayerState['phase'] | null = null
+  const halfCanvases: HTMLCanvasElement[] = []
+  const pulses: HudPulse[] = [] // created on first use per seat
+
   /** Start a game in `mode` (remembered for the session). */
   function begin(mode: PlayerMode): void {
     setPlayerMode(mode)
-    state = startGame(state) // two-player entry point is added in two-player T4
+    if (mode === 2) {
+      two = createTwoPlayer()
+      prevTwoPhase = null
+    } else {
+      state = startGame(state)
+    }
+  }
+
+  /** Back to the title screen from the two-player end screen. */
+  function toMenu(): void {
+    two = null
+    prevTwoPhase = null
+    state = createInitialState(1)
+    prevPhase = state.phase
+    try { stopMusic() } catch { /* ignore */ }
+  }
+
+  function halfCtx(seat: Seat, w: number, h: number): CanvasRenderingContext2D {
+    let c = halfCanvases[seat]
+    if (!c) { c = document.createElement('canvas'); halfCanvases[seat] = c }
+    if (c.width !== w) c.width = w
+    if (c.height !== h) c.height = h
+    return c.getContext('2d')!
+  }
+
+  /** One tick of a two-player game: simulate both seats, then draw the halves, divider and overlays. */
+  function tickTwo(t: TwoPlayerState, deltaMs: number, now: number, W: number, H: number,
+    cur: ImageData, prev: ImageData, frameIsNew: boolean): TwoPlayerState {
+    const motion = t.phase === 'playing' ? { cur, prev, frameIsNew, now } : null
+    t = tickTwoPlayer(t, deltaMs, W, H, motion)
+
+    // Phase hooks (music / sfx), once per transition
+    if (prevTwoPhase !== t.phase) {
+      try {
+        if (t.phase === 'playing') startMusic(t.stage)
+        else if (t.phase === 'summary') { sfxStageClear(); stopMusic() }
+        else if (t.phase === 'final') { resetFinalScreen(); sfxStageClear(); stopMusic() }
+      } catch { /* ignore */ }
+      prevTwoPhase = t.phase
+    }
+    if (t.phase === 'playing') {
+      try { setMusicCombo(Math.max(...t.seats.filter((s) => s.phase === 'playing').map((s) => s.combo), 1)) } catch { /* ignore */ }
+    }
+
+    gameCtx.clearRect(0, 0, W, H)
+    const hw = W / 2
+    for (const seat of SEATS) {
+      const s = t.seats[seat]
+      const hctx = halfCtx(seat, hw, H)
+      renderFrame(hctx, s, now, {
+        banished: t.banished[seat],
+        motionPixels: displayPointsInHalf(lastMotionPixels, seat, W),
+      })
+      const pulse = (pulses[seat] ??= createHudPulse())
+      if (s.phase === 'playing') renderHUD(hctx, s, now, { pulse, showMute: false, label: `P${seat + 1}` })
+      else pulse.lastCombo = 1
+      if (t.phase === 'stageTitle' && s.phase === 'stageTitle') renderStageTitle(hctx, s)
+      const status = seatStatus(t, seat)
+      if (t.phase !== 'final' && (status === 'out' || status === 'cleared')) drawSeatOverlay(hctx, status, s.score, now)
+      gameCtx.drawImage(hctx.canvas, halfOffset(seat, W), 0)
+    }
+    drawDivider(gameCtx)
+    drawMuteButton(gameCtx, muteButtonRect2P(W, hudFontSize(W)))
+
+    if (t.phase === 'summary') {
+      renderTwoPlayerSummary(gameCtx, t, now, () => { if (two && two.phase === 'summary') two = advanceSession(two, W, H) })
+    } else if (t.phase === 'final') {
+      renderTwoPlayerFinal(gameCtx, t, now,
+        () => { two = createTwoPlayer(); prevTwoPhase = null },
+        () => { toMenu() },
+      )
+    }
+    return t
   }
 
   function tick(timestamp: number): void {
@@ -118,6 +206,15 @@ export async function startLoop(
     const mask = computeMotionMask(currentData, prevData, MOTION_W, MOTION_H)
     updateMotionPixels(mask, displayW, displayH)
     const frameIsNew = mask.changed
+
+    // ── Two-player game (own state machine; the 1P branches below are untouched) ──
+    twoPlayerActive = two !== null
+    if (two) {
+      two = tickTwo(two, deltaMs, now, displayW, displayH, currentData, prevData, frameIsNew)
+      prevCtx.drawImage(currentCanvas, 0, 0)
+      rafId = requestAnimationFrame(tick)
+      return
+    }
 
     // ── Start screen ──────────────────────────────────────────────────────────
     if (state.phase === 'start') {

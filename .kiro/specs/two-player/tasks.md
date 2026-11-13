@@ -37,12 +37,12 @@ Files: `src/game/playerMode.ts`, `src/game/loop.ts`, `src/main.ts`,
 Files: `src/game/loop.ts`, `src/game/render.ts`, `src/ui/hud.ts`, `src/ui/screens.ts`,
 `src/main.ts`, `src/ui/hud.test.ts`
 
-- [ ] 2P branch in the loop: per-seat crop, step, `resolveHits` with `W/2` and `motionW = 160`, off-screen half canvases, divider, `lastBanished` snapshot per seat.
-- [ ] `renderFrame` / `renderHUD` optional per-seat params (banished, motion pixels, combo pulse, mute, P1 / P2 label); single shared mute button at top centre in 2P.
-- [ ] OUT / CLEARED overlay, 2P stage title and summary, end screen with both scores, winner or tie, PLAY AGAIN / MAIN MENU.
-- [ ] Unit tests: `muteButtonRect2P`, per-seat pulse isolation, 1P render defaults unchanged.
-- [ ] `npm test` and `npm run build` both clean.
-- [ ] Commit: `feat(two-player-T4): split-screen loop, HUD, divider and end screen`
+- [x] 2P branch in the loop: per-seat crop, step, `resolveHits` with `W/2` and `motionW = 160`, off-screen half canvases, divider, `lastBanished` snapshot per seat.
+- [x] `renderFrame` / `renderHUD` optional per-seat params (banished, motion pixels, combo pulse, mute, P1 / P2 label); single shared mute button at top centre in 2P.
+- [x] OUT / CLEARED overlay, 2P stage title and summary, end screen with both scores, winner or tie, PLAY AGAIN / MAIN MENU.
+- [x] Unit tests: `muteButtonRect2P`, per-seat pulse isolation, 1P render defaults unchanged.
+- [x] `npm test` and `npm run build` both clean.
+- [x] Commit: `feat(two-player-T4): split-screen loop, HUD, divider and end screen`
 
 ## T5 — Docs
 - [ ] README: two-player section, spec table row, spec count and test count; `.kiro/specs` list.

@@ -42,9 +42,28 @@ export function muteButtonRect(canvasW: number, fontSize: number) {
   return { x: canvasW - pad - size, y: pad + fontSize + 8, w: size, h: size }
 }
 
-// ─── Module state for the pulse animation ────────────────────────────────────
-let lastCombo = 1
-let comboPulseStart = -Infinity
+/** Hit rectangle for the single shared mute button in two-player mode (top centre). */
+export function muteButtonRect2P(canvasW: number, fontSize: number) {
+  const pad = 20
+  const size = Math.round(fontSize * 1.1)
+  return { x: Math.round(canvasW / 2 - size / 2), y: pad, w: size, h: size }
+}
+
+// ─── Combo-pulse animation state (one per HUD: each two-player seat has its own) ──
+export interface HudPulse { lastCombo: number; start: number }
+export function createHudPulse(): HudPulse {
+  return { lastCombo: 1, start: -Infinity }
+}
+const defaultPulse = createHudPulse()
+
+export interface HudOpts {
+  /** Combo-pulse record for this HUD (default: the single-player one). */
+  pulse?: HudPulse
+  /** Draw the mute button (default true; two-player seats leave it to the shared one). */
+  showMute?: boolean
+  /** Small tag in the top-left under the hearts, e.g. "P1". */
+  label?: string
+}
 
 // ─── Drawing ─────────────────────────────────────────────────────────────────
 
@@ -80,9 +99,10 @@ function drawHudText(
   ctx.restore()
 }
 
-export function renderHUD(ctx: CanvasRenderingContext2D, state: GameState, now: number): void {
+export function renderHUD(ctx: CanvasRenderingContext2D, state: GameState, now: number, opts: HudOpts = {}): void {
+  const pulseState = opts.pulse ?? defaultPulse
   if (state.phase !== 'playing') {
-    lastCombo = 1
+    pulseState.lastCombo = 1
     return
   }
 
@@ -92,9 +112,9 @@ export function renderHUD(ctx: CanvasRenderingContext2D, state: GameState, now: 
   const font = (px: number, weight = 'bold') => `${weight} ${px}px ${HUD_FONT_FAMILY}`
 
   // Track combo increments for the pulse
-  if (state.combo > lastCombo) comboPulseStart = now
-  lastCombo = state.combo
-  const pulse = comboPulseScale(now - comboPulseStart)
+  if (state.combo > pulseState.lastCombo) pulseState.start = now
+  pulseState.lastCombo = state.combo
+  const pulse = comboPulseScale(now - pulseState.start)
 
   ctx.save()
 
@@ -142,9 +162,22 @@ export function renderHUD(ctx: CanvasRenderingContext2D, state: GameState, now: 
     ctx.restore()
   }
 
+  if (opts.label) {
+    drawHudText(ctx, opts.label, pad, pad + fontSize + 4, C_GHOST, {
+      font: font(Math.round(fontSize * 0.6), '600'), glow: 8,
+    })
+  }
+
   // ── Mute button (top-right, under the timer) ───────────────────────────────
-  const mb = muteButtonRect(W, fontSize)
+  if (opts.showMute !== false) drawMuteButton(ctx, muteButtonRect(W, fontSize))
+
+  ctx.restore()
+}
+
+/** The mute / unmute speaker button, drawn into `mb` (single-player: top-right; two-player: top centre). */
+export function drawMuteButton(ctx: CanvasRenderingContext2D, mb: { x: number; y: number; w: number; h: number }): void {
   const muted = isMuted()
+  ctx.save()
   ctx.fillStyle = muted ? 'rgba(192,57,43,0.35)' : 'rgba(232,232,240,0.18)'
   ctx.strokeStyle = muted ? C_LIFE : 'rgba(232,232,240,0.6)'
   ctx.lineWidth = 2
@@ -152,6 +185,5 @@ export function renderHUD(ctx: CanvasRenderingContext2D, state: GameState, now: 
   drawHudText(ctx, muted ? '🔇' : '🔊', mb.x + mb.w / 2, mb.y + mb.h / 2, muted ? C_LIFE : C_GHOST, {
     font: `${Math.round(mb.h * 0.6)}px sans-serif`, align: 'center', baseline: 'middle', glow: 6,
   })
-
   ctx.restore()
 }
