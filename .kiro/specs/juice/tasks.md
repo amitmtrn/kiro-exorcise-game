@@ -46,11 +46,11 @@ Files: `src/game/callouts.ts`, `src/game/transitions.ts` (`easeOutBack` only; T5
 ## T5 — Stage intro / outro animations
 Files: `src/game/transitions.ts`, `src/ui/screens.ts`, `src/game/transitions.test.ts`
 
-- [ ] `transitions.ts`: `easeOutBack`, `introPose`, `outroPose`.
-- [ ] `renderStageTitle` slides the title and subtitle in and fades out; `renderSummary` fades the overlay, drops in and wobbles the STAGE CLEAR banner, staggers the stat rows. Text and motion buttons unchanged at rest.
-- [ ] Unit tests: poses at start / rest / end, wobble settles, easing endpoints, recording-context check that the title is drawn off-centre at t = 0 and centred at rest.
-- [ ] Run `npm test` and `npm run build`; both clean.
-- [ ] Commit: `feat(juice-T5): stage intro and outro animations`
+- [x] `transitions.ts`: `easeOutBack`, `introPose`, `outroPose`.
+- [x] `renderStageTitle` slides the title and subtitle in and fades out; `renderSummary` fades the overlay, drops in and wobbles the STAGE CLEAR banner, staggers the stat rows. Text and motion buttons unchanged at rest.
+- [x] Unit tests: poses at start / rest / end, wobble settles, easing endpoints, recording-context check that the title is drawn off-centre at t = 0 and centred at rest.
+- [x] Run `npm test` and `npm run build`; both clean.
+- [x] Commit: `feat(juice-T5): stage intro and outro animations`
 
 ## T6 — Docs
 - [ ] README: spec table row, spec count, juice section; test count synced.

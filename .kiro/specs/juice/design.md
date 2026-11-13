@@ -134,7 +134,8 @@ export function easeOutBack(t: number): number           // 0→0, 1→1, oversh
 export function introPose(elapsedMs: number, totalMs: number):
   { nameX: number; subX: number; alpha: number }          // x offsets in canvas widths (0 = resting)
 export function outroPose(summaryMs: number):
-  { overlayAlpha: number; bannerScale: number; bannerAngle: number; bannerY: number; rowAlpha(i: number): number }
+  { overlayAlpha: number; bannerScale: number; bannerAngle: number; bannerY: number }   // bannerY: fraction of canvas height
+export function outroRowAlpha(summaryMs: number, index: number): number
 ```
 
 * Intro: name offset `−1 + easeOutBack(t₁)` canvas widths over 0‑450 ms; subtitle

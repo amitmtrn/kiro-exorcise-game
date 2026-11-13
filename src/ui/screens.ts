@@ -5,6 +5,8 @@
 
 import type { GameState } from '../game/state'
 import { stageLabel } from '../game/stages'
+import { STAGE_TITLE_DURATION_MS } from '../game/state'
+import { introPose, outroPose, outroRowAlpha } from '../game/transitions'
 import { MotionButton } from './motionButton'
 
 // ─── Motion buttons (persistent instances reused across frames) ───────────────
@@ -78,7 +80,11 @@ export function renderStageTitle(ctx: CanvasRenderingContext2D, state: GameState
   const cfg = stageLabel(state)
   const secs = Math.ceil(state.stageTitleMs / 1000)
 
+  // Juice R5.1: the name slides in from the left, the subtitle from the right, the card fades out
+  const pose = introPose(STAGE_TITLE_DURATION_MS - state.stageTitleMs, STAGE_TITLE_DURATION_MS)
+
   ctx.save()
+  ctx.globalAlpha = pose.alpha
   ctx.fillStyle = 'rgba(13,0,20,0.82)'
   ctx.fillRect(0, 0, W, H)
 
@@ -86,11 +92,11 @@ export function renderStageTitle(ctx: CanvasRenderingContext2D, state: GameState
   ctx.font = `bold ${clamp(W / 14, 36, 64)}px sans-serif`
   ctx.fillStyle = '#ff6b1a'
   ctx.shadowColor = '#ff6b1a'; ctx.shadowBlur = 20
-  ctx.fillText(cfg.name, W / 2, H * 0.38)
+  ctx.fillText(cfg.name, W / 2 + pose.nameX * W, H * 0.38)
 
   ctx.font = `${clamp(W / 20, 24, 40)}px sans-serif`
   ctx.fillStyle = '#ffd166'; ctx.shadowBlur = 0
-  ctx.fillText(cfg.subtitle, W / 2, H * 0.52)
+  ctx.fillText(cfg.subtitle, W / 2 + pose.subX * W, H * 0.52)
 
   ctx.font = `bold ${clamp(W / 12, 40, 72)}px monospace`
   ctx.fillStyle = '#e8e8f0'
@@ -109,18 +115,28 @@ export function renderSummary(
 ): void {
   const { width: W, height: H } = ctx.canvas
   const stars = calcStars(state)
+  const outro = outroPose(state.summaryShownMs) // juice R5.2
 
   ctx.save()
-  ctx.fillStyle = 'rgba(13,0,20,0.88)'
+  ctx.fillStyle = `rgba(13,0,20,${outro.overlayAlpha})`
   ctx.fillRect(0, 0, W, H)
 
+  // Banner drops in with a settling wobble
+  ctx.save()
+  ctx.translate(W / 2, H * outro.bannerY)
+  ctx.rotate(outro.bannerAngle)
+  ctx.scale(outro.bannerScale, outro.bannerScale)
   ctx.textAlign = 'center'
   ctx.font = `bold ${clamp(W / 14, 32, 56)}px sans-serif`
   ctx.fillStyle = '#ffd166'; ctx.shadowColor = '#ffd166'; ctx.shadowBlur = 14
-  ctx.fillText(state.bonus ? 'BONUS CLEAR!' : 'STAGE CLEAR!', W / 2, H * 0.18)
+  ctx.fillText(state.bonus ? 'BONUS CLEAR!' : 'STAGE CLEAR!', 0, 0)
+  ctx.restore()
 
+  ctx.textAlign = 'center'
+  ctx.fillStyle = '#ffd166'
   ctx.shadowBlur = 0
   ctx.font = `${clamp(W / 12, 36, 60)}px sans-serif`
+  ctx.globalAlpha = outroRowAlpha(state.summaryShownMs, 0)
   ctx.fillText('⭐'.repeat(stars) + '☆'.repeat(3 - stars), W / 2, H * 0.3)
 
   const rows = [
@@ -132,13 +148,15 @@ export function renderSummary(
   const rowH = H * 0.09
   let ry = H * 0.42
   ctx.font = `${clamp(W / 30, 16, 24)}px sans-serif`
-  for (const [label, val] of rows) {
+  rows.forEach(([label, val], i) => {
+    ctx.globalAlpha = outroRowAlpha(state.summaryShownMs, i + 1)
     ctx.fillStyle = 'rgba(232,232,240,0.7)'; ctx.textAlign = 'left'
     ctx.fillText(label, W * 0.28, ry)
     ctx.fillStyle = '#ffd166'; ctx.textAlign = 'right'
     ctx.fillText(val, W * 0.72, ry)
     ry += rowH
-  }
+  })
+  ctx.globalAlpha = 1 // the NEXT button is never faded or delayed (R5.3)
 
   // Next button
   if (!nextBtn || nextBtn.cx !== W / 2) {
