@@ -504,3 +504,39 @@ describe('resolveHits — swipe estimation (juice R1)', () => {
     expect(Math.hypot(sw.dx, sw.dy)).toBeCloseTo(1, 9)
   })
 })
+
+describe('resolveHits — knock-back (juice R2)', () => {
+  const hit = (type: Enemy['type'], o: Partial<Enemy> = {}) => {
+    mockDiff.mockReturnValue(true)
+    return resolveHits({ ...createInitialState(), enemies: [enemy(type, 'e1', { hitCount: 1, ...o })] }, FAKE, FAKE, DW, DH, 1000)
+  }
+
+  it.each(['ghost', 'bat', 'candy', 'lunger'] as const)('a banished %s becomes a knock', (type) => {
+    const r = hit(type, type === 'lunger' ? { movePhase: 'windup' } : {})
+    expect(r.enemies).toHaveLength(0)
+    expect(r.knocks).toHaveLength(1)
+    expect(r.knocks[0].enemy.type).toBe(type)
+    expect(r.knocks[0].enemy.hitFlashFrames).toBe(0)
+    expect(r.knocks[0].ageMs).toBe(0)
+  })
+
+  it('the knock follows the recorded swipe (default: straight up)', () => {
+    const r = hit('ghost')
+    expect(r.knocks[0].ux).toBe(0)
+    expect(r.knocks[0].uy).toBe(-1)
+    expect(r.knocks[0].speed).toBeCloseTo(2.2 * DH, 6)
+  })
+
+  it('skulls and non-final pumpkin hits spawn no knock', () => {
+    expect(hit('skull').knocks).toHaveLength(0)
+    expect(hit('pumpkin', { hitsNeeded: 2, hitsReceived: 0 }).knocks).toHaveLength(0)
+  })
+
+  it('the final pumpkin hit and the boss defeat each spawn one', () => {
+    expect(hit('pumpkin', { hitsNeeded: 2, hitsReceived: 1 }).knocks).toHaveLength(1)
+    const r = hit('boss', { bossHitsReceived: 9, bossAttack: 'windup', bossPhase: 3, bossInvulnMs: 0 })
+    expect(r.phase === 'summary' || r.phase === 'victory').toBe(true)
+    expect(r.knocks).toHaveLength(1)
+    expect(r.knocks[0].enemy.type).toBe('boss')
+  })
+})

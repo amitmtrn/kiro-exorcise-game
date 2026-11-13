@@ -14,6 +14,7 @@ import { STAGES } from './stages'
 import { onBossHit } from './enemies/bossPhases'
 import { isHittable } from './enemies/vulnerability'
 import { CANDY_POINTS } from './enemies/candy'
+import { makeKnock, addKnock } from './knock'
 import { motionPointsIn, centroid, estimateSwipe } from './swipe'
 import type { Pt, Swipe } from './swipe'
 import { spawnGhostPuff, spawnBatPuff, spawnScoreLabel } from './particles'
@@ -75,6 +76,19 @@ function shakeIfStrong(s: GameState): GameState {
 function scoreWithPop(s: GameState, enemy: Enemy, pts: number): GameState {
   s = addScore(s, pts)
   return addScoreLabels(s, [spawnScoreLabel(enemy.x, enemy.y, pts)])
+}
+
+/** Default swipe when a hit has no recorded direction (straight up). */
+const NO_SWIPE: Swipe = { dx: 0, dy: -1, mag: 0, source: 'default' }
+
+/**
+ * Banish effects: the one-frame white flash (spooky-skin R4.2) and a knock that
+ * flies the enemy off along the swipe (juice R2).
+ */
+function banishFx(s: GameState, enemy: Enemy, displayH: number): GameState {
+  lastBanished.push({ ...enemy, hitFlashFrames: 1 })
+  const knock = makeKnock({ ...enemy, hitFlashFrames: 0 }, lastSwipes.get(enemy.id) ?? NO_SWIPE, displayH)
+  return { ...s, knocks: addKnock(s.knocks, knock) }
 }
 
 function clearFlashes(s: GameState): GameState {
@@ -172,7 +186,7 @@ export function resolveHits(
       s = incrementBanished(s)
       s = shakeIfStrong(s)
       s = addParticles(s, spawnGhostPuff(enemy.x, enemy.y))
-      lastBanished.push({ ...enemy, hitFlashFrames: 1 })
+      s = banishFx(s, enemy, displayH)
       try { sfxGhostHit(); if (s.combo > tierBefore) sfxCombo(s.combo) } catch { /* audio not ready */ }
 
     } else if (enemy.type === 'bat') {
@@ -181,7 +195,7 @@ export function resolveHits(
       s = incrementBanished(s)
       s = shakeIfStrong(s)
       s = addParticles(s, spawnBatPuff(enemy.x, enemy.y))
-      lastBanished.push({ ...enemy, hitFlashFrames: 1 })
+      s = banishFx(s, enemy, displayH)
       try { sfxBatHit() } catch { /* audio not ready */ }
 
     } else if (enemy.type === 'candy') {
@@ -190,7 +204,7 @@ export function resolveHits(
       s = incrementBanished(s)
       s = shakeIfStrong(s)
       s = addParticles(s, spawnBatPuff(enemy.x, enemy.y))
-      lastBanished.push({ ...enemy, hitFlashFrames: 1 })
+      s = banishFx(s, enemy, displayH)
       try { sfxBatHit() } catch { /* audio not ready */ }
 
     } else if (enemy.type === 'pumpkin') {
@@ -201,7 +215,7 @@ export function resolveHits(
         s = incrementBanished(s)
         s = shakeIfStrong(s)
         s = addParticles(s, spawnBatPuff(enemy.x, enemy.y))
-        lastBanished.push({ ...enemy, hitFlashFrames: 1 })
+        s = banishFx(s, enemy, displayH)
         try { sfxGhostHit() } catch { /* audio not ready */ }
       } else {
         try { sfxBatHit() } catch { /* audio not ready */ }
@@ -245,7 +259,7 @@ export function resolveHits(
       s = addParticles(s, spawnBatPuff(enemy.x, enemy.y))
       s = setFlash(s, now + 400)
       s = setShake(s, SHAKE_FRAMES * 2) // boss defeat always rocks the screen
-      lastBanished.push({ ...enemy, hitFlashFrames: 1 })
+      s = banishFx(s, enemy, displayH)
       try { sfxBossDefeated() } catch { /* audio not ready */ }
       return {
         ...setEnemies(s, []),

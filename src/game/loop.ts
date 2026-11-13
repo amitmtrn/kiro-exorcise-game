@@ -24,6 +24,7 @@ import { moveEnemies, cullExitedEnemies } from './enemies/movement'
 import { splitReached } from './enemies/reach'
 import { resolveHits, updateMotionPixels } from './collision'
 import { tickParticles, tickScoreLabels } from './particles'
+import { tickKnocks } from './knock'
 import { renderFrame } from './render'
 import { renderHUD, hudFontSize, HUD_FONT_FAMILY } from '../ui/hud'
 import {
@@ -96,6 +97,7 @@ export async function startLoop(
   function tickEffects(s: GameState, ms: number): GameState {
     s = tickShake(s, ms)
     s = setParticles(s, tickParticles(s.particles, ms))
+    s = { ...s, knocks: tickKnocks(s.knocks, ms) }
     return setScoreLabels(s, tickScoreLabels(s.scoreLabels, ms))
   }
 
@@ -241,6 +243,7 @@ export async function startLoop(
     state = tickTimer(state, deltaMs)
     state = setParticles(state, tickParticles(state.particles, deltaMs))
     state = setScoreLabels(state, tickScoreLabels(state.scoreLabels, deltaMs))
+    state = { ...state, knocks: tickKnocks(state.knocks, deltaMs) }
 
     renderFrame(gameCtx, state, now)
     renderHUD(gameCtx, state, now)

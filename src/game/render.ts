@@ -8,6 +8,8 @@ import { SHAKE_AMPLITUDE_PX } from './state'
 import { lastMotionPixels, lastBanished } from './collision'
 import { BOSS_HITS_NEEDED } from './enemies/boss'
 import { PHASE2_BELOW, PHASE3_BELOW } from './enemies/bossPhases'
+import { knockPose } from './knock'
+import type { Knock } from './knock'
 import { drawFog, drawCandleGlow } from './atmosphere'
 
 // ─── Debug mode ───────────────────────────────────────────────────────────────
@@ -59,6 +61,9 @@ export function renderFrame(
     for (const enemy of lastBanished) drawEnemy(whiteCtx, enemy, now)
   }
 
+  // Knocked-away enemies (juice R2): the normal enemy routines, rotated, shrunk and faded
+  for (const k of state.knocks) drawKnock(ctx, k, now)
+
   for (const p of state.particles) drawParticle(ctx, p)
   for (const l of state.scoreLabels) drawScoreLabel(ctx, l)
 
@@ -78,6 +83,19 @@ export function renderFrame(
   if (debugMode) drawDebugOverlay(ctx, state, now)
 
   ctx.restore() // undo shake translate
+}
+
+// ─── Knock (juice R2) ─────────────────────────────────────────────────────────
+function drawKnock(ctx: CanvasRenderingContext2D, k: Knock, now: number): void {
+  const pose = knockPose(k)
+  ctx.save()
+  ctx.globalAlpha = Math.max(0, Math.min(1, pose.alpha))
+  ctx.translate(pose.x, pose.y)
+  ctx.rotate(pose.angle)
+  ctx.scale(pose.scale, pose.scale)
+  // drawEnemy translates to enemy.x/y, so draw the snapshot at the local origin.
+  drawEnemy(ctx, { ...k.enemy, x: 0, y: 0 }, now)
+  ctx.restore()
 }
 
 // ─── White-fill proxy (spooky-skin R4.2) ──────────────────────────────────────
@@ -136,14 +154,15 @@ function drawGhost(ctx: CanvasRenderingContext2D, enemy: Enemy, now: number): vo
     { dist: 46, r: 9,  a: 0.25 },
     { dist: 60, r: 6,  a: 0.12 },
   ]
+  const baseAlpha = ctx.globalAlpha // a knocked-away ghost fades (juice R2)
   wisps.forEach((wsp, i) => {
     const bob = Math.sin(now / 160 + i * 1.4 + enemy.sineOffset) * 5
     const cx = bx * wsp.dist + px * bob
     const cy = by * wsp.dist + py * bob + h * 0.25
-    ctx.globalAlpha = wsp.a
+    ctx.globalAlpha = baseAlpha * wsp.a
     ctx.beginPath(); ctx.arc(cx, cy, wsp.r, 0, Math.PI * 2); ctx.fill()
   })
-  ctx.globalAlpha = 1
+  ctx.globalAlpha = baseAlpha
 
   // Body — dome, bulging sides, three rounded scallops at the hem.
   ctx.shadowColor = 'rgba(232,232,240,0.7)'; ctx.shadowBlur = 16

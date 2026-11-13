@@ -6,6 +6,7 @@
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 import type { PathSpec } from './paths'
+import type { Knock } from './knock'
 
 export interface Hitbox {
   x: number // top-left x
@@ -116,6 +117,7 @@ export interface GameState {
   waveIndex: number       // next scripted wave event to fire (waves spec)
   bonus: boolean          // playing the bonus round after the stage's summary (waves spec)
   shakeFrames: number     // spooky-skin R4.1 — frames of screen shake remaining
+  knocks: Knock[]         // juice R2 — banished enemies flying off along the swipe
 }
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -206,6 +208,7 @@ export function createInitialState(stage = 1): GameState {
     waveIndex: 0,
     bonus: false,
     shakeFrames: 0,
+    knocks: [],
   }
 }
 

@@ -15,12 +15,12 @@ Files: `src/game/swipe.ts`, `src/game/state.ts`, `src/game/collision.ts`,
 Files: `src/game/knock.ts`, `src/game/state.ts`, `src/game/collision.ts`,
 `src/game/loop.ts`, `src/game/render.ts`, `src/game/knock.test.ts`, `src/game/knock.property.test.ts`
 
-- [ ] `knock.ts`: `makeKnock`, `knockPose`, `tickKnocks`; closed-form drag trajectory, spin, fade, shrink.
-- [ ] `GameState.knocks`; `resolveHits` adds a knock for every banished non-skull enemy (including the boss); loop ticks knocks (also on summary / game-over); `render.ts` draws them with the existing enemy routines.
-- [ ] Unit tests: moves along the swipe, spin sign follows `dx`, expiry, strength clamp, skull spawns none, boss defeat spawns one.
-- [ ] Property tests: displacement along the unit vector and non-decreasing, alpha and scale monotone, state independent of step size.
-- [ ] Run `npm test` and `npm run build`; both clean.
-- [ ] Commit: `feat(juice-T2): knock banished enemies along the swipe`
+- [x] `knock.ts`: `makeKnock`, `knockPose`, `tickKnocks`; closed-form drag trajectory, spin, fade, shrink.
+- [x] `GameState.knocks`; `resolveHits` adds a knock for every banished non-skull enemy (including the boss); loop ticks knocks (also on summary / game-over); `render.ts` draws them with the existing enemy routines.
+- [x] Unit tests: moves along the swipe, spin sign follows `dx`, expiry, strength clamp, skull spawns none, boss defeat spawns one.
+- [x] Property tests: displacement along the unit vector and non-decreasing, alpha and scale monotone, state independent of step size.
+- [x] Run `npm test` and `npm run build`; both clean.
+- [x] Commit: `feat(juice-T2): knock banished enemies along the swipe`
 
 ## T3 — Hit-stop
 Files: `src/game/hitstop.ts`, `src/game/state.ts`, `src/game/collision.ts`, `src/game/round.ts`,
