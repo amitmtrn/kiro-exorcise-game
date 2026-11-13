@@ -296,7 +296,7 @@ function drawPumpkin(ctx: CanvasRenderingContext2D, enemy: Enemy): void {
 // ─── Boss ─────────────────────────────────────────────────────────────────────
 function drawBoss(ctx: CanvasRenderingContext2D, enemy: Enemy, now: number): void {
   const windup = enemy.bossAttack === 'windup'
-  const shielded = enemy.bossPhase >= 2 && enemy.bossAttack === 'idle'
+  const shielded = enemy.bossPhase >= 2 && enemy.bossAttack === 'idle' && enemy.hitFlashFrames === 0
   const enraged = enemy.bossPhase === 3
   const aura = windup ? C_BOSS_WINDUP : enraged ? C_BOSS_ENRAGED : '#7b2fbe'
 
@@ -315,7 +315,9 @@ function drawBoss(ctx: CanvasRenderingContext2D, enemy: Enemy, now: number): voi
     ctx.shadowBlur = 0
     ctx.font = 'bold 56px sans-serif'; ctx.textAlign = 'center'
     ctx.fillStyle = C_BOSS_WINDUP
-    ctx.fillText('!', 0, -105)
+    // Above the boss when there is headroom (clear of the HUD title), else beside it.
+    if (enemy.y - 105 - 45 >= 50) ctx.fillText('!', 0, -105)
+    else ctx.fillText('!', 135, 20)
     ctx.restore()
   }
 

@@ -232,6 +232,56 @@ describe('phase 2 — telegraphed lunge', () => {
   })
 })
 
+describe('summon cadence', () => {
+  /** Simulate `ms` of play (16 ms ticks), clearing minions; returns summon timestamps. */
+  function summonTimes(boss: Enemy, ms: number): number[] {
+    let s = play([boss])
+    const times: number[] = []
+    for (let t = 0; t < ms; t += 16) {
+      const b = s.enemies.find((e) => e.type === 'boss')!
+      s = { ...s, enemies: [moveBoss(b, 16, W, H)] }
+      s = tickBoss(s, W, H)
+      // strikes cost lives; keep the run alive so cadence is measured, not game over
+      s = { ...s, lives: 3, phase: 'playing' }
+      const ghosts = s.enemies.filter((e) => e.type === 'ghost')
+      if (ghosts.length > 0) { times.push(t); s = { ...s, enemies: s.enemies.filter((e) => e.type === 'boss') } }
+    }
+    return times
+  }
+
+  it('phase 2 summon timer keeps running through wind-up, lunge and recover (R3.7)', () => {
+    const b = { ...hitTimes(hovering(), 4), summonTimerMs: 6000, bossTimerMs: 0 }
+    const times = summonTimes(b, 60000)
+    // 60 s / 6 s ≈ 10; waiting for idle + hover may delay some, but a frozen timer gave ~6.
+    expect(times.length).toBeGreaterThanOrEqual(8)
+  })
+
+  it('phase 3 summon timer keeps running during attacks (R4.2)', () => {
+    const b = { ...hitTimes(hovering(), 7), summonTimerMs: 3500, bossTimerMs: 0 }
+    const times = summonTimes(b, 60000)
+    expect(times.length).toBeGreaterThanOrEqual(10)
+  })
+
+  it('carries a small overshoot into the next interval', () => {
+    const boss = hovering({ summonTimerMs: -10 })
+    const nb = tickBoss(play([boss]), W, H).enemies.find((e) => e.type === 'boss')!
+    expect(nb.summonTimerMs).toBe(PHASE_PARAMS[1].summonEveryMs - 10)
+  })
+
+  it('does not carry a long wait for the hover line', () => {
+    const boss = hovering({ summonTimerMs: -4000 })
+    const nb = tickBoss(play([boss]), W, H).enemies.find((e) => e.type === 'boss')!
+    expect(nb.summonTimerMs).toBe(PHASE_PARAMS[1].summonEveryMs - 100)
+  })
+
+  it('timer decrements in every attack state', () => {
+    for (const bossAttack of ['idle', 'windup', 'lunge', 'recover'] as const) {
+      const b = moveBoss({ ...hitTimes(hovering(), 4), bossAttack, bossTimerMs: 500, summonTimerMs: 1000 }, 100, W, H)
+      expect(b.summonTimerMs).toBe(900)
+    }
+  })
+})
+
 describe('phase 3 — enrage', () => {
   const p3 = (o: Partial<Enemy> = {}) => ({
     ...hitTimes(hovering(), 7), bossTimerMs: PHASE_PARAMS[3].idleMs, ...o,

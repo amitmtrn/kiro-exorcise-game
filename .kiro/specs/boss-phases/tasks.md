@@ -26,7 +26,7 @@
 
 ## T4 — Loop, victory screen, art
 - [x] `loop.ts`: call `tickBoss` (life-lost sfx on strike), handle the `victory` phase, stop music on victory.
-- [x] `screens.ts`: `renderVictory` with total score and "Play Again" / "Menu" motion buttons.
+- [x] `screens.ts`: `renderVictory` with total score and "Play Again" / "Main Menu" motion buttons.
 - [x] `render.ts`: wind-up shake/glow/"!", shield bubble, phase-3 aura, phase ticks on the health bar, translucent approaching lunger. Procedural canvas only.
 - [x] `npm test` and `npm run build` both clean.
 - [x] Commit: `feat(boss-phases-T4): victory screen, boss and lunger telegraphs`
@@ -52,4 +52,14 @@
 - [x] Victory buttons labelled "PLAY AGAIN" / "MAIN MENU"; input lockout keyed off the phase transition (`resetVictoryScreen`); redundant `stopMusic()` removed from the victory branch.
 - [x] Property tests: lower y bound; lunge and recover durations frame-rate independent.
 - [x] `npm test` and `npm run build` both clean.
-- [x] Commit: `fix(boss-phases): review fixes`
+- [x] Commit: `fix(boss-phases): summon only at hover, defer boss defeat on game over, timer carry, victory lockout, labels, tests and spec updates` (183c493)
+
+## T8 — Second review fixes
+- [x] Summon timer decrements in every attack state (R3.7, R4.2); overshoot carried (≤ 100 ms); cadence tests added.
+- [x] Wind-up "!" drawn beside the boss when there is no headroom (R3.2).
+- [x] Phase-change flash no longer draws an opaque shield disc.
+- [x] Victory: buttons do not update/fill during the lockout; backdrop fades in over 400 ms; entry hooks run on first entry to the victory branch from any route.
+- [x] Game over shows "TIME'S UP" when lives remain (R6.5).
+- [x] Doc drift: "MAIN MENU" labels, T7 commit line.
+- [x] `npm test` and `npm run build` both clean.
+- [x] Commit: `fix(boss-phases): review round 2`

@@ -18,6 +18,7 @@ let winMenuBtn: MotionButton | null = null
 // Victory: ignore the buttons briefly so the wave that beat the boss can't trigger them.
 let victoryShownAt: number | null = null
 const VICTORY_INPUT_DELAY_MS = 1500
+const VICTORY_FADE_MS = 400
 
 // ─── Start screen ─────────────────────────────────────────────────────────────
 
@@ -169,6 +170,15 @@ export function renderGameOver(
   ctx.font = `bold ${clamp(W / 10, 48, 80)}px sans-serif`
   ctx.fillStyle = '#c0392b'; ctx.shadowColor = '#c0392b'; ctx.shadowBlur = 24
   ctx.fillText('GAME OVER', W / 2, H * 0.28)
+  if (state.lives > 0) {
+    // Lives remain, so the stage timer ran out with the boss alive (boss-phases R6.5).
+    ctx.shadowBlur = 0
+    ctx.font = `bold ${clamp(W / 28, 18, 30)}px sans-serif`
+    ctx.fillStyle = '#ff6b1a'
+    ctx.fillText("TIME'S UP", W / 2, H * 0.35)
+    ctx.font = `bold ${clamp(W / 10, 48, 80)}px sans-serif`
+    ctx.fillStyle = '#c0392b'
+  }
 
   ctx.shadowBlur = 0
   ctx.font = `bold ${clamp(W / 22, 22, 36)}px sans-serif`
@@ -217,7 +227,8 @@ export function renderVictory(
   const t = now - victoryShownAt
 
   ctx.save()
-  ctx.fillStyle = 'rgba(13,0,20,0.88)'
+  // Fade the backdrop in so the boss-defeat burst stays visible for a moment.
+  ctx.fillStyle = `rgba(13,0,20,${0.88 * Math.min(1, t / VICTORY_FADE_MS)})`
   ctx.fillRect(0, 0, W, H)
 
   // Wobble-in banner
@@ -253,13 +264,15 @@ export function renderVictory(
   else { winBtn.cx = W * 0.35; winBtn.cy = H * 0.74 }
   if (!winMenuBtn) winMenuBtn = new MotionButton(W * 0.65, H * 0.74, r, 'MAIN MENU')
   else { winMenuBtn.cx = W * 0.65; winMenuBtn.cy = H * 0.74 }
-  const r1 = winBtn.update(now)
+  // Buttons ignore motion (no filling) until the input lockout ends.
+  const live = t >= VICTORY_INPUT_DELAY_MS
+  const r1 = live ? winBtn.update(now) : null
   winBtn.render(ctx, now)
-  const r2 = winMenuBtn.update(now)
+  const r2 = live ? winMenuBtn.update(now) : null
   winMenuBtn.render(ctx, now)
   ctx.restore()
 
-  if (t < VICTORY_INPUT_DELAY_MS) return
+  if (!live) return
   if (r1 === 'triggered') onPlayAgain()
   else if (r2 === 'triggered') onMenu()
 }

@@ -57,7 +57,7 @@ source of ghosts in stage 5.
 lunge → recover**, then returns to idle.
 
 **R3.2** Wind-up lasts 600 ms. It is clearly telegraphed: the boss stops, shakes
-and glows pumpkin orange (`#ff6b1a`) with a pulsing ring; a "!" appears above it.
+and glows pumpkin orange (`#ff6b1a`) with a pulsing ring; a "!" appears above it (beside it when there is no headroom below the HUD).
 
 **R3.3** After the wind-up the boss lunges in a straight line to the centre of
 the screen at ~1.0 canvas heights per second. If it gets within the centre
@@ -74,7 +74,8 @@ hits are ignored (the 2-frame hit gate is reset).
 **R3.6** A hit during wind-up or lunge staggers the boss: the attack is cancelled
 and it enters recover without striking.
 
-**R3.7** Phase-2 summons continue every 6 s, only while the boss is idle
+**R3.7** Phase-2 summons continue every 6 s of wall time (the summon timer runs in every
+attack state); a due summon is only *performed* while the boss is idle
 **and on its hover line**. A summon that falls due while the boss is flying home
 from the centre (for example after a phase change during recover) stays queued
 until it arrives, so minions never spawn on top of the player at the centre.
@@ -86,7 +87,7 @@ until it arrives, so minions never spawn on top of the player at the centre.
 **R4.1** Phase 3 uses the same attack cycle with: idle 1.5 s, wind-up 350 ms
 (still visibly telegraphed), lunge ~1.5 canvas heights per second, recover 700 ms.
 
-**R4.2** The boss summons **2** minions every 3.5 s, with a cap of 5 alive.
+**R4.2** The boss summons **2** minions every 3.5 s of wall time (timer runs during attacks, R3.7), with a cap of 5 alive.
 
 **R4.3** Enrage visuals: red-orange aura (`#c0392b`), faster sway, health bar label "ENRAGED".
 
@@ -113,7 +114,7 @@ burst, orange-ish flash, shake and fanfare play.
 
 **R6.3** The `victory` screen shows "YOU WIN!", the **total score** (carried
 across all stages), the best score if higher, and "Play Again" / "Main Menu"
-motion buttons (labels "PLAY AGAIN" / "MAIN MENU"). The buttons ignore motion for
+motion buttons (labels "PLAY AGAIN" / "MAIN MENU"). The backdrop fades in over 400 ms so the defeat burst stays visible. The buttons ignore motion (and do not fill) for
 1.5 s after the game enters `victory` (the lockout is keyed off the phase
 transition, not the render clock, so a backgrounded tab does not restart it). Both reset to a fresh game from stage 1 (Play Again goes
 straight to the stage-1 title card). The high score is saved.
@@ -122,7 +123,7 @@ straight to the stage-1 title card). The high score is saved.
 `advanceToNextStage` from the last stage yields `victory`, not stage 1.
 
 **R6.5** If the stage timer reaches 0 while a boss is alive the phase becomes
-`gameover` (not `summary`). The normal game-over screen offers "Retry Stage".
+`gameover` (not `summary`). The normal game-over screen offers "Retry Stage"; when lives remain it adds a "TIME'S UP" subtitle.
 
 **R6.6** If the boss is defeated and the timer would expire on the same tick,
 the defeat wins (victory). If the last life is lost on the same frame as the final hit, game over wins:

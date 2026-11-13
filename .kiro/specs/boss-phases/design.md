@@ -18,7 +18,7 @@ interface Enemy {
   bossPhase: 1 | 2 | 3
   bossAttack: BossAttack
   bossTimerMs: number     // idle countdown / windup / recover remaining
-  summonTimerMs: number   // ms until next summon (only acts while idle)
+  summonTimerMs: number   // ms until next summon (decrements in every state; a summon is only performed while idle at hover)
   bossInvulnMs: number    // post-hit i-frames (R5.1)
   bossStrike: boolean     // set the tick a lunge lands; consumed by tickBoss
 }
@@ -100,7 +100,8 @@ Called from the loop after `moveEnemies`, only while `phase === 'playing'`:
    `summonEveryMs` (even if none were added, to avoid retry spam). A summon due while the boss is
    flying home stays queued (timer ≤ 0) until it reaches the hover line.
 
-Timer overshoot is carried across idle → windup and recover → idle (`windupMs + remainder`).
+The summon timer decrements by `deltaMs` in `moveBoss` for every attack state; on a summon the new
+interval carries up to 100 ms of overshoot. Timer overshoot is carried across idle → windup and recover → idle (`windupMs + remainder`).
 The lunge aims at the live canvas centre (`canvasW/2, canvasH/2`), not the spawn-time target.
 
 `createMinion` is a ghost (`GHOST_SPEED × 0.9`) spawned at the boss position ±60 px,
@@ -130,9 +131,9 @@ loop, so a simultaneous defeat wins (R6.6).
   instead of wrapping to 1.
 - `tickRound` case `victory`: `saveHighScore`.
 - `renderVictory` (screens.ts): dim backdrop, gold wobbling "YOU WIN!", total score,
-  best, two `MotionButton`s ("PLAY AGAIN", "MENU") — same pattern as game over.
-- Loop: new `victory` branch; `stopMusic` on entering victory. Play Again →
-  `startGame(createInitialState(1))`; Menu → `createInitialState(1)`.
+  best, two `MotionButton`s ("PLAY AGAIN", "MAIN MENU") — same pattern as game over.
+- Loop: new `victory` branch; on first entering the branch (any route) `resetVictoryScreen`, clear sound and `stopMusic` run. Play Again →
+  `startGame(createInitialState(1))`; Main Menu → `createInitialState(1)`.
 
 ### Stage config
 

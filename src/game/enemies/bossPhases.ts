@@ -24,6 +24,8 @@ const HITBOX_SCALE = 1.2
 /** Steering speed to/along the hover line, canvas heights per second. */
 const HOME_SPEED = 0.6
 const HOVER_TOLERANCE_PX = 4
+/** Largest summon overshoot carried into the next interval. */
+const SUMMON_CARRY_MAX_MS = 100
 const SWAY_AMPLITUDE = 0.3 // fraction of canvas width
 
 export type BossPhase = 1 | 2 | 3
@@ -130,13 +132,15 @@ export function moveBoss(boss: Enemy, deltaMs: number, canvasW: number, canvasH:
   const p = PHASE_PARAMS[boss.bossPhase]
   let b: Enemy = boss
   if (b.bossInvulnMs > 0) b = { ...b, bossInvulnMs: Math.max(0, b.bossInvulnMs - deltaMs) }
+  // The summon timer runs in every attack state; a due summon waits for idle + hover (R3.7).
+  b = { ...b, summonTimerMs: b.summonTimerMs - deltaMs }
 
   switch (b.bossAttack) {
     case 'idle': {
       const sineOffset = b.sineOffset + p.swayRate * dt
       const homeX = canvasW / 2 + Math.sin(sineOffset) * SWAY_AMPLITUDE * canvasW
       const homeY = hoverY(canvasH)
-      b = steer({ ...b, sineOffset, summonTimerMs: b.summonTimerMs - deltaMs },
+      b = steer({ ...b, sineOffset },
         homeX, homeY, HOME_SPEED * canvasH, dt)
       if (p.attacks && atHover(b, canvasH)) {
         const bossTimerMs = b.bossTimerMs - deltaMs
@@ -211,7 +215,8 @@ export function tickBoss(state: GameState, canvasW: number, canvasH: number): Ga
     const alive = s.enemies.filter((e) => e.type === 'ghost').length
     const n = Math.max(0, Math.min(p.summonCount, p.maxMinions - alive))
     const minions = Array.from({ length: n }, () => createMinion(b, canvasW, canvasH))
-    const nb: Enemy = { ...b, summonTimerMs: p.summonEveryMs }
+    // Carry a small overshoot so cadence doesn't drift; a long wait for the hover line is not carried.
+    const nb: Enemy = { ...b, summonTimerMs: p.summonEveryMs + Math.max(b.summonTimerMs, -SUMMON_CARRY_MAX_MS) }
     s = setEnemies(s, [...s.enemies.map((e) => (e.id === nb.id ? nb : e)), ...minions])
   }
   return s
