@@ -24,13 +24,13 @@ tool-name matcher combined with stdin grepping, an `action` that depends on a
 tool payload shape that is not guaranteed) is removed; the file is rewritten
 so it fires.
 
-**R1.5** Matchers accept both `/` and `\` path separators (native Windows paths).
-
 **R1.3** Every hook file parses as JSON and passes a structural check in a unit
 test (`version`, required fields, known trigger names, `action.type` matches
 the supplied `command`/`prompt` field, `action` is a plain object, `matcher` is a string and a valid regex).
 
 **R1.4** `.kiro/` is not listed in `.gitignore`.
+
+**R1.5** Matchers accept both `/` and `\` path separators (native Windows paths).
 
 ---
 
@@ -74,7 +74,9 @@ reported as "manual — not checkable", not as drift.
 **R4.1** Trigger `PostFileSave`, matcher selects test files
 (`*.test.ts` / `*.test.mjs`) anywhere in the repo except under `node_modules/`.
 
-**R4.1a** A second hook on `PostFileDelete` with the same matcher and command re-syncs the count when a test file is removed.
+**R4.1a** Two more hooks with the same matcher and command, on `PostFileDelete` and `PostFileCreate`, re-sync the count when a test file is removed or created.
+
+**R4.1b** Matchers are not anchored to the repo root; the limitation (checkout under a `src/` or `node_modules/` directory) is documented in the README.
 
 **R4.2** Action is a shell command `node tools/sync-readme-tests.mjs` that
 runs the real test suite (Vitest JSON reporter), reads the total test count,
@@ -119,7 +121,7 @@ unit test remains the guard.
 
 ## R6 — Documentation
 
-**R6.1** README has a short "Kiro hooks" section listing each hook and what it
+**R6.1** README has a short "Kiro hooks" section listing each hook (including the create/delete variants) and what it
 does; the stale `test-on-save.json` description is replaced.
 
 **R6.2** The README file tree lists the new hook files, spec and script, and

@@ -57,6 +57,7 @@ describe('test-on-save matcher (R2)', () => {
   })
   it('leaves test files to readme-test-count (no double run)', () => {
     expect(m().test('src/ui/hud.test.ts')).toBe(false)
+    expect(m().test('/abs/src/ui/hud.test.ts')).toBe(false)
   })
   it('ignores node_modules', () => {
     expect(m().test('node_modules/x/src/a.ts')).toBe(false)
@@ -127,6 +128,13 @@ describe('readme-test-count (R4)', () => {
     expect(h.action).toEqual({ type: 'command', command: 'node tools/sync-readme-tests.mjs' })
     expect(new RegExp(h.matcher).test('src/a.test.ts')).toBe(true)
     expect(new RegExp(h.matcher).test('src/a.ts')).toBe(false)
+  })
+  it('syncs when a test file is created', () => {
+    const h = load('readme-test-count.json').hooks.find((x) => x.name === 'readme-test-count-on-create')
+    expect(h.trigger).toBe('PostFileCreate')
+    expect(h.action).toEqual({ type: 'command', command: 'node tools/sync-readme-tests.mjs' })
+    expect(new RegExp(h.matcher).test('src/a.test.ts')).toBe(true)
+    expect(new RegExp(h.matcher).test('node_modules/x/a.test.ts')).toBe(false)
   })
   it('runs the sync script on save', () => {
     const h = load('readme-test-count.json').hooks[0]

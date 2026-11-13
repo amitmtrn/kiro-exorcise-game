@@ -40,10 +40,10 @@ export function evaluateReport(r) {
         !(f.assertionResults ?? []).some((a) => a?.status === 'failed'),
     )
     if (unloaded) {
-      return { ok: false, reason: 'a test file failed to load; count would be too low' }
+      return { ok: false, reason: 'a test file failed to load (or its beforeAll/afterAll threw); count would be too low' }
     }
   } else if ((r.numFailedTestSuites ?? 0) > 0 && (r.numFailedTests ?? 0) === 0) {
-    return { ok: false, reason: 'a test file failed to load; count would be too low' }
+    return { ok: false, reason: 'a test file failed to load (or its beforeAll/afterAll threw); count would be too low' }
   }
   return { ok: true, total, failed: r.numFailedTests ?? 0, skipped: r.numPendingTests ?? 0 }
 }

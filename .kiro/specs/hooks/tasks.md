@@ -5,7 +5,7 @@ Files: `.kiro/hooks/test-on-save.json`, `tools/hooks.test.mjs`
 
 - [x] Rewrite `test-on-save.json` in `version: "v1"` format (`PostFileSave`, matcher `(^|/)src/` — superseded by T5/T6, see `test-on-save.json` — `npm test`, timeout 120).
 - [x] `tools/hooks.test.mjs`: every `.kiro/hooks/*.json` parses; has `version: "v1"`; each hook has name/trigger/action; trigger is a known PascalCase name; action type matches command/prompt; matcher compiles.
-- [x] Test: `test-on-save` matcher accepts `src/game/state.ts` (and, as of T5, rejects `/abs/src/ui/hud.test.ts` because readme-test-count runs the suite), rejects `README.md`, `.kiro/specs/x/tasks.md`, `tools/a.mjs`.
+- [x] Test: `test-on-save` matcher accepts `src/game/state.ts` (and, as of T5/T7, rejects `src/ui/hud.test.ts` and `/abs/src/ui/hud.test.ts` because readme-test-count runs the suite), rejects `README.md`, `.kiro/specs/x/tasks.md`, `tools/a.mjs`.
 - [x] Run `npm test` and `npm run build`; both clean.
 - [x] Commit: `feat(hooks-T1): valid v1 test-on-save hook with structural tests`
 
@@ -61,4 +61,16 @@ Files: `tools/sync-readme-tests.mjs`, `tools/*.test.mjs`, `.kiro/hooks/*.json`, 
 - [x] Structural test: `action` must be a non-null non-array object; `matcher` must be a string.
 - [x] README file tree lists `sync-readme-tests.test.mjs`.
 - [x] Run `npm test`, `npm run build`, `node tools/sync-readme-tests.mjs --check`; all clean.
-- [x] Commit: `fix(hooks): review round 2 - per-file load-failure check, Windows-safe matchers, delete hook`
+- [x] Commit: `fix(hooks): per-file load-failure check, Windows-safe matchers, delete hook, spec sync`
+
+## T7 — Third review fixes
+Files: `.kiro/hooks/readme-test-count.json`, `tools/*.mjs`, `README.md`, specs
+
+- [x] README hooks table lists the delete and create hooks; design file layout updated (R6.1).
+- [x] New `readme-test-count-on-create` (`PostFileCreate`) hook + test (R4.1a), so a new test file does not depend on `PostFileSave`.
+- [x] Document the unanchored-matcher limitation (README, design Risks, R4.1b).
+- [x] Design spec-drift matcher text matches the shipped file; T6 commit line quotes the real subject; R1.5 moved after R1.4.
+- [x] Absolute-path case `/abs/src/ui/hud.test.ts` added to the test-on-save test.
+- [x] Load-failure message mentions `beforeAll`/`afterAll` throws.
+- [x] Run `npm test`, `npm run build`, `node tools/sync-readme-tests.mjs`; all clean.
+- [x] Commit: `fix(hooks): doc/spec sync, create hook, absolute-path test`

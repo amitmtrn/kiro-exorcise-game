@@ -25,7 +25,7 @@ npm run dev
 
 | Command | What it does |
 |---|---|
-| `npm test` | Run all 197 unit tests (Vitest) |
+| `npm test` | Run all 198 unit tests (Vitest) |
 | `npm run build` | Production build → `dist/` |
 | `npm run preview` | Preview the production build locally |
 
@@ -94,7 +94,9 @@ Standalone `v1` hook files, loaded by Kiro IDE and Kiro CLI V3. Spec: `.kiro/spe
 |---|---|---|
 | `test-on-save.json` | save of any non-test file under `src/` | Runs `npm test` (test-file saves are handled by `readme-test-count.json`, so the suite runs once) |
 | `spec-drift-check.json` | save of `.kiro/specs/*/tasks.md` | Agent checks every ticked task against the code, tests and git log, and reports drift (report only, no edits) |
-| `readme-test-count.json` | save of a `*.test.ts` / `*.test.mjs` file | Runs `node tools/sync-readme-tests.mjs`: runs the tests and rewrites the test count in this README (`--check` only reports) |
+| `readme-test-count.json` | save, creation or deletion of a `*.test.ts` / `*.test.mjs` file (hooks `readme-test-count`, `readme-test-count-on-create`, `readme-test-count-on-delete`) | Runs `node tools/sync-readme-tests.mjs`: runs the tests and rewrites the test count in this README (`--check` only reports) |
+
+Matchers are not anchored to the repo root. If Kiro passes absolute paths and the checkout itself lives under a `src/` directory, every save would run `npm test`; under a `node_modules/` directory all three hooks would be skipped. Keep the checkout out of such paths.
 
 The original `test-on-save.json` never fired (no `version`, camelCase `postToolUse` trigger); it was rewritten in the current format.
 
@@ -156,7 +158,7 @@ src/
     audio/              Procedural music + SFX spec
     spooky-skin/        Visual polish spec
     hooks/              Kiro hooks spec
-  hooks/                test-on-save.json, spec-drift-check.json, readme-test-count.json
+  hooks/                test-on-save.json, spec-drift-check.json, readme-test-count.json (save/create/delete)
 tools/
   sync-readme-tests.mjs Run tests and sync the README test count (used by a hook)
   sync-readme-tests.test.mjs Unit tests for the sync script's pure functions

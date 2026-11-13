@@ -14,7 +14,7 @@ file is not recognised as a hook document.
 .kiro/hooks/
   test-on-save.json       # R2  PostFileSave  src/        -> npm test
   spec-drift-check.json   # R3  PostFileSave  specs tasks -> agent prompt
-  readme-test-count.json  # R4  PostFileSave  *.test.*    -> node script
+  readme-test-count.json  # R4  PostFileSave/Create/Delete  *.test.* -> node script (3 hooks)
 tools/
   sync-readme-tests.mjs   # R4 script (pure fn exported + CLI main)
   sync-readme-tests.test.mjs
@@ -41,14 +41,14 @@ Command actions run in the project root; non-zero exit sends stderr to the
 agent, so failures are visible.
 
 ### spec-drift-check (R3)
-Matcher: `(^|[\\/])\.kiro[\\/]specs[\\/][^\/]+[\\/]tasks\.md$`. Agent action prompt (summary):
+Matcher: `(^|[\\/])\.kiro[\\/]specs[\\/][^\\/]+[\\/]tasks\.md$`. Agent action prompt (summary):
 read the file, list `- [x]` items, locate files/symbols/tests/commits named
 in each, `git log --oneline` for `Commit:` lines, print a table
 `task | status | evidence/missing`, flag unticked-but-implemented items,
 mark manual items as not checkable, and **make no edits**.
 
 ### readme-test-count (R4)
-Matcher: `^(?!.*(^|[\\/])node_modules[\\/]).*\.test\.(ts|mjs)$`. A second hook, `readme-test-count-on-delete` (`PostFileDelete`, same matcher and command), re-syncs after a test file is removed. No `PostFileCreate` hook: a new file is saved with content, which fires `PostFileSave` (assumption; not verified against Kiro). Command: `node tools/sync-readme-tests.mjs`.
+Matcher: `^(?!.*(^|[\\/])node_modules[\\/]).*\.test\.(ts|mjs)$`. Two more hooks with the same matcher and command, `readme-test-count-on-delete` (`PostFileDelete`) and `readme-test-count-on-create` (`PostFileCreate`), re-sync after a test file is removed or created, so correctness does not depend on whether Kiro also fires `PostFileSave` for a new file. Command: `node tools/sync-readme-tests.mjs`.
 
 Script flow:
 1. `npx vitest run --reporter=json --outputFile=<os tmpdir>/exorcise-vitest-<pid>.json`
@@ -85,6 +85,7 @@ Validation: build a temp agent JSON `{name, hooks:[…same array…]}` in `/tmp`
 run `kiro-cli agent validate --path`, delete it.
 
 ## Risks
+- Matchers are unanchored to the repo root (Kiro may pass absolute paths): a checkout under a `src/` directory makes every save run `npm test` (violates R2.3), and one under `node_modules/` disables all hooks. Documented in the README; not fixable without knowing the root in the matcher.
 - `PostFileSave` fires on every save, so `npm test` may run often; the
   `src/` matcher and 120 s timeout bound that. Test run is ~seconds.
 - Agent-prompt hooks cost a model turn; the drift hook is limited to
