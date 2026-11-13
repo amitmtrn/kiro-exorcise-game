@@ -102,10 +102,11 @@ export function renderTwoPlayerSummary(
     ctx.font = `bold ${clamp(W / 28, 18, 32)}px sans-serif`
     ctx.fillStyle = out ? '#c0392b' : '#e8e8f0'
     ctx.fillText(out ? `PLAYER ${i + 1} — OUT` : `PLAYER ${i + 1}`, cx, H * 0.3)
-    const rows: Array<[string, string]> = [
-      ['Banished', `${s.stageBanished}`], ['Missed', `${s.stageMissed}`],
-      ['Best combo', `x${s.bestCombo}`], ['Score', `${s.score}`],
-    ]
+    // An out seat's per-stage stats are from the stage it died in: show only its score.
+    const rows: Array<[string, string]> = out
+      ? [['Score', `${s.score}`]]
+      : [['Banished', `${s.stageBanished}`], ['Missed', `${s.stageMissed}`],
+         ['Best combo', `x${s.bestCombo}`], ['Score', `${s.score}`]]
     ctx.font = `${clamp(W / 40, 14, 22)}px sans-serif`
     rows.forEach(([label, val], r) => {
       const y = H * (0.4 + r * 0.08)

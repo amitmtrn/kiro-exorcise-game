@@ -84,3 +84,18 @@ Files: `src/game/halves.ts`, `src/game/loop.ts`, `src/game/twoPlayer.ts`, `src/u
 - [x] NIT: 2 PLAYERS button clamped on narrow screens; tasks bookkeeping (T7 commit subject, order); README count.
 - [x] `npm test` and `npm run build` both clean (883 passed).
 - [x] Commit: `fix(two-player): second review fixes`
+
+## T9 — Third review fixes (verdict READY; NITs)
+Files: `src/game/halves.ts`, `src/game/loop.ts`, `src/game/twoPlayer.ts`, `src/ui/screens.ts`,
+`src/ui/splitscreen.ts`, tests, `design.md`
+
+- [x] NIT: start-screen lock-out reset by explicit `resetStartScreen()` instead of a 250 ms render gap; test.
+- [x] NIT: start buttons never overlap / leave the canvas on narrow widths; test.
+- [x] NIT: shared summary shows only the score for an out seat.
+- [x] NIT: 2P seat ticks the clock after the simulation, like 1P (wave thresholds identical); test.
+- [x] NIT: `cropMotionHalf` reuses per-seat scratch buffers (optional `slot`); test.
+- [x] NIT: `seatStatus` dead branch simplified and documented; test.
+- [x] NIT: `twoPlayerActive` set in `begin(2)`.
+- [x] `npm test` and `npm run build` both clean (887 passed).
+- [x] Commit: `fix(two-player): third review fixes`
+

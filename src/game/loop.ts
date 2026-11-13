@@ -34,6 +34,7 @@ import {
   renderGameOver,
   renderVictory,
   resetVictoryScreen,
+  resetStartScreen,
 } from '../ui/screens'
 import {
   tickRound,
@@ -109,6 +110,8 @@ export async function startLoop(
   const pulses: HudPulse[] = [] // created on first use per seat
   const hudCanvases: HTMLCanvasElement[] = [] // transparent per-seat HUD layers, drawn above the divider
   /** Action requested by a 2P screen button during a tick; applied after the tick returns (so it is not overwritten). */
+  /** True while the start screen is the visible screen (entry detection for its lock-out). */
+  let startVisible = false
   let twoAction: 'next' | 'again' | 'menu' | null = null
 
   /** Start a game in `mode` (remembered for the session). */
@@ -117,6 +120,7 @@ export async function startLoop(
     if (mode === 2) {
       two = createTwoPlayer()
       prevTwoPhase = null
+      twoPlayerActive = true // mute tap target switches immediately, not on the first 2P tick
     } else {
       state = startGame(state)
     }
@@ -231,6 +235,7 @@ export async function startLoop(
 
     // ── Two-player game (own state machine; the 1P branches below are untouched) ──
     if (two) {
+      startVisible = false
       twoPlayerActive = true
       twoAction = null
       two = tickTwo(two, deltaMs, now, displayW, displayH, currentData, prevData, frameIsNew)
@@ -249,6 +254,7 @@ export async function startLoop(
 
     // ── Start screen ──────────────────────────────────────────────────────────
     if (state.phase === 'start') {
+      if (!startVisible) { resetStartScreen(); startVisible = true } // explicit entry: lock-out + fresh buttons
       try { startTitleMusic() } catch { /* ignore */ }
       renderFrame(gameCtx, state, now)
       renderStartScreen(gameCtx, state, now, (mode) => { begin(mode) })
@@ -260,6 +266,7 @@ export async function startLoop(
       return
     }
 
+    startVisible = false
     startRequest = null // a stray key outside the start screen is ignored
 
     // ── Stage title card ──────────────────────────────────────────────────────

@@ -42,6 +42,16 @@ export function motionHalfWidth(w: number = MOTION_W): number {
   return halfWidth(w)
 }
 
+// Reused crop buffers per (seat, slot). Callers that pass a `slot` get a zeroed shared
+// buffer valid until the next call with the same seat+slot (cur = 0, prev = 1).
+const scratch = new Map<string, Uint8ClampedArray>()
+function scratchFor(seat: Seat, slot: number, len: number): Uint8ClampedArray {
+  const key = `${seat}:${slot}`
+  let buf = scratch.get(key)
+  if (!buf || buf.length !== len) { buf = new Uint8ClampedArray(len); scratch.set(key, buf) } else buf.fill(0)
+  return buf
+}
+
 /**
  * Copies the columns of `seat`'s half out of a full motion frame into a new
  * half-width frame. A seat's hit detection only ever reads this copy, so it
@@ -52,9 +62,10 @@ export function cropMotionHalf(
   seat: Seat,
   w: number = MOTION_W,
   h: number = MOTION_H,
+  slot?: number,
 ): ImageData {
   const hw = motionHalfWidth(w)
-  const out = new Uint8ClampedArray(hw * h * 4)
+  const out = slot === undefined ? new Uint8ClampedArray(hw * h * 4) : scratchFor(seat, slot, hw * h * 4)
   const from = seat * hw
   const data = src.data
   for (let y = 0; y < h; y++) {

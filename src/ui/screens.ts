@@ -19,7 +19,11 @@ let twoBtn: MotionButton | null = null
 /** Start-screen input lock-out: coming back from MENU must not auto-start a game while the player is still waving. */
 export const START_INPUT_DELAY_MS = 1000
 let startShownAt: number | null = null
-let startLastRender = 0
+
+/** Call when the start screen is (re)entered: restarts the input lock-out and drops stale button fill. */
+export function resetStartScreen(): void {
+  startShownAt = null; startBtn = null; twoBtn = null
+}
 let retryBtn: MotionButton | null = null
 let menuBtn: MotionButton | null = null
 let nextBtn: MotionButton | null = null
@@ -66,17 +70,18 @@ export function renderStartScreen(
 
   // Mode buttons: 1 PLAYER stays at the old START position (the motion harness
   // waves over it); 2 PLAYERS sits to its right. The remembered mode is ringed.
-  const r = clamp(W / 8, 56, 90)
+  // Shrink the buttons on very narrow canvases so the pair never overlaps (centres ≥ 2r+gap apart).
+  const r = Math.min(clamp(W / 8, 56, 90), Math.max(24, (W - 16) / 5.2))
   const by = H * 0.72
-  // (Re)entering the screen restarts the lock-out and drops stale button fill state.
-  if (startShownAt === null || now - startLastRender > 250) {
-    startShownAt = now; startBtn = null; twoBtn = null
-  }
-  startLastRender = now
+  // Entry is signalled by resetStartScreen(); the first render after it starts the lock-out.
+  if (startShownAt === null) startShownAt = now
   const live = now - startShownAt >= START_INPUT_DELAY_MS
-  const twoX = Math.min(W / 2 + r * 2.6, W - r - 4) // keep the second button on narrow screens
-  if (!startBtn || startBtn.cx !== W / 2 || startBtn.radius !== r) {
-    startBtn = new MotionButton(W / 2, by, r, '1 PLAYER')
+  const gap = r * 2.6
+  const shift = Math.max(0, W / 2 + gap + r + 4 - W) // slide the pair left only as far as needed
+  const oneX = W / 2 - shift
+  const twoX = oneX + gap
+  if (!startBtn || startBtn.cx !== oneX || startBtn.radius !== r) {
+    startBtn = new MotionButton(oneX, by, r, '1 PLAYER')
   }
   if (!twoBtn || twoBtn.cx !== twoX || twoBtn.radius !== r) {
     twoBtn = new MotionButton(twoX, by, r, '2 PLAYERS')

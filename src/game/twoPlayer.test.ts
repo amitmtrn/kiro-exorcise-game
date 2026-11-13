@@ -330,3 +330,24 @@ describe('winner (R5.1)', () => {
     expect(winnerOf(t)).toBe(0)
   })
 })
+
+describe('review fixes (T9)', () => {
+  it('seatStatus: a finished seat reads cleared while playing, won/summary afterwards', () => {
+    const t = createTwoPlayer()
+    const mk = (phase: 'victory' | 'summary', tp: 'playing' | 'summary'): ReturnType<typeof createTwoPlayer> =>
+      ({ ...t, phase: tp, seats: [{ ...t.seats[0], phase }, t.seats[1]] })
+    expect(seatStatus(mk('summary', 'playing'), 0)).toBe('cleared')
+    expect(seatStatus(mk('victory', 'playing'), 0)).toBe('cleared')
+    expect(seatStatus(mk('summary', 'summary'), 0)).toBe('summary')
+    expect(seatStatus(mk('victory', 'summary'), 0)).toBe('won')
+  })
+
+  it('shared clock counts down by deltaMs and ticks after the simulation', () => {
+    let t = createTwoPlayer()
+    t = { ...t, phase: 'playing', roundTimeMs: 5000, seats: [{ ...t.seats[0], phase: 'playing', roundTimeMs: 5000 }, { ...t.seats[1], phase: 'playing', roundTimeMs: 5000 }] }
+    const n = tickTwoPlayer(t, 100, 1280, 720, null)
+    expect(n.roundTimeMs).toBe(4900)
+    expect(n.seats[0].roundTimeMs).toBe(4900)
+    expect(n.seats[1].roundTimeMs).toBe(4900)
+  })
+})

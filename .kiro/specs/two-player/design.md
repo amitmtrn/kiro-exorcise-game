@@ -28,7 +28,7 @@ export function halfOffset(seat: Seat, w: number): number  // seat * halfWidth(w
 export function seatOfX(x: number, w: number): Seat        // x < w/2 ? 0 : 1 (display, already mirrored)
 export function seatOfRawColumn(col: number, rawW: number): Seat
                                                            // seatOfX(mirrorX(col + 0.5, rawW), rawW)
-export function cropMotionHalf(d: ImageData, seat: Seat, w = MOTION_W, h = MOTION_H): ImageData
+export function cropMotionHalf(d: ImageData, seat: Seat, w = MOTION_W, h = MOTION_H, slot?: number): ImageData
                                                            // copies columns [seat*w/2, (seat+1)*w/2)
 export function motionHalfWidth(): number                  // MOTION_W / 2
 export function displayPointsInHalf(points, seat, w): Pt[]  // debug-overlay mask points → half-local x
@@ -214,5 +214,15 @@ players hit — it needs cross-half collision, the thing R1.4 forbids.
   (`resetSummaryScreen`, `resetFinalScreen`); final-screen radius follows resizes.
 - The shared mute button is drawn after the summary / final overlays.
 - The clear jingle is not played when the game ends with both players out.
-- `tickTwoPlayer` skips `cropMotionHalf` on duplicate camera frames.
+- `tickTwoPlayer` skips `cropMotionHalf` on duplicate camera frames, and passes a `slot`
+  (cur = 0, prev = 1) so the crops reuse per-seat scratch buffers instead of allocating.
+- Each seat reads the shared clock *before* this tick, simulates, then ticks the timer by
+  `deltaMs` — the same order as 1P, so wave-script thresholds fire on the same tick.
+- Start-screen entry is signalled by `resetStartScreen()` (called by the loop on entry),
+  not inferred from render gaps, so a long hitch never re-arms the lock-out.
+- Start buttons shrink / slide left on narrow canvases so 1 PLAYER and 2 PLAYERS never overlap.
+- The shared summary shows only the score for an out seat (its per-stage stats are stale).
+- `twoPlayerActive` is set in `begin(2)`, so the mute target moves on the same frame.
+- `seatStatus` is `cleared` for any finished seat while the session is `playing`; `won` /
+  `summary` only after the session leaves `playing`.
 - `isTwoPlayerActive` is cleared immediately on MAIN MENU and at `startLoop`.

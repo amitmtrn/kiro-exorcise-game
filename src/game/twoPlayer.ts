@@ -59,18 +59,20 @@ export function seatStatus(t: TwoPlayerState, seat: Seat): SeatStatus {
   if (s.phase === 'gameover') return 'out'
   if (s.phase === 'stageTitle' || s.phase === 'start') return 'title'
   if (s.phase === 'playing') return 'playing'
-  if (s.phase === 'victory') return t.phase === 'playing' ? 'cleared' : 'won'
-  return t.phase === 'playing' ? 'cleared' : 'summary'
+  // A seat that finished its stage (boss defeated → victory, or timer → summary) while the other still plays.
+  if (t.phase === 'playing') return 'cleared'
+  return s.phase === 'victory' ? 'won' : 'summary'
 }
 
 export function winnerOf(t: TwoPlayerState): Seat | 'tie' {
   return pickWinner(t.seats[0].score, t.seats[1].score)
 }
 
-/** Runs one playing seat for `deltaMs` against `clockMs` (the shared stage clock). */
-function stepSeat(seat: Seat, s: GameState, deltaMs: number, clockMs: number, W: number, H: number, m: MotionInput | null): { s: GameState; banished: Enemy[] } {
+/** Runs one playing seat for `deltaMs` from `prevClockMs` (the shared stage clock before this tick). */
+function stepSeat(seat: Seat, s: GameState, deltaMs: number, prevClockMs: number, W: number, H: number, m: MotionInput | null): { s: GameState; banished: Enemy[] } {
   const hw = halfWidth(W)
-  s = { ...s, roundTimeMs: clockMs }
+  // Same order as 1P: simulate against the clock from before this tick, then tick the timer (below).
+  s = { ...s, roundTimeMs: prevClockMs }
   // Hit-stop (juice R3), per seat: freezes only this seat's simulation.
   const hs = splitHitStop(s.hitStopMs, deltaMs)
   s = { ...s, hitStopMs: hs.remainingMs }
@@ -80,8 +82,8 @@ function stepSeat(seat: Seat, s: GameState, deltaMs: number, clockMs: number, W:
   let banished: Enemy[] = []
   if (m) {
     s = resolveHits(
-      // A duplicate camera frame returns early inside resolveHits, so skip the crop (saves ~460 KB of garbage per tick).
-      s, m.frameIsNew ? cropMotionHalf(m.cur, seat) : m.cur, m.frameIsNew ? cropMotionHalf(m.prev, seat) : m.prev,
+      // A duplicate camera frame returns early inside resolveHits, so skip the crop (and the crops reuse per-seat scratch buffers).
+      s, m.frameIsNew ? cropMotionHalf(m.cur, seat, undefined, undefined, 0) : m.cur, m.frameIsNew ? cropMotionHalf(m.prev, seat, undefined, undefined, 1) : m.prev,
       hw, H, m.now, m.frameIsNew, deltaMs, motionHalfWidth(),
     )
     banished = lastBanished
@@ -91,7 +93,7 @@ function stepSeat(seat: Seat, s: GameState, deltaMs: number, clockMs: number, W:
     s = setScoreLabels(s, tickScoreLabels(s.scoreLabels, simMs))
   }
   // Shared clock: expiry rule per seat (boss alive → out, else summary). A defeat on this tick already left 'playing'.
-  if (s.phase === 'playing') s = tickTimer(s, 0)
+  if (s.phase === 'playing') s = tickTimer(s, deltaMs)
   if (s.phase === 'gameover' && s.enemies.length > 0) s = { ...s, enemies: [] } // out: no enemies (R4.1)
   return { s, banished }
 }
@@ -130,7 +132,7 @@ export function tickTwoPlayer(t: TwoPlayerState, deltaMs: number, W: number, H: 
       const banished: [Enemy[], Enemy[]] = [[], []]
       const next = mapSeats(t, (s, seat) => {
         if (s.phase !== 'playing') return tickEffects(s, deltaMs) // out / cleared: frozen, no spawns
-        const r = stepSeat(seat, s, deltaMs, clock, W, H, m)
+        const r = stepSeat(seat, s, deltaMs, t.roundTimeMs, W, H, m)
         banished[seat] = r.banished
         return r.s
       })

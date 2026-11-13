@@ -117,3 +117,17 @@ describe('displayPointsInHalf', () => {
     expect(displayPointsInHalf(pts, 1, 1280)).toEqual([{ x: 0, y: 7 }, { x: 639, y: 8 }])
   })
 })
+
+describe('cropMotionHalf scratch reuse', () => {
+  it('reuses the buffer for the same seat+slot and still crops correctly', () => {
+    const w = 8, h = 2
+    const mk = (v: number) => ({ data: new Uint8ClampedArray(w * h * 4).fill(v), width: w, height: h }) as unknown as ImageData
+    const a = cropMotionHalf(mk(10), 0, w, h, 0)
+    const b = cropMotionHalf(mk(20), 0, w, h, 0)
+    expect(b.data).toBe(a.data)
+    expect(b.data[0]).toBe(20)
+    const p = cropMotionHalf(mk(30), 0, w, h, 1)
+    expect(p.data).not.toBe(b.data)
+    expect(cropMotionHalf(mk(1), 0, w, h).data).not.toBe(b.data) // no slot → fresh
+  })
+})
