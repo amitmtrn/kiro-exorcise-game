@@ -30,13 +30,13 @@ Files: `.kiro/settings/mcp.json`, `tools/motion-harness/run.sh`, `tools/balancer
 ## T4 — `balancer` agent
 Files: `.kiro/agents/balancer.json`, `tools/balancer-config.test.mjs`
 
-- [ ] `.kiro/agents/balancer.json` per design (prompt, inline MCP server, restricted tools, permissions, resources).
-- [ ] Config tests (R6.2, R6.3): no shell/web tools, write only to the report, MCP entry equals the workspace one.
-- [ ] `kiro-cli agent validate --path .kiro/agents/balancer.json` passes; output recorded below.
-- [ ] `npm test` and `npm run build` both clean.
-- [ ] Commit: `feat(balancer-T4): balancer playtest-tuner agent`
+- [x] `.kiro/agents/balancer.json` per design (prompt, inline MCP server, restricted tools, permissions, resources).
+- [x] Config tests (R6.2, R6.3): no shell/web tools, write only to the report, MCP entry equals the workspace one.
+- [x] `kiro-cli agent validate --path .kiro/agents/balancer.json` passes; output recorded below.
+- [x] `npm test` and `npm run build` both clean.
+- [x] Commit: `feat(balancer-T4): balancer playtest-tuner agent`
 
-Validation result: _(recorded when T4 runs)_
+Validation result (kiro-cli 3.3.0): `kiro-cli agent validate --path .kiro/agents/balancer.json` printed nothing and exited 0. Control: an invalid file (`{"name":1,"tools":"x"}`) exits 1 with `invalid type: integer 1, expected a string`. `kiro-cli agent list` shows `balancer  Workspace  (v3 format)`.
 
 ## T5 — Real harness run
 - [ ] Run `tools/motion-harness/run.sh sweep 30` through the MCP server (`tools/call run_harness`), confirm no Vite / Chrome processes remain, record the metrics below.
