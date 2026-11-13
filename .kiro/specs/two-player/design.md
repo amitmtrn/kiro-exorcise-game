@@ -188,4 +188,6 @@ players hit — it needs cross-half collision, the thing R1.4 forbids.
 | `twoPlayer.property.test.ts` | clock monotone and equal for both seats; one seat's inputs never change the other; deltaMs split-invariance |
 | `playerMode.test.ts` | default 1, set / get, no storage use |
 | `loop.mode.test.ts` | start request → mode mapping (keys 1 / 2 / Space), 1P path unaffected |
-| `ui/hud.test.ts` | `muteButtonRect2P` centred, per-seat pulse isolation |
+| `ui/hud.test.ts` | `muteButtonRect2P` centred, per-seat pulse isolation, `showMute` / `label` options |
+| `ui/splitscreen.test.ts` | winner text, divider line, OUT / CLEARED overlays |
+| `game/render.opts.test.ts` | `renderFrame` options: defaults unchanged for 1P, per-seat banished flash |

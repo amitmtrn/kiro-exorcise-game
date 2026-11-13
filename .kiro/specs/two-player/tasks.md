@@ -45,9 +45,9 @@ Files: `src/game/loop.ts`, `src/game/render.ts`, `src/ui/hud.ts`, `src/ui/screen
 - [x] Commit: `feat(two-player-T4): split-screen loop, HUD, divider and end screen`
 
 ## T5 — Docs
-- [ ] README: two-player section, spec table row, spec count and test count; `.kiro/specs` list.
-- [ ] `npm test` and `npm run build` both clean.
-- [ ] Commit: `docs(two-player-T5): README`
+- [x] README: two-player section, spec table row, spec count and test count; `.kiro/specs` list.
+- [x] `npm test` and `npm run build` both clean.
+- [x] Commit: `docs(two-player-T5): README`
 
 ## T6 — Manual smoke test (webcam, two people)
 - [ ] Start screen: wave over 1 PLAYER → normal game; MENU → wave over 2 PLAYERS → split screen; keys 1 / 2 / Space.
