@@ -37,10 +37,10 @@ Files: `src/game/enemies/spawn.property.test.ts`, `src/game/enemies/spawn.ts` (i
 ## T5 — Mirror parity properties
 Files: `src/webcam/diff.ts`, `src/webcam/diff.property.test.ts`
 
-- [ ] `mirrorX`, `mirrorHitbox` pure helpers.
-- [ ] Involution, point-in-box agreement, commutes with `scaleHitbox`, `computeFrameDiff` parity on mirrored frames (R5).
-- [ ] Run `npm test` and `npm run build`; both clean.
-- [ ] Commit: `test(pbt-T5): mirror parity properties`
+- [x] `mirrorX`, `mirrorHitbox` pure helpers.
+- [x] Involution, point-in-box agreement, commutes with `scaleHitbox`, `computeFrameDiff` parity on mirrored frames (R5).
+- [x] Run `npm test` and `npm run build`; both clean.
+- [x] Commit: `test(pbt-T5): mirror parity properties`
 
 ## T6 — Movement frame-rate independence properties
 Files: `src/game/enemies/movement.property.test.ts`, `movement.ts` (if a bug is found)

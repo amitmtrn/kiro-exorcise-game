@@ -41,6 +41,20 @@ export function captureFrame(
 }
 
 /**
+ * Mirror a horizontal coordinate inside a canvas `width` pixels wide.
+ * Pure reference for the `translate(width, 0); scale(-1, 1)` canvas transform
+ * used by drawWebcamFrame / captureFrame. Applying it twice is the identity.
+ */
+export function mirrorX(x: number, width: number): number {
+  return width - x
+}
+
+/** Mirror an axis-aligned hitbox left↔right inside a canvas `width` wide. */
+export function mirrorHitbox(hitbox: Hitbox, width: number): Hitbox {
+  return { x: width - hitbox.x - hitbox.w, y: hitbox.y, w: hitbox.w, h: hitbox.h }
+}
+
+/**
  * Scale a hitbox from display canvas coordinates into motion canvas coordinates.
  */
 export function scaleHitbox(
