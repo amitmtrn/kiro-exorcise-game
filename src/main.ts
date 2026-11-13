@@ -10,6 +10,7 @@ import { createOnboarding, onboardingReducer, hasSeenOnboarding, getLocalStorage
 import { toggleDebug } from './game/render'
 import { toggleMute, getAudioContext } from './audio/index'
 import { installAudioUnlock } from './audio/unlock'
+import { modeForKey } from './game/playerMode'
 import { loadTitleFont } from './ui/fonts'
 import { hudFontSize, muteButtonRect } from './ui/hud'
 
@@ -45,6 +46,8 @@ installAudioUnlock({
 document.addEventListener('keydown', (e) => {
   if (e.key === 'd' || e.key === 'D') toggleDebug()
   if (e.key === 'm' || e.key === 'M') toggleMute()
+  const pickedMode = modeForKey(e.key)
+  if (pickedMode !== null && !e.repeat) requestStart(pickedMode) // keys 1 / 2 on the start screen
   if (e.key === ' ' || e.code === 'Space') {
     // Space on a focused button (e.g. "Try again") activates that button; it must not also start the game.
     if ((e.target as HTMLElement | null)?.tagName === 'BUTTON') return

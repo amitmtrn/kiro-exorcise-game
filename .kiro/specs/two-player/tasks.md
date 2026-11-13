@@ -27,11 +27,11 @@ Files: `src/game/step.ts`, `src/game/twoPlayer.ts`, `src/game/loop.ts`,
 Files: `src/game/playerMode.ts`, `src/game/loop.ts`, `src/main.ts`,
 `src/ui/screens.ts`, `src/game/playerMode.test.ts`, `src/game/loop.mode.test.ts`
 
-- [ ] `playerMode.ts`: session-only mode (default 1), `getPlayerMode` / `setPlayerMode`, `modeForStartRequest`.
-- [ ] Start screen: "1 PLAYER" (old START position) and "2 PLAYERS" motion buttons, remembered mode highlighted; keys 1 / 2 start in that mode, Space uses the remembered mode.
-- [ ] Unit tests: default, remember, key mapping, Space uses last mode, nothing is stored (no `localStorage` access).
-- [ ] `npm test` and `npm run build` both clean.
-- [ ] Commit: `feat(two-player-T3): 1 / 2 player selection on the start screen`
+- [x] `playerMode.ts`: session-only mode (default 1), `getPlayerMode` / `setPlayerMode`, `modeForStartRequest`.
+- [x] Start screen: "1 PLAYER" (old START position) and "2 PLAYERS" motion buttons, remembered mode highlighted; keys 1 / 2 start in that mode, Space uses the remembered mode.
+- [x] Unit tests: default, remember, key mapping, Space uses last mode, nothing is stored (no `localStorage` access).
+- [x] `npm test` and `npm run build` both clean.
+- [x] Commit: `feat(two-player-T3): 1 / 2 player selection on the start screen`
 
 ## T4 — Split-screen loop, HUD, divider and end screen
 Files: `src/game/loop.ts`, `src/game/render.ts`, `src/ui/hud.ts`, `src/ui/screens.ts`,

@@ -9,10 +9,13 @@ import { STAGE_TITLE_DURATION_MS } from '../game/state'
 import { introPose, outroPose, outroRowAlpha } from '../game/transitions'
 import { MotionButton } from './motionButton'
 import { TITLE_FONT_FAMILY } from './fonts'
+import { getPlayerMode } from '../game/playerMode'
+import type { PlayerMode } from '../game/playerMode'
 
 // ─── Motion buttons (persistent instances reused across frames) ───────────────
 
 let startBtn: MotionButton | null = null
+let twoBtn: MotionButton | null = null
 let retryBtn: MotionButton | null = null
 let menuBtn: MotionButton | null = null
 let nextBtn: MotionButton | null = null
@@ -29,7 +32,7 @@ export function renderStartScreen(
   ctx: CanvasRenderingContext2D,
   state: GameState,
   now: number,
-  onStart: () => void,
+  onStart: (mode: PlayerMode) => void,
 ): void {
   const { width: W, height: H } = ctx.canvas
 
@@ -57,21 +60,36 @@ export function renderStartScreen(
     ctx.fillText(`Best: ${state.highScore}`, W / 2, H * 0.52)
   }
 
-  // Motion button
-  if (!startBtn || startBtn.cx !== W / 2) {
-    startBtn = new MotionButton(W / 2, H * 0.72, clamp(W / 8, 56, 90), '▶ START')
+  // Mode buttons: 1 PLAYER stays at the old START position (the motion harness
+  // waves over it); 2 PLAYERS sits to its right. The remembered mode is ringed.
+  const r = clamp(W / 8, 56, 90)
+  const by = H * 0.72
+  if (!startBtn || startBtn.cx !== W / 2 || startBtn.radius !== r) {
+    startBtn = new MotionButton(W / 2, by, r, '1 PLAYER')
+  }
+  if (!twoBtn || twoBtn.cx !== W / 2 + r * 2.6 || twoBtn.radius !== r) {
+    twoBtn = new MotionButton(W / 2 + r * 2.6, by, r, '2 PLAYERS')
   }
   const result = startBtn.update(now)
+  const result2 = twoBtn.update(now)
   startBtn.render(ctx, now)
+  twoBtn.render(ctx, now)
+  const last = getPlayerMode()
+  const ring = last === 1 ? startBtn : twoBtn
+  ctx.beginPath()
+  ctx.arc(ring.cx, ring.cy, r + 8, 0, Math.PI * 2)
+  ctx.strokeStyle = '#ffd166'; ctx.lineWidth = 3; ctx.shadowColor = '#ffd166'; ctx.shadowBlur = 10
+  ctx.stroke()
 
   // Instruction
   ctx.font = `${clamp(W / 40, 13, 18)}px sans-serif`
   ctx.fillStyle = 'rgba(232,232,240,0.6)'; ctx.shadowBlur = 0
-  ctx.fillText('Wave over the button to start  •  Press Space', W / 2, H * 0.88)
+  ctx.fillText('Wave over a button  •  or press 1 / 2  •  Space = last mode', W / 2, H * 0.9)
 
   ctx.restore()
 
-  if (result === 'triggered') onStart()
+  if (result === 'triggered') onStart(1)
+  else if (result2 === 'triggered') onStart(2)
 }
 
 // ─── Stage title card ─────────────────────────────────────────────────────────

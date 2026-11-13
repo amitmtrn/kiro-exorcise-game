@@ -35,14 +35,17 @@ import {
   retryStage,
   advanceToNextStage,
 } from './round'
+import { resolveStartRequest, setPlayerMode } from './playerMode'
+import type { PlayerMode, StartRequest } from './playerMode'
 import { sfxStageClear, startMusic, startTitleMusic, stopMusic, setMusicCombo } from '../audio/index'
 
 let rafId = 0
 
 // Keyboard fallback for the motion START button — the start screen says
 // "Press Space". main.ts calls requestStart(); the start branch consumes it.
-let startRequested = false
-export function requestStart(): void { startRequested = true }
+let startRequest: StartRequest | null = null
+/** Space starts in the remembered mode; keys 1 / 2 pick the mode (two-player R6.2). */
+export function requestStart(req: StartRequest = 'last'): void { startRequest = req }
 
 /** hit-detection-fix T4: tell the player to hold still while we sample noise. */
 function drawCalibratingBanner(ctx: CanvasRenderingContext2D): void {
@@ -67,7 +70,7 @@ export async function startLoop(
   gameCtx: CanvasRenderingContext2D,
   initialStage = 1,
 ): Promise<() => void> {
-  startRequested = false // a Space pressed during permission/onboarding must not skip the title
+  startRequest = null // a Space pressed during permission/onboarding must not skip the title
   const currentCanvas = document.createElement('canvas')
   currentCanvas.width = MOTION_W; currentCanvas.height = MOTION_H
   const currentCtx = currentCanvas.getContext('2d')!
@@ -82,11 +85,17 @@ export async function startLoop(
   drawCalibratingBanner(gameCtx)
   await calibrateDiffThreshold(currentCtx, video, 1000)
   captureFrame(prevCtx, video)
-  startRequested = false // ...nor one pressed during the 1 s calibration above
+  startRequest = null // ...nor one pressed during the 1 s calibration above
 
   let state: GameState = createInitialState(initialStage)
   let lastTimestamp = 0
   let prevPhase = state.phase
+
+  /** Start a game in `mode` (remembered for the session). */
+  function begin(mode: PlayerMode): void {
+    setPlayerMode(mode)
+    state = startGame(state) // two-player entry point is added in two-player T4
+  }
 
   function tick(timestamp: number): void {
     const deltaMs = lastTimestamp === 0 ? 16 : Math.min(timestamp - lastTimestamp, 100)
@@ -114,18 +123,16 @@ export async function startLoop(
     if (state.phase === 'start') {
       try { startTitleMusic() } catch { /* ignore */ }
       renderFrame(gameCtx, state, now)
-      renderStartScreen(gameCtx, state, now, () => {
-        state = startGame(state)
-      })
-      // Space bar fallback (only honoured while actually on the start screen)
-      if (startRequested && state.phase === 'start') state = startGame(state)
-      startRequested = false
+      renderStartScreen(gameCtx, state, now, (mode) => { begin(mode) })
+      // Space / 1 / 2 fallback (only honoured while actually on the start screen)
+      if (startRequest !== null && state.phase === 'start') begin(resolveStartRequest(startRequest))
+      startRequest = null
       prevCtx.drawImage(currentCanvas, 0, 0)
       rafId = requestAnimationFrame(tick)
       return
     }
 
-    startRequested = false // a stray Space outside the start screen is ignored
+    startRequest = null // a stray key outside the start screen is ignored
 
     // ── Stage title card ──────────────────────────────────────────────────────
     if (state.phase === 'stageTitle') {
