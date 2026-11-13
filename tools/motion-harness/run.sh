@@ -17,8 +17,13 @@ OUT="$HERE/out"; mkdir -p "$OUT"
 
 [ -f "$OUT/$MODE.y4m" ] || python3 -I "$HERE/make_y4m.py" "$MODE" "$OUT/$MODE.y4m"
 
+URL="http://127.0.0.1:$DEV/kiro-exorcise-game/"
+# Something already listens on the dev port: measuring that server would be silently wrong.
+if curl -sf -o /dev/null "$URL"; then echo "port $DEV is already serving a page; refusing to measure it (set DEV_PORT)" >&2; exit 1; fi
+
 (cd "$ROOT" && npx --no-install vite --port "$DEV" --strictPort --host 127.0.0.1 --logLevel silent) & VITE=$!
 CHROME_PID=
+DRIVE_PID=
 # Close everything this script started (Vite, Chrome and their children) on
 # success, failure and signals. The pkill is a last resort scoped to this run's
 # own browser profile directory.
@@ -29,15 +34,24 @@ kill_tree() {
 }
 cleanup() {
   trap - EXIT
+  [ -n "${DRIVE_PID:-}" ] && kill_tree "$DRIVE_PID"
   [ -n "${CHROME_PID:-}" ] && kill_tree "$CHROME_PID"
   kill_tree "$VITE"
-  pkill -f -- "--user-data-dir=$OUT/profile-$MODE" 2>/dev/null || true
+  # pkill takes a regex: escape the profile path's metacharacters.
+  local pat; pat=$(printf '%s' "--user-data-dir=$OUT/profile-$MODE" | sed 's/[][\.^$*+?(){}|/]/\\&/g')
+  pkill -f -- "$pat" 2>/dev/null || true
   wait 2>/dev/null || true
 }
 trap cleanup EXIT
 trap 'exit 130' INT
 trap 'exit 143' TERM
-until curl -sf -o /dev/null "http://127.0.0.1:$DEV/kiro-exorcise-game/"; do sleep 0.3; done
+# Bounded wait (about 60 s); fail fast, non-zero, if Vite died (no node_modules, port taken).
+for _ in $(seq 1 200); do
+  curl -sf -o /dev/null "$URL" && break
+  kill -0 "$VITE" 2>/dev/null || { echo "vite exited before serving $URL" >&2; exit 1; }
+  sleep 0.3
+done
+curl -sf -o /dev/null "$URL" || { echo "vite did not serve $URL in time" >&2; exit 1; }
 
 rm -rf "$OUT/profile-$MODE"; mkdir -p "$OUT/profile-$MODE"
 "$CHROME" --headless=new --user-data-dir="$OUT/profile-$MODE" --no-first-run \
@@ -49,4 +63,6 @@ rm -rf "$OUT/profile-$MODE"; mkdir -p "$OUT/profile-$MODE"
   "http://127.0.0.1:$DEV/kiro-exorcise-game/" > "$OUT/chrome-$MODE.log" 2>&1 & CHROME_PID=$!
 
 START=space; [ "$MODE" = wave ] && START=wave
-node "$HERE/drive.mjs" "$PORT" $((SECS * 1000)) "$START"
+# Background + wait so INT/TERM traps fire immediately instead of after drive.mjs ends.
+node "$HERE/drive.mjs" "$PORT" $((SECS * 1000)) "$START" & DRIVE_PID=$!
+wait "$DRIVE_PID"

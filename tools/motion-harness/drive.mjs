@@ -2,6 +2,7 @@
 // by importing the live Vite module instances (same URLs the bundle uses).
 // usage: node drive.mjs <cdpPort> <playMs> <space|wave>
 const [PORT = '9333', PLAY_MS = '30000', MODE = 'space'] = process.argv.slice(2)
+let failed = false // a progress evaluation failed: exit non-zero so stale metrics are never a success
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 
 let page
@@ -62,10 +63,12 @@ if (MODE === 'space') {
 const t0 = Date.now()
 while (Date.now() - t0 < Number(PLAY_MS)) {
   await sleep(5000)
-  console.log(`t+${Math.round((Date.now() - t0) / 1000)}s`, await ev(`JSON.stringify({
+  const v = await ev(`JSON.stringify({
     frames: __m.frames, hits: __m.hits, motionFrames: __m.motionFrames, maxMotion: __m.maxMotion,
     playFrames: __m.playFrames, firstPlayAtMs: __m.firstPlayAt,
     threshold: __m.diff.DIFF_THRESHOLD, highScoreSaved: localStorage.getItem('exorcise-highscore'),
-  })`))
+  })`)
+  if (typeof v !== 'string' || v.startsWith('ERR ')) failed = true
+  console.log(`t+${Math.round((Date.now() - t0) / 1000)}s`, v)
 }
-ws.close(); process.exit(0)
+ws.close(); process.exit(failed ? 2 : 0)
