@@ -95,6 +95,11 @@ describe('evalSandboxed (R2.3)', () => {
     expect(() => evalSandboxed('exports.p = module.constructor.constructor("return process")()')).toThrow(/process is not defined/)
     expect(() => evalSandboxed('exports.p = exports.constructor.constructor("return process")()')).toThrow(/process is not defined/)
   })
+  it('cannot reach the host Function through the global object', () => {
+    for (const expr of ['this.constructor.constructor("return process")()', 'constructor.constructor("return process")()', 'globalThis.constructor.constructor("return process")()']) {
+      expect(() => evalSandboxed(`exports.p = ${expr}`), expr).toThrow(/process is not defined/)
+    }
+  })
   it('times out a runaway script', () => {
     expect(() => evalSandboxed('while (true) {}')).toThrow(/timed out/)
   })

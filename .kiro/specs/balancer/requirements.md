@@ -62,7 +62,9 @@ existing `typescript` dev dependency — no new packages.
 `process`, `fetch` or file access and a `require` that resolves only
 `./waves`. `module`, `exports` and `require` are created *inside* the context,
 so no host object (and no host `Function`) is reachable from the evaluated code
-(`require.constructor('return process')()` throws). Tested.
+(`require.constructor('return process')()` throws). The context global has a
+null prototype, so `this.constructor.constructor` and bare `constructor.constructor`
+resolve to the context's own `Function`, never the host's. Tested.
 
 ---
 

@@ -45,7 +45,7 @@ output tail); no valid line → error; only exit 0 + valid line is a success.
 
 Lifecycle (R3.5b): the active child's pid is kept in a module variable;
 `exit` calls `killActive()`
-(`process.kill(-pid, 'SIGKILL')`); `SIGINT`/`SIGTERM`/`SIGHUP` and stdin `end` (while a run is active) and stdin end go through `shutdown()`: `SIGTERM` to the group, wait up to `KILL_GRACE_MS` for the run to end, then `killActive()` and `process.exit`. Only the synchronous `exit` handler kills at once.
+(`process.kill(-pid, 'SIGKILL')`); `SIGINT`/`SIGTERM`/`SIGHUP` and stdin `end` (while a run is active) go through `shutdown()`: `SIGTERM` to the group, wait up to `KILL_GRACE_MS` for the run to end, then `killActive()` and `process.exit`. Only the synchronous `exit` handler kills at once.
 
 Stale results (R1.5): `parseHarnessOutput` also returns `atSeconds` (the `t+N` of
 the valid line) and `lastProgressSeconds(text)` the `t+N` of the last progress

@@ -98,7 +98,8 @@ export function evalSandboxed(code, table = {}) {
     ' if (Object.prototype.hasOwnProperty.call(table, id)) return table[id];' +
     ' throw new Error("blocked require: " + id) } })',
   )
-  const sandbox = { __require: makeRequire(table) }
+  // null prototype: global lookups must not fall through to the host Object.prototype
+  const sandbox = Object.assign(Object.create(null), { __require: makeRequire(table) })
   return vm.runInNewContext(
     `var module = { exports: {} }; var exports = module.exports; var require = __require;\n${code}\n;module.exports`,
     sandbox,

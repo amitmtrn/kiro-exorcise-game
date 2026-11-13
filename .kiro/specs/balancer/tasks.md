@@ -94,5 +94,14 @@ Files: `src/game/swipe.property.test.ts`, `tools/motion-harness/mcp-server.mjs`,
 - [x] `npm test` and `npm run build` both clean.
 - [x] Commits: `fix(balancer): ...`
 
+## T11 — Fourth review fixes
+Files: `tools/motion-harness/mcp-server.mjs`, `tools/*.test.mjs`, specs
+
+- [x] Sandbox global is a null-prototype object; `this.constructor.constructor` / `constructor.constructor` / `globalThis...` cannot reach host `Function` (R2.3); tests.
+- [x] `balancer-config.test.mjs` asserts every deny glob (`out/*.tmp`, `out/*/**`, `out/*.json`, `out/profile-*/**`, `dist/**`, `node_modules/**`) and exercises representative paths.
+- [x] design.md deny list and garbled lifecycle sentence fixed.
+- [x] `npm test` and `npm run build` both clean.
+- [x] Commits: `fix(balancer): ...`
+
 ## T7 — Manual
 - [ ] In Kiro CLI: `kiro-cli chat --agent balancer`, ask for a balance report; confirm it runs the harness and writes `tools/motion-harness/out/balancer-report.md` without touching `src/`.
