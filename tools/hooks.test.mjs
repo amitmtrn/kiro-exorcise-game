@@ -82,3 +82,20 @@ describe('spec-drift-check (R3)', () => {
     expect(p).toMatch(/do not edit/i)
   })
 })
+
+describe('readme-test-count (R4)', () => {
+  it('matches test files only', () => {
+    const m = matcherOf('readme-test-count.json', 'readme-test-count')
+    for (const p of ['src/ui/hud.test.ts', '/abs/tools/sync-readme-tests.test.mjs']) {
+      expect(m.test(p)).toBe(true)
+    }
+    for (const p of ['src/game/state.ts', 'README.md', 'tools/sync-readme-tests.mjs']) {
+      expect(m.test(p)).toBe(false)
+    }
+  })
+  it('runs the sync script on save', () => {
+    const h = load('readme-test-count.json').hooks[0]
+    expect(h.trigger).toBe('PostFileSave')
+    expect(h.action).toEqual({ type: 'command', command: 'node tools/sync-readme-tests.mjs' })
+  })
+})

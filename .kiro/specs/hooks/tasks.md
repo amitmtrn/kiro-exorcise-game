@@ -20,13 +20,13 @@ Files: `.kiro/hooks/spec-drift-check.json`, `tools/hooks.test.mjs`
 ## T3 — README test-count sync
 Files: `tools/sync-readme-tests.mjs`, `tools/sync-readme-tests.test.mjs`, `.kiro/hooks/readme-test-count.json`, `tools/hooks.test.mjs`, `README.md`
 
-- [ ] `updateReadmeCount(text, n)` pure function; throws when no `Run all N unit tests` line.
-- [ ] CLI main: run Vitest JSON reporter to a temp file, sync README, `--check` mode, idempotent, no README write when tests cannot run, exit 1 on failing tests, temp report removed.
-- [ ] Unit tests for the pure function (replace, idempotent, other text untouched, throws).
-- [ ] Add `readme-test-count.json` (`PostFileSave`, matcher `\.test\.(ts|mjs)$`, command `node tools/sync-readme-tests.mjs`) and matcher tests.
-- [ ] Run the script; README count equals the real total; `--check` exits 0.
-- [ ] Run `npm test` and `npm run build`; both clean.
-- [ ] Commit: `feat(hooks-T3): README test-count sync hook and script`
+- [x] `updateReadmeCount(text, n)` pure function; throws when no `Run all N unit tests` line.
+- [x] CLI main: run Vitest JSON reporter to a temp file, sync README, `--check` mode, idempotent, no README write when tests cannot run, exit 1 on failing tests, temp report removed.
+- [x] Unit tests for the pure function (replace, idempotent, other text untouched, throws).
+- [x] Add `readme-test-count.json` (`PostFileSave`, matcher `\.test\.(ts|mjs)$`, command `node tools/sync-readme-tests.mjs`) and matcher tests.
+- [x] Run the script; README count equals the real total; `--check` exits 0.
+- [x] Run `npm test` and `npm run build`; both clean.
+- [x] Commit: `feat(hooks-T3): README test-count sync hook and script`
 
 ## T4 — Docs and CLI verification
 Files: `README.md`

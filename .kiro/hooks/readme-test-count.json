@@ -1,0 +1,14 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "readme-test-count",
+      "description": "When a test file is saved, run the tests and sync the test count stated in README.md.",
+      "trigger": "PostFileSave",
+      "matcher": "\\.test\\.(ts|mjs)$",
+      "action": { "type": "command", "command": "node tools/sync-readme-tests.mjs" },
+      "timeout": 180,
+      "enabled": true
+    }
+  ]
+}
