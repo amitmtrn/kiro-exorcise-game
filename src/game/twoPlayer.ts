@@ -80,7 +80,8 @@ function stepSeat(seat: Seat, s: GameState, deltaMs: number, clockMs: number, W:
   let banished: Enemy[] = []
   if (m) {
     s = resolveHits(
-      s, cropMotionHalf(m.cur, seat), cropMotionHalf(m.prev, seat),
+      // A duplicate camera frame returns early inside resolveHits, so skip the crop (saves ~460 KB of garbage per tick).
+      s, m.frameIsNew ? cropMotionHalf(m.cur, seat) : m.cur, m.frameIsNew ? cropMotionHalf(m.prev, seat) : m.prev,
       hw, H, m.now, m.frameIsNew, deltaMs, motionHalfWidth(),
     )
     banished = lastBanished

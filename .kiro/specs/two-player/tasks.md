@@ -49,6 +49,13 @@ Files: `src/game/loop.ts`, `src/game/render.ts`, `src/ui/hud.ts`, `src/ui/screen
 - [x] `npm test` and `npm run build` both clean.
 - [x] Commit: `docs(two-player-T5): README`
 
+## T6 — Manual smoke test (webcam, two people)
+- [ ] Start screen: wave over 1 PLAYER → normal game; MENU → wave over 2 PLAYERS → split screen; keys 1 / 2 / Space.
+- [ ] Person on the left of the room plays the left half (their reflection is on the left); motion in the other half never hits.
+- [ ] One player loses all lives: that half shows OUT and stops spawning, the other continues; both out → end screen with the winner.
+- [ ] Stage 5: each half has its own boss; defeating one shows CLEARED for that half.
+- [ ] Tie and winner banners; PLAY AGAIN keeps the mode.
+
 ## T7 — Review fixes
 Files: `src/game/loop.ts`, `src/game/twoPlayer.ts`, `src/ui/hud.ts`, `src/ui/screens.ts`,
 `src/ui/splitscreen.ts`, tests, `design.md`
@@ -63,11 +70,17 @@ Files: `src/game/loop.ts`, `src/game/twoPlayer.ts`, `src/ui/hud.ts`, `src/ui/scr
 - [x] `design.md` corrected (function names, signatures, `ui/splitscreen.ts`, `toHalfPoints`).
 - [x] Summary `nextBtn` rebuilt on a height-only resize.
 - [x] `npm test` and `npm run build` both clean.
-- [x] Commit: `fix(two-player): review fixes`
+- [x] Commit: `fix(two-player): apply 2P button actions after the tick, show CLEARED, clear stray keys, layout and doc fixes` (05b1ed6)
 
-## T6 — Manual smoke test (webcam, two people)
-- [ ] Start screen: wave over 1 PLAYER → normal game; MENU → wave over 2 PLAYERS → split screen; keys 1 / 2 / Space.
-- [ ] Person on the left of the room plays the left half (their reflection is on the left); motion in the other half never hits.
-- [ ] One player loses all lives: that half shows OUT and stops spawning, the other continues; both out → end screen with the winner.
-- [ ] Stage 5: each half has its own boss; defeating one shows CLEARED for that half.
-- [ ] Tie and winner banners; PLAY AGAIN keeps the mode.
+## T8 — Second review fixes
+Files: `src/game/halves.ts`, `src/game/loop.ts`, `src/game/twoPlayer.ts`, `src/ui/screens.ts`,
+`src/ui/splitscreen.ts`, tests, `design.md`, `README.md`
+
+- [x] SHOULD-FIX: start-screen lock-out + button rebuild on entry so MENU's wave cannot start a game (R7.1); test `screens.start.test.ts`.
+- [x] SHOULD-FIX: integer `halfWidth` (`floor(W/2)`), used for canvases, offsets and divider; test with odd width.
+- [x] NIT: summary / final buttons rebuilt on phase entry; final-screen radius follows resize.
+- [x] NIT: mute button drawn after overlays; no clear jingle when both players are out.
+- [x] NIT: skip motion crop on duplicate camera frames; `twoPlayerActive` reset on MAIN MENU and in `startLoop`.
+- [x] NIT: 2 PLAYERS button clamped on narrow screens; tasks bookkeeping (T7 commit subject, order); README count.
+- [x] `npm test` and `npm run build` both clean (883 passed).
+- [x] Commit: `fix(two-player): second review fixes`

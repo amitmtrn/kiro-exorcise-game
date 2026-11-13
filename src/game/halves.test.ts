@@ -19,6 +19,8 @@ function frameWith(fill: (x: number, y: number) => number): ImageData {
 describe('half geometry', () => {
   it('splits the canvas at W/2', () => {
     expect(halfWidth(1280)).toBe(640)
+    expect(halfWidth(1281)).toBe(640) // odd canvas: integer half
+    expect(Number.isInteger(halfOffset(1, 1281))).toBe(true)
     expect(halfOffset(0, 1280)).toBe(0)
     expect(halfOffset(1, 1280)).toBe(640)
     expect(motionHalfWidth()).toBe(160)

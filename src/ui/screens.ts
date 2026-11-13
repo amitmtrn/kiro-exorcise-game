@@ -16,6 +16,10 @@ import type { PlayerMode } from '../game/playerMode'
 
 let startBtn: MotionButton | null = null
 let twoBtn: MotionButton | null = null
+/** Start-screen input lock-out: coming back from MENU must not auto-start a game while the player is still waving. */
+export const START_INPUT_DELAY_MS = 1000
+let startShownAt: number | null = null
+let startLastRender = 0
 let retryBtn: MotionButton | null = null
 let menuBtn: MotionButton | null = null
 let nextBtn: MotionButton | null = null
@@ -64,14 +68,21 @@ export function renderStartScreen(
   // waves over it); 2 PLAYERS sits to its right. The remembered mode is ringed.
   const r = clamp(W / 8, 56, 90)
   const by = H * 0.72
+  // (Re)entering the screen restarts the lock-out and drops stale button fill state.
+  if (startShownAt === null || now - startLastRender > 250) {
+    startShownAt = now; startBtn = null; twoBtn = null
+  }
+  startLastRender = now
+  const live = now - startShownAt >= START_INPUT_DELAY_MS
+  const twoX = Math.min(W / 2 + r * 2.6, W - r - 4) // keep the second button on narrow screens
   if (!startBtn || startBtn.cx !== W / 2 || startBtn.radius !== r) {
     startBtn = new MotionButton(W / 2, by, r, '1 PLAYER')
   }
-  if (!twoBtn || twoBtn.cx !== W / 2 + r * 2.6 || twoBtn.radius !== r) {
-    twoBtn = new MotionButton(W / 2 + r * 2.6, by, r, '2 PLAYERS')
+  if (!twoBtn || twoBtn.cx !== twoX || twoBtn.radius !== r) {
+    twoBtn = new MotionButton(twoX, by, r, '2 PLAYERS')
   }
-  const result = startBtn.update(now)
-  const result2 = twoBtn.update(now)
+  const result = live ? startBtn.update(now) : null
+  const result2 = live ? twoBtn.update(now) : null
   startBtn.render(ctx, now)
   twoBtn.render(ctx, now)
   const last = getPlayerMode()

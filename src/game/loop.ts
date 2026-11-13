@@ -22,10 +22,10 @@ import { tickCallouts } from './callouts'
 import { renderFrame } from './render'
 import { renderHUD, hudFontSize, HUD_FONT_FAMILY, createHudPulse, drawMuteButton, muteButtonRect2P } from '../ui/hud'
 import type { HudPulse } from '../ui/hud'
-import { drawDivider, drawSeatOverlay, renderTwoPlayerSummary, renderTwoPlayerFinal, resetFinalScreen } from '../ui/splitscreen'
+import { drawDivider, drawSeatOverlay, renderTwoPlayerSummary, renderTwoPlayerFinal, resetFinalScreen, resetSummaryScreen } from '../ui/splitscreen'
 import { createTwoPlayer, tickTwoPlayer, advanceSession, seatStatus } from './twoPlayer'
 import type { TwoPlayerState } from './twoPlayer'
-import { SEATS, halfOffset, displayPointsInHalf } from './halves'
+import { SEATS, halfOffset, halfWidth, displayPointsInHalf } from './halves'
 import type { Seat } from './halves'
 import {
   renderStartScreen,
@@ -80,6 +80,7 @@ export async function startLoop(
   gameCtx: CanvasRenderingContext2D,
   initialStage = 1,
 ): Promise<() => void> {
+  twoPlayerActive = false
   startRequest = null // a Space pressed during permission/onboarding must not skip the title
   const currentCanvas = document.createElement('canvas')
   currentCanvas.width = MOTION_W; currentCanvas.height = MOTION_H
@@ -158,8 +159,11 @@ export async function startLoop(
     if (prevTwoPhase !== t.phase) {
       try {
         if (t.phase === 'playing') startMusic(t.stage)
-        else if (t.phase === 'summary') { sfxStageClear(); stopMusic() }
-        else if (t.phase === 'final') { resetFinalScreen(); sfxStageClear(); stopMusic() }
+        else if (t.phase === 'summary') { resetSummaryScreen(); sfxStageClear(); stopMusic() }
+        else if (t.phase === 'final') {
+          resetFinalScreen(); stopMusic()
+          if (t.seats.some((s) => s.phase !== 'gameover')) sfxStageClear() // no jingle when both are out
+        }
       } catch { /* ignore */ }
       prevTwoPhase = t.phase
     }
@@ -168,7 +172,7 @@ export async function startLoop(
     }
 
     gameCtx.clearRect(0, 0, W, H)
-    const hw = W / 2
+    const hw = halfWidth(W)
     const huds: Array<[CanvasRenderingContext2D, Seat]> = []
     for (const seat of SEATS) {
       const s = t.seats[seat]
@@ -188,9 +192,8 @@ export async function startLoop(
       if (t.phase !== 'final' && (status === 'out' || status === 'cleared')) drawSeatOverlay(hctx, status, s.score, now)
       gameCtx.drawImage(hctx.canvas, halfOffset(seat, W), 0)
     }
-    drawDivider(gameCtx) // below the HUD text (R1.5)
+    drawDivider(gameCtx, hw) // below the HUD text (R1.5)
     for (const [hud, seat] of huds) gameCtx.drawImage(hud.canvas, halfOffset(seat, W), 0)
-    drawMuteButton(gameCtx, muteButtonRect2P(W, hudFontSize(W)))
 
     if (t.phase === 'summary') {
       renderTwoPlayerSummary(gameCtx, t, now, () => { twoAction = 'next' })
@@ -200,6 +203,7 @@ export async function startLoop(
         () => { twoAction = 'menu' },
       )
     }
+    drawMuteButton(gameCtx, muteButtonRect2P(W, hudFontSize(W))) // above the overlays so it stays visible
     return t
   }
 
@@ -226,8 +230,8 @@ export async function startLoop(
     const frameIsNew = mask.changed
 
     // ── Two-player game (own state machine; the 1P branches below are untouched) ──
-    twoPlayerActive = two !== null
     if (two) {
+      twoPlayerActive = true
       twoAction = null
       two = tickTwo(two, deltaMs, now, displayW, displayH, currentData, prevData, frameIsNew)
       // Apply a button pressed during this tick *after* the tick result is stored.
@@ -236,6 +240,7 @@ export async function startLoop(
       if (action === 'next' && two.phase === 'summary') two = advanceSession(two, displayW, displayH)
       else if (action === 'again') { two = createTwoPlayer(); prevTwoPhase = null }
       else if (action === 'menu') toMenu()
+      if (!two) twoPlayerActive = false
       startRequest = null // keys pressed during a 2P game must not leak to the start screen (R6.2)
       prevCtx.drawImage(currentCanvas, 0, 0)
       rafId = requestAnimationFrame(tick)

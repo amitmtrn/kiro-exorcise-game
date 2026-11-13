@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { winnerText, drawDivider, drawSeatOverlay } from './splitscreen'
+import { winnerText, drawDivider, drawSeatOverlay, resetFinalScreen, resetSummaryScreen } from './splitscreen'
 
 function recorder(w = 1280, h = 720) {
   const calls: Array<[string, unknown[]]> = []
@@ -47,5 +47,16 @@ describe('drawSeatOverlay (R4.1, R4.2)', () => {
     const { ctx, calls } = recorder(640, 720)
     drawSeatOverlay(ctx, 'cleared', 5000, 0)
     expect(calls.filter(([n]) => n === 'fillText').map(([, a]) => a[0])).toContain('CLEARED')
+  })
+})
+
+describe('divider and resets (review fixes)', () => {
+  it('drawDivider uses an explicit integer x for odd widths', () => {
+    const { ctx, calls } = recorder(1001, 600)
+    drawDivider(ctx, 500)
+    expect(calls.find(([n]) => n === 'moveTo')![1]).toEqual([500, 0])
+  })
+  it('screen resets are safe to call repeatedly', () => {
+    expect(() => { resetFinalScreen(); resetFinalScreen(); resetSummaryScreen() }).not.toThrow()
   })
 })

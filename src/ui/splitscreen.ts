@@ -31,19 +31,26 @@ export function winnerText(w: Seat | 'tie'): string {
 /** Call once when the game enters `final`: restarts the banner and the input lock-out. */
 export function resetFinalScreen(): void {
   finalShownAt = null
+  againBtn = null // drop any half-filled button state from an earlier visit
+  menuBtn = null
+}
+
+/** Call once when the game enters `summary`: a fresh NEXT button (no stale fill). */
+export function resetSummaryScreen(): void {
+  nextBtn = null
 }
 
 /** Orange glowing divider down the middle of the screen (R1.5). */
-export function drawDivider(ctx: CanvasRenderingContext2D): void {
-  const { width: W, height: H } = ctx.canvas
+export function drawDivider(ctx: CanvasRenderingContext2D, x = ctx.canvas.width / 2): void {
+  const H = ctx.canvas.height
   ctx.save()
   ctx.strokeStyle = '#ff6b1a'
   ctx.lineWidth = 4
   ctx.shadowColor = '#ff6b1a'
   ctx.shadowBlur = 14
   ctx.beginPath()
-  ctx.moveTo(W / 2, 0)
-  ctx.lineTo(W / 2, H)
+  ctx.moveTo(x, 0)
+  ctx.lineTo(x, H)
   ctx.stroke()
   ctx.restore()
 }
@@ -167,9 +174,9 @@ export function renderTwoPlayerFinal(
   })
 
   const r = clamp(W / 9, 48, 76)
-  if (!againBtn) againBtn = new MotionButton(W * 0.35, H * 0.78, r, 'PLAY AGAIN')
+  if (!againBtn || againBtn.radius !== r) againBtn = new MotionButton(W * 0.35, H * 0.78, r, 'PLAY AGAIN')
   else { againBtn.cx = W * 0.35; againBtn.cy = H * 0.78 }
-  if (!menuBtn) menuBtn = new MotionButton(W * 0.65, H * 0.78, r, 'MAIN MENU')
+  if (!menuBtn || menuBtn.radius !== r) menuBtn = new MotionButton(W * 0.65, H * 0.78, r, 'MAIN MENU')
   else { menuBtn.cx = W * 0.65; menuBtn.cy = H * 0.78 }
   const live = el >= FINAL_INPUT_DELAY_MS
   const r1 = live ? againBtn.update(now) : null

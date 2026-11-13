@@ -13,9 +13,9 @@ import type { Pt } from './swipe'
 export type Seat = 0 | 1
 export const SEATS: readonly Seat[] = [0, 1]
 
-/** Width of one half of a canvas `w` wide. */
+/** Width of one half of a canvas `w` wide (integer: odd canvases lose one pixel on the right half). */
 export function halfWidth(w: number): number {
-  return w / 2
+  return Math.floor(w / 2)
 }
 
 /** Left edge of a seat's half in the full canvas. */

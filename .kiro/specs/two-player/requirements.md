@@ -144,7 +144,9 @@ default is 1 player. "Play Again" and "Main Menu" keep it.
 
 **R7.1** In 1 PLAYER mode the game plays exactly as before: same state machine,
 same full-width canvas, same HUD, same screens, same scoring and high-score
-saving. All existing tests pass unchanged.
+saving. All existing tests pass unchanged. Returning to the title screen never
+starts a game by itself: the start-screen buttons ignore motion for 1 s after the
+screen is (re)entered.
 
 **R7.2** `resolveHits` / `scaleHitbox` keep their current behaviour when called
 without the new optional motion-width argument.

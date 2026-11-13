@@ -23,8 +23,8 @@ unchanged because it only ever sees half-width coordinates.
 export type Seat = 0 | 1
 export const SEATS: readonly Seat[] = [0, 1]
 
-export function halfWidth(w: number): number               // w / 2
-export function halfOffset(seat: Seat, w: number): number  // seat * w/2
+export function halfWidth(w: number): number               // floor(w / 2): integer halves, no half-pixel resampling on odd canvases
+export function halfOffset(seat: Seat, w: number): number  // seat * halfWidth(w)
 export function seatOfX(x: number, w: number): Seat        // x < w/2 ? 0 : 1 (display, already mirrored)
 export function seatOfRawColumn(col: number, rawW: number): Seat
                                                            // seatOfX(mirrorX(col + 0.5, rawW), rawW)
@@ -202,3 +202,17 @@ players hit — it needs cross-half collision, the thing R1.4 forbids.
 | `ui/hud.test.ts` | `muteButtonRect2P` centred, per-seat pulse isolation, `showMute` / `label` options |
 | `ui/splitscreen.test.ts` | winner text, divider line, OUT / CLEARED overlays |
 | `game/render.opts.test.ts` | `renderFrame` options: defaults unchanged for 1P, per-seat banished flash |
+
+## Review fixes (T8)
+
+- Half width is `floor(W / 2)` everywhere (crop, simulation, off-screen canvases, divider), so odd
+  window widths neither reallocate the half canvases every frame nor blur the right half.
+- Start screen: the mode buttons ignore motion for `START_INPUT_DELAY_MS` (1 s) after the screen is
+  (re)entered, and buttons are rebuilt on entry. The 2 PLAYERS button is clamped to stay on screen.
+  This stops the wave that triggered MENU from also starting a game (R7.1).
+- `renderTwoPlayerSummary` / `renderTwoPlayerFinal` buttons are rebuilt on phase entry
+  (`resetSummaryScreen`, `resetFinalScreen`); final-screen radius follows resizes.
+- The shared mute button is drawn after the summary / final overlays.
+- The clear jingle is not played when the game ends with both players out.
+- `tickTwoPlayer` skips `cropMotionHalf` on duplicate camera frames.
+- `isTwoPlayerActive` is cleared immediately on MAIN MENU and at `startLoop`.
