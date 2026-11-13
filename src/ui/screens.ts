@@ -13,6 +13,12 @@ let startBtn: MotionButton | null = null
 let retryBtn: MotionButton | null = null
 let menuBtn: MotionButton | null = null
 let nextBtn: MotionButton | null = null
+let winBtn: MotionButton | null = null
+let winMenuBtn: MotionButton | null = null
+// Victory: ignore the buttons briefly so the wave that beat the boss can't trigger them.
+let victoryShownAt = -Infinity
+let victoryLastSeen = -Infinity
+const VICTORY_INPUT_DELAY_MS = 1500
 
 // ─── Start screen ─────────────────────────────────────────────────────────────
 
@@ -191,6 +197,68 @@ export function renderGameOver(
 
   if (r1 === 'triggered') onRetry()
   if (r2 === 'triggered') onMenu()
+}
+
+// ─── Victory (boss-phases R6.3) ──────────────────────────────────────────────
+
+export function renderVictory(
+  ctx: CanvasRenderingContext2D,
+  state: GameState,
+  now: number,
+  onPlayAgain: () => void,
+  onMenu: () => void,
+): void {
+  const { width: W, height: H } = ctx.canvas
+  if (now - victoryLastSeen > 500) victoryShownAt = now
+  victoryLastSeen = now
+  const t = now - victoryShownAt
+
+  ctx.save()
+  ctx.fillStyle = 'rgba(13,0,20,0.88)'
+  ctx.fillRect(0, 0, W, H)
+
+  // Wobble-in banner
+  const k = Math.min(1, t / 700)
+  const wobble = Math.sin(t / 90) * (1 - k) * 0.25
+  ctx.save()
+  ctx.translate(W / 2, H * 0.24)
+  ctx.rotate(wobble)
+  ctx.scale(0.4 + 0.6 * k, 0.4 + 0.6 * k)
+  ctx.textAlign = 'center'
+  ctx.font = `bold ${clamp(W / 9, 48, 96)}px sans-serif`
+  ctx.fillStyle = '#ffd166'; ctx.shadowColor = '#ff6b1a'; ctx.shadowBlur = 28
+  ctx.fillText('YOU WIN!', 0, 0)
+  ctx.restore()
+
+  ctx.textAlign = 'center'
+  ctx.shadowBlur = 0
+  ctx.font = `${clamp(W / 26, 18, 30)}px sans-serif`
+  ctx.fillStyle = '#e8e8f0'
+  ctx.fillText('The ghosts have been exorcised 🎃', W / 2, H * 0.36)
+  ctx.font = `bold ${clamp(W / 18, 26, 44)}px sans-serif`
+  ctx.fillStyle = '#ffd166'; ctx.shadowColor = '#ffd166'; ctx.shadowBlur = 12
+  ctx.fillText(`Total score: ${state.score}`, W / 2, H * 0.48)
+  ctx.shadowBlur = 0
+  if (state.highScore > state.score) {
+    ctx.font = `${clamp(W / 34, 14, 20)}px sans-serif`
+    ctx.fillStyle = 'rgba(232,232,240,0.6)'
+    ctx.fillText(`Best: ${state.highScore}`, W / 2, H * 0.56)
+  }
+
+  const r = clamp(W / 9, 48, 76)
+  if (!winBtn) winBtn = new MotionButton(W * 0.35, H * 0.74, r, '↩ AGAIN')
+  else { winBtn.cx = W * 0.35; winBtn.cy = H * 0.74 }
+  if (!winMenuBtn) winMenuBtn = new MotionButton(W * 0.65, H * 0.74, r, '⌂ MENU')
+  else { winMenuBtn.cx = W * 0.65; winMenuBtn.cy = H * 0.74 }
+  const r1 = winBtn.update(now)
+  winBtn.render(ctx, now)
+  const r2 = winMenuBtn.update(now)
+  winMenuBtn.render(ctx, now)
+  ctx.restore()
+
+  if (t < VICTORY_INPUT_DELAY_MS) return
+  if (r1 === 'triggered') onPlayAgain()
+  else if (r2 === 'triggered') onMenu()
 }
 
 // ─── Webcam error (HTML) ──────────────────────────────────────────────────────

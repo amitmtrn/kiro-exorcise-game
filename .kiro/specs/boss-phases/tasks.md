@@ -25,11 +25,11 @@
 - [x] Commit: `feat(boss-phases-T3): timeout game over and victory flow`
 
 ## T4 — Loop, victory screen, art
-- [ ] `loop.ts`: call `tickBoss` (life-lost sfx on strike), handle the `victory` phase, stop music on victory.
-- [ ] `screens.ts`: `renderVictory` with total score and "Play Again" / "Menu" motion buttons.
-- [ ] `render.ts`: wind-up shake/glow/"!", shield bubble, phase-3 aura, phase ticks on the health bar, translucent approaching lunger. Procedural canvas only.
-- [ ] `npm test` and `npm run build` both clean.
-- [ ] Commit: `feat(boss-phases-T4): victory screen, boss and lunger telegraphs`
+- [x] `loop.ts`: call `tickBoss` (life-lost sfx on strike), handle the `victory` phase, stop music on victory.
+- [x] `screens.ts`: `renderVictory` with total score and "Play Again" / "Menu" motion buttons.
+- [x] `render.ts`: wind-up shake/glow/"!", shield bubble, phase-3 aura, phase ticks on the health bar, translucent approaching lunger. Procedural canvas only.
+- [x] `npm test` and `npm run build` both clean.
+- [x] Commit: `feat(boss-phases-T4): victory screen, boss and lunger telegraphs`
 
 ## T5 — Docs
 - [ ] README: spec table row, spec count and test count; `stages/tasks.md` note that boss behaviour is now defined by `boss-phases/`.

@@ -18,6 +18,7 @@ import {
   tickShake,
 } from './state'
 import type { GameState } from './state'
+import { tickBoss } from './enemies/bossPhases'
 import { tickSpawners } from './enemies/spawn'
 import { moveEnemies, cullExitedEnemies } from './enemies/movement'
 import { resolveHits, updateMotionPixels } from './collision'
@@ -29,6 +30,7 @@ import {
   renderStageTitle,
   renderSummary,
   renderGameOver,
+  renderVictory,
 } from '../ui/screens'
 import {
   tickRound,
@@ -173,6 +175,22 @@ export async function startLoop(
       return
     }
 
+    // ── Victory (boss-phases R6.3) ────────────────────────────────────────────
+    if (state.phase === 'victory') {
+      saveHighScore(state.highScore)
+      if (prevPhase !== 'victory') { try { stopMusic() } catch { /* ignore */ } }
+      prevPhase = 'victory'
+      state = tickEffects(state, deltaMs)
+      renderFrame(gameCtx, state, now)
+      renderVictory(gameCtx, state, now,
+        () => { state = startGame(createInitialState(1)) },
+        () => { state = createInitialState(1) },
+      )
+      prevCtx.drawImage(currentCanvas, 0, 0)
+      rafId = requestAnimationFrame(tick)
+      return
+    }
+
     // ── Playing ───────────────────────────────────────────────────────────────
 
     // Screen shake counts down with elapsed time (set by resolveHits below)
@@ -215,6 +233,13 @@ export async function startLoop(
       try { sfxLifeLost() } catch { /* audio not ready */ }
     }
 
+    // Boss attacks: a lunge that lands costs a life (tickBoss resets the combo)
+    const livesBeforeBoss = state.lives
+    state = tickBoss(state, displayW, displayH)
+    if (state.lives < livesBeforeBoss) {
+      try { sfxLifeLost() } catch { /* audio not ready */ }
+    }
+
     state = resolveHits(state, currentData, prevData, displayW, displayH, now, frameIsNew, deltaMs)
     state = tickTimer(state, deltaMs)
     state = setParticles(state, tickParticles(state.particles, deltaMs))
@@ -227,7 +252,7 @@ export async function startLoop(
     if (prevPhase !== state.phase) {
       if (state.phase === 'playing') {
         try { startMusic(state.stage) } catch { /* ignore */ }
-      } else if (state.phase === 'summary') {
+      } else if (state.phase === 'summary' || state.phase === 'victory') {
         try { sfxStageClear(); stopMusic() } catch { /* ignore */ }
       } else if (state.phase === 'gameover') {
         try { stopMusic() } catch { /* ignore */ }

@@ -7,6 +7,7 @@ import type { GameState, Enemy, Particle, ScoreLabel } from './state'
 import { SHAKE_AMPLITUDE_PX } from './state'
 import { lastMotionPixels, lastBanished } from './collision'
 import { BOSS_HITS_NEEDED } from './enemies/boss'
+import { PHASE2_BELOW, PHASE3_BELOW } from './enemies/bossPhases'
 import { drawFog, drawCandleGlow } from './atmosphere'
 
 // ─── Debug mode ───────────────────────────────────────────────────────────────
@@ -23,6 +24,8 @@ const C_SKULL_E = '#c0392b'
 const C_LUNGER  = '#9b59b6'
 const C_PUMPKIN = '#ff6b1a'
 const C_BOSS    = '#e8e8f0'
+const C_BOSS_WINDUP = '#ff6b1a'
+const C_BOSS_ENRAGED = '#c0392b'
 
 // ─── Main entry ───────────────────────────────────────────────────────────────
 
@@ -106,7 +109,7 @@ function drawEnemy(ctx: CanvasRenderingContext2D, enemy: Enemy, now: number): vo
     case 'skull':   drawSkull(ctx, now); break
     case 'lunger':  drawLunger(ctx, enemy, now); break
     case 'pumpkin': drawPumpkin(ctx, enemy); break
-    case 'boss':    drawBoss(ctx, now); break
+    case 'boss':    drawBoss(ctx, enemy, now); break
   }
   ctx.restore()
 }
@@ -245,6 +248,8 @@ function drawSkull(ctx: CanvasRenderingContext2D, now: number): void {
 // ─── Lunger ───────────────────────────────────────────────────────────────────
 function drawLunger(ctx: CanvasRenderingContext2D, enemy: Enemy, now: number): void {
   const isWindup = enemy.movePhase === 'windup'
+  // Not hittable yet while approaching: draw it faded (boss-phases R7.2)
+  if (enemy.movePhase === 'approach') ctx.globalAlpha = 0.55
   // Scale up slightly during windup to telegraph the lunge
   const scale = isWindup ? 1 + 0.3 * Math.sin(now / 60) : 1
   ctx.scale(scale, scale)
@@ -289,9 +294,47 @@ function drawPumpkin(ctx: CanvasRenderingContext2D, enemy: Enemy): void {
 }
 
 // ─── Boss ─────────────────────────────────────────────────────────────────────
-function drawBoss(ctx: CanvasRenderingContext2D, now: number): void {
-  const glow = 14 + Math.sin(now / 400) * 6
-  ctx.shadowColor = '#7b2fbe'; ctx.shadowBlur = glow
+function drawBoss(ctx: CanvasRenderingContext2D, enemy: Enemy, now: number): void {
+  const windup = enemy.bossAttack === 'windup'
+  const shielded = enemy.bossPhase >= 2 && enemy.bossAttack === 'idle'
+  const enraged = enemy.bossPhase === 3
+  const aura = windup ? C_BOSS_WINDUP : enraged ? C_BOSS_ENRAGED : '#7b2fbe'
+
+  // Wind-up telegraph (boss-phases R3.2): shake, orange glow, pulsing ring, "!"
+  if (windup) {
+    ctx.translate(Math.sin(now / 20) * 5, Math.cos(now / 27) * 3)
+    const pulse = 0.5 + 0.5 * Math.sin(now / 50)
+    ctx.save()
+    ctx.shadowBlur = 0
+    ctx.strokeStyle = C_BOSS_WINDUP
+    ctx.globalAlpha = 0.45 + 0.4 * pulse
+    ctx.lineWidth = 6
+    ctx.beginPath(); ctx.arc(0, 0, 110 + 20 * pulse, 0, Math.PI * 2); ctx.stroke()
+    ctx.restore()
+    ctx.save()
+    ctx.shadowBlur = 0
+    ctx.font = 'bold 56px sans-serif'; ctx.textAlign = 'center'
+    ctx.fillStyle = C_BOSS_WINDUP
+    ctx.fillText('!', 0, -105)
+    ctx.restore()
+  }
+
+  // Shield bubble while the boss cannot be hurt (R3.5)
+  if (shielded) {
+    ctx.save()
+    ctx.shadowBlur = 0
+    ctx.fillStyle = 'rgba(123,47,190,0.18)'
+    ctx.strokeStyle = 'rgba(200,160,255,0.8)'
+    ctx.lineWidth = 4
+    ctx.beginPath(); ctx.arc(0, 0, 115, 0, Math.PI * 2); ctx.fill(); ctx.stroke()
+    ctx.restore()
+    ctx.globalAlpha = 0.7
+  }
+
+  const glow = windup
+    ? 30 + Math.sin(now / 50) * 10
+    : 14 + Math.sin(now / (enraged ? 180 : 400)) * 6
+  ctx.shadowColor = aura; ctx.shadowBlur = glow
   // Enlarged ghost
   const w = 80, h = 100
   ctx.fillStyle = C_BOSS
@@ -339,11 +382,15 @@ function drawBossHealthBar(ctx: CanvasRenderingContext2D, boss: Enemy): void {
   grad.addColorStop(1, '#e8e8f0')
   ctx.fillStyle = grad
   ctx.fillRect(x, y, barW * ratio, barH)
+  // Phase thresholds (boss-phases R5.2)
+  ctx.fillStyle = '#ffd166'
+  for (const t of [PHASE2_BELOW, PHASE3_BELOW]) ctx.fillRect(x + barW * t - 1, y - 3, 2, barH + 6)
   // Label
-  ctx.fillStyle = '#e8e8f0'
+  ctx.fillStyle = boss.bossPhase === 3 ? '#ff6b1a' : '#e8e8f0'
   ctx.font = 'bold 13px sans-serif'
   ctx.textAlign = 'center'
-  ctx.fillText(`👻 BOSS  ${remaining} / ${BOSS_HITS_NEEDED}`, W / 2, y - 6)
+  const tag = boss.bossPhase === 3 ? 'ENRAGED' : `PHASE ${boss.bossPhase}`
+  ctx.fillText(`👻 BOSS ${tag}  ${remaining} / ${BOSS_HITS_NEEDED}`, W / 2, y - 6)
   ctx.textAlign = 'left'
   ctx.restore()
 }
