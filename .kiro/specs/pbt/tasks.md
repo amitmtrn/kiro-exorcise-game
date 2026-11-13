@@ -56,6 +56,41 @@ Files: `README.md`
 - [x] Run `npm test` and `npm run build`; both clean.
 - [x] Commit: `docs(pbt-T7): README test count and PBT note`
 
+## T8 — Review fixes: test quality (R1.3, R2.3, R4.2, R6.3, R7)
+Files: `collision.property.test.ts`, `spawn.property.test.ts`, `movement.property.test.ts`
+
+- [x] `collision.property`: seed `Math.random` via `withSeededRandom`; `combo === comboForStreak(streak)`; `lives === 0 ⇒ gameover` after every event.
+- [x] `spawn.property`: pre-existing skulls (exiting and not); skull uniqueness exercised with real exiting skulls.
+- [x] `movement.property`: no-overshoot asserted only while the skull is not `exiting`.
+- [x] `design.md` aligned with the tests (elapsed range, boss in straight set, frame rounding).
+- [x] Run `npm test` and `npm run build`; both clean.
+- [x] Commit: `fix(pbt-T8): review fixes to property test quality`
+
+## T9 — Review fix: frame-diff bounds (BUG-2, R5.4)
+Files: `src/webcam/diff.ts`, `src/webcam/diff.property.test.ts`
+
+- [x] Skip out-of-frame samples; property generates edge-overhanging hitboxes; direct regression test.
+- [x] Commit: `fix(pbt-T9): computeFrameDiff no longer wraps rows at frame edges`
+
+## T10 — Review fix: no scoring after death (BUG-3, R8)
+Files: `src/game/collision.ts`, `src/game/loop.ts`, `collision.property.test.ts`
+
+- [x] Guard in `resolveHits`; loop no longer calls it in gameover; property + unit regression.
+- [x] Commit: `fix(pbt-T10): nothing scores after game over`
+
+## T11 — Review fix: time-based effects (BUG-4, R9)
+Files: `particles.ts`, `state.ts`, `collision.ts`, `loop.ts` and tests
+
+- [x] `deltaMs`-scaled particles, labels, shake, hit flash; properties for step-size independence.
+- [x] Commit: `fix(pbt-T11): scale particles, labels, shake and hit flash by deltaMs`
+
+## T12 — Review fix: spawn timer carry-over (BUG-5, R10)
+Files: `spawn.ts`, `spawn.property.test.ts`
+
+- [x] Carry overshoot; property on spawn-rate independence of step size.
+- [x] Sync README test count. Run `npm test` and `npm run build`; both clean.
+- [x] Commit: `fix(pbt-T12): carry spawn timer overshoot`
+
 ## Bugs found by properties
 - **BUG-1 (found by T4, spawner cap, R4.1):** `tickSpawners` computed
   `nonBossCount` once per tick, so when two or more spawn timers expired on the
@@ -64,3 +99,20 @@ Files: `README.md`
   counter-example: stage 2, 4 enemies, ticks of 2000/1076/…ms → 6 > 5). Fix:
   `nonBossCount` is a running count incremented on every spawn. Regression test:
   `spawn.property.test.ts › spawner cap regression`.
+
+- **BUG-2 (review, R5.4):** `computeFrameDiff` had no horizontal bounds check, so a
+  hitbox overhanging the left/right edge sampled the opposite edge of the
+  adjacent row (and mirror parity broke). Fix: skip samples outside the frame.
+  Regression: `diff.property.test.ts` (unclipped hitboxes) and
+  `diff.test.ts › does not wrap`.
+- **BUG-3 (review, outside diff, R8):** `resolveHits` ran in `gameover` and kept
+  scoring after the last life was lost; `saveHighScore` persisted it. Fix: guard
+  in `resolveHits` and loop. Regression: `collision.property.test.ts › nothing
+  changes after game over` and unit tests.
+- **BUG-4 (review, outside diff, R9):** particles, score labels, `shakeFrames` and
+  `hitFlashFrames` decayed per frame, so effects lasted 2× longer at 30 fps and
+  half as long at 120 Hz. Fix: scale by `deltaMs / FRAME_MS`. Regression:
+  `particles.property.test.ts`, `state.test.ts`, `collision.test.ts`.
+- **BUG-5 (review, outside diff, R10):** spawn timers were reset to a fresh interval,
+  discarding overshoot (≈ half a frame per spawn). Fix: carry the overshoot.
+  Regression: `spawn.property.test.ts › spawn rate independent of step size`.

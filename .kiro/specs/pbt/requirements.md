@@ -20,7 +20,7 @@ runtime dependency, no network use by the game).
 test and run under the existing `npm test` (no new scripts or config).
 
 **R1.3** Runs are reproducible: randomness inside the code under test
-(`Math.random`) is replaced by a seeded generator derived from a fast-check
+(`Math.random`, including the particle spawners called by `resolveHits`) is replaced by a seeded generator derived from a fast-check
 generated seed, so a failing counter-example can be replayed.
 
 ---
@@ -34,7 +34,7 @@ advance), `lives` is an integer and never negative.
 **R2.2** `lives` never increases within a run (stage advance carries lives
 over; only a fresh game or a retry restores them).
 
-**R2.3** `phase` is `gameover` whenever `lives` is 0 after a life is lost.
+**R2.3** `phase` is `gameover` whenever `lives` is 0 (checked after every event).
 
 ---
 
@@ -73,7 +73,10 @@ mirrored hitbox in mirrored space.
 then mirror), so display-space and motion-space mirroring agree.
 
 **R5.4** `computeFrameDiff` agrees between a camera frame and the same frame
-mirrored left-right when queried with the mirrored hitbox.
+mirrored left-right when queried with the mirrored hitbox — **including
+hitboxes that overhang the left, right or top edge of the frame** (enemies
+enter from off-screen). Samples outside the frame are skipped; they never wrap
+onto the neighbouring row.
 
 ---
 
@@ -106,3 +109,34 @@ from it along the approach axis for straight-line enemies.
 
 **R7.4** Splitting one step into two halves gives the same result as the full
 step for straight-line enemies.
+
+---
+
+## R8 — Nothing happens after death (review fix)
+
+**R8.1** Once `phase === 'gameover'`, `resolveHits` leaves the state unchanged
+(no score, combo, particles or enemy changes), and the game loop does not call
+it in the gameover phase.
+
+**R8.2** Within one `resolveHits` call, enemies processed after a hit that
+costs the last life do not score.
+
+---
+
+## R9 — Time-based effects (review fix)
+
+**R9.1** Particles, score labels, screen shake and hit-flash expire according to
+elapsed `deltaMs`, not frame count: the same total elapsed time gives the same
+alpha / position / remaining shake at any step size. One 60 Hz frame
+(`FRAME_MS = 1000/60`) is the unit; the default step is one frame so existing
+callers and tests are unchanged.
+
+**R9.2** A hit flash lasts one 60 Hz frame at 60 fps, and never longer than
+~2 frames at any frame rate ≥ 30 fps.
+
+---
+
+## R10 — Spawn timer carry-over (review fix)
+
+**R10.1** When a spawn timer expires, the overshoot (time past zero) is carried
+into the next interval, so the long-run spawn rate does not depend on frame rate.
