@@ -10,7 +10,8 @@ existing unit-test runtime budget (a few seconds).
 
 | File | Properties |
 |---|---|
-| `src/game/state.property.test.ts` | lives (R2), score (R3), combo tiers (R6) |
+| `src/game/state.property.test.ts` | combo tiers (R6) |
+| `src/game/collision.property.test.ts` | lives (R2), score (R3) over mixed reducer + `resolveHits` event sequences |
 | `src/game/enemies/spawn.property.test.ts` | spawner cap, skull uniqueness, mix, phase (R4) |
 | `src/game/enemies/movement.property.test.ts` | frame-rate independence, no overshoot (R7) |
 | `src/webcam/diff.property.test.ts` | mirror parity (R5) |

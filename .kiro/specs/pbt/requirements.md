@@ -95,7 +95,8 @@ decreases.
 
 **R7.1** For any enemy type with a straight-line path (pumpkin, skull), any
 speed, any canvas size, and any pair of step sizes, simulating the same elapsed
-time gives the same position (≤ 1e-6 px relative to canvas size).
+time gives the same position (≤ 1e-6 of the canvas size; ≤ 0.5 px when the enemy has arrived,
+because `moveEnemies` stops an enemy within 0.5 px of its target).
 
 **R7.2** For ghost and bat (wobble / zigzag) the same holds within 2 px at
 1080p (scaled with canvas height) for 60/90/120/144/240 Hz.

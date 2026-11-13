@@ -45,9 +45,9 @@ Files: `src/webcam/diff.ts`, `src/webcam/diff.property.test.ts`
 ## T6 — Movement frame-rate independence properties
 Files: `src/game/enemies/movement.property.test.ts`, `movement.ts` (if a bug is found)
 
-- [ ] Straight-line exactness, wobble tolerance, no overshoot, split-step (R7).
-- [ ] Run `npm test` and `npm run build`; both clean.
-- [ ] Commit: `test(pbt-T6): movement frame-rate independence properties`
+- [x] Straight-line exactness, wobble tolerance, no overshoot, split-step (R7).
+- [x] Run `npm test` and `npm run build`; both clean.
+- [x] Commit: `test(pbt-T6): movement frame-rate independence properties`
 
 ## T7 — Docs
 Files: `README.md`
