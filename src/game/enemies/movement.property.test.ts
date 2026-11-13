@@ -91,6 +91,8 @@ describe('movement frame-rate independence (properties)', () => {
         let d = toTarget(e)
         for (const ms of steps) {
           e = moveEnemies([e], ms, c.W, c.H)[0]
+          // A skull retargets off-screen after ~4 s (exiting): the target jumps.
+          if (e.exiting) break
           const nd = toTarget(e)
           expect(nd).toBeLessThanOrEqual(d + 1e-9)
           d = nd

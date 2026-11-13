@@ -16,6 +16,16 @@ function nextInterval(minMs: number, maxMs: number): number {
   return minMs + Math.random() * (maxMs - minMs)
 }
 
+/**
+ * Next spawn timer after an expiry: a fresh randomised interval, shortened by
+ * the overshoot (time past zero, ≤ 0 here) so the long-run spawn rate does not
+ * depend on frame rate. Overshoot is capped at one interval (pbt BUG-5).
+ */
+function resetTimer(current: number, baseMs: number): number {
+  const interval = nextInterval(baseMs * 0.8, baseMs * 1.3)
+  return interval + Math.max(current, -interval)
+}
+
 export function tickSpawners(
   state: GameState,
   deltaMs: number,
@@ -45,7 +55,7 @@ export function tickSpawners(
       enemies = [...enemies, createGhost(canvasW, canvasH, mult)]
       nonBossCount++
     }
-    timers.ghost = nextInterval(cfg.spawnIntervalMs.ghost * 0.8, cfg.spawnIntervalMs.ghost * 1.3)
+    timers.ghost = resetTimer(timers.ghost, cfg.spawnIntervalMs.ghost)
   }
 
   // Bat
@@ -55,7 +65,7 @@ export function tickSpawners(
       enemies = [...enemies, createBat(canvasW, canvasH, mult)]
       nonBossCount++
     }
-    timers.bat = nextInterval(cfg.spawnIntervalMs.bat * 0.8, cfg.spawnIntervalMs.bat * 1.3)
+    timers.bat = resetTimer(timers.bat, cfg.spawnIntervalMs.bat)
   }
 
   // Skull (max 1 non-exiting at a time; a leaving skull does not block)
@@ -65,7 +75,7 @@ export function tickSpawners(
       enemies = [...enemies, createSkull(canvasW, canvasH, mult)]
       nonBossCount++
     }
-    timers.skull = nextInterval(cfg.spawnIntervalMs.skull * 0.8, cfg.spawnIntervalMs.skull * 1.3)
+    timers.skull = resetTimer(timers.skull, cfg.spawnIntervalMs.skull)
   }
 
   // Lunger
@@ -75,7 +85,7 @@ export function tickSpawners(
       enemies = [...enemies, createLunger(canvasW, canvasH, mult)]
       nonBossCount++
     }
-    timers.lunger = nextInterval(cfg.spawnIntervalMs.lunger * 0.8, cfg.spawnIntervalMs.lunger * 1.3)
+    timers.lunger = resetTimer(timers.lunger, cfg.spawnIntervalMs.lunger)
   }
 
   // Pumpkin
@@ -85,7 +95,7 @@ export function tickSpawners(
       enemies = [...enemies, createPumpkin(canvasW, canvasH, mult)]
       nonBossCount++
     }
-    timers.pumpkin = nextInterval(cfg.spawnIntervalMs.pumpkin * 0.8, cfg.spawnIntervalMs.pumpkin * 1.3)
+    timers.pumpkin = resetTimer(timers.pumpkin, cfg.spawnIntervalMs.pumpkin)
   }
 
   let next = setSpawnTimers(state, timers)
