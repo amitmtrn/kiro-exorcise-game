@@ -28,11 +28,11 @@ Files: `src/audio/music/layers.ts`, `src/audio/music/layers.test.ts`
 ## T4 — Voices, engine and crossfade
 Files: `src/audio/music/voices.ts`, `src/audio/music/engine.ts`, `src/test/fakeAudio.ts`, `src/audio/music/engine.test.ts`
 
-- [ ] Voice renderers and `createMusicEngine` with buses, layer gains, crossfade, stop, retire.
-- [ ] Fake audio context for tests.
-- [ ] Tests: notes per layer per tier, layer gain ramps, crossfade ramps (0.5 s, both buses, same start), stop fade, same-track no-op, retire disconnects, no more steps from the outgoing track, remembered combo tier.
-- [ ] Run `npm test` and `npm run build`; both clean.
-- [ ] Commit: `feat(music-v2-T4): 3-voice engine with real crossfade`
+- [x] Voice renderers and `createMusicEngine` with buses, layer gains, crossfade, stop, retire.
+- [x] Fake audio context for tests.
+- [x] Tests: notes per layer per tier, layer gain ramps, crossfade ramps (0.5 s, both buses, same start), stop fade, same-track no-op, retire disconnects, no more steps from the outgoing track, remembered combo tier.
+- [x] Run `npm test` and `npm run build`; both clean.
+- [x] Commit: `feat(music-v2-T4): 3-voice engine with real crossfade`
 
 ## T5 — Public API and game wiring
 Files: `src/audio/music.ts`, `src/audio/index.ts`, `src/game/loop.ts`, `src/audio/music.test.ts`
