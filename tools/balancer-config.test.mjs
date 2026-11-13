@@ -113,6 +113,14 @@ describe('balancer agent (R6)', () => {
     const deny = writes.filter((r) => r.effect === 'deny').flatMap((r) => r.match)
     expect(allow).toEqual(['tools/motion-harness/out/balancer-report.md'])
     for (const p of ['src/**', '.kiro/**', '.git/**', 'package*.json', '.gitignore', 'README.md', 'index.html', 'vite.config.ts', 'tools/*.mjs', 'tools/motion-harness/*.*']) expect(deny).toContain(p)
+    for (const p of ['.github/**', 'tsconfig*.json', 'LICENSE*', 'tools/*', 'tools/motion-harness/*', 'tools/motion-harness/out/*.log', 'tools/motion-harness/out/*.y4m', 'tools/motion-harness/out/*.lock']) expect(deny).toContain(p)
+    // no deny glob may shadow the one allowed report path (single-level `*`, `**` crosses dirs)
+    const toRe = (g) => new RegExp('^' + g.replace(/[.+^${}()|[\]\\]/g, '\\$&').replace(/\*\*/g, '\u0000').replace(/\*/g, '[^/]*').replace(/\u0000/g, '.*') + '$')
+    expect(deny.filter((g) => toRe(g).test('tools/motion-harness/out/balancer-report.md'))).toEqual([])
+    // every other file type in the repo's known top-level and tool dirs is denied
+    for (const f of ['.github/workflows/ci.yml', 'tsconfig.json', 'LICENSE', 'tools/motion-harness/run.sh', 'tools/motion-harness/Makefile', 'tools/motion-harness/out/chrome-sweep.log', 'tools/motion-harness/out/sweep.y4m', 'tools/motion-harness/out/harness.lock', 'tools/hooks.test.mjs']) {
+      expect(deny.some((g) => toRe(g).test(f)), f).toBe(true)
+    }
     expect(deny).not.toContain('tools/**') // would shadow the report path under tools/motion-harness/out/
     expect(rules.some((r) => r.capability === 'shell' && r.effect === 'allow')).toBe(false)
     expect(rules.some((r) => r.effect === 'allow' && /^(all|builtin|filesystem)$/.test(r.capability))).toBe(false)

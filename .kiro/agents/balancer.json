@@ -53,7 +53,19 @@
           "index.html",
           "vite.config.ts",
           "tools/*.mjs",
-          "tools/motion-harness/*.*"
+          "tools/motion-harness/*.*",
+          ".github/**",
+          "tsconfig*.json",
+          "LICENSE*",
+          "dist/**",
+          "node_modules/**",
+          "tools/*",
+          "tools/motion-harness/*",
+          "tools/motion-harness/out/*.log",
+          "tools/motion-harness/out/*.y4m",
+          "tools/motion-harness/out/*.lock",
+          "tools/motion-harness/out/*.json",
+          "tools/motion-harness/out/profile-*/**"
         ],
         "effect": "deny"
       }
