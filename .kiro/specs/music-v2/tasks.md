@@ -20,10 +20,10 @@ Files: `src/audio/music/scheduler.ts`, `src/audio/music/scheduler.test.ts`, `src
 ## T3 — Intensity layers
 Files: `src/audio/music/layers.ts`, `src/audio/music/layers.test.ts`
 
-- [ ] `tierForCombo`, `effectiveTier`, `layersForTier`.
-- [ ] Tests: per-tier layer table (R3.1), clamping and NaN, fixed and min tier, property: layer set grows monotonically with combo.
-- [ ] Run `npm test` and `npm run build`; both clean.
-- [ ] Commit: `feat(music-v2-T3): combo intensity layers`
+- [x] `tierForCombo`, `effectiveTier`, `layersForTier`.
+- [x] Tests: per-tier layer table (R3.1), clamping and NaN, fixed and min tier, property: layer set grows monotonically with combo.
+- [x] Run `npm test` and `npm run build`; both clean.
+- [x] Commit: `feat(music-v2-T3): combo intensity layers`
 
 ## T4 — Voices, engine and crossfade
 Files: `src/audio/music/voices.ts`, `src/audio/music/engine.ts`, `src/test/fakeAudio.ts`, `src/audio/music/engine.test.ts`
