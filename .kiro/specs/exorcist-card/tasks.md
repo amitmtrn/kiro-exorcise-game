@@ -32,9 +32,9 @@
 - [x] Commit: `feat(exorcist-card-T4): card offer on game over and victory`
 
 ## T5 — Docs
-- [ ] README: spec table row, spec count, test count, privacy note (card is local only).
-- [ ] `npm test` and `npm run build` both clean.
-- [ ] Commit: `docs(exorcist-card-T5): README`
+- [x] README: spec table row, spec count, test count, privacy note (card is local only).
+- [x] `npm test` and `npm run build` both clean.
+- [x] Commit: `docs(exorcist-card-T5): README`
 
 ## T6 — Manual smoke test (webcam)
 - [ ] Lose a game: CARD button appears; nothing is downloaded until SAVE is chosen; PNG shows the mirrored photo, rank and numbers.
