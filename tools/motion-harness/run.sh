@@ -17,7 +17,7 @@ OUT="$HERE/out"; mkdir -p "$OUT"
 
 [ -f "$OUT/$MODE.y4m" ] || python3 -I "$HERE/make_y4m.py" "$MODE" "$OUT/$MODE.y4m"
 
-(cd "$ROOT" && npx vite --port "$DEV" --strictPort --host 127.0.0.1 --logLevel silent) & VITE=$!
+(cd "$ROOT" && npx --no-install vite --port "$DEV" --strictPort --host 127.0.0.1 --logLevel silent) & VITE=$!
 CHROME_PID=
 # Close everything this script started (Vite, Chrome and their children) on
 # success, failure and signals. The pkill is a last resort scoped to this run's

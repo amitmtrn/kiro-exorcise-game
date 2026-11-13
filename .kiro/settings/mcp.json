@@ -3,7 +3,7 @@
     "motion-harness": {
       "command": "node",
       "args": ["tools/motion-harness/mcp-server.mjs"],
-      "timeout": 30000,
+      "timeout": 300000,
       "requestTimeout": 300000
     }
   }
