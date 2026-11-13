@@ -81,7 +81,7 @@ and resets it otherwise; "Looking good!" shows at ≥ 1000 ms.
 a shoulders path (a semicircle, radius ≤ 0.17 w, whose top sits just below the
 chin: `cy = head.cy + head.ry + 0.01 h + r`) and two hand circles at x = 0.2 w
 and 0.8 w, y = 0.42 h. The figure lives in the top ~55 % of the canvas so the
-bottom-anchored panel (≈ 40 % on the guide step) never covers the hand targets. All coordinates are inside the canvas for any
+bottom-anchored panel (CSS-capped at `max-height: 40vh`, compact below 560 px height) never covers the hand targets. All coordinates are inside the canvas for any
 size (property-tested). Drawn with a dashed stroke, pumpkin orange; slime green
 and a soft glow when the framing has been `ok` for 1 s. Faint pulsing uses
 the rAF timestamp for visuals only (not gameplay). Framing stability is credited

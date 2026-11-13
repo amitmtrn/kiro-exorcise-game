@@ -13,11 +13,13 @@ export const TITLE_FONT_FAMILY =
  * fallbacks are used.
  */
 export async function loadTitleFont(timeoutMs = 1500): Promise<void> {
+  let timer: ReturnType<typeof setTimeout> | undefined
   try {
     if (typeof document === 'undefined' || !document.fonts) return
     await Promise.race([
       document.fonts.load("48px 'Creepster'"),
-      new Promise<void>((resolve) => setTimeout(resolve, timeoutMs)),
+      new Promise<void>((resolve) => { timer = setTimeout(resolve, timeoutMs) }),
     ])
   } catch { /* fall back to system fonts */ }
+  finally { clearTimeout(timer) }
 }

@@ -88,7 +88,7 @@ async function boot(): Promise<void> {
 
   // First run: silhouette guide + how-to over the live camera, then the usual flow.
   if (onboarding.step !== 'done') {
-    const result = await runOnboarding(video, webcamCtx, gameCtx, storage)
+    const result = await runOnboarding(video, webcamCtx, gameCtx, storage, onboarding, (s) => { onboarding = s })
     if (result === 'cameraLost') { denyCamera({ name: 'NotReadableError' }); return }
     onboarding = onboardingReducer(onboarding, { type: 'skip' })
   }

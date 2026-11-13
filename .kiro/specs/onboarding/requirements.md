@@ -58,11 +58,11 @@ data) returns one of `ok`, `too-dark`, `too-close`, `low-detail`:
 short, friendly hint; `ok` shows "Looking good!" once it has held for
 `FRAMING_STABLE_MS` of accumulated `deltaMs` (reset by any non-ok result).
 
-**R2.5** The silhouette and hand targets stay clear of the bottom-anchored
-panel, and the shoulders' top lies below the chin (head remains visible).
-
 **R2.4** The check samples a small downscaled frame at most every
 `FRAMING_INTERVAL_MS` of `deltaMs`, never per rendered frame.
+
+**R2.5** The silhouette and hand targets stay clear of the bottom-anchored
+panel (CSS caps it at `max-height: 40vh`, compact on short windows), and the shoulders' top lies below the chin (head remains visible).
 
 ---
 
@@ -105,6 +105,10 @@ using the camera) and the privacy line.
 `SecurityError`) from "no camera / camera busy" (`NotFoundError`,
 `NotReadableError`, others) by `classifyCameraError`.
 
+**R5.4** Instructions are ordered by kind: for "no camera / busy" the device check
+comes first and the permission step is conditional; for "blocked" the browser-setting
+steps come first.
+
 **R5.3** The screen is link-free: no `<a>` element, no `http(s)://` or
 `chrome://` text. A "Try again" button re-requests the camera.
 
@@ -130,18 +134,6 @@ link to the bundled `OFL.txt` path.
 
 ---
 
-## R8 — Input and camera-loss robustness (review fixes)
-
-**R8.1** Space/Enter on a focused button activates only that button; Space never
-starts the game before the start screen, and held keys (`e.repeat`) do not
-advance onboarding cards.
-
-**R8.2** Losing the camera mid-onboarding shows the camera-denied screen and
-Try again resumes the same step. Framing samples are skipped until the video has
-a frame, and framing state resets when the guide is re-entered.
-
----
-
 ## R7 — Tests
 
 **R7.1** Unit tests for the state machine (first run, skip, finish, remembered,
@@ -158,3 +150,17 @@ font references in CSS, HTML and TS sources, that the TTF and OFL.txt exist, and
 that the CSS references the local file.
 
 **R7.4** Existing unit and property tests keep passing.
+
+---
+
+## R8 — Input and camera-loss robustness (review fixes)
+
+**R8.1** Space/Enter on a focused button activates only that button; Space never
+starts the game before the start screen, and held keys (`e.repeat`) do not
+advance onboarding cards.
+
+**R8.2** Losing the camera mid-onboarding shows the camera-denied screen and
+Try again resumes the same step and card (`runOnboarding` shares its state with the caller). A track that had already ended also counts as lost. Space pressed during the 1 s calibration never skips the title. Framing samples are skipped until the video has
+a frame, and framing state resets when the guide is re-entered.
+
+---

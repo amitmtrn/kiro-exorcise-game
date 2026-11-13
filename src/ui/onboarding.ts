@@ -58,12 +58,24 @@ export const DENIED_LEAD: Record<CameraErrorKind, string> = {
   blocked: 'The camera is blocked for this page, so the ghosts cannot see your hands.',
   unavailable: 'No working camera was found, or another app is using it.',
 }
+/** Steps for a blocked permission: fix the browser setting first. */
 export const DENIED_INSTRUCTIONS: readonly string[] = [
   'Click the camera or lock icon in your browser’s address bar.',
   'Set Camera to “Allow” for this page.',
   'Close other apps or tabs that might be using the camera.',
   'Press “Try again” below.',
 ]
+/** Steps when no camera works: check the device first, permission last. */
+export const DENIED_INSTRUCTIONS_UNAVAILABLE: readonly string[] = [
+  'Plug in a camera, or turn it on if it has a switch.',
+  'Close other apps or tabs that might be using the camera.',
+  'If asked, set Camera to “Allow” for this page.',
+  'Press “Try again” below.',
+]
+
+export function deniedInstructions(kind: CameraErrorKind): readonly string[] {
+  return kind === 'blocked' ? DENIED_INSTRUCTIONS : DENIED_INSTRUCTIONS_UNAVAILABLE
+}
 
 // ─── Camera-denied screen ─────────────────────────────────────────────────────
 
@@ -79,7 +91,7 @@ export function showCameraDenied(kind: CameraErrorKind, onRetry: () => void): vo
   const h = document.createElement('h1'); h.textContent = '👻 ' + DENIED_TITLE
   const lead = document.createElement('p'); lead.textContent = DENIED_LEAD[kind]
   const ol = document.createElement('ol')
-  for (const step of DENIED_INSTRUCTIONS) {
+  for (const step of deniedInstructions(kind)) {
     const li = document.createElement('li'); li.textContent = step; ol.appendChild(li)
   }
   const privacy = document.createElement('p'); privacy.className = 'privacy'; privacy.textContent = PRIVACY_LINE
@@ -151,9 +163,12 @@ export function runOnboarding(
   webcamCtx: CanvasRenderingContext2D,
   gameCtx: CanvasRenderingContext2D,
   storage: OnboardingStorage | null,
+  initial: OnboardingState = createOnboarding(false),
+  onState: (s: OnboardingState) => void = () => {},
 ): Promise<OnboardingResult> {
   return new Promise((resolve) => {
-    let state: OnboardingState = createOnboarding(false)
+    // Shared with the caller (via onState) so a camera-loss retry resumes the same step.
+    let state: OnboardingState = initial
     const sample = document.createElement('canvas')
     sample.width = SAMPLE_W; sample.height = SAMPLE_H
     const sampleCtx = sample.getContext('2d', { willReadFrequently: true })!
@@ -171,6 +186,7 @@ export function runOnboarding(
       if (shouldPersist(state, next)) persistSeen(storage)
       const changed = next.step !== state.step || next.howtoIndex !== state.howtoIndex
       state = next
+      onState(state)
       if (state.step === 'done') { finish(); return }
       if (changed) panel.render(state)
     }
@@ -179,6 +195,8 @@ export function runOnboarding(
     const tracks = video.srcObject instanceof MediaStream ? video.srcObject.getVideoTracks() : []
     const onTrackEnded = (): void => finish('cameraLost')
     for (const t of tracks) t.addEventListener('ended', onTrackEnded)
+    // A track that already ended never fires again; resolve once the panel is up.
+    const alreadyEnded = tracks.some((t) => t.readyState === 'ended')
 
     function finish(result: OnboardingResult = 'done'): void {
       if (finished) return
@@ -214,8 +232,10 @@ export function runOnboarding(
       drawWebcamTint(webcamCtx)
 
       if (state.step === 'guide') {
-        sinceSample += deltaMs
-        if (sinceSample >= FRAMING_INTERVAL_MS && video.readyState >= 2) {
+        // No frame yet (or stalled): don't bank time, so ok-time only counts observed samples.
+        if (video.readyState < 2) sinceSample = 0
+        else sinceSample += deltaMs
+        if (sinceSample >= FRAMING_INTERVAL_MS) {
           const elapsed = sinceSample
           sinceSample = 0
           sampleCtx.drawImage(video, 0, 0, SAMPLE_W, SAMPLE_H)
@@ -231,7 +251,8 @@ export function runOnboarding(
       }
       if (!finished) rafId = requestAnimationFrame(tick)
     }
-    rafId = requestAnimationFrame(tick)
+    if (alreadyEnded) finish('cameraLost')
+    else rafId = requestAnimationFrame(tick)
   })
 }
 
@@ -289,7 +310,7 @@ function buildPanel(): Panel {
       next.focus()
     },
     setFraming(s) {
-      if (s.framing === null) { hint.textContent = ''; return }
+      if (s.framing === null) { hint.textContent = ''; delete hint.dataset.status; return }
       hint.textContent = s.framing === 'ok' && !isFramingStable(s.framingOkMs) ? '' : FRAMING_HINTS[s.framing]
       hint.dataset.status = s.framing
     },

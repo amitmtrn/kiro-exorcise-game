@@ -57,3 +57,16 @@ Files: `src/ui/onboarding.ts`, `src/game/onboarding.ts`, `src/main.ts`, `src/gam
 - [x] `getLocalStorage` throwing-path test.
 - [x] `npm test` and `npm run build` both clean.
 - [x] Commit: `fix(onboarding): review fixes`
+
+## T7 — Second review fixes
+Files: `src/ui/onboarding.ts`, `src/ui/fonts.ts`, `src/main.ts`, `src/game/loop.ts`, `src/style.css`, tests, specs
+
+- [x] Camera loss resumes the same step/card: `runOnboarding(…, initial, onState)` shares state with `main.ts` (R8.2).
+- [x] Start latch also cleared after the calibration await (R8.1).
+- [x] Already-ended track → `cameraLost`; no time banked while video has no frame; stale `data-status` cleared.
+- [x] `.screen-error .privacy` keeps its style; panel capped at `40vh` with compact short-window rules (R2.5).
+- [x] Denied instructions ordered by kind (R5.4); font timeout timer cleared.
+- [x] Specs: R2.4/R2.5 and R7/R8 order fixed; R5.4, R2.5, R8.2 updated.
+- [x] Tests: `onboarding.run.test.ts` (wiring, ended track, stall, instructions, CSS guards), `fonts.test.ts`.
+- [x] `npm test` and `npm run build` both clean.
+- [x] Commit: `fix(onboarding): resume step on camera loss, calibration latch, polish`
