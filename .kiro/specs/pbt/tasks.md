@@ -13,10 +13,10 @@ Files: `package.json`, `package-lock.json`, `src/test/prng.ts`,
 ## T2 — Combo tier properties
 Files: `src/game/state.property.test.ts`
 
-- [ ] `comboForStreak` ∈ {1,2,3,4}, non-decreasing, boundaries at 3/6/10 (R6.1, R6.2).
-- [ ] Reducer sequences keep `combo === comboForStreak(streak)`, `bestCombo ≤ 4`, `bestCombo` non-decreasing (R6.3).
-- [ ] Run `npm test` and `npm run build`; both clean.
-- [ ] Commit: `test(pbt-T2): combo tier properties`
+- [x] `comboForStreak` ∈ {1,2,3,4}, non-decreasing, boundaries at 3/6/10 (R6.1, R6.2).
+- [x] Reducer sequences keep `combo === comboForStreak(streak)`, `bestCombo ≤ 4`, `bestCombo` non-decreasing (R6.3).
+- [x] Run `npm test` and `npm run build`; both clean.
+- [x] Commit: `test(pbt-T2): combo tier properties`
 
 ## T3 — Lives and score properties
 Files: `src/game/state.property.test.ts`, `src/game/collision.property.test.ts`
