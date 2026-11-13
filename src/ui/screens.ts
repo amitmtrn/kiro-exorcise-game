@@ -296,29 +296,6 @@ export function renderVictory(
   else if (r2 === 'triggered') onMenu()
 }
 
-// ─── Webcam error (HTML) ──────────────────────────────────────────────────────
-
-const ui = (): HTMLElement => document.getElementById('ui')!
-let errorEl: HTMLElement | null = null
-
-export function showWebcamError(onRetry: () => void): void {
-  if (errorEl) return
-  const div = document.createElement('div')
-  div.className = 'screen-error'
-  div.innerHTML = `
-    <p>👻 Exorcise needs your webcam to work.<br>
-    Please allow camera access and try again.</p>
-    <button type="button">Try again</button>
-  `
-  div.querySelector('button')!.addEventListener('click', () => { hideWebcamError(); onRetry() })
-  errorEl = div
-  ui().appendChild(div)
-}
-
-export function hideWebcamError(): void {
-  if (errorEl) { errorEl.remove(); errorEl = null }
-}
-
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 function clamp(v: number, min: number, max: number): number {

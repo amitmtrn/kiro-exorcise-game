@@ -32,12 +32,12 @@ Files: `src/assets/fonts/*`, `src/style.css`, `src/ui/fonts.ts`, `tools/fonts.te
 ## T4 — Onboarding and camera-denied UI, wiring
 Files: `src/ui/onboarding.ts`, `src/ui/onboarding.test.ts`, `src/ui/screens.ts`, `src/main.ts`, `src/style.css`
 
-- [ ] `guideGeometry` + `drawGuide` procedural silhouette; `runOnboarding` loop (deltaMs-based framing sampling), HTML panel, keyboard and buttons.
-- [ ] `classifyCameraError`, `showCameraDenied` / `hideCameraDenied` (link-free); remove `showWebcamError` from `screens.ts`.
-- [ ] `main.ts`: denied → instructions + retry; first run → onboarding → persist; seen → straight to the game.
-- [ ] Unit tests: geometry bounds (incl. property), error classification, denied copy has no links/URLs.
-- [ ] `npm test` and `npm run build` both clean.
-- [ ] Commit: `feat(onboarding-T4): first-run onboarding and camera-denied screens`
+- [x] `guideGeometry` + `drawGuide` procedural silhouette; `runOnboarding` loop (deltaMs-based framing sampling), HTML panel, keyboard and buttons.
+- [x] `classifyCameraError`, `showCameraDenied` / `hideCameraDenied` (link-free); remove `showWebcamError` from `screens.ts`.
+- [x] `main.ts`: denied → instructions + retry; first run → onboarding → persist; seen → straight to the game.
+- [x] Unit tests: geometry bounds (incl. property), error classification, denied copy has no links/URLs.
+- [x] `npm test` and `npm run build` both clean.
+- [x] Commit: `feat(onboarding-T4): first-run onboarding and camera-denied screens`
 
 ## T5 — Docs
 Files: `README.md`

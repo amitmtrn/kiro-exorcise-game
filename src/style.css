@@ -155,3 +155,101 @@ html, body {
   pointer-events: none;
 }
 .sound-hint[hidden] { display: none; }
+
+/* === Camera-denied instructions === */
+.screen-denied h1 {
+  font-family: var(--font-title);
+  font-weight: normal;
+  font-size: clamp(2rem, 7vw, 4rem);
+  color: #ff6b1a;
+  text-shadow: 0 0 18px #ff6b1a88;
+}
+
+.screen-denied ol {
+  color: #e8e8f0;
+  text-align: left;
+  max-width: 520px;
+  line-height: 1.7;
+  font-size: clamp(1rem, 2.4vw, 1.3rem);
+  padding-left: 1.4em;
+}
+
+.privacy {
+  color: #ffd166;
+  font-size: clamp(0.85rem, 2vw, 1.05rem);
+  max-width: 520px;
+}
+
+/* === First-run onboarding === */
+.onboarding {
+  position: absolute;
+  inset: auto 0 0 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 1.2rem 1rem 1.6rem;
+  text-align: center;
+  background: linear-gradient(to top, rgba(13, 0, 20, 0.92) 70%, rgba(13, 0, 20, 0));
+  pointer-events: all;
+}
+
+.onboarding-title {
+  font-family: var(--font-title);
+  font-weight: normal;
+  font-size: clamp(2rem, 6vw, 3.6rem);
+  color: #ff6b1a;
+  text-shadow: 0 0 18px #ff6b1a88;
+}
+
+.onboarding-body {
+  color: #e8e8f0;
+  font-size: clamp(1.1rem, 3vw, 1.8rem);
+  max-width: 640px;
+}
+
+.onboarding-hint {
+  min-height: 1.4em;
+  color: #ffd166;
+  font-size: clamp(0.95rem, 2.2vw, 1.2rem);
+}
+
+.onboarding-hint[data-status='ok'] { color: #39ff14; }
+
+.onboarding-dots {
+  color: #ffd166;
+  letter-spacing: 0.3em;
+  font-size: 1.2rem;
+}
+
+.onboarding-buttons {
+  display: flex;
+  gap: 0.8rem;
+  margin: 0.4rem 0;
+}
+
+.onboarding button {
+  padding: 0.55rem 1.8rem;
+  font-size: 1.15rem;
+  font-weight: 700;
+  border-radius: 999px;
+  cursor: pointer;
+  border: 2px solid #ffd166;
+  background: #2a0845;
+  color: #ffd166;
+}
+
+.onboarding button.primary {
+  background: #ff6b1a;
+  border-color: #ff6b1a;
+  color: #0d0014;
+  box-shadow: 0 0 16px #ff6b1a88;
+}
+
+.onboarding button:focus-visible,
+.screen-error button:focus-visible {
+  outline: 3px solid #39ff14;
+  outline-offset: 3px;
+}
+
+.onboarding button[hidden], .onboarding p[hidden], .onboarding div[hidden] { display: none; }

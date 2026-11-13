@@ -5,7 +5,8 @@
 import './style.css'
 import { initWebcam } from './webcam/capture'
 import { startLoop, requestStart } from './game/loop'
-import { showWebcamError, hideWebcamError } from './ui/screens'
+import { showCameraDenied, classifyCameraError, runOnboarding } from './ui/onboarding'
+import { createOnboarding, onboardingReducer, hasSeenOnboarding, getLocalStorage } from './game/onboarding'
 import { toggleDebug } from './game/render'
 import { toggleMute, getAudioContext } from './audio/index'
 import { installAudioUnlock } from './audio/unlock'
@@ -58,13 +59,20 @@ gameCanvas.addEventListener('pointerdown', (e) => {
 
 async function boot(): Promise<void> {
   await loadTitleFont()
+  const storage = getLocalStorage()
+  let onboarding = createOnboarding(hasSeenOnboarding(storage))
+
   let video: HTMLVideoElement
   try {
     video = await initWebcam()
-  } catch {
-    showWebcamError(() => { hideWebcamError(); boot() })
+  } catch (err) {
+    onboarding = onboardingReducer(onboarding, { type: 'cameraDenied' })
+    showCameraDenied(classifyCameraError(err), () => { onboarding = onboardingReducer(onboarding, { type: 'retry' }); boot() })
     return
   }
+
+  // First run: silhouette guide + how-to over the live camera, then the usual flow.
+  if (onboarding.step !== 'done') await runOnboarding(video, webcamCtx, gameCtx, storage)
 
   await startLoop(video, webcamCtx, gameCtx)
 }
