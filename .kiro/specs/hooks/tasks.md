@@ -31,8 +31,8 @@ Files: `tools/sync-readme-tests.mjs`, `tools/sync-readme-tests.test.mjs`, `.kiro
 ## T4 — Docs and CLI verification
 Files: `README.md`
 
-- [ ] README "Kiro hooks" section listing each hook; replace the stale `test-on-save.json` text; update the file tree.
-- [ ] Validate the hooks array with `kiro-cli agent validate` via a temp agent file; delete it.
-- [ ] Confirm `.kiro` is not in `.gitignore`.
-- [ ] Re-run `node tools/sync-readme-tests.mjs`; run `npm test` and `npm run build`; both clean.
-- [ ] Commit: `docs(hooks-T4): README Kiro hooks section`
+- [x] README "Kiro hooks" section listing each hook; replace the stale `test-on-save.json` text; update the file tree.
+- [x] Validate the hooks array with `kiro-cli agent validate` via a temp agent file; delete it.
+- [x] Confirm `.kiro` is not in `.gitignore`.
+- [x] Re-run `node tools/sync-readme-tests.mjs`; run `npm test` and `npm run build`; both clean.
+- [x] Commit: `docs(hooks-T4): README Kiro hooks section`

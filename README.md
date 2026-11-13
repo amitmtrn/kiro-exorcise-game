@@ -86,8 +86,16 @@ Each spec has `requirements.md`, `design.md`, and `tasks.md`. Writing requiremen
 
 All eight specs are implemented. Every task in `tasks.md` is ticked except the manual smoke tests (a webcam playthrough, enabling GitHub Pages in the repo settings), and `boss-combo/` carries a status note explaining it was superseded by `stages/`.
 
-### Agent hook (`.kiro/hooks/test-on-save.json`)
-A Kiro agent hook runs `npm test` automatically whenever a file under `src/` is saved, so test failures surface immediately rather than at commit time.
+### Kiro hooks (`.kiro/hooks/`)
+Standalone `v1` hook files, loaded by Kiro IDE and Kiro CLI V3. Spec: `.kiro/specs/hooks/`.
+
+| Hook file | Fires on | What it does |
+|---|---|---|
+| `test-on-save.json` | save of any file under `src/` | Runs `npm test` |
+| `spec-drift-check.json` | save of `.kiro/specs/*/tasks.md` | Agent checks every ticked task against the code, tests and git log, and reports drift (report only, no edits) |
+| `readme-test-count.json` | save of a `*.test.ts` / `*.test.mjs` file | Runs `node tools/sync-readme-tests.mjs`: runs the tests and rewrites the test count in this README (`--check` only reports) |
+
+The original `test-on-save.json` never fired (no `version`, camelCase `postToolUse` trigger); it was rewritten in the current format.
 
 ### What worked well
 - Steering docs meant zero "what stack are we using?" back-and-forth — Kiro knew the constraints from turn one.
@@ -146,7 +154,11 @@ src/
     stages/             5-stage Kung Foo-style progression spec
     audio/              Procedural music + SFX spec
     spooky-skin/        Visual polish spec
-  hooks/                test-on-save.json
+    hooks/              Kiro hooks spec
+  hooks/                test-on-save.json, spec-drift-check.json, readme-test-count.json
+tools/
+  sync-readme-tests.mjs Run tests and sync the README test count (used by a hook)
+  hooks.test.mjs        Structural + matcher tests for .kiro/hooks/*.json
 ```
 
 ## License
