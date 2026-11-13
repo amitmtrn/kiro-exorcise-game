@@ -56,13 +56,16 @@ export function mirrorHitbox(hitbox: Hitbox, width: number): Hitbox {
 
 /**
  * Scale a hitbox from display canvas coordinates into motion canvas coordinates.
+ * `motionW` is the motion frame width the hitbox is sampled in (two-player: one
+ * 160 px half instead of the full 320 px frame).
  */
 export function scaleHitbox(
   hitbox: Hitbox,
   displayW: number,
   displayH: number,
+  motionW: number = MOTION_W,
 ): Hitbox {
-  const sx = MOTION_W / displayW
+  const sx = motionW / displayW
   const sy = MOTION_H / displayH
   return {
     x: hitbox.x * sx,

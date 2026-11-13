@@ -5,12 +5,12 @@ Files: `src/game/halves.ts`, `src/webcam/diff.ts`, `src/game/collision.ts`,
 `src/game/halves.test.ts`, `src/game/halves.property.test.ts`,
 `src/game/collision.test.ts`
 
-- [ ] Create `src/game/halves.ts`: `halfWidth`, `halfOffset`, `seatOfX`, `seatOfRawColumn`, `cropMotionHalf`, `toHalfPoints`, `pickWinner`.
-- [ ] `scaleHitbox` and `resolveHits` take an optional `motionW` (default `MOTION_W`); behaviour without it is unchanged.
-- [ ] Unit tests: widths / offsets, ownership boundary at `W/2`, raw-column mirror mapping (left of the room = left seat), crop copies the right columns, `motionW = 160` scaling, defaults unchanged, `pickWinner`.
-- [ ] Property tests: random hitboxes and motion masks never produce a cross-half hit; ownership partitions every x.
-- [ ] `npm test` and `npm run build` both clean.
-- [ ] Commit: `feat(two-player-T1): half geometry, mirror mapping and half-aware hit detection`
+- [x] Create `src/game/halves.ts`: `halfWidth`, `halfOffset`, `seatOfX`, `seatOfRawColumn`, `cropMotionHalf`, `toHalfPoints`, `pickWinner`.
+- [x] `scaleHitbox` and `resolveHits` take an optional `motionW` (default `MOTION_W`); behaviour without it is unchanged.
+- [x] Unit tests: widths / offsets, ownership boundary at `W/2`, raw-column mirror mapping (left of the room = left seat), crop copies the right columns, `motionW = 160` scaling, defaults unchanged, `pickWinner`.
+- [x] Property tests: random hitboxes and motion masks never produce a cross-half hit; ownership partitions every x.
+- [x] `npm test` and `npm run build` both clean.
+- [x] Commit: `feat(two-player-T1): half geometry, mirror mapping and half-aware hit detection`
 
 ## T2 — Seat simulation and session reducers (pure)
 Files: `src/game/step.ts`, `src/game/twoPlayer.ts`, `src/game/loop.ts`,

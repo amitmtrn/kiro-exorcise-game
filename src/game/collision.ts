@@ -115,6 +115,7 @@ export function resolveHits(
   now: number,
   frameIsNew = true,
   deltaMs: number = FRAME_MS,
+  motionW: number = MOTION_W,
 ): GameState {
   lastBanished = []
   lastSwipes = new Map()
@@ -161,8 +162,10 @@ export function resolveHits(
       continue
     }
 
-    const scaledHitbox = scaleHitbox(enemy.hitbox, displayW, displayH)
-    const diffResult = computeFrameDiff(currentData, prevData, scaledHitbox, MOTION_W)
+    const scaledHitbox = motionW === MOTION_W
+      ? scaleHitbox(enemy.hitbox, displayW, displayH)
+      : scaleHitbox(enemy.hitbox, displayW, displayH, motionW)
+    const diffResult = computeFrameDiff(currentData, prevData, scaledHitbox, motionW)
 
     const newHitCount = diffResult ? enemy.hitCount + 1 : 0
 
@@ -172,8 +175,8 @@ export function resolveHits(
       ? { x: enemy.motionX, y: enemy.motionY } : null
     let curC: Pt | null = null
     if (diffResult) {
-      const c = centroid(motionPointsIn(currentData, prevData, scaledHitbox, MOTION_W))
-      if (c) curC = { x: c.x * displayW / MOTION_W, y: c.y * displayH / MOTION_H }
+      const c = centroid(motionPointsIn(currentData, prevData, scaledHitbox, motionW))
+      if (c) curC = { x: c.x * displayW / motionW, y: c.y * displayH / MOTION_H }
     }
 
     if (newHitCount < HIT_FRAMES_REQUIRED) {
