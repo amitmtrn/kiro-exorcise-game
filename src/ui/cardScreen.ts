@@ -43,11 +43,11 @@ export function previewLayout(W: number, H: number, noPhoto: boolean, hasPhoto: 
   const ch = Math.min(maxH, (W * 0.9) / CARD_ASPECT)
   const cw = ch * CARD_ASPECT
   const card = { x: (W - cw) / 2, y: H * 0.03, w: cw, h: ch }
-  const r = clamp(Math.min(W / 12, H * 0.075), 30, 64)
+  const r = clamp(Math.min(W / 12, H * 0.075), 36, 64)
   const cy = Math.min(H - r - 8, card.y + card.h + r + 14)
-  const specs: Array<Pick<ButtonSpec, 'id' | 'label'>> = [{ id: 'save', label: '💾 SAVE' }]
-  if (hasPhoto) specs.push({ id: 'toggle', label: noPhoto ? '📷 PHOTO' : '👻 NO PHOTO' })
-  specs.push({ id: 'close', label: '✖ CLOSE' })
+  const specs: Array<Pick<ButtonSpec, 'id' | 'label'>> = [{ id: 'save', label: '💾\nSAVE' }]
+  if (hasPhoto) specs.push({ id: 'toggle', label: noPhoto ? '📷\nPHOTO' : '👻 NO\nPHOTO' })
+  specs.push({ id: 'close', label: '✖\nCLOSE' })
   const step = Math.min(W / (specs.length + 1), r * 2.8)
   const x0 = W / 2 - (step * (specs.length - 1)) / 2
   return { card, buttons: specs.map((s, i) => ({ ...s, cx: x0 + i * step, cy, r })) }
@@ -65,6 +65,25 @@ export function buttonAt(buttons: readonly ButtonSpec[], x: number, y: number): 
 // ─── Offer button on game over / victory ─────────────────────────────────────
 
 let offerBtn: MotionButton | null = null
+
+/**
+ * The end-screen buttons (Retry / Menu / Play Again / offer) ignore motion until
+ * this time, and until the hand has left them: the wave that opened or closed the
+ * preview must not carry over to the buttons underneath (R1.4).
+ */
+let endButtonsLiveAt = 0
+const endButtonResetters: Array<() => void> = []
+
+export function registerEndButtonReset(fn: () => void): void { endButtonResetters.push(fn) }
+
+/** Call when the preview opens or closes. */
+export function lockEndButtons(now: number): void {
+  endButtonsLiveAt = now + PREVIEW_INPUT_DELAY_MS
+  offerBtn?.reset()
+  for (const fn of endButtonResetters) fn()
+}
+
+export function endButtonsLive(now: number): boolean { return now >= endButtonsLiveAt }
 
 function offerGeometry(W: number, H: number, baseY: number, mainR: number) {
   const r = clamp(Math.min(W / 14, H * 0.065), 28, 52)
@@ -85,9 +104,9 @@ export function renderCardOffer(
 ): boolean {
   const { width: W, height: H } = ctx.canvas
   const g = offerGeometry(W, H, baseY, mainR)
-  if (!offerBtn) offerBtn = new MotionButton(g.cx, g.cy, g.r, '📸 CARD')
+  if (!offerBtn) offerBtn = new MotionButton(g.cx, g.cy, g.r, '📸 EXORCIST\nCARD')
   else { offerBtn.cx = g.cx; offerBtn.cy = g.cy; offerBtn.radius = g.r }
-  const res = live ? offerBtn.update(now) : 'idle'
+  const res = offerBtn.updateGated(now, live && endButtonsLive(now))
   offerBtn.render(ctx, now)
   return res === 'triggered'
 }
@@ -151,7 +170,8 @@ export class CardPreview {
       let btn = this.buttons.get(spec.id)
       if (!btn) { btn = new MotionButton(spec.cx, spec.cy, spec.r, spec.label); this.buttons.set(spec.id, btn) }
       btn.cx = spec.cx; btn.cy = spec.cy; btn.radius = spec.r; btn.label = spec.label
-      if (live && btn.update(now) === 'triggered' && !triggered) triggered = spec.id
+      // Until live, motion must also leave the button before it can fill (the opening wave lingers).
+      if (btn.updateGated(now, live) === 'triggered' && !triggered) triggered = spec.id
       btn.render(ctx, now)
     }
 

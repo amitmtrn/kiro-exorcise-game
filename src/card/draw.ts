@@ -110,8 +110,8 @@ export function drawCard(
 
   // Background
   const bg = ctx.createLinearGradient(0, 0, 0, h)
-  bg.addColorStop(0, COLORS.purple)
-  bg.addColorStop(1, COLORS.midnight)
+  bg.addColorStop(0, COLORS.midnight)
+  bg.addColorStop(1, COLORS.purple)
   ctx.fillStyle = bg
   ctx.fillRect(0, 0, w, h)
 
@@ -166,7 +166,7 @@ export function drawCard(
   const cw = w * 0.1
   drawCobweb(ctx, L.frameInner.x, L.frameInner.y, cw, 1, 1)
   drawCobweb(ctx, L.frameInner.x + L.frameInner.w, L.frameInner.y, cw, -1, 1)
-  ctx.fillStyle = COLORS.midnight
+  ctx.fillStyle = COLORS.ghost
   const bs = w * 0.035
   drawBat(ctx, L.title.x - w * 0.34, L.title.y, bs)
   drawBat(ctx, L.title.x + w * 0.34, L.title.y, bs)

@@ -48,7 +48,7 @@ import { CardSession } from '../card/session'
 import { grabMirroredSnapshot, releaseSnapshot } from '../card/snapshot'
 import { composeCard } from '../card/draw'
 import { downloadCanvasPng } from '../card/download'
-import { CardPreview, cardKeyAction, offerHit } from '../ui/cardScreen'
+import { CardPreview, cardKeyAction, offerHit, lockEndButtons } from '../ui/cardScreen'
 import type { CardAction } from '../ui/cardScreen'
 import { sfxLifeLost, sfxStageClear, startMusic, startTitleMusic, stopMusic, setMusicCombo } from '../audio/index'
 
@@ -67,11 +67,15 @@ let onEndScreen = false
 let cardOpen = false
 
 /** Forwards a key; returns true when the card flow wants it (caller may preventDefault). */
-export function handleCardKey(key: string): boolean {
+export function handleCardKey(key: string, repeat = false): boolean {
+  if (repeat) return onEndScreen && cardKeyAction(key, cardOpen) !== null // held key: swallow, never re-trigger
   if (!onEndScreen || cardKeyAction(key, cardOpen) === null) return false
   cardInputs.push({ kind: 'key', key })
   return true
 }
+
+/** True while the card preview covers the end screen. */
+export function isCardPreviewOpen(): boolean { return cardOpen }
 
 /** Forwards a click / tap in canvas pixels; returns true when it was queued. */
 export function handleCardPointer(x: number, y: number): boolean {
@@ -139,8 +143,8 @@ export async function startLoop(
   onEndScreen = false
 
   function runCardAction(a: CardAction | 'open', now: number): void {
-    if (a === 'open') { if (session.open()) preview.open(now) }
-    else if (a === 'close') session.close()
+    if (a === 'open') { if (session.open()) { preview.open(now); lockEndButtons(now) } }
+    else if (a === 'close') { session.close(); lockEndButtons(now) }
     else if (a === 'toggle') session.togglePhoto()
     else void session.save()
   }
@@ -385,15 +389,14 @@ export async function startLoop(
 
   rafId = requestAnimationFrame(tick)
 
-  return () => {
-    if (rafId) { cancelAnimationFrame(rafId); rafId = 0 }
-    session.reset()
-    onEndScreen = false
-    cardOpen = false
-  }
+  resetSession = () => session.reset()
+  return stopLoop
 }
 
+let resetSession: (() => void) | null = null
+
 export function stopLoop(): void {
+  resetSession?.(); resetSession = null // the snapshot must not outlive the loop
   onEndScreen = false
   cardOpen = false
   if (rafId) { cancelAnimationFrame(rafId); rafId = 0 }

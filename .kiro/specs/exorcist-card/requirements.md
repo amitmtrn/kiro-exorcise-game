@@ -26,7 +26,16 @@ Choosing the card opens a preview; downloading needs a second explicit choice
 Closing returns to the game-over / victory screen with its buttons unchanged.
 
 **R1.4** While the preview is open the Retry / Menu / Play Again buttons are
-inactive, so a wave cannot restart the game by accident.
+inactive, so a wave cannot restart the game by accident. After the preview
+opens or closes those buttons (and the offer button) also ignore motion for
+0.8 s and until the hand has left them, so the wave that closed the preview
+cannot start a Retry / Menu fill.
+
+**R1.5** One explicit choice gives one action: a motion button fires once per wave
+(it re-arms only after the motion has left it) and a held key (auto-repeat) is
+ignored, so one SAVE gesture downloads one file. A click while the preview is
+open does not toggle the mute button underneath. The offer button reads
+"EXORCIST CARD". Preview buttons keep a radius of at least 36 px.
 
 ---
 

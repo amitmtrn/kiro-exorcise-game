@@ -36,6 +36,15 @@
 - [x] `npm test` and `npm run build` both clean.
 - [x] Commit: `docs(exorcist-card-T5): README`
 
+## T7 — Review fixes
+- [x] R1.5: `MotionButton` re-arms only after motion leaves (`awaitRelease`), `updateGated`, `reset`; `handleCardKey` ignores `e.repeat`.
+- [x] R1.4: `lockEndButtons` on preview open/close (reset fills + 0.8 s gate) for Retry / Menu / Play Again / offer; preview buttons wait for the opening wave to leave.
+- [x] Offer label "EXORCIST CARD" (two-line labels, min font 11 px, preview radius ≥ 36); click while preview is open skips mute toggle.
+- [x] Card: gradient midnight → purple, visible (ghost white) bats; design.md layout / bats / flow / test table corrected.
+- [x] `stopLoop` resets the session; tests: loop end-screen input, motion-button re-arm, lockout, gradient, privacy glob widened.
+- [x] `npm test` and `npm run build` both clean.
+- [x] Commit: `fix(exorcist-card): ...`
+
 ## T6 — Manual smoke test (webcam)
 - [ ] Lose a game: CARD button appears; nothing is downloaded until SAVE is chosen; PNG shows the mirrored photo, rank and numbers.
 - [ ] NO PHOTO shows a silhouette; CLOSE returns to the buttons.

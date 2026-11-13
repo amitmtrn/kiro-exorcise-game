@@ -57,6 +57,23 @@ describe('drawCard', () => {
   })
 })
 
+describe('drawCard background', () => {
+  it('fades from midnight (top) to deep purple (bottom)', () => {
+    const stops: Array<[number, string]> = []
+    const ctx = new Proxy({} as Record<string, unknown>, {
+      get(t, p: string) {
+        if (p in t) return t[p]
+        if (p === 'createLinearGradient') return () => ({ addColorStop: (o: number, c: string) => stops.push([o, c]) })
+        return () => {}
+      },
+      set(t, p: string, v) { t[p] = v; return true },
+    }) as unknown as CanvasRenderingContext2D
+    drawCard(ctx, 600, 840, data, null)
+    expect(stops[0]).toEqual([0, '#0d0014'])
+    expect(stops[1]).toEqual([1, '#2a0845'])
+  })
+})
+
 describe('composeCard', () => {
   it('creates a canvas of the requested size and paints it', () => {
     const { ctx, calls } = recorder()

@@ -45,14 +45,14 @@ mirror transform as the live view) into an off-screen canvas sized by `scaleToFi
 `layoutCard(w, h, texts)` returns rectangles and `TextBox { text, x, y, px, align, maxW }`:
 
 ```
-margin = 0.05 w
+margin = 0.05 · min(w, h); bands are fractions of the content height
 ┌───────────────────────┐ frame (inset margin)
-│  EXORCIST   (title)   │ 0.04–0.14 h
+│  EXORCIST   (title)   │ 0–0.10
 │ ┌───────────────────┐ │
-│ │      photo        │ │ 0.16–0.58 h  (rect, inside inner frame)
+│ │      photo        │ │ 0.11–0.54  (rect, inside inner frame)
 │ └───────────────────┘ │
-│   Rank title          │ 0.62–0.70 h
-│ Score        12,345   │ 4 rows, 0.74–0.92 h
+│   Rank title          │ 0.56–0.64
+│ Score        12,345   │ 4 rows, 0.67–0.91
 │ Best combo       x4   │
 │ Stage reached   5 / 5 │
 │ Banished          87  │
@@ -69,9 +69,9 @@ destination aspect ratio.
 
 ## Drawing
 
-Background vertical gradient `#0d0014 → #2a0845`; outer frame `#ff6b1a` (4 px) and
+Background vertical gradient `#0d0014` (top) `→ #2a0845` (bottom); outer frame `#ff6b1a` (4 px) and
 inner `#ffd166` (1.5 px) rounded rects; corner cobwebs (arcs and lines), a moon,
-three bats (path shapes). Title: Creepster with orange glow. Numbers
+two bats (path shapes, ghost white so they show on the dark band). Title: Creepster with orange glow. Numbers
 `#ffd166`, combo `#39ff14`. Silhouette: circle head + rounded shoulders in
 `#2a0845` on a purple gradient; shapes only, no text.
 
@@ -95,13 +95,24 @@ preview ──SAVE / S / Enter──► downloadCanvasPng        preview ──C
 preview ──NO PHOTO / N──► rebuild card with silhouette
 ```
 
-- `cardRequested` / `cardKey` flags are set by `main.ts` and consumed only on those
-  phases (like `requestStart`). Clicks are hit-tested against the button circles.
+- `main.ts` forwards keys (`handleCardKey(key, repeat)`, auto-repeat swallowed) and
+  `pointerdown` (`handleCardPointer`) into a `cardInputs` queue in `loop.ts`, which
+  the tick drains only on gameover/victory (like `requestStart`). Clicks are
+  hit-tested against the button circles; while the preview is open `main.ts`
+  skips the mute-button click.
+- The card, snapshot and run stats live in `CardSession` (`card/session.ts`).
+- `MotionButton` fires once per wave: after `triggered` it stays idle until the
+  motion has left the circle (`awaitRelease`); `updateGated(now, live)` holds a
+  button while not live. Preview buttons are gated for `PREVIEW_INPUT_DELAY_MS`.
 - While `preview` is open the retry/menu/play-again buttons are not rendered/updated.
+  On open and on close `lockEndButtons(now)` resets their fill and gates them (and
+  the offer button) for 0.8 s, so a CLOSE wave cannot fall through to MENU / RETRY.
+- Accepted: on victory `C` / a click on the offer button work during the victory
+  input lockout; it is an explicit choice, not a wave.
 - **Lifecycle:** when the phase leaves gameover/victory (or a new game starts) the
-  loop calls `snapshots.discard()`, closes the preview and resets `RunStats`. Retry
+  loop calls `session.reset()` (discard snapshot, close card, reset `RunStats`);
+  `stopLoop()` and the cleanup returned by `startLoop` do the same. Retry
   Stage is a new run for card purposes (its score also restarts at 0).
-- The preview card canvas is a local variable, dropped on close/leave.
 
 ## Privacy
 
@@ -118,5 +129,8 @@ No storage API is used for the image; no network API is referenced in `src/card/
 | `card/snapshotStore.test.ts` | taken, replaced by better, equal not replaced, grab lazily, discarded + released |
 | `card/layout.test.ts`, `layout.property.test.ts` | positions, fitText, coverRect, inside card for any sizes/lengths |
 | `card/download.test.ts` | toBlob/URL mocked, revoked (also on error / null blob), `<a download>`, no fetch/XHR/sendBeacon/WebSocket |
-| `card/privacy.test.ts` | module sources contain no network/storage API; snapshot grab is mirrored |
-| `ui/cardScreen.test.ts` | button hit test, key mapping |
+| `card/privacy.test.ts` | `src/card/*.ts`, `ui/cardScreen.ts`, `game/rank.ts`, `game/runStats.ts` contain no network/storage API |
+| `card/snapshot.test.ts` | snapshot grab is mirrored |
+| `ui/cardScreen.test.ts` | button hit test, key mapping, end-button lockout, narrow-canvas radius |
+| `ui/motionButton.test.ts` | one wave = one trigger, gated update, reset |
+| `game/loop.card.test.ts` | keys/clicks ignored off the end screens, accepted on them, repeat swallowed, `stopLoop` closes |
