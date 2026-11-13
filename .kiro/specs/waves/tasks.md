@@ -34,11 +34,11 @@ Files: `src/game/state.ts`, `src/game/enemies/candy.ts`, `src/game/enemies/movem
 ## T4 — Wave-driven spawner
 Files: `src/game/enemies/spawn.ts`, `src/game/state.ts` (`waveIndex`), `src/game/round.ts` (reset), tests
 
-- [ ] Timers scaled by intensity; path picked from the script mix; scripted events fire in order via `waveIndex`; cap and skull rules unchanged; stage 5 unchanged.
-- [ ] Unit tests: calm start vs peak spawn rate, scripted event timing and truncation, disabled kinds skipped, boss stage spawns nothing.
-- [ ] Property tests: cap never exceeded with scripted events, skull uniqueness, events fire in order exactly once under arbitrary tick splits.
-- [ ] `npm test` and `npm run build` both clean.
-- [ ] Commit: `feat(waves-T4): intensity-driven wave spawner`
+- [x] Timers scaled by intensity; path picked from the script mix; scripted events fire in order via `waveIndex`; cap and skull rules unchanged; stage 5 unchanged.
+- [x] Unit tests: calm start vs peak spawn rate, scripted event timing and truncation, disabled kinds skipped, boss stage spawns nothing.
+- [x] Property tests: cap never exceeded with scripted events, skull uniqueness, events fire in order exactly once under arbitrary tick splits.
+- [x] `npm test` and `npm run build` both clean.
+- [x] Commit: `feat(waves-T4): intensity-driven wave spawner`
 
 ## T5 — Bonus round
 Files: `src/game/state.ts` (`bonus`), `src/game/round.ts`, `src/game/enemies/spawn.ts`, `src/game/collision.ts`, `src/ui/hud.ts`, `src/ui/screens.ts`, tests

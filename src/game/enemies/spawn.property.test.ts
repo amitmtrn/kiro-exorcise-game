@@ -3,6 +3,7 @@ import fc from 'fast-check'
 import { tickSpawners } from './spawn'
 import { moveEnemies } from './movement'
 import { STAGES } from '../stages'
+import { intensityAt, spawnRateFor } from '../waves'
 import { createInitialState, makeEnemy } from '../state'
 import type { Enemy, EnemyType, GameState } from '../state'
 import { withSeededRandom } from '../../test/prng'
@@ -219,6 +220,8 @@ describe('spawn rate independent of frame rate (BUG-5)', () => {
     const base = createInitialState(2)
     const s = tickSpawners({ ...base, phase: 'playing', spawnTimers: { ...base.spawnTimers, ghost: 10 } }, 60, 1920, 1080)
     const interval = STAGES[1].spawnIntervalMs.ghost * (0.8 + 0.5 * 0.5)
-    expect(s.spawnTimers.ghost).toBeCloseTo(interval - 50, 6)
+    // Timers run in intensity-scaled time (waves R4.2): the overshoot is 60 ms × rate − 10 ms.
+    const rate = spawnRateFor(intensityAt(STAGES[1].waves!.intensity, 0))
+    expect(s.spawnTimers.ghost).toBeCloseTo(interval - (60 * rate - 10), 6)
   })
 })

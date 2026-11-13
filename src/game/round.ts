@@ -46,6 +46,7 @@ export function tickRound(
           stageBanished: 0,
           stageMissed: 0,
           bossActive: false,
+          waveIndex: 0,
         }
       }
       return { ...state, stageTitleMs }

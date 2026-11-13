@@ -3,7 +3,7 @@
  * respecting the stage config, enemy cap, and skull/boss uniqueness rules.
  */
 
-import type { GameState } from '../state'
+import type { GameState, Enemy } from '../state'
 import { setEnemies, setSpawnTimers } from '../state'
 import { STAGES } from '../stages'
 import { createGhost } from './ghost'
@@ -11,6 +11,10 @@ import { createBat } from './bat'
 import { createSkull } from './skull'
 import { createLunger } from './lunger'
 import { createPumpkin } from './pumpkin'
+import { spawnWave } from './waveSpawn'
+import { intensityAt, spawnRateFor, speedFactorFor, pickPath } from '../waves'
+import type { WaveKind } from '../waves'
+import type { WavePath } from '../paths'
 
 function nextInterval(minMs: number, maxMs: number): number {
   return minMs + Math.random() * (maxMs - minMs)
@@ -26,6 +30,11 @@ function resetTimer(current: number, baseMs: number): number {
   return interval + Math.max(current, -interval)
 }
 
+/** Random swarm size (3–5); everything else spawns one at a time. */
+function randomCount(path: WavePath): number {
+  return path === 'swarm' ? 3 + Math.floor(Math.random() * 3) : 1
+}
+
 export function tickSpawners(
   state: GameState,
   deltaMs: number,
@@ -36,8 +45,16 @@ export function tickSpawners(
 
   const cfg = STAGES[state.stage - 1]
   const mix = cfg.enemyMix
-  const mult = cfg.speedMultiplier
   const max = cfg.maxEnemies
+
+  // Wave script (waves spec): the stage clock drives an intensity level that
+  // scales the spawn timers and the speed of new enemies. No script (boss
+  // stage) → the original flat spawner.
+  const script = cfg.waves
+  const elapsed = Math.min(cfg.durationMs, Math.max(0, cfg.durationMs - state.roundTimeMs))
+  const level = script ? intensityAt(script.intensity, elapsed / cfg.durationMs) : 0.5
+  const rate = script ? spawnRateFor(level) : 1
+  const mult = cfg.speedMultiplier * (script ? speedFactorFor(level) : 1)
 
   let { enemies } = state
   const timers = { ...state.spawnTimers }
@@ -48,28 +65,43 @@ export function tickSpawners(
   // below must see the enemies added earlier in this tick (pbt T4).
   let nonBossCount = enemies.filter((e) => e.type !== 'boss' && !e.exiting).length
 
-  // Ghost
-  timers.ghost -= deltaMs
-  if (timers.ghost <= 0) {
-    if (mix.ghost && nonBossCount < max) {
-      enemies = [...enemies, createGhost(canvasW, canvasH, mult)]
+  /** Spawn up to `count` path enemies, never beyond the cap (R3.4). */
+  const addWave = (kind: WaveKind, path: WavePath, count: number, height?: number): void => {
+    const n = Math.min(count, max - nonBossCount)
+    if (n <= 0) return
+    const made = spawnWave(kind, path, n, { W: canvasW, H: canvasH, speedMult: mult, edges: cfg.spawnEdges, height })
+    enemies = [...enemies, ...made]
+    nonBossCount += made.length
+  }
+
+  /** Timer-driven spawn of one ghost / bat / pumpkin (or a bat swarm). */
+  const addRandom = (kind: 'ghost' | 'bat' | 'pumpkin', legacy: () => Enemy): void => {
+    if (!script) {
+      enemies = [...enemies, legacy()]
       nonBossCount++
+      return
     }
+    let path = pickPath(script.pathMix[kind], Math.random())
+    if (path === 'swarm' && max - nonBossCount < 3) path = 'flyby'
+    addWave(kind, path, randomCount(path))
+  }
+
+  // Ghost
+  timers.ghost -= deltaMs * rate
+  if (timers.ghost <= 0) {
+    if (mix.ghost && nonBossCount < max) addRandom('ghost', () => createGhost(canvasW, canvasH, mult))
     timers.ghost = resetTimer(timers.ghost, cfg.spawnIntervalMs.ghost)
   }
 
   // Bat
-  timers.bat -= deltaMs
+  timers.bat -= deltaMs * rate
   if (timers.bat <= 0) {
-    if (mix.bat && nonBossCount < max) {
-      enemies = [...enemies, createBat(canvasW, canvasH, mult)]
-      nonBossCount++
-    }
+    if (mix.bat && nonBossCount < max) addRandom('bat', () => createBat(canvasW, canvasH, mult))
     timers.bat = resetTimer(timers.bat, cfg.spawnIntervalMs.bat)
   }
 
   // Skull (max 1 non-exiting at a time; a leaving skull does not block)
-  timers.skull -= deltaMs
+  timers.skull -= deltaMs * rate
   if (timers.skull <= 0) {
     if (mix.skull && nonBossCount < max && !skullActive) {
       enemies = [...enemies, createSkull(canvasW, canvasH, mult)]
@@ -79,7 +111,7 @@ export function tickSpawners(
   }
 
   // Lunger
-  timers.lunger -= deltaMs
+  timers.lunger -= deltaMs * rate
   if (timers.lunger <= 0) {
     if (mix.lunger && nonBossCount < max) {
       enemies = [...enemies, createLunger(canvasW, canvasH, mult)]
@@ -89,18 +121,26 @@ export function tickSpawners(
   }
 
   // Pumpkin
-  timers.pumpkin -= deltaMs
+  timers.pumpkin -= deltaMs * rate
   if (timers.pumpkin <= 0) {
-    if (mix.pumpkin && nonBossCount < max) {
-      enemies = [...enemies, createPumpkin(canvasW, canvasH, mult)]
-      nonBossCount++
-    }
+    if (mix.pumpkin && nonBossCount < max) addRandom('pumpkin', () => createPumpkin(canvasW, canvasH, mult))
     timers.pumpkin = resetTimer(timers.pumpkin, cfg.spawnIntervalMs.pumpkin)
+  }
+
+  // Scripted set pieces fire once, in order, as the stage clock passes their time.
+  let waveIndex = state.waveIndex
+  if (script) {
+    while (waveIndex < script.events.length && script.events[waveIndex].atMs <= elapsed) {
+      const ev = script.events[waveIndex]
+      const enabled = ev.kind === 'ghost' ? mix.ghost : ev.kind === 'bat' ? mix.bat : ev.kind === 'pumpkin' ? mix.pumpkin : false
+      if (enabled) addWave(ev.kind, ev.path, ev.count, ev.height)
+      waveIndex++
+    }
   }
 
   let next = setSpawnTimers(state, timers)
   next = setEnemies(next, enemies)
-  return next
+  return waveIndex === next.waveIndex ? next : { ...next, waveIndex }
 }
 
 export const MAX_ENEMIES = 6 // kept for tests
