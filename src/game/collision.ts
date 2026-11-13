@@ -65,6 +65,12 @@ function scoreWithPop(s: GameState, enemy: Enemy, pts: number): GameState {
   return addScoreLabels(s, [spawnScoreLabel(enemy.x, enemy.y, pts)])
 }
 
+function clearFlashes(s: GameState): GameState {
+  return s.enemies.some((e) => e.hitFlashFrames > 0)
+    ? setEnemies(s, s.enemies.map((e) => (e.hitFlashFrames > 0 ? { ...e, hitFlashFrames: 0 } : e)))
+    : s
+}
+
 export function resolveHits(
   state: GameState,
   currentData: ImageData,
@@ -78,7 +84,8 @@ export function resolveHits(
   lastBanished = []
 
   // Nothing scores after death (pbt BUG-3).
-  if (state.phase === 'gameover') return state
+  // Hit flashes still expire (cleared) so no enemy stays solid white.
+  if (state.phase === 'gameover') return clearFlashes(state)
 
   const dt = deltaMs / FRAME_MS
 
@@ -186,5 +193,7 @@ export function resolveHits(
     }
   }
 
-  return setEnemies(s, updatedEnemies)
+  return s.phase === 'gameover'
+    ? clearFlashes(setEnemies(s, updatedEnemies))
+    : setEnemies(s, updatedEnemies)
 }

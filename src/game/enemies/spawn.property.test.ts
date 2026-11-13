@@ -152,7 +152,7 @@ describe('spawner (properties)', () => {
     ))
   })
 
-  it('spawn timers stay finite and positive after a tick', () => {
+  it('spawn timers stay finite and non-negative after a tick', () => {
     fc.assert(fc.property(
       common.stage, fc.integer({ min: 1, max: 20_000 }), common.seed,
       (stage, ms, seed) => {
@@ -160,6 +160,7 @@ describe('spawner (properties)', () => {
           const s = tickSpawners({ ...createInitialState(stage), phase: 'playing' }, ms, 1920, 1080)
           for (const t of Object.values(s.spawnTimers)) {
             expect(Number.isFinite(t)).toBe(true)
+            expect(t).toBeGreaterThanOrEqual(0)
           }
         })
       },

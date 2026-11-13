@@ -89,6 +89,13 @@ export async function startLoop(
   let lastTimestamp = 0
   let prevPhase = state.phase
 
+  /** Keeps shake, particles and labels expiring on the summary / game-over screens. */
+  function tickEffects(s: GameState, ms: number): GameState {
+    s = tickShake(s, ms)
+    s = setParticles(s, tickParticles(s.particles, ms))
+    return setScoreLabels(s, tickScoreLabels(s.scoreLabels, ms))
+  }
+
   function tick(timestamp: number): void {
     const deltaMs = lastTimestamp === 0 ? 16 : Math.min(timestamp - lastTimestamp, 100)
     lastTimestamp = timestamp
@@ -141,6 +148,7 @@ export async function startLoop(
     if (state.phase === 'summary') {
       saveHighScore(state.highScore)
       state = tickRound(state, deltaMs, displayW, displayH)
+      state = tickEffects(state, deltaMs)
       renderFrame(gameCtx, state, now)
       state = resolveHits(state, currentData, prevData, displayW, displayH, now, frameIsNew, deltaMs)
       renderSummary(gameCtx, state, now, () => {
@@ -154,6 +162,7 @@ export async function startLoop(
     // ── Game Over ─────────────────────────────────────────────────────────────
     if (state.phase === 'gameover') {
       saveHighScore(state.highScore)
+      state = tickEffects(state, deltaMs)
       renderFrame(gameCtx, state, now)
       renderGameOver(gameCtx, state, now,
         () => { state = retryStage(state) },
@@ -199,6 +208,7 @@ export async function startLoop(
 
     state = setEnemies(state, survivors)
     for (let i = 0; i < missedCount; i++) {
+      if (state.phase === 'gameover') break // nothing else happens after the last life
       state = decrementLife(state)
       state = resetCombo(state)
       state = incrementMissed(state)

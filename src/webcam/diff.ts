@@ -98,10 +98,12 @@ export function computeFrameDiff(
       // Hitboxes may overhang the frame (enemies enter from off-screen). Skip
       // out-of-frame samples instead of letting the index wrap onto the
       // neighbouring row (pbt BUG-2).
-      if (px < 0 || px >= canvasWidth || py < 0) continue
+      // Off-frame samples count as "not moved" in the denominator so a hitbox
+      // that is almost entirely off-screen cannot be decided by a few edge pixels.
+      if (px < 0 || px >= canvasWidth || py < 0) { totalSampled++; continue }
       const idx = (py * canvasWidth + px) * 4 // RGBA
 
-      if (idx + 2 >= currentData.data.length) continue
+      if (idx + 2 >= currentData.data.length) { totalSampled++; continue }
 
       const rC = currentData.data[idx]
       const gC = currentData.data[idx + 1]

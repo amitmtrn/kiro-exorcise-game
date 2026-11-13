@@ -120,4 +120,13 @@ describe('mirror parity (properties)', () => {
       },
     ))
   })
+
+  it('a hitbox mostly off-frame is not decided by a few edge pixels (REV-4)', () => {
+    const W = 64, H = 32
+    const data = (v: number) => { const d = new Uint8ClampedArray(W * H * 4); for (let i = 0; i < d.length; i++) d[i] = v; return { data: d, width: W, height: H } as ImageData }
+    const cur = data(255), prev = data(0) // every in-frame pixel moved
+    // 100 px wide box, only the last 4 px column samples (1 of 25 columns) inside the frame
+    expect(computeFrameDiff(cur, prev, { x: -96, y: 0, w: 100, h: 16 }, W)).toBe(false)
+    expect(computeFrameDiff(cur, prev, { x: 0, y: 0, w: 20, h: 16 }, W)).toBe(true)
+  })
 })

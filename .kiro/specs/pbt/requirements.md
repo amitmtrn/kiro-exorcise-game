@@ -129,7 +129,9 @@ costs the last life do not score.
 elapsed `deltaMs`, not frame count: the same total elapsed time gives the same
 alpha / position / remaining shake at any step size. One 60 Hz frame
 (`FRAME_MS = 1000/60`) is the unit; the default step is one frame so existing
-callers and tests are unchanged.
+callers keep working. Particle `y` now integrates gravity exactly
+(`vy·dt + ½·g·dt²`), so the one-frame step moves `y` by an extra `½·g` and the
+existing `tickParticles` unit expectation was updated accordingly.
 
 **R9.2** A hit flash lasts one 60 Hz frame at 60 fps, and never longer than
 ~2 frames at any frame rate ≥ 30 fps.
@@ -140,3 +142,20 @@ callers and tests are unchanged.
 
 **R10.1** When a spawn timer expires, the overshoot (time past zero) is carried
 into the next interval, so the long-run spawn rate does not depend on frame rate.
+
+---
+
+## R11 — Review follow-ups (second review)
+
+**R11.1** Hit flashes never outlive the game: on game over (last life lost in
+`decrementLife`, or `resolveHits` on a dead state) every `hitFlashFrames` is 0.
+
+**R11.2** Shake residue below 0.05 frame snaps to 0; shake, particles and score
+labels keep expiring on the summary and game-over screens.
+
+**R11.3** `computeFrameDiff` counts off-frame samples as "not moved" in the
+denominator, so a hitbox almost entirely off-screen needs real in-frame motion
+over the full hit ratio of its whole area.
+
+**R11.4** Once the last life is lost in the reach-centre loop, remaining
+enemies no longer cost lives, count as missed, or play the life-lost sound.

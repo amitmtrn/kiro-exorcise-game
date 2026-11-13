@@ -3,7 +3,7 @@
 ## Library
 [`fast-check`](https://github.com/dubzzz/fast-check) as a pinned devDependency.
 It works with Vitest through plain `fc.assert(fc.property(...))`. Default
-`numRuns` (100) is kept for speed; the whole PBT set must stay well under the
+`numRuns` (100) is kept for speed (the long-run spawn-timer property uses 25); the whole PBT set must stay well under the
 existing unit-test runtime budget (a few seconds).
 
 ## Files
@@ -15,6 +15,7 @@ existing unit-test runtime budget (a few seconds).
 | `src/game/enemies/spawn.property.test.ts` | spawner cap, skull uniqueness, mix, phase (R4) |
 | `src/game/enemies/movement.property.test.ts` | frame-rate independence, no overshoot (R7) |
 | `src/webcam/diff.property.test.ts` | mirror parity (R5) |
+| `src/game/particles.property.test.ts` | step-size independence of particles, labels (R9) |
 | `src/test/prng.ts` | tiny seeded PRNG + `withSeededRandom` helper (R1.3) |
 
 ## Seeded randomness (R1.3)
@@ -46,7 +47,7 @@ an `AudioContext`).
 ## Spawner property (R4)
 State: `createInitialState(stage)` with `phase: 'playing'`, a random number of
 pre-existing enemies (≤ cap), then a sequence of operations: `tick(deltaMs)`
-(0–5000 ms), `move(deltaMs)` (via `moveEnemies`), `remove(index)`. After every
+(1–5000 ms), `move(deltaMs)` (via `moveEnemies`), `remove(index)`. After every
 operation: `count(non-boss, non-exiting) ≤ maxEnemies`.
 
 Pre-existing enemies are mostly ghosts plus, in the skull variants, exiting and
@@ -91,7 +92,7 @@ Lunger is excluded: its wind-up is quantised to one frame by design
 
 ## Review-fix designs (T8–T12)
 
-- **Bounds (BUG-2):** `computeFrameDiff` skips samples with `px < 0 || px >= canvasWidth || py < 0` (the bottom edge is covered by the existing data-length check).
+- **Bounds (BUG-2):** `computeFrameDiff` skips samples with `px < 0 || px >= canvasWidth || py < 0` (the bottom edge is covered by the existing data-length check). Off-frame samples still count in the denominator as "not moved" (R11.3).
 - **Death (BUG-3):** `resolveHits` returns early (after clearing `lastBanished`) in `gameover`, and stops scoring inside its loop once a skull has taken the last life; `loop.ts` no longer calls it in the gameover branch. Property: after the first `gameover`, `resolve` events leave the state identical.
 - **Time scaling (BUG-4):** `FRAME_MS = 1000/60` exported from `state.ts`. `tickParticles(p, deltaMs = FRAME_MS)`: `x += vx·dt`, `y += vy·dt + ½g·dt²`, `vy += g·dt`, `alpha -= decay·dt` with `dt = deltaMs / FRAME_MS` (exact for constant gravity, so positions are step-size independent). `tickScoreLabels` and `tickShake` likewise. `resolveHits(..., frameIsNew, deltaMs)` decrements `hitFlashFrames` by `dt`, snapping to 0 once ≤ 0.25 so 16 ms vs 16.67 ms ticks do not flash an extra frame.
 - **Spawn carry (BUG-5):** new timer = `interval + max(timer, -interval)` (overshoot carried, capped at one interval). Property: with `Math.random` fixed, the number of timer resets over a long run is within 1 of the analytic count for any step size.

@@ -64,32 +64,43 @@ Files: `collision.property.test.ts`, `spawn.property.test.ts`, `movement.propert
 - [x] `movement.property`: no-overshoot asserted only while the skull is not `exiting`.
 - [x] `design.md` aligned with the tests (elapsed range, boss in straight set, frame rounding).
 - [x] Run `npm test` and `npm run build`; both clean.
-- [x] Commit: `fix(pbt-T8): review fixes to property test quality`
+- [x] Commit: `fix(pbt): spec review-fix tasks T8-T12, BUG-2..5, README test count`
 
 ## T9 — Review fix: frame-diff bounds (BUG-2, R5.4)
 Files: `src/webcam/diff.ts`, `src/webcam/diff.property.test.ts`
 
 - [x] Skip out-of-frame samples; property generates edge-overhanging hitboxes; direct regression test.
-- [x] Commit: `fix(pbt-T9): computeFrameDiff no longer wraps rows at frame edges`
+- [x] Commit: `fix(pbt): computeFrameDiff no longer wraps rows at frame edges (BUG-2)`
 
 ## T10 — Review fix: no scoring after death (BUG-3, R8)
 Files: `src/game/collision.ts`, `src/game/loop.ts`, `collision.property.test.ts`
 
 - [x] Guard in `resolveHits`; loop no longer calls it in gameover; property + unit regression.
-- [x] Commit: `fix(pbt-T10): nothing scores after game over`
+- [x] Commit: `fix(pbt): no scoring after game over (BUG-3); time-based particles, labels, shake, flash (BUG-4)`
 
 ## T11 — Review fix: time-based effects (BUG-4, R9)
 Files: `particles.ts`, `state.ts`, `collision.ts`, `loop.ts` and tests
 
 - [x] `deltaMs`-scaled particles, labels, shake, hit flash; properties for step-size independence.
-- [x] Commit: `fix(pbt-T11): scale particles, labels, shake and hit flash by deltaMs`
+- [x] Commit: `fix(pbt): no scoring after game over (BUG-3); time-based particles, labels, shake, flash (BUG-4)`
 
 ## T12 — Review fix: spawn timer carry-over (BUG-5, R10)
 Files: `spawn.ts`, `spawn.property.test.ts`
 
 - [x] Carry overshoot; property on spawn-rate independence of step size.
 - [x] Sync README test count. Run `npm test` and `npm run build`; both clean.
-- [x] Commit: `fix(pbt-T12): carry spawn timer overshoot`
+- [x] Commit: `fix(pbt): carry spawn timer overshoot (BUG-5); skull and no-overshoot property fixes`
+
+## T13 — Review fixes, round 2 (R11)
+Files: `collision.ts`, `state.ts`, `loop.ts`, `diff.ts`, `spawn.property.test.ts`, specs and tests
+
+- [x] Clear hit flashes on game over (`decrementLife`, `resolveHits`); property test.
+- [x] `tickShake` epsilon; tick shake/particles/labels on summary and game-over screens.
+- [x] `computeFrameDiff` off-frame samples count in the denominator; test.
+- [x] Break the reach-centre loop on game over.
+- [x] Spec wording (R9.1, design drift), test rename and `>= 0` assertion.
+- [x] Run `npm test` and `npm run build`; both clean.
+- [x] Commit: `fix(pbt): review round 2 (hit flash on game over, shake epsilon, off-frame diff, spec drift)`
 
 ## Bugs found by properties
 - **BUG-1 (found by T4, spawner cap, R4.1):** `tickSpawners` computed

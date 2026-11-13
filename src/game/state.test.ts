@@ -250,3 +250,11 @@ describe('high score persistence (stages T1 / T9)', () => {
     expect(createInitialState().highScore).toBe(999)
   })
 })
+
+describe('tickShake residue (pbt REV-2)', () => {
+  it('snaps jitter residue to zero', () => {
+    let s = { ...createInitialState(1), shakeFrames: 3 }
+    for (let i = 0; i < 3; i++) s = tickShake(s, 16.6)
+    expect(s.shakeFrames).toBe(0)
+  })
+})

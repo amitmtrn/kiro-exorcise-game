@@ -182,10 +182,15 @@ export function createInitialState(stage = 1): GameState {
 
 export function decrementLife(state: GameState): GameState {
   const lives = Math.max(0, state.lives - 1)
+  const dead = lives === 0
   return {
     ...state,
     lives,
-    phase: lives === 0 ? 'gameover' : state.phase,
+    phase: dead ? 'gameover' : state.phase,
+    // Hit flashes never outlive the game (nothing decays them after death).
+    enemies: dead && state.enemies.some((e) => e.hitFlashFrames > 0)
+      ? state.enemies.map((e) => (e.hitFlashFrames > 0 ? { ...e, hitFlashFrames: 0 } : e))
+      : state.enemies,
   }
 }
 
@@ -276,5 +281,7 @@ export function setShake(state: GameState, frames: number): GameState {
 /** Counts the shake down by `deltaMs` (one 60 Hz frame by default); call once per tick before rendering. */
 export function tickShake(state: GameState, deltaMs: number = FRAME_MS): GameState {
   if (state.shakeFrames === 0) return state
-  return { ...state, shakeFrames: Math.max(0, state.shakeFrames - deltaMs / FRAME_MS) }
+  const left = state.shakeFrames - deltaMs / FRAME_MS
+  // Snap float residue to 0 (same epsilon idea as the hit flash).
+  return { ...state, shakeFrames: left < 0.05 ? 0 : left }
 }

@@ -157,13 +157,14 @@ describe('lives and score under any event sequence (properties)', () => {
     })))
   })
 
-  it('after game over, resolveHits changes nothing (BUG-3)', () => {
+  it('after game over, resolveHits changes nothing except clearing hit flashes (BUG-3, REV-1)', () => {
     fc.assert(fc.property(
       fc.array(enemyArb, { maxLength: 6 }), fc.array(rectArb, { maxLength: 4 }), fc.boolean(), fc.integer(),
       (enemies, rects, isNew, seed) => withSeededRandom(seed, () => {
         const dead: GameState = { ...createInitialState(3), phase: 'gameover', lives: 0, enemies }
         const { cur, prev } = frame(rects)
-        expect(resolveHits(dead, cur, prev, DW, DH, 5000, isNew)).toEqual(dead)
+        const cleared = { ...dead, enemies: enemies.map((e) => ({ ...e, hitFlashFrames: 0 })) }
+        expect(resolveHits(dead, cur, prev, DW, DH, 5000, isNew)).toEqual(cleared)
       }),
     ))
   })
@@ -180,6 +181,22 @@ describe('lives and score under any event sequence (properties)', () => {
       expect(next.phase).toBe('gameover')
       expect(next.score).toBe(0)
       expect(next.stageBanished).toBe(0)
+    })))
+  })
+
+  it('the last life lost leaves no enemy flashing (REV-1)', () => {
+    fc.assert(fc.property(fc.array(enemyArb, { maxLength: 6 }), fc.integer(), (others, seed) => withSeededRandom(seed, () => {
+      const skull = makeEnemy({
+        id: 'skull', type: 'skull', x: 100, y: 100, targetX: DW / 2, targetY: DH / 2, speed: 0.1,
+        hitbox: hitboxFor('skull', 100, 100), hitCount: 1,
+      })
+      const flashing = others.map((e) => ({ ...e, hitFlashFrames: 1 }))
+      const s: GameState = { ...createInitialState(3), phase: 'playing', lives: 1, enemies: [...flashing, skull] }
+      const { cur, prev } = frame([{ x: 0, y: 0, w: MOTION_W, h: MOTION_H }])
+      const next = resolveHits(s, cur, prev, DW, DH, 5000, true)
+      expect(next.phase).toBe('gameover')
+      expect(next.enemies.every((e) => e.hitFlashFrames === 0)).toBe(true)
+      expect(decrementLife({ ...s, enemies: flashing }).enemies.every((e) => e.hitFlashFrames === 0)).toBe(true)
     })))
   })
 })
