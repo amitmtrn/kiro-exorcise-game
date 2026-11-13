@@ -39,11 +39,17 @@ Files: `.kiro/agents/balancer.json`, `tools/balancer-config.test.mjs`
 Validation result (kiro-cli 3.3.0): `kiro-cli agent validate --path .kiro/agents/balancer.json` printed nothing and exited 0. Control: an invalid file (`{"name":1,"tools":"x"}`) exits 1 with `invalid type: integer 1, expected a string`. `kiro-cli agent list` shows `balancer  Workspace  (v3 format)`.
 
 ## T5 — Real harness run
-- [ ] Run `tools/motion-harness/run.sh sweep 30` through the MCP server (`tools/call run_harness`), confirm no Vite / Chrome processes remain, record the metrics below.
-- [ ] `npm test` and `npm run build` both clean.
-- [ ] Commit: `docs(balancer-T5): record real sweep metrics`
+- [x] Run `tools/motion-harness/run.sh sweep 30` through the MCP server (`tools/call run_harness`), confirm no Vite / Chrome processes remain, record the metrics below.
+- [x] `npm test` and `npm run build` both clean.
+- [x] Commit: `docs(balancer-T5): record real sweep metrics`
 
-Metrics: _(recorded when T5 runs)_
+Metrics (real run, 2026-11-13, via the MCP server `tools/call run_harness {mode: "sweep", seconds: 30}`; headless Chrome with the synthetic 30 fps camera; wall time 39.7 s, exit code 0):
+
+| frames | hits | motionFrames | maxMotion | playFrames | firstPlayAtMs | threshold | highScoreSaved |
+|---|---|---|---|---|---|---|---|
+| 1791 | 7 | 1664 | 354 | 1614 | 2964 | 15 | null |
+
+Reading: detection works (7 hits, motion on 93 % of ticks, auto-calibrated threshold 15, game left the menu after Space at ~3 s). `highScoreSaved` is null because a 30 s run ends before the stage-1 summary (45 s); the 55 s default would save one. After the run no `vite` / Chrome process and nothing on ports 5173 / 9333 remained (R4.2).
 
 ## T6 — Docs
 - [ ] README: "Balancer agent and motion-harness MCP server" section, spec table row and count, structure entries, test count (`node tools/sync-readme-tests.mjs`); `tools/motion-harness/README.md` pointer.
