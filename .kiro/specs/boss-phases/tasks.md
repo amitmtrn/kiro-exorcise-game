@@ -32,9 +32,9 @@
 - [x] Commit: `feat(boss-phases-T4): victory screen, boss and lunger telegraphs`
 
 ## T5 — Docs
-- [ ] README: spec table row, spec count and test count; `stages/tasks.md` note that boss behaviour is now defined by `boss-phases/`.
-- [ ] `npm test` and `npm run build` both clean.
-- [ ] Commit: `docs(boss-phases-T5): README and stages note`
+- [x] README: spec table row, spec count and test count; `stages/tasks.md` note that boss behaviour is now defined by `boss-phases/`.
+- [x] `npm test` and `npm run build` both clean.
+- [x] Commit: `docs(boss-phases-T5): README and stages note`
 
 ## T6 — Manual smoke test (webcam)
 - [ ] Phase 1: boss sways along the top and summons a ghost about every 5 s.

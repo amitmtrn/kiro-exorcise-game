@@ -41,6 +41,7 @@
 - [x] Add `'boss'` to `EnemyType`; create `src/game/enemies/boss.ts` (10-hit, sends small ghosts).
 - [x] Health bar render.
 - [x] Commit: `feat(stages-T7): stage 5 boss`
+- _Boss behaviour (phases, attacks, victory, timeout) is now defined by `boss-phases/`; after stage 5 the game ends in a victory screen instead of looping._
 
 ## T8 — Stage summary screen + stars
 - [x] HTML overlay with banished / missed / best combo / stars. _(Canvas overlay — `renderSummary` in `screens.ts`.)_

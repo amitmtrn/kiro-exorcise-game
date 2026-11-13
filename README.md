@@ -25,7 +25,7 @@ npm run dev
 
 | Command | What it does |
 |---|---|
-| `npm test` | Run all 250 unit tests (Vitest) |
+| `npm test` | Run all 297 unit tests (Vitest) |
 | `npm run build` | Production build → `dist/` |
 | `npm run preview` | Preview the production build locally |
 
@@ -35,10 +35,10 @@ Five Kung Foo-style stages, each 60 seconds, each with its own enemy mix and mus
 
 - **Ghosts** float toward the center of the screen. Swat them before they arrive — each one that gets through costs a life.
 - **Bats** zigzag in fast. Quick swipe to send them packing.
-- **Lungers** stop, wind up, then lunge at you — hit them during the wind-up.
+- **Lungers** stop, wind up, then lunge at you — they can only be hit once the wind-up starts (they look faded until then).
 - **Pumpkins** take two hits.
 - **Cursed Skull** ☠️ — glows red on purpose. **Don't hit it.** Costs a life if you do.
-- **Stage 5 boss** — a hat-wearing giant ghost with a 10-hit health bar.
+- **Stage 5 boss** — a hat-wearing giant ghost with a 10-hit health bar and three phases. It summons ghosts while swaying along the top; below 66 % health it hides behind a shield and lunges at you after a glowing, shaking 0.6 s wind-up (hit it then!); below 33 % it enrages with faster lunges and more minions. Beat it to win the game and see your total score; if the timer runs out first, it's game over.
 - 3 lives. Consecutive hits build a **combo multiplier** (×2 at 3 hits, ×3 at 6, ×4 at 10+; an enemy reaching the centre resets it) and the screen shakes from a 3-hit streak. Enemies move at the same real-time speed on any display refresh rate and scale with screen height; the Cursed Skull leaves after 4 s. A stage-clear screen rates you with stars, and your high score is saved locally.
 
 Hit detection uses **frame differencing**: fast motion inside an enemy's hitbox registers as a hit — the same technique as the original EyeToy, no ML required.
@@ -78,6 +78,7 @@ Every feature was planned as a Kiro spec before implementation:
 | `hit-detection-fix/` | Mirror bug, 2-frame gate, spawn grace, auto-calibration, debug overlay |
 | `boss-combo/` | Boss ghost (3 hits), combo multiplier, audio |
 | `stages/` | 5 stages, motion buttons, lunging enemies, high score |
+| `boss-phases/` | 3-phase boss, lunger wind-up vulnerability, victory screen, boss timeout game over |
 | `audio/` | Procedural Web Audio SFX and background music |
 | `spooky-skin/` | Webcam tint, fog, candle glow, screen shake, score pops |
 | `feel-fix/` | px/s movement scaled to screen height, skull exits, combo tiers |
@@ -86,7 +87,7 @@ Every feature was planned as a Kiro spec before implementation:
 
 Each spec has `requirements.md`, `design.md`, and `tasks.md`. Writing requirements and design before tasks surfaced design gaps (e.g. skull penalty rules, hitbox coordinate system, mirror parity bug) that would have been painful to fix mid-implementation.
 
-All ten specs are implemented. Every task in `tasks.md` is ticked except the manual smoke tests (a webcam playthrough, enabling GitHub Pages in the repo settings), and `boss-combo/` carries a status note explaining it was superseded by `stages/`.
+All eleven specs are implemented. Every task in `tasks.md` is ticked except the manual smoke tests (a webcam playthrough, enabling GitHub Pages in the repo settings), and `boss-combo/` carries a status note explaining it was superseded by `stages/`.
 
 ### Kiro hooks (`.kiro/hooks/`)
 Standalone `v1` hook files, loaded by Kiro IDE and Kiro CLI V3. Spec: `.kiro/specs/hooks/`.
@@ -126,7 +127,7 @@ src/
                         "Calibrating…" banner, all phases, shake + score-label ticks
     state.ts            GameState types + pure reducers (lives, score, combo,
                         shake, score labels, high score)
-    round.ts            Phase machine: start → stageTitle → playing → summary
+    round.ts            Phase machine: start → stageTitle → playing → summary → (victory after stage 5)
     stages.ts           5 StageConfig entries (enemy mix, spawn rates, music)
     collision.ts        Per-enemy hit resolution — 2-frame gate, spawn grace,
                         combo scoring, shake, hit flash, score pops
@@ -159,6 +160,7 @@ src/
     audio/              Procedural music + SFX spec
     spooky-skin/        Visual polish spec
     hooks/              Kiro hooks spec
+    boss-phases/        3-phase boss + victory spec
     pbt/                Property-based tests spec (`*.property.test.ts`, fast-check)
   hooks/                test-on-save.json, spec-drift-check.json, readme-test-count.json (save/create/delete)
 tools/
