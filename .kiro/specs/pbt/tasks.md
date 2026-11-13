@@ -19,12 +19,12 @@ Files: `src/game/state.property.test.ts`
 - [x] Commit: `test(pbt-T2): combo tier properties`
 
 ## T3 — Lives and score properties
-Files: `src/game/state.property.test.ts`, `src/game/collision.property.test.ts`
+Files: `src/game/collision.property.test.ts`
 
-- [ ] Event-sequence model per design; invariants checked after every event (R2, R3).
-- [ ] `resolveHits` driven by synthetic frames inside the sequence.
-- [ ] Run `npm test` and `npm run build`; both clean.
-- [ ] Commit: `test(pbt-T3): lives and score properties`
+- [x] Event-sequence model per design; invariants checked after every event (R2, R3).
+- [x] `resolveHits` driven by synthetic frames inside the sequence.
+- [x] Run `npm test` and `npm run build`; both clean.
+- [x] Commit: `test(pbt-T3): lives and score properties`
 
 ## T4 — Spawner cap properties
 Files: `src/game/enemies/spawn.property.test.ts`, `src/game/enemies/spawn.ts` (if a bug is found)
