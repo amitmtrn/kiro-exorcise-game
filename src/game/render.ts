@@ -4,6 +4,9 @@
  */
 
 import type { GameState, Enemy, Particle, ScoreLabel } from './state'
+import { calloutPose } from './callouts'
+import type { Callout } from './callouts'
+import { HUD_FONT_FAMILY } from '../ui/hud'
 import { SHAKE_AMPLITUDE_PX } from './state'
 import { lastMotionPixels, lastBanished } from './collision'
 import { BOSS_HITS_NEEDED } from './enemies/boss'
@@ -66,6 +69,7 @@ export function renderFrame(
 
   for (const p of state.particles) drawParticle(ctx, p)
   for (const l of state.scoreLabels) drawScoreLabel(ctx, l)
+  for (const c of state.callouts) drawCallout(ctx, c)
 
   // Boss health bar
   const boss = state.enemies.find(e => e.type === 'boss')
@@ -460,6 +464,31 @@ function drawScoreLabel(ctx: CanvasRenderingContext2D, l: ScoreLabel): void {
   ctx.shadowColor = C_SCORE_POP; ctx.shadowBlur = 12
   ctx.fillStyle = C_SCORE_POP
   ctx.fillText(l.text, l.x, l.y)
+  ctx.restore()
+}
+
+// ─── Combo call-out (juice R4) ────────────────────────────────────────────────
+const C_CALLOUT_TIER = '#39ff14'   // Slime Green
+const C_CALLOUT_PRAISE = '#ffd166' // Candlelight Yellow
+function drawCallout(ctx: CanvasRenderingContext2D, c: Callout): void {
+  const pose = calloutPose(c)
+  const size = Math.max(28, Math.min(64, ctx.canvas.width / 16))
+  const color = c.kind === 'tierUp' ? C_CALLOUT_TIER : C_CALLOUT_PRAISE
+  ctx.save()
+  ctx.globalAlpha = Math.max(0, Math.min(1, pose.alpha))
+  ctx.translate(c.x, c.y + pose.dy)
+  ctx.scale(pose.scale, pose.scale)
+  ctx.rotate(c.kind === 'tierUp' ? -0.08 : 0.06)
+  ctx.font = `bold ${size}px ${HUD_FONT_FAMILY}`
+  ctx.textAlign = 'center'
+  ctx.textBaseline = 'middle'
+  ctx.lineWidth = 6
+  ctx.lineJoin = 'round'
+  ctx.strokeStyle = 'rgba(13,0,20,0.9)'
+  ctx.strokeText(c.text, 0, 0)
+  ctx.shadowColor = color; ctx.shadowBlur = 18
+  ctx.fillStyle = color
+  ctx.fillText(c.text, 0, 0)
   ctx.restore()
 }
 

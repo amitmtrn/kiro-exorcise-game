@@ -7,6 +7,7 @@
 
 import type { PathSpec } from './paths'
 import type { Knock } from './knock'
+import type { Callout } from './callouts'
 
 export interface Hitbox {
   x: number // top-left x
@@ -119,6 +120,7 @@ export interface GameState {
   shakeFrames: number     // spooky-skin R4.1 — frames of screen shake remaining
   knocks: Knock[]         // juice R2 — banished enemies flying off along the swipe
   hitStopMs: number       // juice R3 — game-time freeze left after a banish
+  callouts: Callout[]     // juice R4 — combo call-out texts
 }
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -211,6 +213,7 @@ export function createInitialState(stage = 1): GameState {
     shakeFrames: 0,
     knocks: [],
     hitStopMs: 0,
+    callouts: [],
   }
 }
 

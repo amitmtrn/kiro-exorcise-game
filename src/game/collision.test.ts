@@ -569,3 +569,40 @@ describe('resolveHits — hit-stop (juice R3)', () => {
     expect(r.score).toBeGreaterThan(0)
   })
 })
+
+describe('resolveHits — combo call-outs (juice R4)', () => {
+  const hit = (streak: number, combo: number, type: Enemy['type'] = 'ghost') => {
+    mockDiff.mockReturnValue(true)
+    return resolveHits({ ...createInitialState(), streak, combo, enemies: [enemy(type, 'e1', { hitCount: 1 })] }, FAKE, FAKE, DW, DH, 1000)
+  }
+  const texts = (r: ReturnType<typeof hit>) => r.callouts.map((c) => c.text)
+
+  it('no call-out at combo x1', () => {
+    expect(hit(0, 1).callouts).toHaveLength(0)
+    expect(hit(1, 1).callouts).toHaveLength(0)
+  })
+
+  it('tier-ups call out x2 / x3 / x4 COMBO!', () => {
+    expect(texts(hit(2, 1))).toEqual(['x2 COMBO!'])
+    expect(texts(hit(5, 2))).toEqual(['x3 COMBO!'])
+    expect(texts(hit(9, 3))).toEqual(['x4 COMBO!'])
+  })
+
+  it('praise per tier', () => {
+    expect(texts(hit(3, 2))).toEqual(['NICE!'])
+    expect(texts(hit(7, 3))).toEqual(['GREAT!'])
+    expect(texts(hit(11, 4))).toEqual(['PERFECT!'])
+  })
+
+  it('bats and candy count too; skulls never', () => {
+    expect(texts(hit(2, 1, 'bat'))).toEqual(['x2 COMBO!'])
+    expect(texts(hit(2, 1, 'candy'))).toEqual(['x2 COMBO!'])
+    expect(hit(2, 1, 'skull').callouts).toHaveLength(0)
+  })
+
+  it('the call-out sits inside the canvas', () => {
+    const c = hit(2, 1).callouts[0]
+    expect(c.x).toBeGreaterThanOrEqual(DW * 0.15)
+    expect(c.y).toBeGreaterThan(0)
+  })
+})

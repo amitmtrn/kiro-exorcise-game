@@ -34,14 +34,14 @@ Files: `src/game/hitstop.ts`, `src/game/state.ts`, `src/game/collision.ts`, `src
 - [x] Commit: `feat(juice-T3): 60 ms hit-stop on banish`
 
 ## T4 — Combo call-outs
-Files: `src/game/callouts.ts`, `src/game/state.ts`, `src/game/collision.ts`,
+Files: `src/game/callouts.ts`, `src/game/transitions.ts` (`easeOutBack` only; T5 adds the poses), `src/game/state.ts`, `src/game/collision.ts`,
 `src/game/loop.ts`, `src/game/render.ts`, `src/game/callouts.test.ts`
 
-- [ ] `callouts.ts`: `selectCallout`, `makeCallout`, `addCallout`, `tickCallouts`, `calloutPose`.
-- [ ] `GameState.callouts`; `resolveHits` adds the call-out after the combo update; loop ticks them with game time; `render.ts` draws them.
-- [ ] Unit tests: selection per tier (x1 none, x2 NICE!, x3 GREAT!, x4 PERFECT!), tier-up text for x2/x3/x4, praise cadence, clamping, cap of 3, expiry, pose envelope.
-- [ ] Run `npm test` and `npm run build`; both clean.
-- [ ] Commit: `feat(juice-T4): combo call-outs`
+- [x] `callouts.ts`: `selectCallout`, `makeCallout`, `addCallout`, `tickCallouts`, `calloutPose`.
+- [x] `GameState.callouts`; `resolveHits` adds the call-out after the combo update; loop ticks them with game time; `render.ts` draws them.
+- [x] Unit tests: selection per tier (x1 none, x2 NICE!, x3 GREAT!, x4 PERFECT!), tier-up text for x2/x3/x4, praise cadence, clamping, cap of 3, expiry, pose envelope.
+- [x] Run `npm test` and `npm run build`; both clean.
+- [x] Commit: `feat(juice-T4): combo call-outs`
 
 ## T5 — Stage intro / outro animations
 Files: `src/game/transitions.ts`, `src/ui/screens.ts`, `src/game/transitions.test.ts`

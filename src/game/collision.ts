@@ -16,6 +16,7 @@ import { isHittable } from './enemies/vulnerability'
 import { CANDY_POINTS } from './enemies/candy'
 import { makeKnock, addKnock } from './knock'
 import { addHitStop } from './hitstop'
+import { selectCallout, makeCallout, addCallout } from './callouts'
 import { motionPointsIn, centroid, estimateSwipe } from './swipe'
 import type { Pt, Swipe } from './swipe'
 import { spawnGhostPuff, spawnBatPuff, spawnScoreLabel } from './particles'
@@ -90,6 +91,13 @@ function banishFx(s: GameState, enemy: Enemy, displayH: number): GameState {
   lastBanished.push({ ...enemy, hitFlashFrames: 1 })
   const knock = makeKnock({ ...enemy, hitFlashFrames: 0 }, lastSwipes.get(enemy.id) ?? NO_SWIPE, displayH)
   return { ...s, knocks: addKnock(s.knocks, knock), hitStopMs: addHitStop(s.hitStopMs) }
+}
+
+/** Combo call-out after a banish took the combo from `prevCombo` to `s.combo` (juice R4). */
+function comboFx(s: GameState, enemy: Enemy, prevCombo: number, displayW: number, displayH: number): GameState {
+  const choice = selectCallout(prevCombo, s.combo, s.streak)
+  if (!choice) return s
+  return { ...s, callouts: addCallout(s.callouts, makeCallout(enemy.x, enemy.y, choice, displayW, displayH)) }
 }
 
 function clearFlashes(s: GameState): GameState {
@@ -182,17 +190,20 @@ export function resolveHits(
     if (enemy.type === 'ghost' || enemy.type === 'lunger') {
       const pts = (enemy.type === 'ghost' ? 100 : 150) * s.combo
       s = scoreWithPop(s, enemy, pts)
-      const tierBefore = s.combo
+      const prevCombo = s.combo
       s = incrementCombo(s)
+      s = comboFx(s, enemy, prevCombo, displayW, displayH)
       s = incrementBanished(s)
       s = shakeIfStrong(s)
       s = addParticles(s, spawnGhostPuff(enemy.x, enemy.y))
       s = banishFx(s, enemy, displayH)
-      try { sfxGhostHit(); if (s.combo > tierBefore) sfxCombo(s.combo) } catch { /* audio not ready */ }
+      try { sfxGhostHit(); if (s.combo > prevCombo) sfxCombo(s.combo) } catch { /* audio not ready */ }
 
     } else if (enemy.type === 'bat') {
       s = scoreWithPop(s, enemy, 50 * s.combo)
+      const prevCombo = s.combo
       s = incrementCombo(s)
+      s = comboFx(s, enemy, prevCombo, displayW, displayH)
       s = incrementBanished(s)
       s = shakeIfStrong(s)
       s = addParticles(s, spawnBatPuff(enemy.x, enemy.y))
@@ -201,7 +212,9 @@ export function resolveHits(
 
     } else if (enemy.type === 'candy') {
       s = scoreWithPop(s, enemy, CANDY_POINTS * s.combo)
+      const prevCombo = s.combo
       s = incrementCombo(s)
+      s = comboFx(s, enemy, prevCombo, displayW, displayH)
       s = incrementBanished(s)
       s = shakeIfStrong(s)
       s = addParticles(s, spawnBatPuff(enemy.x, enemy.y))
@@ -212,7 +225,9 @@ export function resolveHits(
       const newHitsReceived = enemy.hitsReceived + 1
       if (newHitsReceived >= enemy.hitsNeeded) {
         s = scoreWithPop(s, enemy, 200 * s.combo)
+        const prevCombo = s.combo
         s = incrementCombo(s)
+        s = comboFx(s, enemy, prevCombo, displayW, displayH)
         s = incrementBanished(s)
         s = shakeIfStrong(s)
         s = addParticles(s, spawnBatPuff(enemy.x, enemy.y))
