@@ -25,7 +25,7 @@ npm run dev
 
 | Command | What it does |
 |---|---|
-| `npm test` | Run all 133 unit tests (Vitest) |
+| `npm test` | Run all 162 unit tests (Vitest) |
 | `npm run build` | Production build → `dist/` |
 | `npm run preview` | Preview the production build locally |
 
@@ -39,7 +39,7 @@ Five Kung Foo-style stages, each 60 seconds, each with its own enemy mix and mus
 - **Pumpkins** take two hits.
 - **Cursed Skull** ☠️ — glows red on purpose. **Don't hit it.** Costs a life if you do.
 - **Stage 5 boss** — a hat-wearing giant ghost with a 10-hit health bar.
-- 3 lives. Consecutive hits build a **combo multiplier**; the screen shakes from ×3 up. A stage-clear screen rates you with stars, and your high score is saved locally.
+- 3 lives. Consecutive hits build a **combo multiplier** (×2 at 3 hits, ×3 at 6, ×4 at 10+; an enemy reaching the centre resets it) and the screen shakes from a 3-hit streak. Enemies move at the same real-time speed on any display refresh rate and scale with screen height; the Cursed Skull leaves after 4 s. A stage-clear screen rates you with stars, and your high score is saved locally.
 
 Hit detection uses **frame differencing**: fast motion inside an enemy's hitbox registers as a hit — the same technique as the original EyeToy, no ML required.
 
@@ -80,10 +80,11 @@ Every feature was planned as a Kiro spec before implementation:
 | `stages/` | 5 stages, motion buttons, lunging enemies, high score |
 | `audio/` | Procedural Web Audio SFX and background music |
 | `spooky-skin/` | Webcam tint, fog, candle glow, screen shake, score pops |
+| `feel-fix/` | px/s movement scaled to screen height, skull exits, combo tiers |
 
 Each spec has `requirements.md`, `design.md`, and `tasks.md`. Writing requirements and design before tasks surfaced design gaps (e.g. skull penalty rules, hitbox coordinate system, mirror parity bug) that would have been painful to fix mid-implementation.
 
-All seven specs are implemented. Every task in `tasks.md` is ticked except the manual smoke tests (a webcam playthrough, enabling GitHub Pages in the repo settings), and `boss-combo/` carries a status note explaining it was superseded by `stages/`.
+All eight specs are implemented. Every task in `tasks.md` is ticked except the manual smoke tests (a webcam playthrough, enabling GitHub Pages in the repo settings), and `boss-combo/` carries a status note explaining it was superseded by `stages/`.
 
 ### Agent hook (`.kiro/hooks/test-on-save.json`)
 A Kiro agent hook runs `npm test` automatically whenever a file under `src/` is saved, so test failures surface immediately rather than at commit time.

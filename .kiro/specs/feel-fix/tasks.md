@@ -40,6 +40,6 @@ Files: `src/game/state.ts`, `src/game/collision.ts`,
 ## T4 — Docs
 Files: `README.md` (only if it states combo or speed behaviour)
 
-- [ ] Update any README lines that describe the combo or enemy speed.
-- [ ] Run `npm test` and `npm run build`; both clean.
-- [ ] Commit: `docs(feel-fix-T4): reflect combo tiers and movement`
+- [x] Update any README lines that describe the combo or enemy speed.
+- [x] Run `npm test` and `npm run build`; both clean.
+- [x] Commit: `docs(feel-fix-T4): reflect combo tiers and movement`
