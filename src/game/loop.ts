@@ -19,7 +19,7 @@ import {
 } from './state'
 import type { GameState } from './state'
 import { tickSpawners } from './enemies/spawn'
-import { moveEnemies } from './enemies/movement'
+import { moveEnemies, cullExitedEnemies } from './enemies/movement'
 import { resolveHits, updateMotionPixels } from './collision'
 import { tickParticles, tickScoreLabels } from './particles'
 import { renderFrame } from './render'
@@ -177,7 +177,11 @@ export async function startLoop(
 
     state = tickSpawners(state, deltaMs, displayW, displayH)
 
-    const movedEnemies = moveEnemies(state.enemies, deltaMs, displayW, displayH)
+    const movedEnemies = cullExitedEnemies(
+      moveEnemies(state.enemies, deltaMs, displayW, displayH),
+      displayW,
+      displayH,
+    )
     state = setEnemies(state, movedEnemies)
 
     // Check for enemies reaching center

@@ -1,9 +1,11 @@
 import { describe, it, expect } from 'vitest'
-import { moveEnemies } from './movement'
-import { makeEnemy } from '../state'
+import { moveEnemies, cullExitedEnemies } from './movement'
+import { makeEnemy, createInitialState } from '../state'
+import type { GameState } from '../state'
 import type { Enemy, EnemyType } from '../state'
 import { createGhost } from './ghost'
 import { STAGES } from '../stages'
+import { tickSpawners } from './spawn'
 
 const W = 1920
 const H = 1080
@@ -85,5 +87,58 @@ describe('stage 1 pacing', () => {
 
   it('later stages are faster', () => {
     expect(STAGES[3].speedMultiplier).toBeGreaterThan(STAGES[0].speedMultiplier)
+  })
+})
+
+describe('skull exit (feel-fix R2)', () => {
+  // Parked at the target inside the screen so only the timer matters.
+  const parked = (): Enemy => ({ ...make('skull', 0.15), x: W / 2 + 100, y: H / 2, targetX: W / 2 + 100, targetY: H / 2 })
+  const run = (e: Enemy, ms: number) => simulate(e, ms, 60)
+
+  it('is still on screen and not exiting at 3.9 s', () => {
+    const s = run(parked(), 3900)
+    expect(s.exiting).toBe(false)
+  })
+
+  it('starts exiting once 4 s on screen have elapsed', () => {
+    const s = run(parked(), 4100)
+    expect(s.exiting).toBe(true)
+  })
+
+  it('does not count time spent off screen', () => {
+    const e = { ...make('skull', 0.0001), x: -500, targetX: -500 }
+    const s = run(e, 6000)
+    expect(s.onScreenMs).toBe(0)
+    expect(s.exiting).toBe(false)
+  })
+
+  it('flies away from the centre and is culled once off screen', () => {
+    let cur = [run(parked(), 4100)]
+    expect(cullExitedEnemies(cur, W, H)).toHaveLength(1)
+    let ms = 0
+    while (cur.length && ms < 10_000) {
+      cur = cullExitedEnemies(moveEnemies(cur, 1000 / 60, W, H), W, H)
+      ms += 1000 / 60
+    }
+    expect(cur).toHaveLength(0)
+    expect(ms).toBeLessThan(6000)
+  })
+
+  it('never culls non-skull enemies or non-exiting skulls', () => {
+    const far = { ...make('skull', 0.1), x: -999, hitbox: { x: -999, y: 0, w: 10, h: 10 } }
+    const ghost = { ...make('ghost', 0.1), hitbox: { x: -999, y: 0, w: 10, h: 10 } }
+    expect(cullExitedEnemies([far, ghost], W, H)).toHaveLength(2)
+  })
+
+  it('a leaving skull does not block a new skull spawn', () => {
+    const leaving = { ...parked(), exiting: true }
+    let s: GameState = { ...createInitialState(3), phase: 'playing', enemies: [leaving],
+      spawnTimers: { ghost: 99999, bat: 99999, skull: 0, lunger: 99999, pumpkin: 99999 } }
+    s = tickSpawners(s, 16, W, H)
+    expect(s.enemies.filter((e) => e.type === 'skull' && !e.exiting)).toHaveLength(1)
+    // …but a second non-exiting skull still never appears.
+    s = { ...s, spawnTimers: { ...s.spawnTimers, skull: 0 } }
+    s = tickSpawners(s, 16, W, H)
+    expect(s.enemies.filter((e) => e.type === 'skull' && !e.exiting)).toHaveLength(1)
   })
 })

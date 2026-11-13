@@ -18,13 +18,13 @@ Files: `src/game/state.ts`, `src/game/enemies/movement.ts`, `spawn.ts`,
 `src/game/loop.ts`, `src/game/enemies/movement.test.ts`,
 `src/game/enemies/enemies.test.ts`
 
-- [ ] Add `onScreenMs` and `exiting` to `Enemy` / `makeEnemy`.
-- [ ] Skull accumulates on-screen time, flips to `exiting` at 4 s, flies out at 1.5×.
-- [ ] `cullExitedEnemies` removes off-screen exiting skulls; loop calls it.
-- [ ] `tickSpawners` ignores exiting skulls when deciding whether to spawn.
-- [ ] Tests: on screen 3.9 s → not exiting; ≥ 4 s → exiting; off-screen approach time not counted; culled once outside; new skull may spawn while one exits; still at most one non-exiting skull.
-- [ ] Run `npm test` and `npm run build`; both clean.
-- [ ] Commit: `feat(feel-fix-T2): skulls leave after 4 s on screen`
+- [x] Add `onScreenMs` and `exiting` to `Enemy` / `makeEnemy`.
+- [x] Skull accumulates on-screen time, flips to `exiting` at 4 s, flies out at 1.5×.
+- [x] `cullExitedEnemies` removes off-screen exiting skulls; loop calls it.
+- [x] `tickSpawners` ignores exiting skulls when deciding whether to spawn.
+- [x] Tests: on screen 3.9 s → not exiting; ≥ 4 s → exiting; off-screen approach time not counted; culled once outside; new skull may spawn while one exits; still at most one non-exiting skull.
+- [x] Run `npm test` and `npm run build`; both clean.
+- [x] Commit: `feat(feel-fix-T2): skulls leave after 4 s on screen`
 
 ## T3 — Combo tiers per stages R4.1–R4.3
 Files: `src/game/state.ts`, `src/game/collision.ts`,

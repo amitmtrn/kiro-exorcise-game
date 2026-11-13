@@ -36,6 +36,9 @@ export interface Enemy {
   hitsNeeded: number
   // Boss-specific
   bossHitsReceived: number
+  // Skull-specific (feel-fix R2)
+  onScreenMs: number // time the centre has been inside the canvas
+  exiting: boolean   // skull is leaving the screen
   // Spooky-skin R4.2 — frames left to render this enemy in solid white
   hitFlashFrames: number
 }
@@ -118,6 +121,8 @@ export function makeEnemy(partial: Partial<Enemy> & Pick<Enemy, 'id' | 'type' | 
     hitsNeeded: 1,
     bossHitsReceived: 0,
     hitFlashFrames: 0,
+    onScreenMs: 0,
+    exiting: false,
     ...partial,
   }
 }

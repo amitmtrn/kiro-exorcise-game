@@ -32,7 +32,7 @@ export function tickSpawners(
   let { enemies } = state
   const timers = { ...state.spawnTimers }
 
-  const skullActive = enemies.some((e) => e.type === 'skull')
+  const skullActive = enemies.some((e) => e.type === 'skull' && !e.exiting)
   // Boss is handled separately by round.ts — don't spawn it here
   const nonBossCount = enemies.filter((e) => e.type !== 'boss').length
 
@@ -54,7 +54,7 @@ export function tickSpawners(
     timers.bat = nextInterval(cfg.spawnIntervalMs.bat * 0.8, cfg.spawnIntervalMs.bat * 1.3)
   }
 
-  // Skull (max 1 at a time)
+  // Skull (max 1 non-exiting at a time; a leaving skull does not block)
   timers.skull -= deltaMs
   if (timers.skull <= 0) {
     if (mix.skull && nonBossCount < max && !skullActive) {

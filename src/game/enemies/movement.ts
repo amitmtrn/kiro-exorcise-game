@@ -6,7 +6,7 @@
 import type { Enemy } from '../state'
 import { GHOST_SIZE } from './ghost'
 import { BAT_W, BAT_H } from './bat'
-import { SKULL_SIZE } from './skull'
+import { SKULL_SIZE, SKULL_ON_SCREEN_MS, SKULL_EXIT_SPEED_MULT } from './skull'
 import { LUNGER_SIZE, WINDUP_DURATION_MS } from './lunger'
 import { PUMPKIN_SIZE } from './pumpkin'
 import { BOSS_SIZE } from './boss'
@@ -40,8 +40,42 @@ function stepToward(enemy: Enemy, pxPerSec: number, deltaMs: number) {
   return { ux: dx / dist, uy: dy / dist, step: Math.min(dist, pxPerSec * deltaMs / 1000), dist }
 }
 
-function moveSingle(enemy: Enemy, deltaMs: number, _canvasW: number, canvasH: number): Enemy {
+/** Skull lifecycle: count on-screen time, then turn around and leave. */
+function tickSkull(enemy: Enemy, deltaMs: number, canvasW: number, canvasH: number): Enemy {
+  if (enemy.exiting) return enemy
+  const inside = enemy.x >= 0 && enemy.x <= canvasW && enemy.y >= 0 && enemy.y <= canvasH
+  if (!inside) return enemy
+  const onScreenMs = enemy.onScreenMs + deltaMs
+  if (onScreenMs < SKULL_ON_SCREEN_MS) return { ...enemy, onScreenMs }
+
+  // Leave through the side it is nearest to (straight out from the centre).
+  let dx = enemy.x - canvasW / 2
+  let dy = enemy.y - canvasH / 2
+  const len = Math.hypot(dx, dy)
+  if (len < 1e-6) { dx = 0; dy = -1 } else { dx /= len; dy /= len }
+  const far = canvasW + canvasH
+  return {
+    ...enemy,
+    onScreenMs,
+    exiting: true,
+    targetX: enemy.x + dx * far,
+    targetY: enemy.y + dy * far,
+    speed: enemy.speed * SKULL_EXIT_SPEED_MULT,
+  }
+}
+
+/** Removes exiting skulls whose hitbox is entirely outside the canvas. */
+export function cullExitedEnemies(enemies: Enemy[], canvasW: number, canvasH: number): Enemy[] {
+  return enemies.filter((e) => {
+    if (e.type !== 'skull' || !e.exiting) return true
+    const { x, y, w, h } = e.hitbox
+    return !(x + w < 0 || x > canvasW || y + h < 0 || y > canvasH)
+  })
+}
+
+function moveSingle(enemy: Enemy, deltaMs: number, canvasW: number, canvasH: number): Enemy {
   if (enemy.type === 'lunger') return moveLunger(enemy, deltaMs, canvasH)
+  if (enemy.type === 'skull') enemy = tickSkull(enemy, deltaMs, canvasW, canvasH)
 
   const { ux, uy, step, dist } = stepToward(enemy, enemy.speed * canvasH, deltaMs)
   if (dist < 0.5) return enemy

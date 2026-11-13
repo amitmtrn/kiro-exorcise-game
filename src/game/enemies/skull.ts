@@ -3,6 +3,10 @@ import { makeEnemy } from '../state'
 import { randomEdgeSpawn, centerTarget, randomId } from './spawnUtils'
 
 export const SKULL_SIZE = 56
+/** feel-fix R2: a skull leaves after this long on screen. */
+export const SKULL_ON_SCREEN_MS = 4000
+/** Speed multiplier while leaving. */
+export const SKULL_EXIT_SPEED_MULT = 1.5
 export const SKULL_SPEED = 0.148 // canvas heights per second
 
 export function createSkull(canvasW: number, canvasH: number, speedMult = 1): Enemy {
