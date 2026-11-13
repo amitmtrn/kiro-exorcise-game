@@ -18,12 +18,11 @@ file is not recognised as a hook document.
 tools/
   sync-readme-tests.mjs   # R4 script (pure fn exported + CLI main)
   sync-readme-tests.test.mjs
-src/hooks/hooks.test.ts   # R1.3 structural + matcher tests
+tools/hooks.test.mjs   # R1.3 structural + matcher tests
 ```
-Hook JSON structural test lives next to game tests so `npm test` covers it;
-`src/` is type-checked by `tsc`, so it only uses `node:fs`/`node:path`
-(types come from `@types/node`, a dev dependency; added only if `tsc`
-needs it).
+The hook structural test is a plain `.mjs` file under `tools/` (Vitest picks
+it up; `tsc` only covers `src/`, which has no `@types/node`, so no new
+dependency is needed).
 
 ## Hook definitions
 

@@ -1,16 +1,13 @@
 {
-  "name": "test-on-save",
-  "description": "Run npm test automatically after any file under src/ is written.",
+  "version": "v1",
   "hooks": [
     {
       "name": "test-on-src-save",
-      "trigger": "postToolUse",
-      "matcher": "write",
-      "action": {
-        "type": "command",
-        "command": "bash -c 'INPUT=$(cat); echo \"$INPUT\" | grep -q \"/src/\" && npm test || true'"
-      },
-      "timeout": 60,
+      "description": "Run npm test after any file under src/ is saved.",
+      "trigger": "PostFileSave",
+      "matcher": "(^|/)src/",
+      "action": { "type": "command", "command": "npm test" },
+      "timeout": 120,
       "enabled": true
     }
   ]
