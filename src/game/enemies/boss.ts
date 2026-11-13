@@ -3,7 +3,7 @@ import { makeEnemy } from '../state'
 import { randomId } from './spawnUtils'
 
 export const BOSS_SIZE = 160
-export const BOSS_SPEED = 0.5
+export const BOSS_SPEED = 0.0925 // canvas heights per second
 export const BOSS_HITS_NEEDED = 10
 
 export function createBoss(canvasW: number, canvasH: number): Enemy {

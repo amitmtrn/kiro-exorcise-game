@@ -6,12 +6,12 @@ Files: `src/game/enemies/movement.ts`, `ghost.ts`, `bat.ts`, `skull.ts`,
 `src/game/loop.ts`, `src/game/enemies/enemies.test.ts`,
 `src/game/enemies/movement.test.ts`
 
-- [ ] `Enemy.speed` = canvas heights per second; new base speeds per design.
-- [ ] `moveEnemies(enemies, deltaMs, canvasW, canvasH)`; time-based wobble/zigzag; no overshoot; lunger hold distance scales with height.
-- [ ] Loop passes the canvas size.
-- [ ] Tests: 1 s of movement identical at 60/120/144 Hz (ghost, bat, pumpkin); speed scales with canvas height; stage-1 ghost crosses 1080p in 4–6 s; lunger lunge still faster than approach.
-- [ ] Run `npm test` and `npm run build`; both clean.
-- [ ] Commit: `feat(feel-fix-T1): px/s movement scaled by canvas height and deltaMs`
+- [x] `Enemy.speed` = canvas heights per second; new base speeds per design.
+- [x] `moveEnemies(enemies, deltaMs, canvasW, canvasH)`; time-based wobble/zigzag; no overshoot; lunger hold distance scales with height.
+- [x] Loop passes the canvas size.
+- [x] Tests: 1 s of movement identical at 60/120/144 Hz (ghost, bat, pumpkin); speed scales with canvas height; stage-1 ghost crosses 1080p in 4–6 s; lunger lunge still faster than approach.
+- [x] Run `npm test` and `npm run build`; both clean.
+- [x] Commit: `feat(feel-fix-T1): px/s movement scaled by canvas height and deltaMs`
 
 ## T2 — Skull exits after 4 s on screen
 Files: `src/game/state.ts`, `src/game/enemies/movement.ts`, `spawn.ts`,

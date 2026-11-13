@@ -23,7 +23,7 @@ export interface Enemy {
   y: number          // center y, canvas coords
   targetX: number
   targetY: number
-  speed: number      // px per frame at 60 fps
+  speed: number      // canvas heights per second (px/s = speed × canvasH)
   sineOffset: number // phase for ghost wobble / bat zigzag
   hitbox: Hitbox     // axis-aligned, updated each move step
   spawnedAt: number  // performance.now() when created; used for spawn grace period

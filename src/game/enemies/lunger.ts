@@ -3,7 +3,7 @@ import { makeEnemy } from '../state'
 import { randomEdgeSpawn, centerTarget, randomId } from './spawnUtils'
 
 export const LUNGER_SIZE = 72
-export const LUNGER_SPEED = 1.0
+export const LUNGER_SPEED = 0.185 // canvas heights per second
 export const WINDUP_DURATION_MS = 600
 
 export function createLunger(canvasW: number, canvasH: number, speedMult = 1): Enemy {

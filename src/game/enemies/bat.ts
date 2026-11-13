@@ -4,7 +4,7 @@ import { randomEdgeSpawn, centerTarget, randomId } from './spawnUtils'
 
 export const BAT_W = 48
 export const BAT_H = 32
-export const BAT_SPEED = 2.0
+export const BAT_SPEED = 0.37 // canvas heights per second
 
 export function createBat(canvasW: number, canvasH: number, speedMult = 1): Enemy {
   const { x, y } = randomEdgeSpawn(canvasW, canvasH, Math.max(BAT_W, BAT_H))

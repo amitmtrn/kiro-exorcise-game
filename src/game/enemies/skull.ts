@@ -3,7 +3,7 @@ import { makeEnemy } from '../state'
 import { randomEdgeSpawn, centerTarget, randomId } from './spawnUtils'
 
 export const SKULL_SIZE = 56
-export const SKULL_SPEED = 0.8
+export const SKULL_SPEED = 0.148 // canvas heights per second
 
 export function createSkull(canvasW: number, canvasH: number, speedMult = 1): Enemy {
   const { x, y } = randomEdgeSpawn(canvasW, canvasH, SKULL_SIZE)

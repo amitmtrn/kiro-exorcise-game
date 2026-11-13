@@ -177,7 +177,7 @@ export async function startLoop(
 
     state = tickSpawners(state, deltaMs, displayW, displayH)
 
-    const movedEnemies = moveEnemies(state.enemies, deltaMs)
+    const movedEnemies = moveEnemies(state.enemies, deltaMs, displayW, displayH)
     state = setEnemies(state, movedEnemies)
 
     // Check for enemies reaching center
