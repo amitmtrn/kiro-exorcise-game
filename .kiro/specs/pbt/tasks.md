@@ -29,10 +29,10 @@ Files: `src/game/collision.property.test.ts`
 ## T4 — Spawner cap properties
 Files: `src/game/enemies/spawn.property.test.ts`, `src/game/enemies/spawn.ts` (if a bug is found)
 
-- [ ] Cap, skull-uniqueness, enemy-mix and phase properties (R4).
-- [ ] If the cap property fails, fix `tickSpawners` and record the bug below.
-- [ ] Run `npm test` and `npm run build`; both clean.
-- [ ] Commit: `test(pbt-T4): spawner cap properties`
+- [x] Cap, skull-uniqueness, enemy-mix and phase properties (R4).
+- [x] If the cap property fails, fix `tickSpawners` and record the bug below. (Failed: BUG-1, fixed with a running count + regression test.)
+- [x] Run `npm test` and `npm run build`; both clean.
+- [x] Commit: `test(pbt-T4): spawner cap properties`
 
 ## T5 — Mirror parity properties
 Files: `src/webcam/diff.ts`, `src/webcam/diff.property.test.ts`
@@ -57,4 +57,10 @@ Files: `README.md`
 - [ ] Commit: `docs(pbt-T7): README test count and PBT note`
 
 ## Bugs found by properties
-_None recorded yet._
+- **BUG-1 (found by T4, spawner cap, R4.1):** `tickSpawners` computed
+  `nonBossCount` once per tick, so when two or more spawn timers expired on the
+  same tick (e.g. stage 2 ghost + bat with 4 of 5 slots used) each passed the
+  `nonBossCount < maxEnemies` check and the cap was exceeded (shrunk
+  counter-example: stage 2, 4 enemies, ticks of 2000/1076/…ms → 6 > 5). Fix:
+  `nonBossCount` is a running count incremented on every spawn. Regression test:
+  `spawn.property.test.ts › spawner cap regression`.

@@ -34,13 +34,16 @@ export function tickSpawners(
 
   const skullActive = enemies.some((e) => e.type === 'skull' && !e.exiting)
   // Boss is handled separately by round.ts — don't spawn it here
-  const nonBossCount = enemies.filter((e) => e.type !== 'boss' && !e.exiting).length
+  // Running count: several timers can expire on the same tick, so every spawn
+  // below must see the enemies added earlier in this tick (pbt T4).
+  let nonBossCount = enemies.filter((e) => e.type !== 'boss' && !e.exiting).length
 
   // Ghost
   timers.ghost -= deltaMs
   if (timers.ghost <= 0) {
     if (mix.ghost && nonBossCount < max) {
       enemies = [...enemies, createGhost(canvasW, canvasH, mult)]
+      nonBossCount++
     }
     timers.ghost = nextInterval(cfg.spawnIntervalMs.ghost * 0.8, cfg.spawnIntervalMs.ghost * 1.3)
   }
@@ -50,6 +53,7 @@ export function tickSpawners(
   if (timers.bat <= 0) {
     if (mix.bat && nonBossCount < max) {
       enemies = [...enemies, createBat(canvasW, canvasH, mult)]
+      nonBossCount++
     }
     timers.bat = nextInterval(cfg.spawnIntervalMs.bat * 0.8, cfg.spawnIntervalMs.bat * 1.3)
   }
@@ -59,6 +63,7 @@ export function tickSpawners(
   if (timers.skull <= 0) {
     if (mix.skull && nonBossCount < max && !skullActive) {
       enemies = [...enemies, createSkull(canvasW, canvasH, mult)]
+      nonBossCount++
     }
     timers.skull = nextInterval(cfg.spawnIntervalMs.skull * 0.8, cfg.spawnIntervalMs.skull * 1.3)
   }
@@ -68,6 +73,7 @@ export function tickSpawners(
   if (timers.lunger <= 0) {
     if (mix.lunger && nonBossCount < max) {
       enemies = [...enemies, createLunger(canvasW, canvasH, mult)]
+      nonBossCount++
     }
     timers.lunger = nextInterval(cfg.spawnIntervalMs.lunger * 0.8, cfg.spawnIntervalMs.lunger * 1.3)
   }
@@ -77,6 +83,7 @@ export function tickSpawners(
   if (timers.pumpkin <= 0) {
     if (mix.pumpkin && nonBossCount < max) {
       enemies = [...enemies, createPumpkin(canvasW, canvasH, mult)]
+      nonBossCount++
     }
     timers.pumpkin = nextInterval(cfg.spawnIntervalMs.pumpkin * 0.8, cfg.spawnIntervalMs.pumpkin * 1.3)
   }
