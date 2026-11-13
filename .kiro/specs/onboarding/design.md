@@ -36,7 +36,7 @@ type OnboardingStep = 'guide' | 'howto' | 'denied' | 'done'
 interface OnboardingState {
   step: OnboardingStep
   howtoIndex: 0 | 1 | 2
-  resume: 'guide' | 'howto'      // where `retry` returns to
+  resume: 'guide' | 'howto' | 'done' // where `retry` returns to
   framing: FramingStatus | null
   framingOkMs: number
   seen: boolean                  // true once finished or skipped

@@ -3,12 +3,12 @@
 ## T1 — Onboarding state machine and storage (pure)
 Files: `src/game/onboarding.ts`, `src/game/onboarding.test.ts`, `src/game/onboarding.property.test.ts`
 
-- [ ] Types, `createOnboarding(seen)`, `onboardingReducer`, `shouldPersist`, copy constants (`PRIVACY_LINE`, `HOWTO_STEPS`, `GUIDE_TEXT`).
-- [ ] `hasSeenOnboarding` / `persistSeen` with throwing-storage tolerance, key `exorcise.onboarding.v1`.
-- [ ] Unit tests: first run, next/back chain, skip, finish, remembered, denied/retry/resume, ignored events, exact privacy wording.
-- [ ] Property tests: valid states, `howtoIndex` 0–2, seen iff finished/skipped.
-- [ ] `npm test` and `npm run build` both clean.
-- [ ] Commit: `feat(onboarding-T1): onboarding state machine and storage`
+- [x] Types, `createOnboarding(seen)`, `onboardingReducer`, `shouldPersist`, copy constants (`PRIVACY_LINE`, `HOWTO_STEPS`, `GUIDE_TEXT`).
+- [x] `hasSeenOnboarding` / `persistSeen` with throwing-storage tolerance, key `exorcise.onboarding.v1`.
+- [x] Unit tests: first run, next/back chain, skip, finish, remembered, denied/retry/resume, ignored events, exact privacy wording.
+- [x] Property tests: valid states, `howtoIndex` 0–2, seen iff finished/skipped.
+- [x] `npm test` and `npm run build` both clean.
+- [x] Commit: `feat(onboarding-T1): onboarding state machine and storage`
 
 ## T2 — Framing check (pure)
 Files: `src/webcam/framing.ts`, `src/webcam/framing.test.ts`, `src/webcam/framing.property.test.ts`
