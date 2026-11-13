@@ -10,7 +10,9 @@ import { SKULL_SIZE, SKULL_ON_SCREEN_MS, SKULL_EXIT_SPEED_MULT } from './skull'
 import { LUNGER_SIZE, WINDUP_DURATION_MS } from './lunger'
 import { PUMPKIN_SIZE } from './pumpkin'
 import { BOSS_SIZE } from './boss'
+import { CANDY_SIZE } from './candy'
 import { moveBoss } from './bossPhases'
+import { pathPosition, pathEnd, pathDurationMs, pathProgress, pathExits } from '../paths'
 
 /** Sine phase rate, rad/s (the old per-frame step × 60). */
 const GHOST_WOBBLE_RATE = 3.6
@@ -65,17 +67,36 @@ function tickSkull(enemy: Enemy, deltaMs: number, canvasW: number, canvasH: numb
   }
 }
 
-/** Removes exiting skulls whose hitbox is entirely outside the canvas. */
+/**
+ * Removes enemies that have left for good: exiting skulls fully outside the
+ * canvas, and path enemies whose path leaves the screen once they have
+ * finished it (or are past half-way and fully outside).
+ */
 export function cullExitedEnemies(enemies: Enemy[], canvasW: number, canvasH: number): Enemy[] {
   return enemies.filter((e) => {
-    if (e.type !== 'skull' || !e.exiting) return true
     const { x, y, w, h } = e.hitbox
-    return !(x + w < 0 || x > canvasW || y + h < 0 || y > canvasH)
+    const outside = x + w < 0 || x > canvasW || y + h < 0 || y > canvasH
+    if (e.path && pathExits(e.path)) {
+      if (e.pathMs >= pathDurationMs(e.path, canvasW, canvasH)) return false
+      return !(outside && pathProgress(e.path, e.pathMs, canvasW, canvasH) > 0.5)
+    }
+    if (e.type !== 'skull' || !e.exiting) return true
+    return !outside
   })
+}
+
+/** Path enemies sit at a closed-form position for their accumulated path time. */
+function movePath(enemy: Enemy, deltaMs: number, canvasW: number, canvasH: number): Enemy {
+  const path = enemy.path!
+  const pathMs = enemy.pathMs + deltaMs
+  const { x, y } = pathPosition(path, pathMs, canvasW, canvasH)
+  const end = pathEnd(path, canvasW, canvasH)
+  return { ...enemy, x, y, pathMs, targetX: end.x, targetY: end.y, hitbox: hitboxFor(enemy.type, x, y) }
 }
 
 function moveSingle(enemy: Enemy, deltaMs: number, canvasW: number, canvasH: number): Enemy {
   if (enemy.type === 'boss') return moveBoss(enemy, deltaMs, canvasW, canvasH)
+  if (enemy.path) return movePath(enemy, deltaMs, canvasW, canvasH)
   if (enemy.type === 'lunger') return moveLunger(enemy, deltaMs, canvasH)
   if (enemy.type === 'skull') enemy = tickSkull(enemy, deltaMs, canvasW, canvasH)
 
@@ -155,6 +176,10 @@ export function hitboxFor(type: Enemy['type'], cx: number, cy: number) {
     }
     case 'pumpkin': {
       const w = PUMPKIN_SIZE * scale, h = PUMPKIN_SIZE * scale
+      return { x: cx - w / 2, y: cy - h / 2, w, h }
+    }
+    case 'candy': {
+      const w = CANDY_SIZE * scale, h = CANDY_SIZE * scale
       return { x: cx - w / 2, y: cy - h / 2, w, h }
     }
     case 'boss': {

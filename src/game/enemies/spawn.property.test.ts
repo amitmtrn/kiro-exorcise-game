@@ -102,7 +102,7 @@ describe('spawner (properties)', () => {
           expect(skullsActive(s.enemies)).toBeLessThanOrEqual(1)
           for (const e of s.enemies) {
             if (e.id.startsWith('pre')) continue
-            expect(mix[e.type]).toBe(true)
+            expect(mix[e.type as keyof typeof mix]).toBe(true)
           }
         })
       },

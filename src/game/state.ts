@@ -5,6 +5,8 @@
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
+import type { PathSpec } from './paths'
+
 export interface Hitbox {
   x: number // top-left x
   y: number // top-left y
@@ -12,7 +14,7 @@ export interface Hitbox {
   h: number // height
 }
 
-export type EnemyType = 'ghost' | 'bat' | 'skull' | 'lunger' | 'pumpkin' | 'boss'
+export type EnemyType = 'ghost' | 'bat' | 'skull' | 'lunger' | 'pumpkin' | 'boss' | 'candy'
 
 export type MovePhase = 'approach' | 'windup' | 'lunge'
 
@@ -46,6 +48,10 @@ export interface Enemy {
   summonTimerMs: number  // ms until next summon (counts down while idle)
   bossInvulnMs: number   // post-hit i-frames
   bossStrike: boolean    // set the tick a lunge lands; consumed by tickBoss
+  // Waves spec: scripted path, a pure function of pathMs (absent → straight line to target)
+  path?: PathSpec
+  pathMs: number     // accumulated path time, advanced by deltaMs
+  harmless: boolean  // never costs a life (bonus round, bats)
   // Skull-specific (feel-fix R2)
   onScreenMs: number // time the centre has been inside the canvas
   exiting: boolean   // skull is leaving the screen
@@ -143,6 +149,8 @@ export function makeEnemy(partial: Partial<Enemy> & Pick<Enemy, 'id' | 'type' | 
     bossInvulnMs: 0,
     bossStrike: false,
     hitFlashFrames: 0,
+    pathMs: 0,
+    harmless: false,
     onScreenMs: 0,
     exiting: false,
     ...partial,

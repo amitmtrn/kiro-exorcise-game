@@ -21,6 +21,7 @@ import type { GameState } from './state'
 import { tickBoss } from './enemies/bossPhases'
 import { tickSpawners } from './enemies/spawn'
 import { moveEnemies, cullExitedEnemies } from './enemies/movement'
+import { splitReached } from './enemies/reach'
 import { resolveHits, updateMotionPixels } from './collision'
 import { tickParticles, tickScoreLabels } from './particles'
 import { renderFrame } from './render'
@@ -42,7 +43,6 @@ import {
 } from './round'
 import { sfxLifeLost, sfxStageClear, startMusic, stopMusic } from '../audio/index'
 
-const CENTER_THRESHOLD = 40
 let rafId = 0
 
 // Keyboard fallback for the motion START button — the start screen says
@@ -215,20 +215,8 @@ export async function startLoop(
     )
     state = setEnemies(state, movedEnemies)
 
-    // Check for enemies reaching center
-    const survivors = state.enemies.filter((enemy) => {
-      if (enemy.type === 'skull' || enemy.type === 'boss') return true
-      const dx = enemy.x - enemy.targetX
-      const dy = enemy.y - enemy.targetY
-      return Math.sqrt(dx * dx + dy * dy) > CENTER_THRESHOLD
-    })
-    const missedCount = state.enemies.filter((enemy) => {
-      if (enemy.type === 'skull' || enemy.type === 'boss') return false
-      const dx = enemy.x - enemy.targetX
-      const dy = enemy.y - enemy.targetY
-      return Math.sqrt(dx * dx + dy * dy) <= CENTER_THRESHOLD
-    }).length
-
+    // Enemies reaching their target cost a life (never in the bonus round, never flybys)
+    const { survivors, missed: missedCount } = splitReached(state.enemies, state.bonus)
     state = setEnemies(state, survivors)
     for (let i = 0; i < missedCount; i++) {
       if (state.phase === 'gameover') break // nothing else happens after the last life

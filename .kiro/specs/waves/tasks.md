@@ -22,14 +22,14 @@ Files: `src/game/waves.ts`, `src/game/stages.ts`, `src/game/waves.test.ts`
 ## T3 — Path movement, culling, reach rule, candy type
 Files: `src/game/state.ts`, `src/game/enemies/candy.ts`, `src/game/enemies/movement.ts`, `src/game/enemies/reach.ts`, `src/game/enemies/waveSpawn.ts`, `src/game/loop.ts`, tests
 
-- [ ] `Enemy.path` / `pathMs` / `harmless`, `EnemyType` `'candy'`, `hitboxFor('candy')`.
-- [ ] `moveSingle` follows `pathPosition`; `cullExitedEnemies` culls finished or fully-exited paths; legacy movement unchanged.
-- [ ] `isThreat` / `splitReached` in `reach.ts`; `loop.ts` uses it.
-- [ ] `spawnWave` builds path enemies (ghost, bat, pumpkin, candy).
-- [ ] Unit tests: movement along a path, legacy enemies unchanged, cull rules, `splitReached` (flyby / harmless / bonus never missed, converging threat missed, skull and boss survive).
-- [ ] Property tests: frame-rate independent positions through `moveEnemies`; flyby enemies exit and are culled and never culled while visible (R2.2, R6.1).
-- [ ] `npm test` and `npm run build` both clean.
-- [ ] Commit: `feat(waves-T3): path movement, culling and reach rule`
+- [x] `Enemy.path` / `pathMs` / `harmless`, `EnemyType` `'candy'`, `hitboxFor('candy')`.
+- [x] `moveSingle` follows `pathPosition`; `cullExitedEnemies` culls finished or fully-exited paths; legacy movement unchanged.
+- [x] `isThreat` / `splitReached` in `reach.ts`; `loop.ts` uses it.
+- [x] `spawnWave` builds path enemies (ghost, bat, pumpkin, candy).
+- [x] Unit tests: movement along a path, legacy enemies unchanged, cull rules, `splitReached` (flyby / harmless / bonus never missed, converging threat missed, skull and boss survive).
+- [x] Property tests: frame-rate independent positions through `moveEnemies`; flyby enemies exit and are culled and never culled while visible (R2.2, R6.1).
+- [x] `npm test` and `npm run build` both clean.
+- [x] Commit: `feat(waves-T3): path movement, culling and reach rule`
 
 ## T4 — Wave-driven spawner
 Files: `src/game/enemies/spawn.ts`, `src/game/state.ts` (`waveIndex`), `src/game/round.ts` (reset), tests
