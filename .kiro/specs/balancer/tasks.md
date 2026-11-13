@@ -21,11 +21,11 @@ Files: `tools/motion-harness/mcp-server.mjs`, `tools/motion-harness/mcp-server.t
 ## T3 — Registration and harness hygiene
 Files: `.kiro/settings/mcp.json`, `tools/motion-harness/run.sh`, `tools/balancer-config.test.mjs`
 
-- [ ] `.kiro/settings/mcp.json` registers `motion-harness` (relative path, no env/url).
-- [ ] `run.sh`: Chrome limited to loopback with a host-resolver rule; EXIT trap closes Vite and Chrome and their children.
-- [ ] Config tests (R5.2, R5.3) and a `run.sh` content test (resolver rule, trap).
-- [ ] `npm test` and `npm run build` both clean.
-- [ ] Commit: `feat(balancer-T3): register MCP server, loopback-only harness cleanup`
+- [x] `.kiro/settings/mcp.json` registers `motion-harness` (relative path, no env/url).
+- [x] `run.sh`: Chrome limited to loopback with a host-resolver rule; EXIT trap closes Vite and Chrome and their children.
+- [x] Config tests (R5.2, R5.3) and a `run.sh` content test (resolver rule, trap).
+- [x] `npm test` and `npm run build` both clean.
+- [x] Commit: `feat(balancer-T3): register MCP server, loopback-only harness cleanup`
 
 ## T4 — `balancer` agent
 Files: `.kiro/agents/balancer.json`, `tools/balancer-config.test.mjs`

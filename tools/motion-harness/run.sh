@@ -19,12 +19,30 @@ OUT="$HERE/out"; mkdir -p "$OUT"
 
 (cd "$ROOT" && npx vite --port "$DEV" --strictPort --host 127.0.0.1 --logLevel silent) & VITE=$!
 CHROME_PID=
-trap 'kill $VITE ${CHROME_PID:-} 2>/dev/null || true' EXIT
+# Close everything this script started (Vite, Chrome and their children) on
+# success, failure and signals. The pkill is a last resort scoped to this run's
+# own browser profile directory.
+kill_tree() {
+  local c
+  for c in $(pgrep -P "$1" 2>/dev/null); do kill_tree "$c"; done
+  kill "$1" 2>/dev/null || true
+}
+cleanup() {
+  trap - EXIT
+  [ -n "${CHROME_PID:-}" ] && kill_tree "$CHROME_PID"
+  kill_tree "$VITE"
+  pkill -f -- "--user-data-dir=$OUT/profile-$MODE" 2>/dev/null || true
+  wait 2>/dev/null || true
+}
+trap cleanup EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
 until curl -sf -o /dev/null "http://127.0.0.1:$DEV/kiro-exorcise-game/"; do sleep 0.3; done
 
 rm -rf "$OUT/profile-$MODE"; mkdir -p "$OUT/profile-$MODE"
 "$CHROME" --headless=new --user-data-dir="$OUT/profile-$MODE" --no-first-run \
   --no-default-browser-check --disable-gpu --window-size=1280,720 \
+  --host-resolver-rules="MAP * ~NOTFOUND , EXCLUDE 127.0.0.1" \
   --use-fake-ui-for-media-stream --use-fake-device-for-media-stream \
   --use-file-for-fake-video-capture="$OUT/$MODE.y4m" \
   --autoplay-policy=no-user-gesture-required --remote-debugging-port="$PORT" \
