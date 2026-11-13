@@ -76,17 +76,15 @@ describe('mirror parity (properties)', () => {
   it('computeFrameDiff agrees between a frame and its mirror when the hitbox is mirrored', () => {
     // computeFrameDiff samples from the hitbox's left edge with stride 4. The
     // sample set is mirror-symmetric exactly when w ≡ 1 (mod 4), so only such
-    // widths are generated.
+    // widths are generated. Boxes are NOT clipped: they may overhang the left,
+    // right, top and bottom edges (BUG-2: used to wrap onto adjacent rows).
     const W = 64, H = 32
     const boxArb = fc.record({
-      x: fc.integer({ min: 0, max: W - 1 }),
-      y: fc.integer({ min: 0, max: H - 1 }),
-      n: fc.integer({ min: 1, max: 16 }),
+      x: fc.integer({ min: -40, max: W + 8 }),
+      y: fc.integer({ min: -10, max: H + 4 }),
+      n: fc.integer({ min: 1, max: 20 }),
       h: fc.integer({ min: 1, max: H }),
-    }).map(({ x, y, n, h }) => {
-      const w = Math.min(4 * n - 3, W - x)
-      return { x, y, w: w % 4 === 1 ? w : 1 + 4 * Math.floor((w - 1) / 4), h: Math.min(h, H - y) }
-    })
+    }).map(({ x, y, n, h }) => ({ x, y, w: 4 * n - 3, h }))
     const lumArb = fc.array(fc.constantFrom(0, 255), { minLength: W * H, maxLength: W * H })
 
     const toImage = (lum: number[]): ImageData => {
@@ -104,5 +102,22 @@ describe('mirror parity (properties)', () => {
       )
       expect(mirrored).toBe(direct)
     }))
+  })
+
+  it('a hitbox entirely outside the frame never registers a hit', () => {
+    const W = 64, H = 32
+    const img = (v: number): ImageData => ({
+      data: new Uint8ClampedArray(W * H * 4).fill(v), width: W, height: H,
+    } as ImageData)
+    fc.assert(fc.property(
+      fc.constantFrom('left', 'right', 'top', 'bottom'), fc.integer({ min: 1, max: 40 }), fc.integer({ min: 1, max: 40 }),
+      (side, w, h) => {
+        const hb: Hitbox = side === 'left' ? { x: -w, y: 0, w, h }
+          : side === 'right' ? { x: W, y: 0, w, h }
+          : side === 'top' ? { x: 0, y: -h, w, h }
+          : { x: 0, y: H, w, h }
+        expect(computeFrameDiff(img(255), img(0), hb, W)).toBe(false)
+      },
+    ))
   })
 })

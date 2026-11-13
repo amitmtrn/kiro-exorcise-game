@@ -95,6 +95,10 @@ export function computeFrameDiff(
     for (let col = 0; col < w; col += SAMPLE_STRIDE) {
       const px = Math.round(x + col)
       const py = Math.round(y + row)
+      // Hitboxes may overhang the frame (enemies enter from off-screen). Skip
+      // out-of-frame samples instead of letting the index wrap onto the
+      // neighbouring row (pbt BUG-2).
+      if (px < 0 || px >= canvasWidth || py < 0) continue
       const idx = (py * canvasWidth + px) * 4 // RGBA
 
       if (idx + 2 >= currentData.data.length) continue
