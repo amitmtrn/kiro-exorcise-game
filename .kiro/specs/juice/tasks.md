@@ -4,12 +4,12 @@
 Files: `src/game/swipe.ts`, `src/game/state.ts`, `src/game/collision.ts`,
 `src/game/swipe.test.ts`, `src/game/swipe.property.test.ts`, `src/game/collision.test.ts`
 
-- [ ] `swipe.ts`: `motionPointsIn`, `centroid`, `mirrorPoints`, `estimateSwipe` (shift → radial → default fallbacks, unit vector, no NaN).
-- [ ] `Enemy.motionX? / motionY?`; `resolveHits` records the centroid on motion frames, clears it on still frames, keeps it on duplicate camera frames, and publishes `lastSwipes` on a confirmed hit.
-- [ ] Unit tests: blob moving right/left/up/down on synthetic masks and ImageData, mirrored masks flip `dx`, fallbacks, hit publishes a swipe in `collision.test.ts`.
-- [ ] Property tests: always unit length and finite, mirror twice = identity, mirroring negates `dx` and keeps `dy`.
-- [ ] Run `npm test` and `npm run build`; both clean.
-- [ ] Commit: `feat(juice-T1): swipe direction from the motion mask`
+- [x] `swipe.ts`: `motionPointsIn`, `centroid`, `mirrorPoints`, `estimateSwipe` (shift → radial → default fallbacks, unit vector, no NaN).
+- [x] `Enemy.motionX? / motionY?`; `resolveHits` records the centroid on motion frames, clears it on still frames, keeps it on duplicate camera frames, and publishes `lastSwipes` on a confirmed hit.
+- [x] Unit tests: blob moving right/left/up/down on synthetic masks and ImageData, mirrored masks flip `dx`, fallbacks, hit publishes a swipe in `collision.test.ts`.
+- [x] Property tests: always unit length and finite, mirror twice = identity, mirroring negates `dx` and keeps `dy`.
+- [x] Run `npm test` and `npm run build`; both clean.
+- [x] Commit: `feat(juice-T1): swipe direction from the motion mask`
 
 ## T2 — Knock-back
 Files: `src/game/knock.ts`, `src/game/state.ts`, `src/game/collision.ts`,

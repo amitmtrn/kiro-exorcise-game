@@ -14,6 +14,8 @@ import { STAGES } from './stages'
 import { onBossHit } from './enemies/bossPhases'
 import { isHittable } from './enemies/vulnerability'
 import { CANDY_POINTS } from './enemies/candy'
+import { motionPointsIn, centroid, estimateSwipe } from './swipe'
+import type { Pt, Swipe } from './swipe'
 import { spawnGhostPuff, spawnBatPuff, spawnScoreLabel } from './particles'
 import {
   sfxGhostHit, sfxBatHit, sfxSkullHit,
@@ -58,6 +60,12 @@ export function updateMotionPixels(mask: MotionMask, displayW: number, displayH:
  */
 export let lastBanished: Enemy[] = []
 
+/**
+ * Swipe vector of every enemy whose hit gate confirmed during the most recent
+ * resolveHits call, keyed by enemy id (juice R1). Reset at the start of each call.
+ */
+export let lastSwipes: Map<string, Swipe> = new Map()
+
 /** Shake the screen when a scoring hit lands at streak ≥ 3 (spooky-skin R4.1). */
 function shakeIfStrong(s: GameState): GameState {
   return s.streak >= SHAKE_COMBO_THRESHOLD ? setShake(s, SHAKE_FRAMES) : s
@@ -86,6 +94,7 @@ export function resolveHits(
   deltaMs: number = FRAME_MS,
 ): GameState {
   lastBanished = []
+  lastSwipes = new Map()
 
   // Nothing scores after death (pbt BUG-3).
   // Hit flashes still expire (cleared) so no enemy stays solid white.
@@ -108,7 +117,7 @@ export function resolveHits(
 
   for (const raw of state.enemies) {
     // A white flash set last frame expires this frame unless re-triggered below.
-    const enemy: Enemy = raw.hitFlashFrames > 0
+    let enemy: Enemy = raw.hitFlashFrames > 0
       ? { ...raw, hitFlashFrames: decayFlash(raw.hitFlashFrames, dt) }
       : raw
 
@@ -125,7 +134,7 @@ export function resolveHits(
 
     // Shielded boss / approaching lunger: motion does nothing and the gate resets.
     if (!isHittable(enemy)) {
-      updatedEnemies.push({ ...enemy, hitCount: 0 })
+      updatedEnemies.push({ ...enemy, hitCount: 0, motionX: undefined, motionY: undefined })
       continue
     }
 
@@ -134,10 +143,24 @@ export function resolveHits(
 
     const newHitCount = diffResult ? enemy.hitCount + 1 : 0
 
+    // Juice R1: centroid of the moved pixels, in display space. Only enemies with
+    // motion pay for it; a still frame breaks the swipe.
+    const prevC: Pt | null = enemy.motionX !== undefined && enemy.motionY !== undefined
+      ? { x: enemy.motionX, y: enemy.motionY } : null
+    let curC: Pt | null = null
+    if (diffResult) {
+      const c = centroid(motionPointsIn(currentData, prevData, scaledHitbox, MOTION_W))
+      if (c) curC = { x: c.x * displayW / MOTION_W, y: c.y * displayH / MOTION_H }
+    }
+
     if (newHitCount < HIT_FRAMES_REQUIRED) {
-      updatedEnemies.push({ ...enemy, hitCount: newHitCount })
+      updatedEnemies.push({ ...enemy, hitCount: newHitCount, motionX: curC?.x, motionY: curC?.y })
       continue
     }
+
+    lastSwipes.set(enemy.id, estimateSwipe(prevC, curC, { x: enemy.x, y: enemy.y }, displayH))
+    // A confirmed hit starts the next swipe from scratch.
+    enemy = { ...enemy, motionX: undefined, motionY: undefined }
 
     // ── Hit confirmed ─────────────────────────────────────────────────────────
 

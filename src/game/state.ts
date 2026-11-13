@@ -57,6 +57,9 @@ export interface Enemy {
   exiting: boolean   // skull is leaving the screen
   // Spooky-skin R4.2 — frames left to render this enemy in solid white
   hitFlashFrames: number
+  // Juice R1: display-space centroid of the moved pixels in the hitbox on the last gate frame with motion
+  motionX?: number
+  motionY?: number
 }
 
 export interface Particle {

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { resolveHits, lastBanished, updateMotionPixels, lastMotionPixels } from './collision'
+import { resolveHits, lastBanished, lastSwipes, updateMotionPixels, lastMotionPixels } from './collision'
 import { createInitialState, makeEnemy, tickTimer, SHAKE_FRAMES } from './state'
 import type { Enemy } from './state'
 
@@ -442,5 +442,65 @@ describe('resolveHits — feel-fix review fixes', () => {
     hit(2, 1)
     expect(fn).toHaveBeenCalledTimes(1)
     expect(fn).toHaveBeenCalledWith(2)
+  })
+})
+
+describe('resolveHits — swipe estimation (juice R1)', () => {
+  const MW = 320, MH = 300
+  /** Black frame with a bright block at (bx, by). */
+  function frame(bx: number, by = 120): ImageData {
+    const data = new Uint8ClampedArray(MW * MH * 4)
+    for (let y = by; y < by + 24; y++) for (let x = bx; x < bx + 24; x++) {
+      const i = (y * MW + x) * 4
+      data[i] = data[i + 1] = data[i + 2] = 255
+    }
+    return { data, width: MW, height: MH } as ImageData
+  }
+  const box = { x: 100, y: 100, w: 120, h: 80 }
+  const ghost = (o: Partial<Enemy> = {}) => enemy('ghost', 'g1', { x: 320, y: 280, hitbox: box, ...o })
+  const swipeFrames = (xs: number[]) => xs.map((x) => frame(x))
+
+  it('a hand moving right across two gate frames yields dx > 0 and a clean enemy', () => {
+    mockDiff.mockReturnValue(true)
+    const [f0, f1, f2] = swipeFrames([110, 140, 170])
+    let s = { ...createInitialState(), enemies: [ghost()] }
+    s = resolveHits(s, f1, f0, DW, DH, 1000)
+    expect(s.enemies[0].motionX).toBeGreaterThan(0)
+    expect(lastSwipes.size).toBe(0)
+    s = resolveHits(s, f2, f1, DW, DH, 1016)
+    const sw = lastSwipes.get('g1')!
+    expect(sw.source).toBe('shift')
+    expect(sw.dx).toBeGreaterThan(0.99)
+    expect(s.enemies).toHaveLength(0)
+  })
+
+  it('a hand moving left yields dx < 0', () => {
+    mockDiff.mockReturnValue(true)
+    const [f0, f1, f2] = swipeFrames([170, 140, 110])
+    let s = { ...createInitialState(), enemies: [ghost()] }
+    s = resolveHits(s, f1, f0, DW, DH, 1000)
+    resolveHits(s, f2, f1, DW, DH, 1016)
+    expect(lastSwipes.get('g1')!.dx).toBeLessThan(-0.99)
+  })
+
+  it('a still frame breaks the swipe; a duplicate camera frame keeps it', () => {
+    const [f0, f1] = swipeFrames([110, 140])
+    mockDiff.mockReturnValue(true)
+    let s = { ...createInitialState(), enemies: [ghost()] }
+    s = resolveHits(s, f1, f0, DW, DH, 1000)
+    const kept = resolveHits(s, f1, f1, DW, DH, 1010, false)
+    expect(kept.enemies[0].motionX).toBe(s.enemies[0].motionX)
+    mockDiff.mockReturnValue(false)
+    const broken = resolveHits(s, f1, f1, DW, DH, 1016)
+    expect(broken.enemies[0].motionX).toBeUndefined()
+    expect(broken.enemies[0].hitCount).toBe(0)
+  })
+
+  it('without usable pixels the swipe falls back (radial / up) and stays unit length', () => {
+    mockDiff.mockReturnValue(true)
+    resolveHits({ ...createInitialState(), enemies: [ghost({ hitCount: 1 })] }, FAKE, FAKE, DW, DH, 1000)
+    const sw = lastSwipes.get('g1')!
+    expect(sw.source).toBe('default')
+    expect(Math.hypot(sw.dx, sw.dy)).toBeCloseTo(1, 9)
   })
 })
