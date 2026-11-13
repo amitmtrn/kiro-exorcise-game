@@ -109,14 +109,19 @@ describe.skipIf(!agentFiles.includes('balancer.json'))('balancer agent (R6)', ()
       expect(res.some((r) => r.includes(f) || r.includes(f.replace(/[^/]+$/, '*.md')))).toBe(true)
     }
     for (const r of res) {
-      expect(r).toMatch(/^file:\/\/(?!\/)[^.]/) // relative, no absolute paths
+      expect(r).toMatch(/^file:\/\/(?![\/~])(?!.*\.\.)/) // relative, no absolute or parent paths
       const base = r.replace('file://', '').replace(/\*.*$/, '')
       expect(existsSync(join(root, base)), r).toBe(true)
     }
   })
   it('contains no secrets, urls or absolute paths', () => {
-    const all = strings(agent()).join('\n')
+    const { prompt, description, welcomeMessage, ...config } = agent() // prose may *mention* secrets ("never write secrets")
+    const all = strings(config).join('\n')
     expect(all).not.toMatch(/https?:\/\/|token|secret|password|api[_-]?key|bearer/i)
-    expect(all).not.toMatch(/(^|\s)\/(home|Users|root|etc|tmp)\//)
+    expect(keys(config)).not.toContain('env')
+    for (const text of [all, prompt, description, welcomeMessage]) {
+      expect(text).not.toMatch(/https?:\/\//)
+      expect(text).not.toMatch(/(^|\s)\/(home|Users|root|etc|tmp)\//)
+    }
   })
 })
