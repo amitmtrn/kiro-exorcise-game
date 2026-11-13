@@ -53,9 +53,9 @@ Files: `src/game/transitions.ts`, `src/ui/screens.ts`, `src/game/transitions.tes
 - [x] Commit: `feat(juice-T5): stage intro and outro animations`
 
 ## T6 — Docs
-- [ ] README: spec table row, spec count, juice section; test count synced.
-- [ ] Run `npm test` and `npm run build`; both clean.
-- [ ] Commit: `docs(juice-T6): README`
+- [x] README: spec table row, spec count, juice section; test count synced.
+- [x] Run `npm test` and `npm run build`; both clean.
+- [x] Commit: `docs(juice-T6): README`
 
 ## T7 — Manual smoke test (webcam)
 - [ ] Swat a ghost to the right: it flies right, spinning and fading; swat left / up: it flies that way.
