@@ -60,3 +60,25 @@ describe('test-on-save matcher (R2)', () => {
     expect(h.action).toEqual({ type: 'command', command: 'npm test' })
   })
 })
+
+describe('spec-drift-check (R3)', () => {
+  const h = () => load('spec-drift-check.json').hooks[0]
+  it('matches only specs tasks.md', () => {
+    const m = matcherOf('spec-drift-check.json', 'spec-drift-check')
+    expect(m.test('.kiro/specs/stages/tasks.md')).toBe(true)
+    expect(m.test('/abs/repo/.kiro/specs/hooks/tasks.md')).toBe(true)
+    for (const p of [
+      '.kiro/specs/stages/design.md', '.kiro/specs/stages/requirements.md',
+      'src/game/state.ts', 'tasks.md', '.kiro/specs/tasks.md',
+    ]) expect(m.test(p)).toBe(false)
+  })
+  it('is an agent prompt that reports only', () => {
+    expect(h().trigger).toBe('PostFileSave')
+    expect(h().action.type).toBe('agent')
+    const p = h().action.prompt
+    expect(p).toMatch(/ticked/)
+    expect(p).toMatch(/git log/)
+    expect(p).toMatch(/REPORT ONLY/)
+    expect(p).toMatch(/do not edit/i)
+  })
+})

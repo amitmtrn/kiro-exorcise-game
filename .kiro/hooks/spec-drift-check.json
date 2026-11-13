@@ -1,0 +1,16 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "spec-drift-check",
+      "description": "When a spec tasks.md changes, verify ticked tasks have matching code/tests and report drift.",
+      "trigger": "PostFileSave",
+      "matcher": "(^|/)\\.kiro/specs/[^/]+/tasks\\.md$",
+      "action": {
+        "type": "agent",
+        "prompt": "A spec task list (.kiro/specs/<name>/tasks.md) was just saved. Check it for spec/code drift. REPORT ONLY: do not edit any file, do not tick or untick boxes, do not commit or push.\n\n1. Read the changed tasks.md (and the same spec's requirements.md/design.md if needed for context).\n2. For every ticked item (`- [x]`), find the code and tests it names (files, functions, constants, test names) in the repo. For ticked `Commit:` lines, check `git log --oneline` for a matching commit.\n3. Also flag the reverse: unticked items (`- [ ]`) whose code/tests already exist.\n4. Items that are manual (webcam playthrough, enabling GitHub Pages, etc.) are 'manual - not checkable', not drift.\n5. Print a short table: task | status (OK / DRIFT / UNTICKED-BUT-DONE / MANUAL) | evidence or what is missing. End with a one-line verdict."
+      },
+      "enabled": true
+    }
+  ]
+}

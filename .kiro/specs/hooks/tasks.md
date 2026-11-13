@@ -12,10 +12,10 @@ Files: `.kiro/hooks/test-on-save.json`, `tools/hooks.test.mjs`
 ## T2 — Spec/code drift hook
 Files: `.kiro/hooks/spec-drift-check.json`, `tools/hooks.test.mjs`
 
-- [ ] Add `spec-drift-check.json`: `PostFileSave`, matcher `(^|/)\.kiro/specs/[^/]+/tasks\.md$`, agent prompt per design (report only, no edits).
-- [ ] Test: matcher accepts `.kiro/specs/stages/tasks.md` and rejects `design.md`, `requirements.md`, `src/…`; prompt mentions ticked tasks, git log, and forbids edits.
-- [ ] Run `npm test` and `npm run build`; both clean.
-- [ ] Commit: `feat(hooks-T2): spec/code drift report hook on tasks.md save`
+- [x] Add `spec-drift-check.json`: `PostFileSave`, matcher `(^|/)\.kiro/specs/[^/]+/tasks\.md$`, agent prompt per design (report only, no edits).
+- [x] Test: matcher accepts `.kiro/specs/stages/tasks.md` and rejects `design.md`, `requirements.md`, `src/…`; prompt mentions ticked tasks, git log, and forbids edits.
+- [x] Run `npm test` and `npm run build`; both clean.
+- [x] Commit: `feat(hooks-T2): spec/code drift report hook on tasks.md save`
 
 ## T3 — README test-count sync
 Files: `tools/sync-readme-tests.mjs`, `tools/sync-readme-tests.test.mjs`, `.kiro/hooks/readme-test-count.json`, `tools/hooks.test.mjs`, `README.md`
