@@ -28,7 +28,15 @@ describe('guideGeometry', () => {
     const g = guideGeometry(1280, 720)
     expect(g.head.cx).toBe(640)
     expect(g.hands[0].cx + g.hands[1].cx).toBeCloseTo(1280)
-    expect(g.head.cy + g.head.ry).toBeLessThan(g.shoulders.cy)
+    expect(g.head.cy + g.head.ry).toBeLessThan(g.shoulders.cy - g.shoulders.r)
+  })
+
+  it('keeps hand targets above the bottom-anchored panel (top ~60 % of the canvas)', () => {
+    for (const [w, h] of [[1280, 720], [1920, 1080], [800, 600], [390, 844]]) {
+      const g = guideGeometry(w, h)
+      for (const hd of g.hands) expect(hd.cy + hd.r).toBeLessThan(h * 0.6)
+      expect(g.shoulders.cy - g.shoulders.r).toBeLessThan(h * 0.6)
+    }
   })
 
   it('stays in bounds for any reasonable canvas size (property)', () => {

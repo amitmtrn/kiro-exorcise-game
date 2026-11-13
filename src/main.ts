@@ -45,7 +45,11 @@ installAudioUnlock({
 document.addEventListener('keydown', (e) => {
   if (e.key === 'd' || e.key === 'D') toggleDebug()
   if (e.key === 'm' || e.key === 'M') toggleMute()
-  if (e.key === ' ' || e.code === 'Space') { e.preventDefault(); requestStart() }
+  if (e.key === ' ' || e.code === 'Space') {
+    // Space on a focused button (e.g. "Try again") activates that button; it must not also start the game.
+    if ((e.target as HTMLElement | null)?.tagName === 'BUTTON') return
+    e.preventDefault(); requestStart()
+  }
 })
 
 // Tap / click on the HUD mute button (top-right) toggles audio too.
@@ -57,24 +61,39 @@ gameCanvas.addEventListener('pointerdown', (e) => {
   }
 })
 
+// Module-level so a retry (camera denied, or lost mid-onboarding) resumes the same state.
+let onboarding = createOnboarding(hasSeenOnboarding(getLocalStorage()))
+
+function denyCamera(err: unknown): void {
+  onboarding = onboardingReducer(onboarding, { type: 'cameraDenied' })
+  showCameraDenied(classifyCameraError(err), () => {
+    onboarding = onboardingReducer(onboarding, { type: 'retry' })
+    void boot()
+  })
+}
+
 async function boot(): Promise<void> {
-  await loadTitleFont()
+  // Start the font load alongside the permission prompt instead of delaying it.
+  const fontReady = loadTitleFont().catch(() => undefined)
   const storage = getLocalStorage()
-  let onboarding = createOnboarding(hasSeenOnboarding(storage))
 
   let video: HTMLVideoElement
   try {
     video = await initWebcam()
   } catch (err) {
-    onboarding = onboardingReducer(onboarding, { type: 'cameraDenied' })
-    showCameraDenied(classifyCameraError(err), () => { onboarding = onboardingReducer(onboarding, { type: 'retry' }); boot() })
+    denyCamera(err)
     return
   }
+  await fontReady
 
   // First run: silhouette guide + how-to over the live camera, then the usual flow.
-  if (onboarding.step !== 'done') await runOnboarding(video, webcamCtx, gameCtx, storage)
+  if (onboarding.step !== 'done') {
+    const result = await runOnboarding(video, webcamCtx, gameCtx, storage)
+    if (result === 'cameraLost') { denyCamera({ name: 'NotReadableError' }); return }
+    onboarding = onboardingReducer(onboarding, { type: 'skip' })
+  }
 
   await startLoop(video, webcamCtx, gameCtx)
 }
 
-boot()
+void boot()

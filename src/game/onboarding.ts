@@ -14,7 +14,7 @@ export const GUIDE_TEXT = 'Stand back so your head and both hands are in frame'
 
 export const HOWTO_STEPS: ReadonlyArray<{ icon: string; text: string }> = [
   { icon: '👻', text: 'Swat the ghosts and bats with your hands' },
-  { icon: '☠️', text: "Don't touch the cursed skull" },
+  { icon: '🚫', text: "Don't touch the cursed skull ☠" },
   { icon: '🔥', text: 'Chain hits to build combos' },
 ]
 
@@ -40,6 +40,8 @@ export type OnboardingEvent =
   | { type: 'retry' }
   | { type: 'framing'; status: FramingStatus; deltaMs: number }
 
+const FRAMING_RESET = { framing: null, framingOkMs: 0 } as const
+
 export function createOnboarding(seen: boolean): OnboardingState {
   return {
     step: seen ? 'done' : 'guide',
@@ -58,12 +60,12 @@ export function onboardingReducer(s: OnboardingState, e: OnboardingEvent): Onboa
       return { ...s, step: 'denied', resume: s.step }
     case 'retry':
       if (s.step !== 'denied') return s
-      return { ...s, step: s.resume }
+      return { ...s, step: s.resume, ...(s.resume === 'guide' ? FRAMING_RESET : {}) }
     case 'skip':
       if (s.step !== 'guide' && s.step !== 'howto') return s
       return { ...s, step: 'done', resume: 'done', seen: true }
     case 'next':
-      if (s.step === 'guide') return { ...s, step: 'howto', resume: 'howto', howtoIndex: 0 }
+      if (s.step === 'guide') return { ...s, step: 'howto', resume: 'howto', howtoIndex: 0, ...FRAMING_RESET }
       if (s.step === 'howto') {
         if (s.howtoIndex < 2) return { ...s, howtoIndex: (s.howtoIndex + 1) as 1 | 2 }
         return { ...s, step: 'done', resume: 'done', seen: true }
@@ -72,12 +74,16 @@ export function onboardingReducer(s: OnboardingState, e: OnboardingEvent): Onboa
     case 'back':
       if (s.step === 'howto') {
         if (s.howtoIndex > 0) return { ...s, howtoIndex: (s.howtoIndex - 1) as 0 | 1 }
-        return { ...s, step: 'guide', resume: 'guide' }
+        return { ...s, step: 'guide', resume: 'guide', ...FRAMING_RESET }
       }
       return s
     case 'framing':
       if (s.step !== 'guide') return s
-      return { ...s, framing: e.status, framingOkMs: tickFraming(s.framingOkMs, e.status, e.deltaMs) }
+      // The first ok sample after a non-ok (or first) one only starts the clock:
+      // stability is measured over observed ok time, not the interval before it.
+      const base = s.framing === 'ok' ? s.framingOkMs : 0
+      const ms = e.status === 'ok' && s.framing !== 'ok' ? 0 : tickFraming(base, e.status, e.deltaMs)
+      return { ...s, framing: e.status, framingOkMs: ms }
   }
 }
 

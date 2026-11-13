@@ -76,6 +76,7 @@ export async function startLoop(
   gameCtx: CanvasRenderingContext2D,
   initialStage = 1,
 ): Promise<() => void> {
+  startRequested = false // a Space pressed during permission/onboarding/calibration must not skip the title
   const currentCanvas = document.createElement('canvas')
   currentCanvas.width = MOTION_W; currentCanvas.height = MOTION_H
   const currentCtx = currentCanvas.getContext('2d')!

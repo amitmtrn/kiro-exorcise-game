@@ -58,6 +58,9 @@ data) returns one of `ok`, `too-dark`, `too-close`, `low-detail`:
 short, friendly hint; `ok` shows "Looking good!" once it has held for
 `FRAMING_STABLE_MS` of accumulated `deltaMs` (reset by any non-ok result).
 
+**R2.5** The silhouette and hand targets stay clear of the bottom-anchored
+panel, and the shoulders' top lies below the chin (head remains visible).
+
 **R2.4** The check samples a small downscaled frame at most every
 `FRAMING_INTERVAL_MS` of `deltaMs`, never per rendered frame.
 
@@ -124,6 +127,18 @@ and body text keep the existing fonts.
 
 **R6.4** README credits the font: name, designer/foundry, licence OFL 1.1, and a
 link to the bundled `OFL.txt` path.
+
+---
+
+## R8 — Input and camera-loss robustness (review fixes)
+
+**R8.1** Space/Enter on a focused button activates only that button; Space never
+starts the game before the start screen, and held keys (`e.repeat`) do not
+advance onboarding cards.
+
+**R8.2** Losing the camera mid-onboarding shows the camera-denied screen and
+Try again resumes the same step. Framing samples are skipped until the video has
+a frame, and framing state resets when the guide is re-entered.
 
 ---
 

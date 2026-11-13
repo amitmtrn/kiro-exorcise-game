@@ -27,15 +27,18 @@ export interface GuideGeometry {
 
 /** Procedural silhouette: head, shoulders and two hand targets, all inside the canvas. */
 export function guideGeometry(w: number, h: number): GuideGeometry {
+  // Everything sits in the upper ~55 % so the bottom-anchored panel never covers the targets.
   const unit = Math.min(h, w * 0.6)
-  const head = { cx: w / 2, cy: h * 0.34, rx: unit * 0.09, ry: unit * 0.115 }
-  const shR = Math.min(w * 0.17, unit * 0.3)
+  const head = { cx: w / 2, cy: h * 0.2, rx: unit * 0.075, ry: unit * 0.095 }
+  const shR = Math.min(w * 0.17, unit * 0.2)
+  // The arc's top sits just below the chin, so the head stays visible above the shoulders.
+  const shCy = head.cy + head.ry + h * 0.01 + shR
   return {
     head,
-    shoulders: { cx: w / 2, cy: h * 0.62, r: shR, from: Math.PI, to: 2 * Math.PI },
+    shoulders: { cx: w / 2, cy: shCy, r: shR, from: Math.PI, to: 2 * Math.PI },
     hands: [
-      { cx: w * 0.2, cy: h * 0.62, r: unit * 0.07 },
-      { cx: w * 0.8, cy: h * 0.62, r: unit * 0.07 },
+      { cx: w * 0.2, cy: h * 0.42, r: unit * 0.07 },
+      { cx: w * 0.8, cy: h * 0.42, r: unit * 0.07 },
     ],
   }
 }
@@ -137,16 +140,18 @@ export function drawGuide(ctx: CanvasRenderingContext2D, stable: boolean, timeMs
 const SAMPLE_W = 64
 const SAMPLE_H = 36
 
+export type OnboardingResult = 'done' | 'cameraLost'
+
 /**
- * Runs the onboarding over the live webcam until the player finishes or skips.
- * Resolves once the step is `done`; the seen flag has been persisted by then.
+ * Runs the onboarding over the live webcam until the player finishes or skips
+ * (`'done'`, seen flag already persisted) or the camera track ends (`'cameraLost'`).
  */
 export function runOnboarding(
   video: HTMLVideoElement,
   webcamCtx: CanvasRenderingContext2D,
   gameCtx: CanvasRenderingContext2D,
   storage: OnboardingStorage | null,
-): Promise<void> {
+): Promise<OnboardingResult> {
   return new Promise((resolve) => {
     let state: OnboardingState = createOnboarding(false)
     const sample = document.createElement('canvas')
@@ -170,17 +175,24 @@ export function runOnboarding(
       if (changed) panel.render(state)
     }
 
-    function finish(): void {
+    // Camera unplugged / revoked mid-onboarding: hand control back so the caller can show R5.
+    const tracks = video.srcObject instanceof MediaStream ? video.srcObject.getVideoTracks() : []
+    const onTrackEnded = (): void => finish('cameraLost')
+    for (const t of tracks) t.addEventListener('ended', onTrackEnded)
+
+    function finish(result: OnboardingResult = 'done'): void {
       if (finished) return
       finished = true
       cancelAnimationFrame(rafId)
       window.removeEventListener('keydown', onKey, true)
+      for (const t of tracks) t.removeEventListener('ended', onTrackEnded)
       panel.root.remove()
       gameCtx.clearRect(0, 0, gameCtx.canvas.width, gameCtx.canvas.height)
-      resolve()
+      resolve(result)
     }
 
     function onKey(e: KeyboardEvent): void {
+      if (e.repeat) { if (e.key === 'Enter' || e.key === ' ') e.preventDefault(); return } // holding a key must not run through every card
       if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); dispatch({ type: 'skip' }) }
       else if (e.key === 'Enter' || e.key === ' ') {
         // let a focused button handle its own activation
@@ -203,7 +215,7 @@ export function runOnboarding(
 
       if (state.step === 'guide') {
         sinceSample += deltaMs
-        if (sinceSample >= FRAMING_INTERVAL_MS) {
+        if (sinceSample >= FRAMING_INTERVAL_MS && video.readyState >= 2) {
           const elapsed = sinceSample
           sinceSample = 0
           sampleCtx.drawImage(video, 0, 0, SAMPLE_W, SAMPLE_H)

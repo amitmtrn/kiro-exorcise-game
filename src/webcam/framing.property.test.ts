@@ -17,6 +17,16 @@ describe('checkFraming (property)', () => {
     }))
   })
 
+  it('darker never turns too-dark into non-dark (brightness-monotone)', () => {
+    fc.assert(fc.property(frameArb, fc.double({ min: 0, max: 1, noNaN: true }), (data, k) => {
+      const f = { data, width: W, height: H }
+      if (checkFraming(f) !== 'too-dark') return
+      const dark = new Uint8ClampedArray(data.length)
+      for (let i = 0; i < data.length; i++) dark[i] = i % 4 === 3 ? data[i] : Math.floor(data[i] * k)
+      expect(checkFraming({ data: dark, width: W, height: H })).toBe('too-dark')
+    }))
+  })
+
   it('any frame whose pixels are all below the luma floor is too-dark', () => {
     fc.assert(fc.property(
       fc.array(fc.integer({ min: 0, max: FRAMING_MIN_LUMA - 1 }), { minLength: W * H, maxLength: W * H }),

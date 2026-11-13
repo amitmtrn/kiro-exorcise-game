@@ -77,12 +77,17 @@ and resets it otherwise; "Looking good!" shows at ≥ 1000 ms.
 
 ## Guide silhouette (procedural)
 
-`guideGeometry(w, h)` returns the head ellipse (centre x, 0.34 h; radius ≈ 0.11 h),
-a shoulders path (an arc spanning ≈ 0.34 w, from 0.52 h) and two hand circles
-at x = 0.2 w and 0.8 w, y = 0.62 h. All coordinates are inside the canvas for any
+`guideGeometry(w, h)` returns the head ellipse (centre x, 0.2 h; ry ≈ 0.095 unit),
+a shoulders path (a semicircle, radius ≤ 0.17 w, whose top sits just below the
+chin: `cy = head.cy + head.ry + 0.01 h + r`) and two hand circles at x = 0.2 w
+and 0.8 w, y = 0.42 h. The figure lives in the top ~55 % of the canvas so the
+bottom-anchored panel (≈ 40 % on the guide step) never covers the hand targets. All coordinates are inside the canvas for any
 size (property-tested). Drawn with a dashed stroke, pumpkin orange; slime green
 and a soft glow when the framing has been `ok` for 1 s. Faint pulsing uses
-`performance.now()` for visuals only (not gameplay).
+the rAF timestamp for visuals only (not gameplay). Framing stability is credited
+only for observed ok time: the first `ok` sample after a non-ok one starts the
+clock at 0; framing state resets whenever the guide is (re)entered. Sampling is
+skipped while `video.readyState < 2`.
 
 ## How-to cards and privacy
 
@@ -117,6 +122,15 @@ failure-tolerant) before the first frame. Fallback stack:
 
 Creepster has a single weight, so `bold` is dropped for title text (avoids
 synthetic bold).
+
+## Camera loss and input latch
+
+`runOnboarding` resolves `'done'` or `'cameraLost'` (video track `ended`);
+`main.ts` keeps one module-level onboarding state, so `cameraDenied` →
+`showCameraDenied` → `retry` → `boot()` resumes the same step (R1.4, R5). The
+font load runs in parallel with `getUserMedia`. Space is ignored by the global
+start handler when a button is the target, `e.repeat` is ignored in the
+onboarding key handler, and `startLoop` clears the Space start latch.
 
 ## Testing
 

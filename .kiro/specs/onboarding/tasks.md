@@ -45,3 +45,15 @@ Files: `README.md`
 - [x] Credit Creepster (Font Diner, OFL 1.1, link to `src/assets/fonts/OFL.txt`); onboarding + privacy note; specs table row and file tree; test count synced (`node tools/sync-readme-tests.mjs`).
 - [x] `npm test` and `npm run build` both clean.
 - [x] Commit: `docs(onboarding-T5): README font credit and onboarding notes`
+
+## T6 — Review fixes
+Files: `src/ui/onboarding.ts`, `src/game/onboarding.ts`, `src/main.ts`, `src/game/loop.ts`, tests, specs
+
+- [x] Guide geometry: shoulders below chin, figure above the panel (R2.5); tests on both.
+- [x] Space on buttons / start latch cleared in `startLoop`; `e.repeat` ignored (R8.1).
+- [x] Brightness-monotone property test for `too-dark` (R7.2).
+- [x] Skull card copy includes ☠; framing reset on guide re-entry; ok-time credited from first ok sample; tests.
+- [x] Camera loss mid-onboarding → denied screen, real module-level state; font load parallel to `getUserMedia`; skip sampling before first frame (R8.2).
+- [x] `getLocalStorage` throwing-path test.
+- [x] `npm test` and `npm run build` both clean.
+- [x] Commit: `fix(onboarding): review fixes`

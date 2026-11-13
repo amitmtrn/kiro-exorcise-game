@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import {
-  createOnboarding, onboardingReducer as r, shouldPersist, hasSeenOnboarding, persistSeen,
+  createOnboarding, onboardingReducer as r, shouldPersist, hasSeenOnboarding, persistSeen, getLocalStorage,
   ONBOARDING_STORAGE_KEY, PRIVACY_LINE, HOWTO_STEPS, GUIDE_TEXT,
   type OnboardingState, type OnboardingEvent, type OnboardingStorage,
 } from './onboarding'
@@ -19,7 +19,7 @@ describe('copy', () => {
   it('has the three how-to steps in order', () => {
     expect(HOWTO_STEPS.map(s => s.text)).toEqual([
       'Swat the ghosts and bats with your hands',
-      "Don't touch the cursed skull",
+      "Don't touch the cursed skull ☠",
       'Chain hits to build combos',
     ])
   })
@@ -134,11 +134,47 @@ describe('permission denied', () => {
   })
 })
 
+describe('framing reset on step change', () => {
+  it('clears stale framing when going back to the guide', () => {
+    let s = createOnboarding(false)
+    s = run(s, { type: 'framing', status: 'ok', deltaMs: 250 }, { type: 'framing', status: 'ok', deltaMs: 250 })
+    s = run(s, { type: 'next' }, { type: 'back' })
+    expect([s.step, s.framing, s.framingOkMs]).toEqual(['guide', null, 0])
+  })
+  it('clears framing when retrying into the guide', () => {
+    let s = createOnboarding(false)
+    s = run(s, { type: 'framing', status: 'ok', deltaMs: 250 }, { type: 'cameraDenied' }, { type: 'retry' })
+    expect([s.step, s.framing, s.framingOkMs]).toEqual(['guide', null, 0])
+  })
+  it('credits only observed ok time (stable after 1000 ms of ok, not 750)', () => {
+    let s = createOnboarding(false)
+    for (let i = 0; i < 4; i++) s = run(s, { type: 'framing', status: 'ok', deltaMs: 250 })
+    expect(s.framingOkMs).toBe(750)
+    s = run(s, { type: 'framing', status: 'ok', deltaMs: 250 })
+    expect(s.framingOkMs).toBe(1000)
+  })
+})
+
+describe('getLocalStorage', () => {
+  it('returns null when accessing localStorage throws (R4.2)', () => {
+    const orig = Object.getOwnPropertyDescriptor(globalThis, 'localStorage')
+    Object.defineProperty(globalThis, 'localStorage', { configurable: true, get() { throw new Error('blocked') } })
+    try { expect(getLocalStorage()).toBeNull() }
+    finally {
+      if (orig) Object.defineProperty(globalThis, 'localStorage', orig)
+      else delete (globalThis as { localStorage?: unknown }).localStorage
+    }
+  })
+  it('returns null when localStorage is undefined', () => {
+    expect(getLocalStorage()).toBeNull()
+  })
+})
+
 describe('framing events', () => {
   it('accumulates ok time in the guide and resets on a bad reading', () => {
     let s = createOnboarding(false)
     s = run(s, { type: 'framing', status: 'ok', deltaMs: 250 }, { type: 'framing', status: 'ok', deltaMs: 250 })
-    expect(s.framingOkMs).toBe(500)
+    expect(s.framingOkMs).toBe(250) // first ok sample only starts the clock
     s = run(s, { type: 'framing', status: 'too-close', deltaMs: 250 })
     expect([s.framing, s.framingOkMs]).toEqual(['too-close', 0])
   })
