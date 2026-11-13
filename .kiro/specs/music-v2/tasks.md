@@ -63,7 +63,7 @@ Files: `src/audio/music.ts`, `src/audio/index.ts`, `src/game/loop.ts`, `src/audi
 ## T9 — Second review fixes
 - [x] Resume also on Safari `interrupted` (engine; R1.8 added).
 - [x] Test the `visibilitychange` wiring (R1.7).
-- [x] `resetMusicForTests` stops the engine timer; tighten the crossfade test.
+- [x] `resetMusicForTests` stops the engine (see T11: now `dispose()`); tighten the crossfade test.
 - [x] Docs: renumber R1.7, kick click level, `cancelAndHoldAtTime` pseudo-code, README manual-task list.
 - Skipped: Firefox `hold()` fallback (untestable here, level step only); retire cleanup while suspended (bounded, clears on resume).
 - [x] Run `npm test` and `npm run build`; commit.
@@ -74,4 +74,13 @@ Files: `src/audio/music.ts`, `src/audio/index.ts`, `src/game/loop.ts`, `src/audi
 - [x] A `resume()` pending longer than 1 s is retried (R1.8).
 - Not changed: layer gating at note onset (a deliberate simplification; a raised tier is heard from the next onset) and the title-music `AudioContext` created before a gesture (silent, only a console warning).
 - [x] Tests: anchor precedes ramp on both paths, no window while paused, resume retry.
+- [x] Run `npm test` and `npm run build`; commit.
+
+## T11 — Fourth review fixes
+- [x] SHOULD-FIX: a track replaced while the context is not running is disconnected at once; layer gains set outright; never read stale `param.value` (R5.2a).
+- [x] `engine.dispose()` clears the timer and buses; `resetMusicForTests` uses it.
+- [x] `pausedWanted` seeded from `document.hidden`.
+- [x] Audio unlock for webcam-only players: `src/audio/unlock.ts`, hint element, any-gesture listeners until running (R4.5).
+- [x] Tests: `FakeParam` with deferred `value` (like a real AudioParam) for play→play→play while suspended, layer gains, dispose; unlock tests.
+- Not changed (documented in design): layer gating at note onset; no master limiter (T7); stop→start within 0.5 s overlaps a fading copy.
 - [x] Run `npm test` and `npm run build`; commit.

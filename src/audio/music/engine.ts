@@ -119,6 +119,13 @@ export function createMusicEngine(deps: EngineDeps) {
   }
 
   function retire(pb: Playback, now: number): void {
+    // A context that is not running has rendered nothing: the outgoing bus is
+    // still silent (its param.value would wrongly read the default 1) and
+    // currentTime is frozen, so a queued fade would never end. Drop it now.
+    if (ctx.state !== 'running') {
+      try { pb.bus.disconnect() } catch { /* already gone */ }
+      return
+    }
     crossfade(pb.bus.gain, null, now, CROSSFADE_SEC)
     pb.retireAt = now + CROSSFADE_SEC
     retiring.push(pb)
@@ -180,8 +187,15 @@ export function createMusicEngine(deps: EngineDeps) {
       current.tier = tier
       const active = layersForTier(tier)
       const now = ctx.currentTime
+      const running = ctx.state === 'running'
       for (const l of LAYERS) {
         const p = current.layerGains[l].gain
+        if (!running) {
+          // Nothing rendered yet: param.value is stale, so set the target outright.
+          p.cancelScheduledValues(now)
+          p.setValueAtTime(active[l] ? 1 : 0, now)
+          continue
+        }
         hold(p, now)
         p.linearRampToValueAtTime(active[l] ? 1 : 0, now + LAYER_FADE_SEC)
       }
@@ -201,6 +215,16 @@ export function createMusicEngine(deps: EngineDeps) {
         ensureTimer()
         tick()
       }
+    },
+
+    /** Stop everything now: clear the timer and disconnect every bus. */
+    dispose(): void {
+      for (const pb of [...retiring, ...(current ? [current] : [])]) {
+        try { pb.bus.disconnect() } catch { /* already gone */ }
+      }
+      current = null
+      retiring = []
+      if (timer !== null) { clearI(timer); timer = null }
     },
 
     currentTrack(): TrackId | null { return current ? current.def.id : null },

@@ -91,6 +91,14 @@ screen plays `title`.
 title theme is requested on the start screen; it begins to sound when the
 browser lets the context run.
 
+**R4.5** Unlocking audio: the AudioContext only runs after a user gesture. The
+camera-permission prompt is browser UI and does not count, and a webcam-only
+player may start via motion buttons without touching anything. So while the
+context is not running the game shows a "Click or press any key to enable
+sound" hint, and listens for any `pointerdown`, `touchstart`, `keydown` or
+`click` until the context reports `running` (a refused `resume()` re-arms on the
+next gesture). Music requested earlier then starts from the current track.
+
 **R4.4** Summary and game-over stop the music with a 0.5 s fade out; victory
 already stops it. Returning to the start screen restarts `title`.
 
@@ -102,6 +110,12 @@ path (bus → master).
 **R5.2** Switching tracks ramps the outgoing bus from its current level to 0 and
 the incoming bus from 0 to 1 over 0.5 s, both starting at the same
 `currentTime`. `stopMusic()` fades the outgoing bus to 0 over 0.5 s.
+
+**R5.2a** If the context is not running (nothing rendered yet) a replaced track
+was never audible: its bus is disconnected at once instead of faded, and no
+retirement is queued (`currentTime` is frozen, so it would never complete).
+Layer gains change outright in that state. `AudioParam.value` is stale until
+rendering, so it is never read as the level of a never-rendered param.
 
 **R5.3** After the fade the old track's scheduler is stopped and its nodes are
 disconnected. The outgoing track schedules no new steps once the fade starts.

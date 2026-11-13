@@ -92,6 +92,23 @@ disconnected. `stop()` ramps the current bus to 0 the same way. Timer tick also
 calls `ctx.resume()` if the context is suspended (it is a no-op until the
 browser allows it, which keeps the game silent before the first gesture).
 
+While the context is not running (before the first gesture), `retire()` disconnects
+the outgoing bus immediately and `setCombo` sets layer gains with
+`cancelScheduledValues` + `setValueAtTime`: `param.value` only updates during
+rendering, so reading it would give the default 1 and, on the first gesture, every
+track visited so far would sound at once, fading 1→0.
+
+### Audio unlock (`src/audio/unlock.ts`, wired in `main.ts`)
+The camera-permission prompt is not a page gesture. `installAudioUnlock` listens
+for `pointerdown`, `touchstart`, `keydown` and `click` on `window`; each calls
+`getAudioContext()`'s `resume()`. Listeners stay until the context state is
+`running` (also observed via `statechange`). A `.sound-hint` element
+("Click or press any key to enable sound") is visible while locked. Motion
+buttons are not gestures, so a webcam-only player hears sound as soon as they
+click, tap or press any key once. Known limits: no limiter on the master bus (a
+tier-4 downbeat sums to ~0.8 before SFX; covered by T7); a stop→start of the same
+track within 0.5 s builds a fresh playback instead of reviving the fading one.
+
 The old bug (gain node never connected to the notes) cannot recur: voices take
 the layer gain as their only destination.
 

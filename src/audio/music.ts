@@ -14,7 +14,7 @@ import { trackForStage, type TrackId } from './music/patterns'
 let engine: MusicEngine | null = null
 let wanted: TrackId | null = null     // last requested track (cheap idempotence check)
 let lastCombo = 1
-let pausedWanted = false
+let pausedWanted = typeof document !== 'undefined' && document.hidden
 
 if (typeof document !== 'undefined') {
   document.addEventListener('visibilitychange', () => setMusicPaused(document.hidden))
@@ -64,7 +64,7 @@ export function setMusicPaused(p: boolean): void {
 
 /** Test hook: forget the engine and request state. */
 export function resetMusicForTests(): void {
-  if (engine) engine.stop()
+  if (engine) engine.dispose()
   engine = null
   wanted = null
   lastCombo = 1

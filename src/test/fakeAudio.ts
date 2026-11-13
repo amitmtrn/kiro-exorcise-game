@@ -8,8 +8,10 @@ export interface ParamCall { kind: 'set' | 'linear' | 'exp' | 'cancel'; value?: 
 export class FakeParam {
   value: number
   calls: ParamCall[] = []
-  constructor(v = 1) { this.value = v }
-  setValueAtTime(v: number, t: number) { this.value = v; this.calls.push({ kind: 'set', value: v, time: t }); return this }
+  /** Real AudioParams only update `value` while rendering; true mimics that. */
+  deferred: boolean
+  constructor(v = 1, deferred = false) { this.value = v; this.deferred = deferred }
+  setValueAtTime(v: number, t: number) { if (!this.deferred) this.value = v; this.calls.push({ kind: 'set', value: v, time: t }); return this }
   linearRampToValueAtTime(v: number, t: number) { this.calls.push({ kind: 'linear', value: v, time: t }); return this }
   exponentialRampToValueAtTime(v: number, t: number) { this.calls.push({ kind: 'exp', value: v, time: t }); return this }
   cancelScheduledValues(t: number) { this.calls.push({ kind: 'cancel', time: t }); return this }
@@ -23,10 +25,15 @@ export class FakeNode {
   stoppedAt: number | null = null
   type = ''
   buffer: unknown = null
-  gain = new FakeParam(1)
-  frequency = new FakeParam(440)
-  Q = new FakeParam(1)
-  constructor(kind: string) { this.kind = kind }
+  gain: FakeParam
+  frequency: FakeParam
+  Q: FakeParam
+  constructor(kind: string, deferred = false) {
+    this.kind = kind
+    this.gain = new FakeParam(1, deferred)
+    this.frequency = new FakeParam(440, deferred)
+    this.Q = new FakeParam(1, deferred)
+  }
   connect(n: FakeNode) { this.connections.push(n); return n }
   disconnect() { this.disconnected = true }
   start(t: number) { this.startedAt = t }
@@ -40,7 +47,9 @@ export class FakeAudioContext {
   destination = new FakeNode('destination')
   nodes: FakeNode[] = []
   resumeCalls = 0
-  private make(kind: string): FakeNode { const n = new FakeNode(kind); this.nodes.push(n); return n }
+  /** Params keep `value` until rendered (like a real, suspended context). */
+  deferredParams = false
+  private make(kind: string): FakeNode { const n = new FakeNode(kind, this.deferredParams); this.nodes.push(n); return n }
   createGain() { return this.make('gain') }
   createOscillator() { return this.make('osc') }
   createBiquadFilter() { return this.make('filter') }

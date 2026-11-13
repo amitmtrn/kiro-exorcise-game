@@ -374,3 +374,55 @@ describe('review fixes', () => {
     expect(d1.length).toBe(4000)
   })
 })
+
+describe('suspended context (webcam-only player, no gesture yet)', () => {
+  function suspended() {
+    const s = setup()
+    s.ctx.state = 'suspended'
+    s.ctx.resume = () => { s.ctx.resumeCalls++; return new Promise<void>(() => { /* never: no gesture */ }) }
+    s.ctx.deferredParams = true
+    return s
+  }
+  const buses = (ctx: FakeAudioContext, master: FakeNode) =>
+    ctx.nodes.filter(n => n.kind === 'gain' && n.connections.includes(master))
+
+  it('a track replaced before it was audible is disconnected, not faded from 1 (R5.2/R5.3)', () => {
+    const { ctx, master, engine } = suspended()
+    engine.play('title')
+    engine.play('stage1')
+    engine.play('stage2')
+    const [t, s1, s2] = buses(ctx, master)
+    expect(t.gain.value).toBe(1)                       // stale default, as in a browser
+    expect(t.disconnected).toBe(true)
+    expect(s1.disconnected).toBe(true)
+    expect(s2.disconnected).toBe(false)
+    expect(t.gain.calls.some(c => c.kind === 'linear' && c.value === 0)).toBe(false)
+  })
+
+  it('nothing queues for retirement while time is frozen', () => {
+    const { ctx, master, engine, advance } = suspended()
+    engine.play('title'); engine.play('stage1'); engine.stop()
+    advance(1)
+    expect(buses(ctx, master).every(b => b.disconnected)).toBe(true)
+  })
+
+  it('a tier change sets layer gains outright instead of anchoring at the stale value', () => {
+    const { ctx, engine } = suspended()
+    engine.play('stage1')
+    const before = ctx.nodes.length
+    engine.setCombo(4)
+    expect(before).toBe(ctx.nodes.length)
+    const layer = ctx.nodes.filter(n => n.kind === 'gain').slice(1, 7)
+    for (const g of layer) expect(g.gain.calls.some(c => c.kind === 'linear')).toBe(false)
+    expect(layer.every(g => g.gain.calls[g.gain.calls.length - 1]?.kind === 'set')).toBe(true)
+  })
+
+  it('dispose() clears the timer and disconnects every bus', () => {
+    const { ctx, master, timers, engine } = setup()
+    engine.play('stage1'); engine.play('stage2')
+    engine.dispose()
+    expect(timers.count()).toBe(0)
+    expect(buses(ctx, master).every(b => b.disconnected)).toBe(true)
+    expect(engine.currentTrack()).toBeNull()
+  })
+})
