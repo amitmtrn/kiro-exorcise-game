@@ -4,11 +4,11 @@
 Files: `package.json`, `package-lock.json`, `src/test/prng.ts`,
 `src/test/prng.test.ts`
 
-- [ ] `npm install -D --save-exact fast-check` (devDependency only).
-- [ ] `src/test/prng.ts`: `mulberry32(seed)`, `withSeededRandom(seed, fn)` (always restores `Math.random`).
-- [ ] Tests: same seed → same sequence; `Math.random` restored even when `fn` throws.
-- [ ] Run `npm test` and `npm run build`; both clean.
-- [ ] Commit: `feat(pbt-T1): add fast-check and seeded random helper`
+- [x] `npm install -D --save-exact fast-check` (devDependency only).
+- [x] `src/test/prng.ts`: `mulberry32(seed)`, `withSeededRandom(seed, fn)` (always restores `Math.random`).
+- [x] Tests: same seed → same sequence; `Math.random` restored even when `fn` throws.
+- [x] Run `npm test` and `npm run build`; both clean.
+- [x] Commit: `feat(pbt-T1): add fast-check and seeded random helper`
 
 ## T2 — Combo tier properties
 Files: `src/game/state.property.test.ts`
