@@ -1,79 +1,138 @@
 /**
- * Movement update — moves every enemy one step toward its target.
+ * Movement update — moves every enemy one deltaMs-scaled step toward its target.
  * Returns a new array (pure, does not mutate input).
  */
 
 import type { Enemy } from '../state'
 import { GHOST_SIZE } from './ghost'
 import { BAT_W, BAT_H } from './bat'
-import { SKULL_SIZE } from './skull'
+import { SKULL_SIZE, SKULL_ON_SCREEN_MS, SKULL_EXIT_SPEED_MULT } from './skull'
 import { LUNGER_SIZE, WINDUP_DURATION_MS } from './lunger'
 import { PUMPKIN_SIZE } from './pumpkin'
 import { BOSS_SIZE } from './boss'
+import { CANDY_SIZE } from './candy'
+import { moveBoss } from './bossPhases'
+import { pathPosition, pathEnd, pathDurationMs, pathProgress, pathExits } from '../paths'
 
-const GHOST_WOBBLE_AMP = 18
-const GHOST_WOBBLE_SPEED = 0.06
-const BAT_ZIGZAG_AMP = 24
-const BAT_ZIGZAG_SPEED = 0.12
+/** Sine phase rate, rad/s (the old per-frame step × 60). */
+const GHOST_WOBBLE_RATE = 3.6
+const BAT_ZIGZAG_RATE = 7.2
+/** Peak lateral velocity, in canvas heights per second. */
+const GHOST_WOBBLE_AMP = 0.06
+const BAT_ZIGZAG_AMP = 0.16
 
-/** Distance from center at which the lunger stops to wind up. */
-const LUNGER_HOLD_DIST = 200
+/** Lunger stops to wind up this far from its target, in canvas heights. */
+const LUNGER_HOLD_HEIGHTS = 0.185
+const LUNGE_SPEED_MULT = 2.5
 
-export function moveEnemies(enemies: Enemy[], deltaMs: number): Enemy[] {
-  return enemies.map((enemy) => moveSingle(enemy, deltaMs))
+export function moveEnemies(
+  enemies: Enemy[],
+  deltaMs: number,
+  canvasW: number,
+  canvasH: number,
+): Enemy[] {
+  return enemies.map((enemy) => moveSingle(enemy, deltaMs, canvasW, canvasH))
 }
 
-function moveSingle(enemy: Enemy, deltaMs: number): Enemy {
-  if (enemy.type === 'lunger') return moveLunger(enemy, deltaMs)
-
+/** Straight-line step toward the target, never overshooting it. */
+function stepToward(enemy: Enemy, pxPerSec: number, deltaMs: number) {
   const dx = enemy.targetX - enemy.x
   const dy = enemy.targetY - enemy.y
-  const dist = Math.sqrt(dx * dx + dy * dy)
+  const dist = Math.hypot(dx, dy)
+  if (dist === 0) return { ux: 0, uy: 0, step: 0, dist }
+  return { ux: dx / dist, uy: dy / dist, step: Math.min(dist, pxPerSec * deltaMs / 1000), dist }
+}
+
+/** Skull lifecycle: count on-screen time, then turn around and leave. */
+function tickSkull(enemy: Enemy, deltaMs: number, canvasW: number, canvasH: number): Enemy {
+  if (enemy.exiting) return enemy
+  const inside = enemy.x >= 0 && enemy.x <= canvasW && enemy.y >= 0 && enemy.y <= canvasH
+  if (!inside) return enemy
+  const onScreenMs = enemy.onScreenMs + deltaMs
+  if (onScreenMs < SKULL_ON_SCREEN_MS) return { ...enemy, onScreenMs }
+
+  // Leave through the side it is nearest to (straight out from the centre).
+  let dx = enemy.x - canvasW / 2
+  let dy = enemy.y - canvasH / 2
+  const len = Math.hypot(dx, dy)
+  if (len < 1e-6) { dx = 0; dy = -1 } else { dx /= len; dy /= len }
+  const far = canvasW + canvasH
+  return {
+    ...enemy,
+    onScreenMs,
+    exiting: true,
+    targetX: enemy.x + dx * far,
+    targetY: enemy.y + dy * far,
+    speed: enemy.speed * SKULL_EXIT_SPEED_MULT,
+  }
+}
+
+/**
+ * Removes enemies that have left for good: exiting skulls fully outside the
+ * canvas, and path enemies whose path leaves the screen once they have
+ * finished it (or are past half-way and fully outside).
+ */
+export function cullExitedEnemies(enemies: Enemy[], canvasW: number, canvasH: number): Enemy[] {
+  return enemies.filter((e) => {
+    const { x, y, w, h } = e.hitbox
+    const outside = x + w < 0 || x > canvasW || y + h < 0 || y > canvasH
+    if (e.path && pathExits(e.path)) {
+      if (e.pathMs >= pathDurationMs(e.path, canvasW, canvasH)) return false
+      return !(outside && pathProgress(e.path, e.pathMs, canvasW, canvasH) > 0.5)
+    }
+    if (e.type !== 'skull' || !e.exiting) return true
+    return !outside
+  })
+}
+
+/** Path enemies sit at a closed-form position for their accumulated path time. */
+function movePath(enemy: Enemy, deltaMs: number, canvasW: number, canvasH: number): Enemy {
+  const path = enemy.path!
+  const pathMs = enemy.pathMs + deltaMs
+  const { x, y } = pathPosition(path, pathMs, canvasW, canvasH)
+  const end = pathEnd(path, canvasW, canvasH)
+  return { ...enemy, x, y, pathMs, targetX: end.x, targetY: end.y, hitbox: hitboxFor(enemy.type, x, y) }
+}
+
+function moveSingle(enemy: Enemy, deltaMs: number, canvasW: number, canvasH: number): Enemy {
+  if (enemy.type === 'boss') return moveBoss(enemy, deltaMs, canvasW, canvasH)
+  if (enemy.path) return movePath(enemy, deltaMs, canvasW, canvasH)
+  if (enemy.type === 'lunger') return moveLunger(enemy, deltaMs, canvasH)
+  if (enemy.type === 'skull') enemy = tickSkull(enemy, deltaMs, canvasW, canvasH)
+
+  const { ux, uy, step, dist } = stepToward(enemy, enemy.speed * canvasH, deltaMs)
   if (dist < 0.5) return enemy
 
-  const ux = dx / dist
-  const uy = dy / dist
+  const dt = deltaMs / 1000
   const px = -uy
   const py = ux
-  const newSineOffset = enemy.sineOffset +
-    (enemy.type === 'bat' ? BAT_ZIGZAG_SPEED : GHOST_WOBBLE_SPEED)
+  const rate = enemy.type === 'bat' ? BAT_ZIGZAG_RATE : GHOST_WOBBLE_RATE
+  const newSineOffset = enemy.sineOffset + rate * dt
 
-  let newX: number
-  let newY: number
+  let newX = enemy.x + ux * step
+  let newY = enemy.y + uy * step
 
-  if (enemy.type === 'ghost') {
-    const wobble = Math.sin(newSineOffset) * GHOST_WOBBLE_AMP
-    newX = enemy.x + ux * enemy.speed + px * wobble * GHOST_WOBBLE_SPEED
-    newY = enemy.y + uy * enemy.speed + py * wobble * GHOST_WOBBLE_SPEED
-  } else if (enemy.type === 'bat') {
-    const zigzag = Math.sin(newSineOffset) * BAT_ZIGZAG_AMP
-    newX = enemy.x + ux * enemy.speed + px * zigzag * BAT_ZIGZAG_SPEED
-    newY = enemy.y + uy * enemy.speed + py * zigzag * BAT_ZIGZAG_SPEED
-  } else {
-    // skull, pumpkin, boss — straight line
-    newX = enemy.x + ux * enemy.speed
-    newY = enemy.y + uy * enemy.speed
+  if (enemy.type === 'ghost' || enemy.type === 'bat') {
+    const amp = enemy.type === 'bat' ? BAT_ZIGZAG_AMP : GHOST_WOBBLE_AMP
+    // Sample the sine at the step midpoint so the integral is step-size independent.
+    const lateral = Math.sin(enemy.sineOffset + rate * dt / 2) * amp * canvasH * dt
+    newX += px * lateral
+    newY += py * lateral
   }
+  // skull, pumpkin — straight line
 
   const hitbox = hitboxFor(enemy.type, newX, newY)
   return { ...enemy, x: newX, y: newY, hitbox, sineOffset: newSineOffset }
 }
 
-function moveLunger(enemy: Enemy, deltaMs: number): Enemy {
-  const dx = enemy.targetX - enemy.x
-  const dy = enemy.targetY - enemy.y
-  const dist = Math.sqrt(dx * dx + dy * dy)
+function moveLunger(enemy: Enemy, deltaMs: number, canvasH: number): Enemy {
+  const dist = Math.hypot(enemy.targetX - enemy.x, enemy.targetY - enemy.y)
 
   if (enemy.movePhase === 'approach') {
-    if (dist <= LUNGER_HOLD_DIST) {
+    if (dist <= LUNGER_HOLD_HEIGHTS * canvasH) {
       return { ...enemy, movePhase: 'windup', phaseTimer: WINDUP_DURATION_MS }
     }
-    if (dist < 0.5) return enemy
-    const ux = dx / dist
-    const uy = dy / dist
-    const newX = enemy.x + ux * enemy.speed
-    const newY = enemy.y + uy * enemy.speed
-    return { ...enemy, x: newX, y: newY, hitbox: hitboxFor('lunger', newX, newY) }
+    return advanceLunger(enemy, enemy.speed * canvasH, deltaMs)
   }
 
   if (enemy.movePhase === 'windup') {
@@ -84,12 +143,15 @@ function moveLunger(enemy: Enemy, deltaMs: number): Enemy {
     return { ...enemy, phaseTimer }
   }
 
-  // lunge — move at 2.5× speed
+  // lunge — 2.5× speed
+  return advanceLunger(enemy, enemy.speed * canvasH * LUNGE_SPEED_MULT, deltaMs)
+}
+
+function advanceLunger(enemy: Enemy, pxPerSec: number, deltaMs: number): Enemy {
+  const { ux, uy, step, dist } = stepToward(enemy, pxPerSec, deltaMs)
   if (dist < 0.5) return enemy
-  const ux = dx / dist
-  const uy = dy / dist
-  const newX = enemy.x + ux * enemy.speed * 2.5
-  const newY = enemy.y + uy * enemy.speed * 2.5
+  const newX = enemy.x + ux * step
+  const newY = enemy.y + uy * step
   return { ...enemy, x: newX, y: newY, hitbox: hitboxFor('lunger', newX, newY) }
 }
 
@@ -114,6 +176,10 @@ export function hitboxFor(type: Enemy['type'], cx: number, cy: number) {
     }
     case 'pumpkin': {
       const w = PUMPKIN_SIZE * scale, h = PUMPKIN_SIZE * scale
+      return { x: cx - w / 2, y: cy - h / 2, w, h }
+    }
+    case 'candy': {
+      const w = CANDY_SIZE * scale, h = CANDY_SIZE * scale
       return { x: cx - w / 2, y: cy - h / 2, w, h }
     }
     case 'boss': {

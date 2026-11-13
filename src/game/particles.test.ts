@@ -37,8 +37,8 @@ describe('tickParticles', () => {
     const p = { x: 0, y: 0, vx: 3, vy: -2, alpha: 1, decay: 0.01, color: '#fff', radius: 3 }
     const [moved] = tickParticles([p])
     expect(moved.x).toBeCloseTo(3)
-    // y moves by initial vy (-2); gravity is applied to vy after position update
-    expect(moved.y).toBeCloseTo(-2)
+    // y moves by vy·dt + ½·g·dt² (exact for constant gravity, step-size independent)
+    expect(moved.y).toBeCloseTo(-2 + 0.5 * 0.15)
   })
 
   it('applies gravity (vy increases each tick)', () => {

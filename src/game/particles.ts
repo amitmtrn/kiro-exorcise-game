@@ -4,6 +4,7 @@
  */
 
 import type { Particle, ScoreLabel } from './state'
+import { FRAME_MS } from './state'
 
 const GRAVITY = 0.15
 
@@ -54,17 +55,20 @@ export function spawnBatPuff(cx: number, cy: number): Particle[] {
 // ─── Tick ─────────────────────────────────────────────────────────────────────
 
 /**
- * Moves every particle one step, applies gravity, decrements alpha.
- * Returns a new array with dead particles (alpha ≤ 0) removed.
+ * Advances every particle by `deltaMs` (default: one 60 Hz frame), applies
+ * gravity, decrements alpha. Constant-acceleration integration makes the result
+ * independent of how the elapsed time is split into steps. Returns a new array
+ * with dead particles (alpha ≤ 0) removed.
  */
-export function tickParticles(particles: Particle[]): Particle[] {
+export function tickParticles(particles: Particle[], deltaMs: number = FRAME_MS): Particle[] {
+  const dt = deltaMs / FRAME_MS
   return particles
     .map((p) => ({
       ...p,
-      x: p.x + p.vx,
-      y: p.y + p.vy,
-      vy: p.vy + GRAVITY,
-      alpha: p.alpha - p.decay,
+      x: p.x + p.vx * dt,
+      y: p.y + p.vy * dt + 0.5 * GRAVITY * dt * dt,
+      vy: p.vy + GRAVITY * dt,
+      alpha: p.alpha - p.decay * dt,
     }))
     .filter((p) => p.alpha > 0)
 }
@@ -76,9 +80,10 @@ export function spawnScoreLabel(x: number, y: number, points: number): ScoreLabe
   return { x, y: y - 24, text: `+${points}`, alpha: 1, vy: -SCORE_LABEL_RISE_PX }
 }
 
-/** Moves every label up by its velocity and fades it; removes dead labels. */
-export function tickScoreLabels(labels: ScoreLabel[]): ScoreLabel[] {
+/** Moves every label up by its velocity and fades it over `deltaMs`; removes dead labels. */
+export function tickScoreLabels(labels: ScoreLabel[], deltaMs: number = FRAME_MS): ScoreLabel[] {
+  const dt = deltaMs / FRAME_MS
   return labels
-    .map((l) => ({ ...l, y: l.y + l.vy, alpha: l.alpha - SCORE_LABEL_DECAY }))
+    .map((l) => ({ ...l, y: l.y + l.vy * dt, alpha: l.alpha - SCORE_LABEL_DECAY * dt }))
     .filter((l) => l.alpha > 0)
 }

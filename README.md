@@ -25,21 +25,23 @@ npm run dev
 
 | Command | What it does |
 |---|---|
-| `npm test` | Run all 133 unit tests (Vitest) |
+| `npm test` | Run all 806 unit tests (Vitest) |
 | `npm run build` | Production build → `dist/` |
 | `npm run preview` | Preview the production build locally |
 
 ## Gameplay
 
+On your first visit a short onboarding shows a head-and-hands silhouette over your live camera (with a quick framing check), three how-to-play cards and a privacy note. It is skippable (Skip / `Esc`) and remembered in `localStorage`. **Your video stays on your device. Nothing is uploaded.** If the camera is blocked you get step-by-step instructions to allow it.
+
 Five Kung Foo-style stages, each 60 seconds, each with its own enemy mix and music.
 
 - **Ghosts** float toward the center of the screen. Swat them before they arrive — each one that gets through costs a life.
 - **Bats** zigzag in fast. Quick swipe to send them packing.
-- **Lungers** stop, wind up, then lunge at you — hit them during the wind-up.
+- **Lungers** stop, wind up, then lunge at you — they can only be hit once the wind-up starts (they look faded until then).
 - **Pumpkins** take two hits.
 - **Cursed Skull** ☠️ — glows red on purpose. **Don't hit it.** Costs a life if you do.
-- **Stage 5 boss** — a hat-wearing giant ghost with a 10-hit health bar.
-- 3 lives. Consecutive hits build a **combo multiplier**; the screen shakes from ×3 up. A stage-clear screen rates you with stars, and your high score is saved locally.
+- **Stage 5 boss** — a hat-wearing giant ghost with a 10-hit health bar and three phases. It summons ghosts while swaying along the top; below 66 % health it hides behind a shield and lunges at you after a glowing, shaking 0.6 s wind-up (hit it then!); below 33 % it enrages with faster lunges and more minions. Beat it to win the game and see your total score; if the timer runs out first, it's game over.
+- 3 lives. Consecutive hits build a **combo multiplier** (×2 at 3 hits, ×3 at 6, ×4 at 10+; an enemy reaching the centre resets it) and the screen shakes from a 3-hit streak. Enemies move at the same real-time speed on any display refresh rate and scale with screen height; the Cursed Skull leaves after 4 s. A stage-clear screen rates you with stars, and your high score is saved locally.
 
 Hit detection uses **frame differencing**: fast motion inside an enemy's hitbox registers as a hit — the same technique as the original EyeToy, no ML required.
 
@@ -78,15 +80,48 @@ Every feature was planned as a Kiro spec before implementation:
 | `hit-detection-fix/` | Mirror bug, 2-frame gate, spawn grace, auto-calibration, debug overlay |
 | `boss-combo/` | Boss ghost (3 hits), combo multiplier, audio |
 | `stages/` | 5 stages, motion buttons, lunging enemies, high score |
+| `boss-phases/` | 3-phase boss, lunger wind-up vulnerability, victory screen, boss timeout game over |
 | `audio/` | Procedural Web Audio SFX and background music |
 | `spooky-skin/` | Webcam tint, fog, candle glow, screen shake, score pops |
+| `feel-fix/` | px/s movement scaled to screen height, skull exits, combo tiers |
+| `hooks/` | Kiro hooks: test on save, spec/code drift report, README test-count sync |
+| `pbt/` | Property-based tests (fast-check): lives, score, spawner cap, mirror parity, combo tiers, frame-rate independence |
+| `waves/` | Data-driven wave scripts (line / arc / flyby / drop / swarm paths), per-stage intensity curves, harmless candy bonus round |
+| `juice/` | Swipe-direction estimate from the motion mask, knock-back with spin and fade, 60 ms hit-stop, combo call-outs, stage intro / outro animations |
+| `music-v2/` | 3-voice procedural sequencer (bass, noise drums, lead) on a look-ahead scheduler, combo-tier layers, title and boss themes, real 0.5 s crossfade |
+| `onboarding/` | First-run silhouette guide with framing check, 3-step how-to, privacy line, camera-denied help, self-hosted Creepster font |
+| `balancer/` | Local stdio MCP server for the motion harness and a report-only `balancer` playtest-tuner agent |
 
 Each spec has `requirements.md`, `design.md`, and `tasks.md`. Writing requirements and design before tasks surfaced design gaps (e.g. skull penalty rules, hitbox coordinate system, mirror parity bug) that would have been painful to fix mid-implementation.
 
-All seven specs are implemented. Every task in `tasks.md` is ticked except the manual smoke tests (a webcam playthrough, enabling GitHub Pages in the repo settings), and `boss-combo/` carries a status note explaining it was superseded by `stages/`.
+All sixteen specs are implemented. Every task in `tasks.md` is ticked except the manual smoke tests (a webcam playthrough, the music-v2 listening test, enabling GitHub Pages in the repo settings), and `boss-combo/` carries a status note explaining it was superseded by `stages/`.
 
-### Agent hook (`.kiro/hooks/test-on-save.json`)
-A Kiro agent hook runs `npm test` automatically whenever a file under `src/` is saved, so test failures surface immediately rather than at commit time.
+### Kiro hooks (`.kiro/hooks/`)
+Standalone `v1` hook files, loaded by Kiro IDE and Kiro CLI V3. Spec: `.kiro/specs/hooks/`.
+
+| Hook file | Fires on | What it does |
+|---|---|---|
+| `test-on-save.json` | save of any non-test file under `src/` | Runs `npm test` (test-file saves are handled by `readme-test-count.json`, so the suite runs once) |
+| `spec-drift-check.json` | save of `.kiro/specs/*/tasks.md` | Agent checks every ticked task against the code, tests and git log, and reports drift (report only, no edits) |
+| `readme-test-count.json` | save, creation or deletion of a `*.test.ts` / `*.test.mjs` file (hooks `readme-test-count`, `readme-test-count-on-create`, `readme-test-count-on-delete`) | Runs `node tools/sync-readme-tests.mjs`: runs the tests and rewrites the test count in this README (`--check` only reports) |
+
+Matchers are not anchored to the repo root. If Kiro passes absolute paths and the checkout itself lives under a `src/` directory, every save would run `npm test`; under a `node_modules/` directory all three hooks would be skipped. Keep the checkout out of such paths.
+
+The original `test-on-save.json` never fired (no `version`, camelCase `postToolUse` trigger); it was rewritten in the current format.
+
+### Balancer agent and motion-harness MCP server
+Spec: `.kiro/specs/balancer/`. The [motion harness](tools/motion-harness/README.md) is exposed to Kiro as a **local stdio MCP server** (`tools/motion-harness/mcp-server.mjs`, plain Node ≥ 22, no dependencies, no network listener), registered in `.kiro/settings/mcp.json` with a relative path and no env or secrets.
+
+| Tool | What it does |
+|---|---|
+| `run_harness { mode: "sweep" \| "wave", seconds: 5–120 }` | Runs `tools/motion-harness/run.sh` (headless Chrome, synthetic webcam, loopback only) and returns `frames`, `hits`, `motionFrames`, `maxMotion`, `playFrames`, `firstPlayAtMs`, `threshold`, `highScoreSaved`. One run at a time; killed after `seconds + 60 s`. |
+| `read_stage_config {}` | Returns the live `STAGES` / wave scripts / bonus round, read from `src/game/stages.ts` and `waves.ts` at call time. |
+
+The **`balancer`** agent (`.kiro/agents/balancer.json`, validated with `kiro-cli agent validate`) uses those tools to run the harness and writes a *proposal report* of `stages.ts` / `waves.ts` value changes to `tools/motion-harness/out/balancer-report.md` (git-ignored). It has `read`, `write` and `@motion-harness` only: no shell, so it cannot commit or push, and writes to `src/`, `.kiro/`, `package*.json` and `.gitignore` are denied. The synthetic hand is not a player, so every proposal is a hypothesis for a real webcam playtest.
+
+```bash
+kiro-cli chat --agent balancer
+```
 
 ### What worked well
 - Steering docs meant zero "what stack are we using?" back-and-forth — Kiro knew the constraints from turn one.
@@ -106,6 +141,7 @@ src/
                         mute-button tap target
   webcam/
     capture.ts          getUserMedia, mirrored canvas draw
+    framing.ts          Onboarding framing check (too dark / too close / low detail)
     diff.ts             Frame differencing — mirrored capture, MOTION_W/H,
                         scaleHitbox, calibrateDiffThreshold
   game/
@@ -113,40 +149,78 @@ src/
                         "Calibrating…" banner, all phases, shake + score-label ticks
     state.ts            GameState types + pure reducers (lives, score, combo,
                         shake, score labels, high score)
-    round.ts            Phase machine: start → stageTitle → playing → summary
-    stages.ts           5 StageConfig entries (enemy mix, spawn rates, music)
+    round.ts            Phase machine: start → stageTitle → playing → summary → (victory after stage 5)
+    stages.ts           5 StageConfig entries (enemy mix, spawn rates, music, wave script, bonus round)
+    paths.ts            Closed-form enemy paths (line, arc, flyby, drop, swarm) — frame-rate and canvas-size independent
+    waves.ts            Wave scripts, intensity curves and the bonus round (plain data)
     collision.ts        Per-enemy hit resolution — 2-frame gate, spawn grace,
                         combo scoring, shake, hit flash, score pops
     particles.ts        Puff spawn + tick, score-pop labels
+    swipe.ts            Swipe direction from the motion-centroid shift (mirror-correct)
+    knock.ts            Banished enemies fly off along the swipe (closed-form drag, spin, fade)
+    hitstop.ts          60 ms game-time freeze budget (deltaMs-based)
+    callouts.ts         NICE! / GREAT! / PERFECT! and x2-x4 COMBO! call-outs
+    transitions.ts      Easing + stage intro / outro poses
     atmosphere.ts       Webcam tint, drifting fog, candle glow
     render.ts           Procedural canvas art (ghost wisps, bat flap, cracked
                         skull, lunger, pumpkin, boss), shake, white hit flash,
                         boss health bar, debug overlay (D key)
     enemies/
       ghost.ts / bat.ts / skull.ts / lunger.ts / pumpkin.ts / boss.ts
+      bossPhases.ts     3-phase boss behaviour
+      vulnerability.ts  Per-enemy vulnerability windows
       movement.ts       Per-type movement + lunge phase machine; hitboxes +20%
-      spawn.ts          Stage-aware spawn timers
+      spawn.ts          Stage-aware, intensity-scaled spawn timers + scripted wave events
+      waveSpawn.ts      Builds path-following enemies (ghost, bat, pumpkin, candy)
+      reach.ts          "Reached its target" rule (never for flybys or in the bonus round)
+      candy.ts          Harmless bonus-round target
   ui/
     hud.ts              Hearts, timer, stage, score, combo (pulse), mute button —
                         outlined glow text, clamp(W/20, 24, 48) font
     motionButton.ts     Wave-to-press buttons driven by frame differencing
-    screens.ts          Start, stage title, summary (stars), game over, webcam error
+    screens.ts          Start, stage title, summary (stars), victory, game over
+    onboarding.ts       First-run guide, how-to cards, camera-denied screen
+    fonts.ts            TITLE_FONT_FAMILY + local font preload (Creepster)
+  test/
+    prng.ts             Seeded PRNG for deterministic tests
   audio/
     context.ts          AudioContext singleton, master gain, mute / volume
     sfx.ts              8 procedural Web Audio sound effects
-    music.ts            Procedural background music sequencer, 5 patterns
+    music.ts            Music API (startMusic, startTitleMusic, stopMusic, setMusicCombo)
+    music/              patterns, look-ahead scheduler, combo layers, voices, engine + crossfade
 .kiro/
   steering/             product.md, tech.md, design.md
   specs/
     mvp/                requirements.md, design.md, tasks.md
     deploy/             GitHub Pages CI/CD spec
     hit-detection-fix/  P0 swatting fix spec
+    feel-fix/           Game-feel fixes spec
     boss-combo/         Boss ghost + combo spec (superseded by stages/)
     stages/             5-stage Kung Foo-style progression spec
     audio/              Procedural music + SFX spec
     spooky-skin/        Visual polish spec
-  hooks/                test-on-save.json
+    hooks/              Kiro hooks spec
+    boss-phases/        3-phase boss + victory spec
+    pbt/                Property-based tests spec (`*.property.test.ts`, fast-check)
+    waves/              Wave scripts, intensity curves, bonus round spec
+    juice/              Swipe knock-back, hit-stop, combo call-outs, stage intro / outro spec
+    music-v2/           3-voice look-ahead music sequencer spec
+    balancer/           Harness MCP server + balancer agent spec
+  settings/mcp.json     Workspace MCP registration (motion-harness, stdio, relative path)
+  agents/balancer.json  Report-only playtest-tuner agent
+  hooks/                test-on-save.json, spec-drift-check.json, readme-test-count.json (save/create/delete)
+tools/
+  sync-readme-tests.mjs Run tests and sync the README test count (used by a hook)
+  sync-readme-tests.test.mjs Unit tests for the sync script's pure functions
+  hooks.test.mjs        Structural + matcher tests for .kiro/hooks/*.json
+  balancer-config.test.mjs  MCP / agent config checks (no secrets, local only, restricted tools)
+  motion-harness/
+    mcp-server.mjs      stdio MCP server: run_harness, read_stage_config (+ unit and property tests)
 ```
+
+## Credits
+
+- **Creepster** display font — designed by Font Diner, Inc, licensed under the SIL Open Font License 1.1. Self-hosted from `src/assets/fonts/Creepster-Regular.ttf`; no CDN. Licence text: [`src/assets/fonts/OFL.txt`](src/assets/fonts/OFL.txt). Source: the `ofl/creepster` directory of the [google/fonts](https://github.com/google/fonts) repository.
 
 ## License
 

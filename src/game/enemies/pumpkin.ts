@@ -3,7 +3,7 @@ import { makeEnemy } from '../state'
 import { randomEdgeSpawn, centerTarget, randomId } from './spawnUtils'
 
 export const PUMPKIN_SIZE = 64
-export const PUMPKIN_SPEED = 0.9
+export const PUMPKIN_SPEED = 0.167 // canvas heights per second
 
 export function createPumpkin(canvasW: number, canvasH: number, speedMult = 1): Enemy {
   const { x, y } = randomEdgeSpawn(canvasW, canvasH, PUMPKIN_SIZE)

@@ -1,6 +1,6 @@
 /**
- * AudioContext singleton — created lazily on the first user gesture to satisfy
- * browser autoplay policy.
+ * AudioContext singleton — created lazily (first user gesture, or the first
+ * start-screen frame) and resumed on demand to satisfy browser autoplay policy.
  */
 
 let ctx: AudioContext | null = null

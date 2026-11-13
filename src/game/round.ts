@@ -12,6 +12,7 @@ import {
   saveHighScore,
 } from './state'
 import { STAGES } from './stages'
+import { BONUS_ROUND } from './waves'
 import { createBoss } from './enemies/boss'
 
 export function tickRound(
@@ -29,10 +30,12 @@ export function tickRound(
       const stageTitleMs = Math.max(0, state.stageTitleMs - deltaMs)
       if (stageTitleMs === 0) {
         // Start playing — reset timers from stage config
-        const cfg = STAGES[state.stage - 1]
+        // The bonus round brings its own duration and spawn slots (waves R5).
+        const cfg = state.bonus ? BONUS_ROUND : STAGES[state.stage - 1]
         return {
           ...state,
           stageTitleMs: 0,
+          hitStopMs: 0,
           phase: 'playing',
           roundTimeMs: cfg.durationMs,
           enemies: [],
@@ -46,6 +49,7 @@ export function tickRound(
           stageBanished: 0,
           stageMissed: 0,
           bossActive: false,
+          waveIndex: 0,
         }
       }
       return { ...state, stageTitleMs }
@@ -70,6 +74,7 @@ export function tickRound(
       return { ...state, summaryShownMs }
     }
 
+    case 'victory':
     case 'gameover':
       saveHighScore(state.highScore)
       return state
@@ -79,13 +84,31 @@ export function tickRound(
   }
 }
 
-/** Transition from summary → next stage title (or loop back to stage 1). */
+/**
+ * Transition from summary → next stage title (via the bonus round when the stage
+ * has one), or → victory after the final stage (never loops).
+ */
 export function advanceToNextStage(
   state: GameState,
   _canvasW: number,
   _canvasH: number,
 ): GameState {
-  const nextStage = state.stage < 5 ? state.stage + 1 : 1
+  if (state.stage >= STAGES.length) {
+    return { ...state, phase: 'victory', enemies: [] }
+  }
+  // Waves R5: a stage may be followed by a bonus round (same stage index, `bonus` set).
+  if (!state.bonus && STAGES[state.stage - 1].bonusAfter) {
+    return {
+      ...createInitialState(state.stage),
+      lives: state.lives,
+      score: state.score,
+      highScore: state.highScore,
+      phase: 'stageTitle',
+      stageTitleMs: STAGE_TITLE_DURATION_MS,
+      bonus: true,
+    }
+  }
+  const nextStage = state.stage + 1
   return {
     ...createInitialState(nextStage),
     lives: state.lives,          // carry lives across stages

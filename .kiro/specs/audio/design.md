@@ -38,6 +38,10 @@ export function sfxBossDefeated(): void // C4→E4→G4→C5, 0.4 s each
 
 ## Background music (procedural)
 
+> **Superseded by `music-v2/`.** The `setTimeout` single-voice sequencer and its
+> unconnected crossfade gain described below were replaced by a look-ahead
+> 3-voice engine. SFX, mute and volume sections still apply.
+
 Rather than shipping audio files, background music is generated with a simple
 sequencer: a repeating pattern of notes played by an `OscillatorNode` through
 a low-pass filter and reverb (convolver with a synthetic impulse response).

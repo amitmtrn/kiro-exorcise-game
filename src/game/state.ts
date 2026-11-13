@@ -5,6 +5,10 @@
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
+import type { PathSpec } from './paths'
+import type { Knock } from './knock'
+import type { Callout } from './callouts'
+
 export interface Hitbox {
   x: number // top-left x
   y: number // top-left y
@@ -12,9 +16,12 @@ export interface Hitbox {
   h: number // height
 }
 
-export type EnemyType = 'ghost' | 'bat' | 'skull' | 'lunger' | 'pumpkin' | 'boss'
+export type EnemyType = 'ghost' | 'bat' | 'skull' | 'lunger' | 'pumpkin' | 'boss' | 'candy'
 
 export type MovePhase = 'approach' | 'windup' | 'lunge'
+
+/** Boss attack cycle (boss-phases R3): idle → windup → lunge → recover → idle. */
+export type BossAttack = 'idle' | 'windup' | 'lunge' | 'recover'
 
 export interface Enemy {
   id: string
@@ -23,7 +30,7 @@ export interface Enemy {
   y: number          // center y, canvas coords
   targetX: number
   targetY: number
-  speed: number      // px per frame at 60 fps
+  speed: number      // canvas heights per second (px/s = speed × canvasH)
   sineOffset: number // phase for ghost wobble / bat zigzag
   hitbox: Hitbox     // axis-aligned, updated each move step
   spawnedAt: number  // performance.now() when created; used for spawn grace period
@@ -36,8 +43,25 @@ export interface Enemy {
   hitsNeeded: number
   // Boss-specific
   bossHitsReceived: number
+  // Boss phases (boss-phases spec)
+  bossPhase: 1 | 2 | 3
+  bossAttack: BossAttack
+  bossTimerMs: number    // idle countdown / windup / recover remaining
+  summonTimerMs: number  // ms until next summon (counts down while idle)
+  bossInvulnMs: number   // post-hit i-frames
+  bossStrike: boolean    // set the tick a lunge lands; consumed by tickBoss
+  // Waves spec: scripted path, a pure function of pathMs (absent → straight line to target)
+  path?: PathSpec
+  pathMs: number     // accumulated path time, advanced by deltaMs
+  harmless: boolean  // never costs a life (bonus round, bats)
+  // Skull-specific (feel-fix R2)
+  onScreenMs: number // time the centre has been inside the canvas
+  exiting: boolean   // skull is leaving the screen
   // Spooky-skin R4.2 — frames left to render this enemy in solid white
   hitFlashFrames: number
+  // Juice R1: display-space centroid of the moved pixels in the hitbox on the last gate frame with motion
+  motionX?: number
+  motionY?: number
 }
 
 export interface Particle {
@@ -60,7 +84,7 @@ export interface ScoreLabel {
   vy: number       // px per frame (negative = upward)
 }
 
-export type GamePhase = 'start' | 'stageTitle' | 'playing' | 'summary' | 'gameover'
+export type GamePhase = 'start' | 'stageTitle' | 'playing' | 'summary' | 'gameover' | 'victory'
 
 export interface SpawnTimers {
   ghost: number
@@ -83,14 +107,20 @@ export interface GameState {
   // Stage tracking
   stage: number           // 1–5
   stageTitleMs: number    // countdown for title card (3 s)
-  combo: number           // current combo multiplier (min 1)
+  streak: number          // consecutive banishes since the last reset
+  combo: number           // score multiplier derived from streak (x1–x4)
   bestCombo: number       // best combo this stage
   stageBanished: number   // enemies banished this stage
   stageMissed: number     // enemies that reached center this stage
   highScore: number       // all-time high score from localStorage
   summaryShownMs: number  // how long summary has been shown
   bossActive: boolean     // stage 5 boss spawned
+  waveIndex: number       // next scripted wave event to fire (waves spec)
+  bonus: boolean          // playing the bonus round after the stage's summary (waves spec)
   shakeFrames: number     // spooky-skin R4.1 — frames of screen shake remaining
+  knocks: Knock[]         // juice R2 — banished enemies flying off along the swipe
+  hitStopMs: number       // juice R3 — game-time freeze left after a banish
+  callouts: Callout[]     // juice R4 — combo call-out texts
 }
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -100,7 +130,10 @@ export const STARTING_LIVES = 3
 export const STAGE_TITLE_DURATION_MS = 3_000
 export const SUMMARY_AUTO_ADVANCE_MS = 5_000
 
-// Spooky-skin R4.1 — screen shake fires on a hit at combo ≥ 3, ±4 px for 3 frames
+// Spooky-skin R4.1 — screen shake fires on a scoring hit at streak ≥ 3, ±4 px for 3 frames
+/** One 60 Hz frame in ms — the unit of the frame-counted effects (shake, flash, particles). */
+export const FRAME_MS = 1000 / 60
+
 export const SHAKE_FRAMES = 3
 export const SHAKE_COMBO_THRESHOLD = 3
 export const SHAKE_AMPLITUDE_PX = 4
@@ -117,7 +150,17 @@ export function makeEnemy(partial: Partial<Enemy> & Pick<Enemy, 'id' | 'type' | 
     hitsReceived: 0,
     hitsNeeded: 1,
     bossHitsReceived: 0,
+    bossPhase: 1,
+    bossAttack: 'idle',
+    bossTimerMs: 0,
+    summonTimerMs: 0,
+    bossInvulnMs: 0,
+    bossStrike: false,
     hitFlashFrames: 0,
+    pathMs: 0,
+    harmless: false,
+    onScreenMs: 0,
+    exiting: false,
     ...partial,
   }
 }
@@ -157,6 +200,7 @@ export function createInitialState(stage = 1): GameState {
     flashEndTime: 0,
     stage,
     stageTitleMs: STAGE_TITLE_DURATION_MS,
+    streak: 0,
     combo: 1,
     bestCombo: 1,
     stageBanished: 0,
@@ -164,7 +208,12 @@ export function createInitialState(stage = 1): GameState {
     highScore: loadHighScore(),
     summaryShownMs: 0,
     bossActive: false,
+    waveIndex: 0,
+    bonus: false,
     shakeFrames: 0,
+    knocks: [],
+    hitStopMs: 0,
+    callouts: [],
   }
 }
 
@@ -172,10 +221,15 @@ export function createInitialState(stage = 1): GameState {
 
 export function decrementLife(state: GameState): GameState {
   const lives = Math.max(0, state.lives - 1)
+  const dead = lives === 0
   return {
     ...state,
     lives,
-    phase: lives === 0 ? 'gameover' : state.phase,
+    phase: dead ? 'gameover' : state.phase,
+    // Hit flashes never outlive the game (nothing decays them after death).
+    enemies: dead && state.enemies.some((e) => e.hitFlashFrames > 0)
+      ? state.enemies.map((e) => (e.hitFlashFrames > 0 ? { ...e, hitFlashFrames: 0 } : e))
+      : state.enemies,
   }
 }
 
@@ -188,6 +242,10 @@ export function addScore(state: GameState, points: number): GameState {
 export function tickTimer(state: GameState, deltaMs: number): GameState {
   const roundTimeMs = Math.max(0, state.roundTimeMs - deltaMs)
   if (roundTimeMs === 0 && state.phase === 'playing') {
+    // Time ran out with the boss still alive: the stage is failed (boss-phases R6.5).
+    if (state.enemies.some((e) => e.type === 'boss')) {
+      return { ...state, roundTimeMs, phase: 'gameover' }
+    }
     return { ...state, roundTimeMs, phase: 'summary', enemies: [] }
   }
   return { ...state, roundTimeMs }
@@ -225,14 +283,28 @@ export function setSpawnTimers(state: GameState, spawnTimers: SpawnTimers): Game
   return { ...state, spawnTimers }
 }
 
+/** Stages R4.1 — streak thresholds, highest first. */
+export const COMBO_TIERS: ReadonlyArray<{ streak: number; mult: number }> = [
+  { streak: 10, mult: 4 },
+  { streak: 6, mult: 3 },
+  { streak: 3, mult: 2 },
+]
+
+/** Score multiplier for a given streak of consecutive banishes (x1–x4). */
+export function comboForStreak(streak: number): number {
+  for (const tier of COMBO_TIERS) if (streak >= tier.streak) return tier.mult
+  return 1
+}
+
 export function incrementCombo(state: GameState): GameState {
-  const combo = state.combo + 1
+  const streak = state.streak + 1
+  const combo = comboForStreak(streak)
   const bestCombo = combo > state.bestCombo ? combo : state.bestCombo
-  return { ...state, combo, bestCombo }
+  return { ...state, streak, combo, bestCombo }
 }
 
 export function resetCombo(state: GameState): GameState {
-  return { ...state, combo: 1 }
+  return { ...state, streak: 0, combo: 1 }
 }
 
 export function incrementBanished(state: GameState): GameState {
@@ -249,8 +321,10 @@ export function setShake(state: GameState, frames: number): GameState {
   return { ...state, shakeFrames: Math.max(0, frames) }
 }
 
-/** Decrements the shake counter by one frame; call once per tick before rendering. */
-export function tickShake(state: GameState): GameState {
+/** Counts the shake down by `deltaMs` (one 60 Hz frame by default); call once per tick before rendering. */
+export function tickShake(state: GameState, deltaMs: number = FRAME_MS): GameState {
   if (state.shakeFrames === 0) return state
-  return { ...state, shakeFrames: state.shakeFrames - 1 }
+  const left = state.shakeFrames - deltaMs / FRAME_MS
+  // Snap float residue to 0 (same epsilon idea as the hit flash).
+  return { ...state, shakeFrames: left < 0.05 ? 0 : left }
 }

@@ -72,7 +72,7 @@ describe('moveEnemies', () => {
   it('moves a ghost closer to its target', () => {
     const ghost = createGhost(W, H)
     const before = Math.hypot(ghost.targetX - ghost.x, ghost.targetY - ghost.y)
-    const [moved] = moveEnemies([ghost], 16)
+    const [moved] = moveEnemies([ghost], 16, W, H)
     const after = Math.hypot(moved.targetX - moved.x, moved.targetY - moved.y)
     expect(after).toBeLessThan(before)
   })
@@ -80,13 +80,13 @@ describe('moveEnemies', () => {
   it('returns a new array without mutating the original', () => {
     const ghost = createGhost(W, H)
     const original = ghost.x
-    moveEnemies([ghost], 16)
+    moveEnemies([ghost], 16, W, H)
     expect(ghost.x).toBe(original)
   })
 
   it('updates hitbox to reflect new position (hitbox is 20% enlarged)', () => {
     const ghost = createGhost(W, H)
-    const [moved] = moveEnemies([ghost], 16)
+    const [moved] = moveEnemies([ghost], 16, W, H)
     const enlargedHalf = (GHOST_SIZE * 1.2) / 2
     expect(moved.hitbox.x).toBeCloseTo(moved.x - enlargedHalf, 0)
     expect(moved.hitbox.y).toBeCloseTo(moved.y - enlargedHalf, 0)
@@ -112,7 +112,7 @@ describe('lunger movement', () => {
       movePhase: 'approach',
       phaseTimer: 0,
     })
-    const [moved] = moveEnemies([l], 16)
+    const [moved] = moveEnemies([l], 16, W, H)
     expect(moved.movePhase).toBe('windup')
     expect(moved.phaseTimer).toBeGreaterThan(0)
   })
@@ -127,7 +127,7 @@ describe('lunger movement', () => {
       movePhase: 'windup',
       phaseTimer: 50, // almost done
     })
-    const [moved] = moveEnemies([l], 100) // 100ms > 50ms timer
+    const [moved] = moveEnemies([l], 100, W, H) // 100ms > 50ms timer
     expect(moved.movePhase).toBe('lunge')
   })
 
@@ -142,8 +142,8 @@ describe('lunger movement', () => {
       phaseTimer: 0,
     })
     const normalL = { ...l, movePhase: 'approach' as const }
-    const [lunged] = moveEnemies([l], 16)
-    const [approached] = moveEnemies([normalL], 16)
+    const [lunged] = moveEnemies([l], 16, W, H)
+    const [approached] = moveEnemies([normalL], 16, W, H)
     const lDist = Math.hypot(lunged.x, lunged.y)
     const aDist = Math.hypot(approached.x, approached.y)
     expect(lDist).toBeGreaterThan(aDist)

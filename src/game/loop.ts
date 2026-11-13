@@ -18,10 +18,15 @@ import {
   tickShake,
 } from './state'
 import type { GameState } from './state'
+import { tickBoss } from './enemies/bossPhases'
 import { tickSpawners } from './enemies/spawn'
-import { moveEnemies } from './enemies/movement'
+import { moveEnemies, cullExitedEnemies } from './enemies/movement'
+import { splitReached } from './enemies/reach'
 import { resolveHits, updateMotionPixels } from './collision'
 import { tickParticles, tickScoreLabels } from './particles'
+import { tickKnocks } from './knock'
+import { splitHitStop } from './hitstop'
+import { tickCallouts } from './callouts'
 import { renderFrame } from './render'
 import { renderHUD, hudFontSize, HUD_FONT_FAMILY } from '../ui/hud'
 import {
@@ -29,6 +34,8 @@ import {
   renderStageTitle,
   renderSummary,
   renderGameOver,
+  renderVictory,
+  resetVictoryScreen,
 } from '../ui/screens'
 import {
   tickRound,
@@ -37,9 +44,8 @@ import {
   advanceToNextStage,
   spawnBoss,
 } from './round'
-import { sfxLifeLost, sfxStageClear, startMusic, stopMusic } from '../audio/index'
+import { sfxLifeLost, sfxStageClear, startMusic, startTitleMusic, stopMusic, setMusicCombo } from '../audio/index'
 
-const CENTER_THRESHOLD = 40
 let rafId = 0
 
 // Keyboard fallback for the motion START button — the start screen says
@@ -70,6 +76,7 @@ export async function startLoop(
   gameCtx: CanvasRenderingContext2D,
   initialStage = 1,
 ): Promise<() => void> {
+  startRequested = false // a Space pressed during permission/onboarding must not skip the title
   const currentCanvas = document.createElement('canvas')
   currentCanvas.width = MOTION_W; currentCanvas.height = MOTION_H
   const currentCtx = currentCanvas.getContext('2d')!
@@ -84,10 +91,19 @@ export async function startLoop(
   drawCalibratingBanner(gameCtx)
   await calibrateDiffThreshold(currentCtx, video, 1000)
   captureFrame(prevCtx, video)
+  startRequested = false // ...nor one pressed during the 1 s calibration above
 
   let state: GameState = createInitialState(initialStage)
   let lastTimestamp = 0
   let prevPhase = state.phase
+
+  /** Keeps shake, particles and labels expiring on the summary / game-over screens. */
+  function tickEffects(s: GameState, ms: number): GameState {
+    s = tickShake(s, ms)
+    s = setParticles(s, tickParticles(s.particles, ms))
+    s = { ...s, knocks: tickKnocks(s.knocks, ms), callouts: tickCallouts(s.callouts, ms) }
+    return setScoreLabels(s, tickScoreLabels(s.scoreLabels, ms))
+  }
 
   function tick(timestamp: number): void {
     const deltaMs = lastTimestamp === 0 ? 16 : Math.min(timestamp - lastTimestamp, 100)
@@ -113,6 +129,7 @@ export async function startLoop(
 
     // ── Start screen ──────────────────────────────────────────────────────────
     if (state.phase === 'start') {
+      try { startTitleMusic() } catch { /* ignore */ }
       renderFrame(gameCtx, state, now)
       renderStartScreen(gameCtx, state, now, () => {
         state = startGame(state)
@@ -141,11 +158,16 @@ export async function startLoop(
     if (state.phase === 'summary') {
       saveHighScore(state.highScore)
       state = tickRound(state, deltaMs, displayW, displayH)
+      state = tickEffects(state, deltaMs)
       renderFrame(gameCtx, state, now)
-      state = resolveHits(state, currentData, prevData, displayW, displayH, now, frameIsNew)
-      renderSummary(gameCtx, state, now, () => {
-        state = advanceToNextStage(state, displayW, displayH)
-      })
+      state = resolveHits(state, currentData, prevData, displayW, displayH, now, frameIsNew, deltaMs)
+      // tickRound may just have auto-advanced (e.g. into the bonus title card):
+      // only offer NEXT while the summary is still showing, so it cannot skip a stage.
+      if (state.phase === 'summary') {
+        renderSummary(gameCtx, state, now, () => {
+          if (state.phase === 'summary') state = advanceToNextStage(state, displayW, displayH)
+        })
+      }
       prevCtx.drawImage(currentCanvas, 0, 0)
       rafId = requestAnimationFrame(tick)
       return
@@ -154,7 +176,7 @@ export async function startLoop(
     // ── Game Over ─────────────────────────────────────────────────────────────
     if (state.phase === 'gameover') {
       saveHighScore(state.highScore)
-      state = resolveHits(state, currentData, prevData, displayW, displayH, now, frameIsNew)
+      state = tickEffects(state, deltaMs)
       renderFrame(gameCtx, state, now)
       renderGameOver(gameCtx, state, now,
         () => { state = retryStage(state) },
@@ -165,50 +187,93 @@ export async function startLoop(
       return
     }
 
+    // ── Victory (boss-phases R6.3) ────────────────────────────────────────────
+    if (state.phase === 'victory') {
+      saveHighScore(state.highScore)
+      if (prevPhase !== 'victory') {
+        // Entry hooks live here so every route into victory gets the lockout reset.
+        resetVictoryScreen()
+        try { sfxStageClear(); stopMusic() } catch { /* ignore */ }
+        prevPhase = 'victory'
+      }
+      state = tickEffects(state, deltaMs)
+      renderFrame(gameCtx, state, now)
+      renderVictory(gameCtx, state, now,
+        () => { state = startGame(createInitialState(1)) },
+        () => { state = createInitialState(1) },
+      )
+      prevCtx.drawImage(currentCanvas, 0, 0)
+      rafId = requestAnimationFrame(tick)
+      return
+    }
+
     // ── Playing ───────────────────────────────────────────────────────────────
 
-    // Screen shake counts down one frame per tick (set by resolveHits below)
-    state = tickShake(state)
+    // Hit-stop (juice R3): game time freezes for a beat after a banish. The camera,
+    // motion capture and hit detection keep running on the real delta; only the
+    // simulation uses `simMs`, so the freeze lasts HITSTOP_MS at any frame rate.
+    const hs = splitHitStop(state.hitStopMs, deltaMs)
+    state = { ...state, hitStopMs: hs.remainingMs }
+    const simMs = hs.liveMs
 
-    // Stage 5: spawn boss once
-    if (state.stage === 5 && !state.bossActive) {
-      state = spawnBoss(state, displayW, displayH)
+    if (simMs > 0) {
+      // Screen shake counts down with elapsed time (set by resolveHits below)
+      state = tickShake(state, simMs)
+
+      // Stage 5: spawn boss once
+      if (state.stage === 5 && !state.bossActive) {
+        state = spawnBoss(state, displayW, displayH)
+      }
+
+      state = tickSpawners(state, simMs, displayW, displayH)
+
+      const movedEnemies = cullExitedEnemies(
+        moveEnemies(state.enemies, simMs, displayW, displayH),
+        displayW,
+        displayH,
+      )
+      state = setEnemies(state, movedEnemies)
+
+      // Enemies reaching their target cost a life (never in the bonus round, never flybys)
+      const { survivors, missed: missedCount } = splitReached(state.enemies, state.bonus, displayW, displayH)
+      state = setEnemies(state, survivors)
+      for (let i = 0; i < missedCount; i++) {
+        if (state.phase === 'gameover') break // nothing else happens after the last life
+        state = decrementLife(state)
+        state = resetCombo(state)
+        state = incrementMissed(state)
+        try { sfxLifeLost() } catch { /* audio not ready */ }
+      }
+
+      // Boss attacks: a lunge that lands costs a life (tickBoss resets the combo)
+      const livesBeforeBoss = state.lives
+      state = tickBoss(state, displayW, displayH)
+      if (state.lives < livesBeforeBoss) {
+        try { sfxLifeLost() } catch { /* audio not ready */ }
+      }
     }
 
-    state = tickSpawners(state, deltaMs, displayW, displayH)
-
-    const movedEnemies = moveEnemies(state.enemies, deltaMs)
-    state = setEnemies(state, movedEnemies)
-
-    // Check for enemies reaching center
-    const survivors = state.enemies.filter((enemy) => {
-      if (enemy.type === 'skull' || enemy.type === 'boss') return true
-      const dx = enemy.x - enemy.targetX
-      const dy = enemy.y - enemy.targetY
-      return Math.sqrt(dx * dx + dy * dy) > CENTER_THRESHOLD
-    })
-    const missedCount = state.enemies.filter((enemy) => {
-      if (enemy.type === 'skull' || enemy.type === 'boss') return false
-      const dx = enemy.x - enemy.targetX
-      const dy = enemy.y - enemy.targetY
-      return Math.sqrt(dx * dx + dy * dy) <= CENTER_THRESHOLD
-    }).length
-
-    state = setEnemies(state, survivors)
-    for (let i = 0; i < missedCount; i++) {
-      state = decrementLife(state)
-      state = resetCombo(state)
-      state = incrementMissed(state)
-      try { sfxLifeLost() } catch { /* audio not ready */ }
+    // Age effects *before* resolveHits so ones spawned this tick start at age 0
+    // (identical pose through the freeze at any frame rate).
+    if (simMs > 0) {
+      state = { ...state, knocks: tickKnocks(state.knocks, simMs), callouts: tickCallouts(state.callouts, simMs) }
     }
 
-    state = resolveHits(state, currentData, prevData, displayW, displayH, now, frameIsNew)
-    state = tickTimer(state, deltaMs)
-    state = setParticles(state, tickParticles(state.particles))
-    state = setScoreLabels(state, tickScoreLabels(state.scoreLabels))
+    state = resolveHits(state, currentData, prevData, displayW, displayH, now, frameIsNew, deltaMs)
+
+    if (simMs > 0) {
+      state = tickTimer(state, simMs)
+      state = setParticles(state, tickParticles(state.particles, simMs))
+      state = setScoreLabels(state, tickScoreLabels(state.scoreLabels, simMs))
+    }
 
     renderFrame(gameCtx, state, now)
     renderHUD(gameCtx, state, now)
+
+    // Music intensity follows the combo tier (cheap when unchanged)
+    if (state.phase === 'playing') {
+      try { setMusicCombo(state.combo) } catch { /* ignore */ }
+    }
 
     // Phase transition hooks
     if (prevPhase !== state.phase) {
@@ -219,7 +284,8 @@ export async function startLoop(
       } else if (state.phase === 'gameover') {
         try { stopMusic() } catch { /* ignore */ }
       }
-      prevPhase = state.phase
+      // 'victory' is handled at the top of its own branch next frame.
+      if (state.phase !== 'victory') prevPhase = state.phase
     }
 
     prevCtx.drawImage(currentCanvas, 0, 0)

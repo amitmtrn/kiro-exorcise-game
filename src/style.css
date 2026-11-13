@@ -1,3 +1,16 @@
+/* === Self-hosted display font (SIL OFL 1.1, see src/assets/fonts/OFL.txt) === */
+@font-face {
+  font-family: 'Creepster';
+  src: url('./assets/fonts/Creepster-Regular.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
+  --font-title: 'Creepster', 'Chalkboard SE', 'Comic Sans MS', 'Arial Rounded MT Bold', fantasy;
+}
+
 /* === Reset & base === */
 *, *::before, *::after {
   box-sizing: border-box;
@@ -55,6 +68,8 @@ html, body {
 }
 
 .screen-gameover h1 {
+  font-family: var(--font-title);
+  font-weight: normal;
   font-size: clamp(3rem, 10vw, 6rem);
   color: #ff6b1a;
   text-shadow: 0 0 20px #ff6b1a, 0 0 40px #ff6b1a88;
@@ -103,7 +118,7 @@ html, body {
   text-align: center;
 }
 
-.screen-error p {
+.screen-error p:not(.privacy) {
   color: #e8e8f0;
   font-size: clamp(1rem, 3vw, 1.5rem);
   max-width: 520px;
@@ -124,3 +139,144 @@ html, body {
 .screen-error button:hover {
   background: #3d0a62;
 }
+
+/* === Sound-unlock hint (shown until the first gesture) === */
+.sound-hint {
+  position: absolute;
+  left: 50%;
+  bottom: 4%;
+  transform: translateX(-50%);
+  padding: 0.4em 1em;
+  border-radius: 999px;
+  background: rgba(13, 0, 20, 0.7);
+  color: #ffd166;
+  font-family: inherit;
+  font-size: clamp(14px, 2vw, 22px);
+  pointer-events: none;
+}
+.sound-hint[hidden] { display: none; }
+
+/* === Camera-denied instructions === */
+.screen-denied h1 {
+  font-family: var(--font-title);
+  font-weight: normal;
+  font-size: clamp(2rem, 7vw, 4rem);
+  color: #ff6b1a;
+  text-shadow: 0 0 18px #ff6b1a88;
+}
+
+.screen-denied ol {
+  color: #e8e8f0;
+  text-align: left;
+  max-width: 520px;
+  line-height: 1.7;
+  font-size: clamp(1rem, 2.4vw, 1.3rem);
+  padding-left: 1.4em;
+}
+
+.screen-error .privacy,
+.privacy {
+  color: #ffd166;
+  font-size: clamp(0.85rem, 2vw, 1.05rem);
+  max-width: 520px;
+}
+
+/* === First-run onboarding === */
+.onboarding {
+  position: absolute;
+  inset: auto 0 0 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 1.2rem 1rem 1.6rem;
+  text-align: center;
+  background: linear-gradient(to top, rgba(13, 0, 20, 0.92) 70%, rgba(13, 0, 20, 0));
+  pointer-events: all;
+  max-height: 40vh; /* keeps the hand targets (0.42h) clear, R2.5 */
+  overflow-y: auto;
+}
+
+/* Buttons stay reachable even if the panel has to scroll on a very short window */
+.onboarding-buttons {
+  position: sticky;
+  bottom: 0;
+  background: rgba(13, 0, 20, 0.92);
+  z-index: 1;
+}
+
+/* Very short windows: drop the decorative dots to make room */
+@media (max-height: 400px) {
+  .onboarding-dots { display: none; }
+  .onboarding-body { font-size: 0.95rem; }
+}
+
+/* Short landscape windows: compact panel so it still fits in 40 % */
+@media (max-height: 560px) {
+  .onboarding { gap: 0.25rem; padding: 0.6rem 1rem 0.7rem; }
+  .onboarding-title { font-size: clamp(1.4rem, 5vh, 2rem); }
+  .onboarding-body { font-size: clamp(0.95rem, 4vh, 1.2rem); }
+  .onboarding button { padding: 0.3rem 1.2rem; font-size: 1rem; }
+  .onboarding-buttons { margin: 0.1rem 0; }
+  .onboarding .privacy { font-size: 0.8rem; }
+}
+
+.onboarding-title {
+  font-family: var(--font-title);
+  font-weight: normal;
+  font-size: clamp(2rem, 6vw, 3.6rem);
+  color: #ff6b1a;
+  text-shadow: 0 0 18px #ff6b1a88;
+}
+
+.onboarding-body {
+  color: #e8e8f0;
+  font-size: clamp(1.1rem, 3vw, 1.8rem);
+  max-width: 640px;
+}
+
+.onboarding-hint {
+  min-height: 1.4em;
+  color: #ffd166;
+  font-size: clamp(0.95rem, 2.2vw, 1.2rem);
+}
+
+.onboarding-hint[data-status='ok'] { color: #39ff14; }
+
+.onboarding-dots {
+  color: #ffd166;
+  letter-spacing: 0.3em;
+  font-size: 1.2rem;
+}
+
+.onboarding-buttons {
+  display: flex;
+  gap: 0.8rem;
+  margin: 0.4rem 0;
+}
+
+.onboarding button {
+  padding: 0.55rem 1.8rem;
+  font-size: 1.15rem;
+  font-weight: 700;
+  border-radius: 999px;
+  cursor: pointer;
+  border: 2px solid #ffd166;
+  background: #2a0845;
+  color: #ffd166;
+}
+
+.onboarding button.primary {
+  background: #ff6b1a;
+  border-color: #ff6b1a;
+  color: #0d0014;
+  box-shadow: 0 0 16px #ff6b1a88;
+}
+
+.onboarding button:focus-visible,
+.screen-error button:focus-visible {
+  outline: 3px solid #39ff14;
+  outline-offset: 3px;
+}
+
+.onboarding button[hidden], .onboarding p[hidden], .onboarding div[hidden] { display: none; }

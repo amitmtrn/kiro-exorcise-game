@@ -3,7 +3,7 @@ import { makeEnemy } from '../state'
 import { randomEdgeSpawn, centerTarget, randomId } from './spawnUtils'
 
 export const GHOST_SIZE = 80
-export const GHOST_SPEED = 1.2
+export const GHOST_SPEED = 0.222 // canvas heights per second
 
 export function createGhost(canvasW: number, canvasH: number, speedMult = 1): Enemy {
   const { x, y } = randomEdgeSpawn(canvasW, canvasH, GHOST_SIZE)

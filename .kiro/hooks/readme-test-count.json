@@ -1,0 +1,41 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "readme-test-count",
+      "description": "When a test file is saved, run the tests and sync the test count stated in README.md.",
+      "trigger": "PostFileSave",
+      "matcher": "^(?!.*(^|[\\\\/])node_modules[\\\\/]).*\\.test\\.(ts|mjs)$",
+      "action": {
+        "type": "command",
+        "command": "node tools/sync-readme-tests.mjs"
+      },
+      "timeout": 180,
+      "enabled": true
+    },
+    {
+      "name": "readme-test-count-on-delete",
+      "description": "When a test file is deleted, re-run the tests and sync the README test count.",
+      "trigger": "PostFileDelete",
+      "matcher": "^(?!.*(^|[\\\\/])node_modules[\\\\/]).*\\.test\\.(ts|mjs)$",
+      "action": {
+        "type": "command",
+        "command": "node tools/sync-readme-tests.mjs"
+      },
+      "timeout": 180,
+      "enabled": true
+    },
+    {
+      "name": "readme-test-count-on-create",
+      "description": "When a test file is created, run the tests and sync the README test count.",
+      "trigger": "PostFileCreate",
+      "matcher": "^(?!.*(^|[\\\\/])node_modules[\\\\/]).*\\.test\\.(ts|mjs)$",
+      "action": {
+        "type": "command",
+        "command": "node tools/sync-readme-tests.mjs"
+      },
+      "timeout": 180,
+      "enabled": true
+    }
+  ]
+}

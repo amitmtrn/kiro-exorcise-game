@@ -182,3 +182,34 @@ describe('computeMotionMask — whole-frame mask + new-frame detection', () => {
     }
   })
 })
+
+describe('computeFrameDiff — frame edges (pbt BUG-2)', () => {
+  /** 20×4 frame: only the first/last column of row 0 changed. */
+  function edgeMotion(col: number): { cur: ImageData; prev: ImageData } {
+    const prev = makeImageData(20, 4, 0)
+    const cur = makeImageData(20, 4, 0)
+    for (let y = 0; y < 4; y++) { const i = (y * 20 + col) * 4; cur.data[i] = cur.data[i + 1] = cur.data[i + 2] = 255 }
+    return { cur, prev }
+  }
+
+  it('a hitbox overhanging the left edge does not see the previous row\'s right edge', () => {
+    const { cur, prev } = edgeMotion(19)
+    expect(computeFrameDiff(cur, prev, { x: -8, y: 1, w: 9, h: 1 }, 20)).toBe(false)
+  })
+
+  it('a hitbox overhanging the right edge does not see the next row\'s left edge', () => {
+    const { cur, prev } = edgeMotion(0)
+    expect(computeFrameDiff(cur, prev, { x: 12, y: 0, w: 17, h: 1 }, 20)).toBe(false)
+  })
+
+  it('a hitbox fully outside the frame never hits', () => {
+    const cur = makeImageData(20, 4, 255), prev = makeImageData(20, 4, 0)
+    expect(computeFrameDiff(cur, prev, { x: -50, y: 0, w: 40, h: 4 }, 20)).toBe(false)
+    expect(computeFrameDiff(cur, prev, { x: 0, y: -10, w: 20, h: 5 }, 20)).toBe(false)
+  })
+
+  it('the visible part of an overhanging hitbox still registers motion', () => {
+    const cur = makeImageData(20, 4, 255), prev = makeImageData(20, 4, 0)
+    expect(computeFrameDiff(cur, prev, { x: -5, y: 0, w: 13, h: 4 }, 20)).toBe(true)
+  })
+})

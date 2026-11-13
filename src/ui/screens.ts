@@ -4,8 +4,11 @@
  */
 
 import type { GameState } from '../game/state'
-import { STAGES } from '../game/stages'
+import { stageLabel } from '../game/stages'
+import { STAGE_TITLE_DURATION_MS } from '../game/state'
+import { introPose, outroPose, outroRowAlpha } from '../game/transitions'
 import { MotionButton } from './motionButton'
+import { TITLE_FONT_FAMILY } from './fonts'
 
 // ─── Motion buttons (persistent instances reused across frames) ───────────────
 
@@ -13,6 +16,12 @@ let startBtn: MotionButton | null = null
 let retryBtn: MotionButton | null = null
 let menuBtn: MotionButton | null = null
 let nextBtn: MotionButton | null = null
+let winBtn: MotionButton | null = null
+let winMenuBtn: MotionButton | null = null
+// Victory: ignore the buttons briefly so the wave that beat the boss can't trigger them.
+let victoryShownAt: number | null = null
+const VICTORY_INPUT_DELAY_MS = 1500
+const VICTORY_FADE_MS = 400
 
 // ─── Start screen ─────────────────────────────────────────────────────────────
 
@@ -31,7 +40,7 @@ export function renderStartScreen(
 
   // Title
   ctx.textAlign = 'center'
-  ctx.font = `bold ${clamp(W / 10, 48, 96)}px sans-serif`
+  ctx.font = `${clamp(W / 8, 56, 120)}px ${TITLE_FONT_FAMILY}`
   ctx.fillStyle = '#ff6b1a'
   ctx.shadowColor = '#ff6b1a'; ctx.shadowBlur = 24
   ctx.fillText('👻 EXORCISE', W / 2, H * 0.28)
@@ -69,22 +78,26 @@ export function renderStartScreen(
 
 export function renderStageTitle(ctx: CanvasRenderingContext2D, state: GameState): void {
   const { width: W, height: H } = ctx.canvas
-  const cfg = STAGES[state.stage - 1]
+  const cfg = stageLabel(state)
   const secs = Math.ceil(state.stageTitleMs / 1000)
 
+  // Juice R5.1: the name slides in from the left, the subtitle from the right, the card fades out
+  const pose = introPose(STAGE_TITLE_DURATION_MS - state.stageTitleMs, STAGE_TITLE_DURATION_MS)
+
   ctx.save()
+  ctx.globalAlpha = pose.alpha
   ctx.fillStyle = 'rgba(13,0,20,0.82)'
   ctx.fillRect(0, 0, W, H)
 
   ctx.textAlign = 'center'
-  ctx.font = `bold ${clamp(W / 14, 36, 64)}px sans-serif`
+  ctx.font = `${clamp(W / 11, 42, 80)}px ${TITLE_FONT_FAMILY}`
   ctx.fillStyle = '#ff6b1a'
   ctx.shadowColor = '#ff6b1a'; ctx.shadowBlur = 20
-  ctx.fillText(cfg.name, W / 2, H * 0.38)
+  ctx.fillText(cfg.name, W / 2 + pose.nameX * W, H * 0.38)
 
   ctx.font = `${clamp(W / 20, 24, 40)}px sans-serif`
   ctx.fillStyle = '#ffd166'; ctx.shadowBlur = 0
-  ctx.fillText(cfg.subtitle, W / 2, H * 0.52)
+  ctx.fillText(cfg.subtitle, W / 2 + pose.subX * W, H * 0.52)
 
   ctx.font = `bold ${clamp(W / 12, 40, 72)}px monospace`
   ctx.fillStyle = '#e8e8f0'
@@ -103,18 +116,28 @@ export function renderSummary(
 ): void {
   const { width: W, height: H } = ctx.canvas
   const stars = calcStars(state)
+  const outro = outroPose(state.summaryShownMs) // juice R5.2
 
   ctx.save()
-  ctx.fillStyle = 'rgba(13,0,20,0.88)'
+  ctx.fillStyle = `rgba(13,0,20,${outro.overlayAlpha})`
   ctx.fillRect(0, 0, W, H)
 
+  // Banner drops in with a settling wobble
+  ctx.save()
+  ctx.translate(W / 2, H * outro.bannerY)
+  ctx.rotate(outro.bannerAngle)
+  ctx.scale(outro.bannerScale, outro.bannerScale)
   ctx.textAlign = 'center'
-  ctx.font = `bold ${clamp(W / 14, 32, 56)}px sans-serif`
+  ctx.font = `${clamp(W / 11, 38, 68)}px ${TITLE_FONT_FAMILY}`
   ctx.fillStyle = '#ffd166'; ctx.shadowColor = '#ffd166'; ctx.shadowBlur = 14
-  ctx.fillText('STAGE CLEAR!', W / 2, H * 0.18)
+  ctx.fillText(state.bonus ? 'BONUS CLEAR!' : 'STAGE CLEAR!', 0, 0)
+  ctx.restore()
 
+  ctx.textAlign = 'center'
+  ctx.fillStyle = '#ffd166'
   ctx.shadowBlur = 0
   ctx.font = `${clamp(W / 12, 36, 60)}px sans-serif`
+  ctx.globalAlpha = outroRowAlpha(state.summaryShownMs, 0)
   ctx.fillText('⭐'.repeat(stars) + '☆'.repeat(3 - stars), W / 2, H * 0.3)
 
   const rows = [
@@ -126,13 +149,15 @@ export function renderSummary(
   const rowH = H * 0.09
   let ry = H * 0.42
   ctx.font = `${clamp(W / 30, 16, 24)}px sans-serif`
-  for (const [label, val] of rows) {
+  rows.forEach(([label, val], i) => {
+    ctx.globalAlpha = outroRowAlpha(state.summaryShownMs, i + 1)
     ctx.fillStyle = 'rgba(232,232,240,0.7)'; ctx.textAlign = 'left'
     ctx.fillText(label, W * 0.28, ry)
     ctx.fillStyle = '#ffd166'; ctx.textAlign = 'right'
     ctx.fillText(val, W * 0.72, ry)
     ry += rowH
-  }
+  })
+  ctx.globalAlpha = 1 // the NEXT button is never faded or delayed (R5.3)
 
   // Next button
   if (!nextBtn || nextBtn.cx !== W / 2) {
@@ -161,9 +186,18 @@ export function renderGameOver(
   ctx.fillRect(0, 0, W, H)
 
   ctx.textAlign = 'center'
-  ctx.font = `bold ${clamp(W / 10, 48, 80)}px sans-serif`
+  ctx.font = `${clamp(W / 8, 56, 100)}px ${TITLE_FONT_FAMILY}`
   ctx.fillStyle = '#c0392b'; ctx.shadowColor = '#c0392b'; ctx.shadowBlur = 24
   ctx.fillText('GAME OVER', W / 2, H * 0.28)
+  if (state.lives > 0) {
+    // Lives remain, so the stage timer ran out with the boss alive (boss-phases R6.5).
+    ctx.shadowBlur = 0
+    ctx.font = `bold ${clamp(W / 28, 18, 30)}px sans-serif`
+    ctx.fillStyle = '#ff6b1a'
+    ctx.fillText("TIME'S UP", W / 2, H * 0.35)
+    ctx.font = `${clamp(W / 8, 56, 100)}px ${TITLE_FONT_FAMILY}`
+    ctx.fillStyle = '#c0392b'
+  }
 
   ctx.shadowBlur = 0
   ctx.font = `bold ${clamp(W / 22, 22, 36)}px sans-serif`
@@ -193,27 +227,73 @@ export function renderGameOver(
   if (r2 === 'triggered') onMenu()
 }
 
-// ─── Webcam error (HTML) ──────────────────────────────────────────────────────
+// ─── Victory (boss-phases R6.3) ──────────────────────────────────────────────
 
-const ui = (): HTMLElement => document.getElementById('ui')!
-let errorEl: HTMLElement | null = null
-
-export function showWebcamError(onRetry: () => void): void {
-  if (errorEl) return
-  const div = document.createElement('div')
-  div.className = 'screen-error'
-  div.innerHTML = `
-    <p>👻 Exorcise needs your webcam to work.<br>
-    Please allow camera access and try again.</p>
-    <button type="button">Try again</button>
-  `
-  div.querySelector('button')!.addEventListener('click', () => { hideWebcamError(); onRetry() })
-  errorEl = div
-  ui().appendChild(div)
+/** Call once when the game enters `victory`: restarts the banner and input lockout. */
+export function resetVictoryScreen(): void {
+  victoryShownAt = null
 }
 
-export function hideWebcamError(): void {
-  if (errorEl) { errorEl.remove(); errorEl = null }
+export function renderVictory(
+  ctx: CanvasRenderingContext2D,
+  state: GameState,
+  now: number,
+  onPlayAgain: () => void,
+  onMenu: () => void,
+): void {
+  const { width: W, height: H } = ctx.canvas
+  if (victoryShownAt === null) victoryShownAt = now
+  const t = now - victoryShownAt
+
+  ctx.save()
+  // Fade the backdrop in so the boss-defeat burst stays visible for a moment.
+  ctx.fillStyle = `rgba(13,0,20,${0.88 * Math.min(1, t / VICTORY_FADE_MS)})`
+  ctx.fillRect(0, 0, W, H)
+
+  // Wobble-in banner
+  const k = Math.min(1, t / 700)
+  const wobble = Math.sin(t / 90) * (1 - k) * 0.25
+  ctx.save()
+  ctx.translate(W / 2, H * 0.24)
+  ctx.rotate(wobble)
+  ctx.scale(0.4 + 0.6 * k, 0.4 + 0.6 * k)
+  ctx.textAlign = 'center'
+  ctx.font = `${clamp(W / 7, 56, 120)}px ${TITLE_FONT_FAMILY}`
+  ctx.fillStyle = '#ffd166'; ctx.shadowColor = '#ff6b1a'; ctx.shadowBlur = 28
+  ctx.fillText('YOU WIN!', 0, 0)
+  ctx.restore()
+
+  ctx.textAlign = 'center'
+  ctx.shadowBlur = 0
+  ctx.font = `${clamp(W / 26, 18, 30)}px sans-serif`
+  ctx.fillStyle = '#e8e8f0'
+  ctx.fillText('The ghosts have been exorcised 🎃', W / 2, H * 0.36)
+  ctx.font = `bold ${clamp(W / 18, 26, 44)}px sans-serif`
+  ctx.fillStyle = '#ffd166'; ctx.shadowColor = '#ffd166'; ctx.shadowBlur = 12
+  ctx.fillText(`Total score: ${state.score}`, W / 2, H * 0.48)
+  ctx.shadowBlur = 0
+  if (state.highScore > state.score) {
+    ctx.font = `${clamp(W / 34, 14, 20)}px sans-serif`
+    ctx.fillStyle = 'rgba(232,232,240,0.6)'
+    ctx.fillText(`Best: ${state.highScore}`, W / 2, H * 0.56)
+  }
+
+  const r = clamp(W / 9, 48, 76)
+  if (!winBtn) winBtn = new MotionButton(W * 0.35, H * 0.74, r, 'PLAY AGAIN')
+  else { winBtn.cx = W * 0.35; winBtn.cy = H * 0.74 }
+  if (!winMenuBtn) winMenuBtn = new MotionButton(W * 0.65, H * 0.74, r, 'MAIN MENU')
+  else { winMenuBtn.cx = W * 0.65; winMenuBtn.cy = H * 0.74 }
+  // Buttons ignore motion (no filling) until the input lockout ends.
+  const live = t >= VICTORY_INPUT_DELAY_MS
+  const r1 = live ? winBtn.update(now) : null
+  winBtn.render(ctx, now)
+  const r2 = live ? winMenuBtn.update(now) : null
+  winMenuBtn.render(ctx, now)
+  ctx.restore()
+
+  if (!live) return
+  if (r1 === 'triggered') onPlayAgain()
+  else if (r2 === 'triggered') onMenu()
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────

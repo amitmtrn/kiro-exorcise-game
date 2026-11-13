@@ -4,9 +4,15 @@
  */
 
 import type { GameState, Enemy, Particle, ScoreLabel } from './state'
+import { calloutPose } from './callouts'
+import type { Callout } from './callouts'
+import { TITLE_FONT_FAMILY } from '../ui/fonts'
 import { SHAKE_AMPLITUDE_PX } from './state'
 import { lastMotionPixels, lastBanished } from './collision'
 import { BOSS_HITS_NEEDED } from './enemies/boss'
+import { PHASE2_BELOW, PHASE3_BELOW } from './enemies/bossPhases'
+import { knockPose } from './knock'
+import type { Knock } from './knock'
 import { drawFog, drawCandleGlow } from './atmosphere'
 
 // ─── Debug mode ───────────────────────────────────────────────────────────────
@@ -23,6 +29,8 @@ const C_SKULL_E = '#c0392b'
 const C_LUNGER  = '#9b59b6'
 const C_PUMPKIN = '#ff6b1a'
 const C_BOSS    = '#e8e8f0'
+const C_BOSS_WINDUP = '#ff6b1a'
+const C_BOSS_ENRAGED = '#c0392b'
 
 // ─── Main entry ───────────────────────────────────────────────────────────────
 
@@ -51,13 +59,18 @@ export function renderFrame(
   for (const enemy of state.enemies) {
     drawEnemy(enemy.hitFlashFrames > 0 ? whiteCtx : ctx, enemy, now)
   }
-  // Enemies banished this frame are gone from state but flash white once
+  // Knocked-away enemies (juice R2): the normal enemy routines, rotated, shrunk and faded
+  for (const k of state.knocks) drawKnock(ctx, k, now)
+
+  // Enemies banished this frame are gone from state but flash white once;
+  // drawn after the knocks so the flash is not covered by the knock's first frame.
   if (state.phase === 'playing') {
     for (const enemy of lastBanished) drawEnemy(whiteCtx, enemy, now)
   }
 
   for (const p of state.particles) drawParticle(ctx, p)
   for (const l of state.scoreLabels) drawScoreLabel(ctx, l)
+  for (const c of state.callouts) drawCallout(ctx, c)
 
   // Boss health bar
   const boss = state.enemies.find(e => e.type === 'boss')
@@ -75,6 +88,26 @@ export function renderFrame(
   if (debugMode) drawDebugOverlay(ctx, state, now)
 
   ctx.restore() // undo shake translate
+}
+
+// ─── Knock (juice R2) ─────────────────────────────────────────────────────────
+function drawKnock(ctx: CanvasRenderingContext2D, k: Knock, now: number): void {
+  const pose = knockPose(k)
+  ctx.save()
+  ctx.globalAlpha = Math.max(0, Math.min(1, pose.alpha))
+  ctx.translate(pose.x, pose.y)
+  ctx.rotate(pose.angle)
+  ctx.scale(pose.scale, pose.scale)
+  // drawEnemy translates to enemy.x/y, so draw the snapshot at the local origin.
+  // Targets are made relative too (ghost wisps trail away from the target), and a
+  // boss's wind-up / shield visuals are dropped so only its body flies off.
+  const e = k.enemy
+  drawEnemy(ctx, {
+    ...e, x: 0, y: 0,
+    targetX: e.targetX - e.x, targetY: e.targetY - e.y,
+    ...(e.type === 'boss' ? { bossAttack: 'idle' as const, hitFlashFrames: 1 } : {}),
+  }, now)
+  ctx.restore()
 }
 
 // ─── White-fill proxy (spooky-skin R4.2) ──────────────────────────────────────
@@ -106,7 +139,8 @@ function drawEnemy(ctx: CanvasRenderingContext2D, enemy: Enemy, now: number): vo
     case 'skull':   drawSkull(ctx, now); break
     case 'lunger':  drawLunger(ctx, enemy, now); break
     case 'pumpkin': drawPumpkin(ctx, enemy); break
-    case 'boss':    drawBoss(ctx, now); break
+    case 'candy':   drawCandy(ctx, enemy, now); break
+    case 'boss':    drawBoss(ctx, enemy, now); break
   }
   ctx.restore()
 }
@@ -132,14 +166,15 @@ function drawGhost(ctx: CanvasRenderingContext2D, enemy: Enemy, now: number): vo
     { dist: 46, r: 9,  a: 0.25 },
     { dist: 60, r: 6,  a: 0.12 },
   ]
+  const baseAlpha = ctx.globalAlpha // a knocked-away ghost fades (juice R2)
   wisps.forEach((wsp, i) => {
     const bob = Math.sin(now / 160 + i * 1.4 + enemy.sineOffset) * 5
     const cx = bx * wsp.dist + px * bob
     const cy = by * wsp.dist + py * bob + h * 0.25
-    ctx.globalAlpha = wsp.a
+    ctx.globalAlpha = baseAlpha * wsp.a
     ctx.beginPath(); ctx.arc(cx, cy, wsp.r, 0, Math.PI * 2); ctx.fill()
   })
-  ctx.globalAlpha = 1
+  ctx.globalAlpha = baseAlpha
 
   // Body — dome, bulging sides, three rounded scallops at the hem.
   ctx.shadowColor = 'rgba(232,232,240,0.7)'; ctx.shadowBlur = 16
@@ -245,6 +280,8 @@ function drawSkull(ctx: CanvasRenderingContext2D, now: number): void {
 // ─── Lunger ───────────────────────────────────────────────────────────────────
 function drawLunger(ctx: CanvasRenderingContext2D, enemy: Enemy, now: number): void {
   const isWindup = enemy.movePhase === 'windup'
+  // Not hittable yet while approaching: draw it faded (boss-phases R7.2)
+  if (enemy.movePhase === 'approach') ctx.globalAlpha = 0.55
   // Scale up slightly during windup to telegraph the lunge
   const scale = isWindup ? 1 + 0.3 * Math.sin(now / 60) : 1
   ctx.scale(scale, scale)
@@ -288,10 +325,69 @@ function drawPumpkin(ctx: CanvasRenderingContext2D, enemy: Enemy): void {
   ctx.stroke()
 }
 
+// ─── Candy (waves bonus round) ────────────────────────────────────────────────
+// A wrapped sweet: palette-coloured body, twisted wrapper ends, a gentle spin.
+const CANDY_COLOURS = ['#ff6b1a', '#ffd166', '#39ff14', '#9b59b6']
+function drawCandy(ctx: CanvasRenderingContext2D, enemy: Enemy, now: number): void {
+  const colour = CANDY_COLOURS[Math.floor(enemy.sineOffset * 4 / (Math.PI * 2)) % CANDY_COLOURS.length]
+  ctx.rotate(Math.sin(now / 300 + enemy.sineOffset) * 0.4)
+  ctx.shadowColor = colour; ctx.shadowBlur = 12
+  ctx.fillStyle = colour
+  // Wrapper twists (two triangles)
+  ctx.beginPath(); ctx.moveTo(-10, 0); ctx.lineTo(-24, -11); ctx.lineTo(-24, 11); ctx.closePath(); ctx.fill()
+  ctx.beginPath(); ctx.moveTo(10, 0); ctx.lineTo(24, -11); ctx.lineTo(24, 11); ctx.closePath(); ctx.fill()
+  // Body
+  ctx.fillStyle = C_GHOST
+  ctx.beginPath(); ctx.ellipse(0, 0, 13, 11, 0, 0, Math.PI * 2); ctx.fill()
+  ctx.shadowBlur = 0
+  ctx.strokeStyle = colour; ctx.lineWidth = 3
+  ctx.beginPath(); ctx.moveTo(-7, -7); ctx.lineTo(7, 7); ctx.stroke()
+}
+
 // ─── Boss ─────────────────────────────────────────────────────────────────────
-function drawBoss(ctx: CanvasRenderingContext2D, now: number): void {
-  const glow = 14 + Math.sin(now / 400) * 6
-  ctx.shadowColor = '#7b2fbe'; ctx.shadowBlur = glow
+function drawBoss(ctx: CanvasRenderingContext2D, enemy: Enemy, now: number): void {
+  const windup = enemy.bossAttack === 'windup'
+  const shielded = enemy.bossPhase >= 2 && enemy.bossAttack === 'idle' && enemy.hitFlashFrames === 0
+  const enraged = enemy.bossPhase === 3
+  const aura = windup ? C_BOSS_WINDUP : enraged ? C_BOSS_ENRAGED : '#7b2fbe'
+
+  // Wind-up telegraph (boss-phases R3.2): shake, orange glow, pulsing ring, "!"
+  if (windup) {
+    ctx.translate(Math.sin(now / 20) * 5, Math.cos(now / 27) * 3)
+    const pulse = 0.5 + 0.5 * Math.sin(now / 50)
+    ctx.save()
+    ctx.shadowBlur = 0
+    ctx.strokeStyle = C_BOSS_WINDUP
+    ctx.globalAlpha = 0.45 + 0.4 * pulse
+    ctx.lineWidth = 6
+    ctx.beginPath(); ctx.arc(0, 0, 110 + 20 * pulse, 0, Math.PI * 2); ctx.stroke()
+    ctx.restore()
+    ctx.save()
+    ctx.shadowBlur = 0
+    ctx.font = 'bold 56px sans-serif'; ctx.textAlign = 'center'
+    ctx.fillStyle = C_BOSS_WINDUP
+    // Above the boss when there is headroom (clear of the HUD title), else beside it.
+    if (enemy.y - 105 - 45 >= 50) ctx.fillText('!', 0, -105)
+    else ctx.fillText('!', 135, 20)
+    ctx.restore()
+  }
+
+  // Shield bubble while the boss cannot be hurt (R3.5)
+  if (shielded) {
+    ctx.save()
+    ctx.shadowBlur = 0
+    ctx.fillStyle = 'rgba(123,47,190,0.18)'
+    ctx.strokeStyle = 'rgba(200,160,255,0.8)'
+    ctx.lineWidth = 4
+    ctx.beginPath(); ctx.arc(0, 0, 115, 0, Math.PI * 2); ctx.fill(); ctx.stroke()
+    ctx.restore()
+    ctx.globalAlpha = 0.7
+  }
+
+  const glow = windup
+    ? 30 + Math.sin(now / 50) * 10
+    : 14 + Math.sin(now / (enraged ? 180 : 400)) * 6
+  ctx.shadowColor = aura; ctx.shadowBlur = glow
   // Enlarged ghost
   const w = 80, h = 100
   ctx.fillStyle = C_BOSS
@@ -339,11 +435,15 @@ function drawBossHealthBar(ctx: CanvasRenderingContext2D, boss: Enemy): void {
   grad.addColorStop(1, '#e8e8f0')
   ctx.fillStyle = grad
   ctx.fillRect(x, y, barW * ratio, barH)
+  // Phase thresholds (boss-phases R5.2)
+  ctx.fillStyle = '#ffd166'
+  for (const t of [PHASE2_BELOW, PHASE3_BELOW]) ctx.fillRect(x + barW * t - 1, y - 3, 2, barH + 6)
   // Label
-  ctx.fillStyle = '#e8e8f0'
+  ctx.fillStyle = boss.bossPhase === 3 ? '#ff6b1a' : '#e8e8f0'
   ctx.font = 'bold 13px sans-serif'
   ctx.textAlign = 'center'
-  ctx.fillText(`👻 BOSS  ${remaining} / ${BOSS_HITS_NEEDED}`, W / 2, y - 6)
+  const tag = boss.bossPhase === 3 ? 'ENRAGED' : `PHASE ${boss.bossPhase}`
+  ctx.fillText(`👻 BOSS ${tag}  ${remaining} / ${BOSS_HITS_NEEDED}`, W / 2, y - 6)
   ctx.textAlign = 'left'
   ctx.restore()
 }
@@ -372,6 +472,31 @@ function drawScoreLabel(ctx: CanvasRenderingContext2D, l: ScoreLabel): void {
   ctx.shadowColor = C_SCORE_POP; ctx.shadowBlur = 12
   ctx.fillStyle = C_SCORE_POP
   ctx.fillText(l.text, l.x, l.y)
+  ctx.restore()
+}
+
+// ─── Combo call-out (juice R4) ────────────────────────────────────────────────
+const C_CALLOUT_TIER = '#39ff14'   // Slime Green
+const C_CALLOUT_PRAISE = '#ffd166' // Candlelight Yellow
+function drawCallout(ctx: CanvasRenderingContext2D, c: Callout): void {
+  const pose = calloutPose(c)
+  const size = Math.max(28, Math.min(64, ctx.canvas.width / 16))
+  const color = c.kind === 'tierUp' ? C_CALLOUT_TIER : C_CALLOUT_PRAISE
+  ctx.save()
+  ctx.globalAlpha = Math.max(0, Math.min(1, pose.alpha))
+  ctx.translate(c.x, c.y + pose.dy)
+  ctx.scale(pose.scale, pose.scale)
+  ctx.rotate(c.kind === 'tierUp' ? -0.08 : 0.06)
+  ctx.font = `${Math.round(size * 1.1)}px ${TITLE_FONT_FAMILY}`
+  ctx.textAlign = 'center'
+  ctx.textBaseline = 'middle'
+  ctx.lineWidth = 6
+  ctx.lineJoin = 'round'
+  ctx.strokeStyle = 'rgba(13,0,20,0.9)'
+  ctx.strokeText(c.text, 0, 0)
+  ctx.shadowColor = color; ctx.shadowBlur = 18
+  ctx.fillStyle = color
+  ctx.fillText(c.text, 0, 0)
   ctx.restore()
 }
 

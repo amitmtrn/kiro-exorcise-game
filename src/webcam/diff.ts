@@ -41,6 +41,20 @@ export function captureFrame(
 }
 
 /**
+ * Mirror a horizontal coordinate inside a canvas `width` pixels wide.
+ * Pure reference for the `translate(width, 0); scale(-1, 1)` canvas transform
+ * used by drawWebcamFrame / captureFrame. Applying it twice is the identity.
+ */
+export function mirrorX(x: number, width: number): number {
+  return width - x
+}
+
+/** Mirror an axis-aligned hitbox left↔right inside a canvas `width` wide. */
+export function mirrorHitbox(hitbox: Hitbox, width: number): Hitbox {
+  return { x: width - hitbox.x - hitbox.w, y: hitbox.y, w: hitbox.w, h: hitbox.h }
+}
+
+/**
  * Scale a hitbox from display canvas coordinates into motion canvas coordinates.
  */
 export function scaleHitbox(
@@ -81,9 +95,15 @@ export function computeFrameDiff(
     for (let col = 0; col < w; col += SAMPLE_STRIDE) {
       const px = Math.round(x + col)
       const py = Math.round(y + row)
+      // Hitboxes may overhang the frame (enemies enter from off-screen). Skip
+      // out-of-frame samples instead of letting the index wrap onto the
+      // neighbouring row (pbt BUG-2).
+      // Off-frame samples count as "not moved" in the denominator so a hitbox
+      // that is almost entirely off-screen cannot be decided by a few edge pixels.
+      if (px < 0 || px >= canvasWidth || py < 0) { totalSampled++; continue }
       const idx = (py * canvasWidth + px) * 4 // RGBA
 
-      if (idx + 2 >= currentData.data.length) continue
+      if (idx + 2 >= currentData.data.length) { totalSampled++; continue }
 
       const rC = currentData.data[idx]
       const gC = currentData.data[idx + 1]
