@@ -39,13 +39,13 @@ Files: `src/audio/recipes.ts`, `sfx.ts`, `index.ts`, `recipes.test.ts`
 
 ## T4 — Wire the sounds
 Files: `src/ui/motionButton.ts`, `ui/seatCard.ts`, `game/countdown.ts`, `game/loop.ts`
-- [ ] Failing tests first: a fired motion button plays no sound; game over plays no sting; stage titles play no ticks.
-- [ ] `updateExclusive` and `SeatCard` play `sfxConfirm` once per fire.
-- [ ] `createCountdownCues` (tick per number, go once); loop 1P and 2P.
-- [ ] Sting once at game over (1P, 2P final); title bed on end screens.
-- [ ] Tests: `sfx.fire.test.ts`, `countdown.test.ts`, `loop.audio.test.ts`.
-- [ ] `npm test` and `npm run build` both clean; demo seed 5 sims clean.
-- [ ] Commit: `feat(playtest2-fixes-T4): confirm sound on motion buttons, game over sting, countdown ticks`
+- [x] Failing tests first: a fired motion button plays no sound; game over plays no sting; stage titles play no ticks.
+- [x] `updateExclusive` and `SeatCard` play `sfxConfirm` once per fire (`playConfirm`, never throws).
+- [x] `createCountdownCues` (tick per number, go once); loop 1P and 2P.
+- [x] Sting once at game over (1P incl. boss timeout, 2P final with both seats out); title bed on end screens after `END_BED_DELAY_MS` (1P game over / victory, 2P final).
+- [x] Tests: `ui/sfx.fire.test.ts`, `seatCard.test.ts` (offer confirms once), `countdown.test.ts` (property: any tick split, several cards), `loop.audio.test.ts` (sting once, bed after it, ticks once per number at 60 fps and 30 fps with a stall; fails on the pre-T4 loop).
+- [x] `npm test` and `npm run build` both clean; demo seed 5 sims clean.
+- [x] Commit: `feat(playtest2-fixes-T4): confirm sound on motion buttons, game over sting, countdown ticks`
 
 ## T5 — Docs
 Files: `README.md`, `docs/KIRO.md`, `tools/judge-docs.test.mjs`
