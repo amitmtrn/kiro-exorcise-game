@@ -134,3 +134,19 @@ describe('reduced flashing (R1.8)', () => {
     }), { numRuns: 20 })
   })
 })
+
+describe('the Hollow King look (R6.5)', () => {
+  it('draws the crown colour and the HOLLOW KING label; the stage-5 boss keeps its label', () => {
+    for (const cb of [false, true]) {
+      setCb(cb)
+      const { ctx, rec } = recorder()
+      const king = enemy('boss', { finale: true, hitsNeeded: 10, bossPhase: 1 })
+      renderFrame(ctx, stateWith(king), 0)
+      expect(rec.fills).toContain((cb ? OKABE_ITO : DEFAULT).bossCrown)
+      expect(rec.texts.some((t) => t.includes('HOLLOW KING'))).toBe(true)
+      const r2 = recorder()
+      renderFrame(r2.ctx, stateWith(enemy('boss', { hitsNeeded: 10 })), 0)
+      expect(r2.rec.texts.some((t) => t.includes('HOLLOW KING'))).toBe(false)
+    }
+  })
+})

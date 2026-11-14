@@ -435,7 +435,7 @@ Cumulative Kiro `/usage`, from a bonus pool of 4000 (log):
 Largest steps: demo-mode (about 189) and motion-ui-ergonomics (about 70, plus 8).
 
 ## Demo mode
-Demo mode is merged (PR #6, merge commit 46d9551). Open the game with `?demo=1&seed=5`:
+Demo mode is merged (PR #6, merge commit 46d9551). Open the game with `?demo=1&seed=6`:
 no camera is used, the run is deterministic for a given seed, and it is meant for filming.
 
 ## What we didn't use

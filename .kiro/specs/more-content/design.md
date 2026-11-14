@@ -147,8 +147,12 @@ time waits for a free slot (cap 5).
 | Phase 3 | 2 s | 450 ms | 1.3 H/s | 0.9 s | 1 mirror (+ 1 blink on even summons) / 7 s, cap 3 |
 
 Everything else (phase thresholds, shield-while-idle, i-frames, stagger, defeat)
-is shared with the stage-5 boss. `tickBoss` counts minions with
-`isMinionType`; `createMinions(boss, W, H)` returns the list for the phase.
+is shared with the stage-5 boss. `paramsFor(boss)` picks the table. In `tickBoss` a
+finale summon makes `finaleMinionKinds(phase, n)` (blink / wisp pair / mirror, plus a
+blink on every other phase-3 summon) with `spawnVariantAt` at the boss position; the
+finale boss counts its summons in `vHits` (unused by bosses otherwise). A summon that
+would exceed the cap (blink, wisp, mirror and ghost alive; a pair counts 2) is skipped
+and the timer restarts, as for the stage-5 boss.
 
 Fight budget: boss enters at 22 s, 38 s remain. Phase 1 (hits 1–4) needs
 4 × 0.4 s i-frames plus swing time ≈ 5 s. A phase-2 cycle is 3 + 0.7 + lunge
@@ -169,7 +173,7 @@ hat, aura `#d4a017` / cb palette, label "HOLLOW KING".
 ### Music
 
 `TrackId` gains `'finale'` (bpm 138, transpose 0, `minTier: 2`, A-minor scale,
-original bass / lead). `trackForStage(n ≥ 6)` returns it; stage 5 stays `boss`.
+original bass / lead: a pedal bass climbing A–C–D–E and a bell-like lead). `trackForStage(n ≥ 6)` returns it; stage 5 stays `boss`.
 
 ## Rendering (`render.ts`, procedural)
 
@@ -255,6 +259,12 @@ the player's own row.
   no-op and the name screen is not shown when `demo` is set.
 
 ## Demo mode
+
+**Default seed.** With stage 6 the seed-5 run loses its last life to a phase-3 lunge
+at 960×540 (two lives are lost in stage 4 at that size, as before). A scan of seeds
+1–16 at the five tested sizes found 6, 9 and 16 clean at every size; the default seed
+is now **6**, and README, `docs/KIRO.md`, the harness README and `run.sh` say so.
+Seed 5 still works and stays deterministic.
 
 The driver reads `isHittable`, so blink ghosts in `ethereal | warnIn` and shielded
 mirror ghosts are not targets. For wisps it targets the lit wisp's partner first.

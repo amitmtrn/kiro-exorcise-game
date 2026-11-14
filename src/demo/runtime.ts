@@ -11,6 +11,7 @@ import type { DemoView } from './driver'
 import { SyntheticCamera } from './camera'
 import type { CameraFrames, Pt } from './camera'
 import { setHighScorePersistence } from '../game/state'
+import { STAGES } from '../game/stages'
 import { lockEndButtons } from '../ui/cardScreen'
 
 export interface DemoOptions {
@@ -54,7 +55,7 @@ export class DemoRuntime {
 
   constructor(opts: DemoOptions) {
     this.seed = opts.seed
-    this.startStage = Math.min(5, Math.max(1, Math.round(opts.stage)))
+    this.startStage = Math.min(STAGES.length, Math.max(1, Math.round(opts.stage)))
     this.speed = opts.speed
     this.driver = new DemoDriver(opts.seed, opts.w, opts.h)
     this.hand = { ...this.driver.hand }

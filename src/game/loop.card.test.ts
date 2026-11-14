@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 
-const h = vi.hoisted(() => ({ phase: 'gameover' as string, sessions: [] as unknown[] }))
+const h = vi.hoisted(() => ({ phase: 'gameover' as string, sessions: [] as unknown[], badges: [] as Array<string | undefined> }))
 
 vi.mock('../webcam/capture', () => ({ drawWebcamFrame: vi.fn() }))
 vi.mock('./atmosphere', () => ({ drawWebcamTint: vi.fn() }))
@@ -38,7 +38,7 @@ vi.mock('../card/session', async (orig) => {
   return { ...m, CardSession: Recorded }
 })
 
-vi.mock('../card/draw', () => ({ composeCard: () => ({ width: 600, height: 840 }) }))
+vi.mock('../card/draw', () => ({ composeCard: (d: { badge?: string }) => { h.badges.push(d.badge); return { width: 600, height: 840 } } }))
 
 import { startLoop, requestStart, isTwoPlayerActive, handleCardKey, handleCardPointer, handleSeatCardPointer, isCardPreviewOpen, stopLoop } from './loop'
 import type { CardSession } from '../card/session'
@@ -115,6 +115,21 @@ describe('card input on an end screen', () => {
     stopLoop()
     expect(handleCardKey('c')).toBe(false)
   })
+})
+
+describe('finale badge (more-content R5.6)', () => {
+  for (const [phase, want] of [['victory', 'FINALE CLEARED'], ['gameover', undefined]] as const) {
+    it(`${phase}: card badge ${want ?? 'none'}`, async () => {
+      h.phase = phase
+      h.badges = []
+      const stop = await startLoop({} as HTMLVideoElement, ctx(), ctx())
+      frame(16)
+      handleCardKey('c')
+      frame(32)
+      expect(h.badges).toEqual([want])
+      stop()
+    })
+  }
 })
 
 describe('1P card in two-player mode (card is per seat, never the 1P session)', () => {

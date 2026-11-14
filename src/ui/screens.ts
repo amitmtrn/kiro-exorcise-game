@@ -4,7 +4,7 @@
  */
 
 import type { GameState } from '../game/state'
-import { stageLabel } from '../game/stages'
+import { stageLabel, STAGES } from '../game/stages'
 import { STAGE_TITLE_DURATION_MS } from '../game/state'
 import { introPose, outroPose, outroRowAlpha } from '../game/transitions'
 import { EntryLock, ENTRY_LOCK_MS, updateExclusive } from './motionButton'
@@ -152,11 +152,26 @@ export function renderStageTitle(ctx: CanvasRenderingContext2D, state: GameState
   ctx.fillStyle = '#ffd166'; ctx.shadowBlur = 0
   ctx.fillText(cfg.subtitle, W / 2 + pose.subX * W, H * 0.52)
 
+  // Stage 6: one hint line per new ghost, each led by its state icon (more-content R5.3)
+  const hints = stageHints(state)
+  const countY = hints.length > 0 ? 0.6 : 0.7
   ctx.font = `bold ${fit(String(secs), clamp(W / 12, 40, 72), W, WIDE_BAND)}px monospace`
   ctx.fillStyle = '#e8e8f0'
-  ctx.fillText(String(secs), W / 2, H * 0.7)
+  ctx.fillText(String(secs), W / 2, H * countY)
+  if (hints.length > 0) {
+    const px = Math.min(...hints.map((l) => fit(l, clamp(W / 40, 14, 22), W, TEXT_BAND_LOW)))
+    ctx.font = `bold ${px}px sans-serif`
+    ctx.fillStyle = '#ffd166'
+    hints.forEach((l, i) => ctx.fillText(l, W / 2, H * 0.72 + i * px * 1.5))
+  }
 
   ctx.restore()
+}
+
+/** Hint lines of the stage title card (none for the bonus round or stages without new ghosts). */
+export function stageHints(state: Pick<GameState, 'stage' | 'bonus'>): readonly string[] {
+  if (state.bonus) return []
+  return STAGES[state.stage - 1]?.hints ?? []
 }
 
 // ─── Stage summary ────────────────────────────────────────────────────────────

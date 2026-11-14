@@ -128,7 +128,7 @@ describe('CardSession card flow', () => {
     expect(t.compose).toHaveBeenCalledTimes(1)
     const [data, photo] = t.compose.mock.calls[0]
     expect(photo).toBe('snap1')
-    expect(data).toMatchObject({ score: 4200, stage: 3, banished: 20, bestCombo: 2, rank: 'Haunt Hunter', stageCount: 5 })
+    expect(data).toMatchObject({ score: 4200, stage: 3, banished: 20, bestCombo: 2, rank: 'Haunt Hunter', stageCount: 6 })
   })
 
   it('banished counts the whole run across stages', () => {

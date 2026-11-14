@@ -2,6 +2,8 @@
  * Demo mode parameters and key rules (demo-mode R1, R5). Pure: no DOM.
  */
 
+
+import { STAGES } from '../game/stages'
 export const DEMO = {
   /** Fixed real step per processed tick, ms. */
   stepMs: 1000 / 60,
@@ -14,7 +16,7 @@ export const DEMO = {
   /** Synthetic camera frame interval in demo time (a 30 fps webcam). */
   frameMs: 1000 / 30,
   /** Plays a clean run (no game over) at the common window sizes; any seed works (demo-mode R5.2). */
-  defaultSeed: 5,
+  defaultSeed: 6,
   defaultStage: 1,
   minSpeed: 1,
   maxSpeed: 3,
@@ -56,7 +58,7 @@ export function parseDemoParams(search: string): DemoParams {
   return {
     demo: q.get('demo') === '1',
     seed: seed ?? DEMO.defaultSeed,
-    stage: stage !== null && stage >= 1 && stage <= 5 ? stage : DEMO.defaultStage,
+    stage: stage !== null && stage >= 1 && stage <= STAGES.length ? stage : DEMO.defaultStage,
     speed: speed !== null && speed >= DEMO.minSpeed && speed <= DEMO.maxSpeed ? speed : DEMO.timeScale,
   }
 }

@@ -76,3 +76,10 @@ export function spawnVariant(kind: VariantType, W: number, H: number, skulls: re
   if (kind === 'wisp') return createWispPair(p, W, H, rand)
   return [kind === 'mirror' ? createMirror(p, W, H, rand) : createBlink(p, W, H, rand)]
 }
+
+/** One finale minion `kind` at the boss position (`bx`, `by`), aimed at the exact centre. A wisp makes a pair. */
+export function spawnVariantAt(kind: VariantType, bx: number, by: number, W: number, H: number, rand: Rand = Math.random): Enemy[] {
+  const p: Pt = { x: bx, y: by }
+  if (kind === 'wisp') return createWispPair(p, W, H, rand)
+  return [kind === 'mirror' ? createMirror(p, W, H, rand) : createBlink(p, W, H, rand)]
+}

@@ -54,7 +54,7 @@ import type { PlayerMode, StartRequest } from './playerMode'
 import { CardSession } from '../card/session'
 import { grabMirroredSnapshot, releaseSnapshot } from '../card/snapshot'
 import { grabHalfSnapshot } from '../card/halfSnapshot'
-import { badgeFor, cardFileName, seatLabel } from '../card/twoPlayerCard'
+import { badgeFor, cardFileName, seatLabel, FINALE_BADGE } from '../card/twoPlayerCard'
 import { composeCard } from '../card/draw'
 import { downloadCanvasPng } from '../card/download'
 import { CardPreview, cardKeyAction, offerHit, lockEndButtons } from '../ui/cardScreen'
@@ -192,7 +192,8 @@ export async function startLoop(
     releaseCard: releaseSnapshot,
     // demo: nothing is written, so the save must never report "saved"
     download: demo ? async () => false : (c) => downloadCanvasPng(c),
-    ...(demo ? { extra: () => ({ badge: 'DEMO' }) } : {}),
+    // Demo: the DEMO chip. A finale win (victory after the last stage) gets the FINALE CLEARED chip (more-content R5.6).
+    extra: () => (demo ? { badge: 'DEMO' } : state.phase === 'victory' ? { badge: FINALE_BADGE } : {}),
   })
   const preview = new CardPreview()
 

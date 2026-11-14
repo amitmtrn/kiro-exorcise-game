@@ -18,6 +18,7 @@ import { tickParticles, tickScoreLabels } from './particles'
 import { tickKnocks } from './knock'
 import { tickCallouts } from './callouts'
 import { spawnBoss } from './round'
+import { bossDue, withKingWarning } from './finale'
 import { sfxLifeLost } from '../audio/index'
 
 /** Advances the simulation by `simMs` of game time (hit-stop already removed). */
@@ -25,8 +26,9 @@ export function stepSimulation(state: GameState, simMs: number, displayW: number
   // Screen shake counts down with elapsed time (set by resolveHits)
   state = tickShake(state, simMs)
 
-  // Stage 5: spawn boss once
-  if (state.stage === 5 && !state.bossActive) {
+  // Boss stages: spawn the boss once (stage 5 at once, the stage-6 Hollow King at its entrance time)
+  state = withKingWarning(state, displayW, displayH)
+  if (bossDue(state)) {
     state = spawnBoss(state, displayW, displayH)
   }
 

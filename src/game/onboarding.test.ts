@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import {
   createOnboarding, onboardingReducer as r, shouldPersist, hasSeenOnboarding, persistSeen, getLocalStorage,
-  ONBOARDING_STORAGE_KEY, PRIVACY_LINE, HOWTO_STEPS, GUIDE_TEXT,
+  ONBOARDING_STORAGE_KEY, PRIVACY_LINE, HOWTO_STEPS, GUIDE_TEXT, howtoBody,
   type OnboardingState, type OnboardingEvent, type OnboardingStorage,
 } from './onboarding'
 
@@ -22,6 +22,10 @@ describe('copy', () => {
       "Don't touch the cursed skull ☠",
       'Chain hits to build combos',
     ])
+  })
+  it('the last card names the stage-6 ghosts in one line (more-content R7.3)', () => {
+    expect(howtoBody(0)).toBe('👻  Swat the ghosts and bats with your hands')
+    expect(howtoBody(2)).toBe('🔥  Chain hits to build combos. Later stages bring twin wisps, mirror ghosts and blinkers.')
   })
   it('has the guide text', () => {
     expect(GUIDE_TEXT).toBe('Stand back so your head and both hands are in frame')

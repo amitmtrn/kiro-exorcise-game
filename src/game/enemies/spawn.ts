@@ -9,6 +9,8 @@ import { STAGES } from '../stages'
 import { createSkull } from './skull'
 import { createLunger } from './lunger'
 import { spawnWave } from './waveSpawn'
+import { spawnVariant } from './variantSpawn'
+import { withTip, VARIANT_DEFER_MAX_MS } from '../finale'
 import { intensityAt, spawnRateFor, speedFactorFor, pickPath, BONUS_ROUND } from '../waves'
 import type { WaveKind } from '../waves'
 import type { WavePath } from '../paths'
@@ -110,6 +112,29 @@ export function tickSpawners(
     }
   }
 
+  // New ghosts (more-content R5.2): scripted spawns of the stage, in order. A wisp pair needs two free
+  // slots; an event that cannot fit within VARIANT_DEFER_MAX_MS of its time is dropped, so nothing new
+  // arrives late in the stage. A spawn with no safe edge point waits for the next tick.
+  let next0 = state
+  let variantIndex = state.variantIndex
+  const vEvents = bonus ? undefined : stageCfg.variantEvents
+  if (vEvents) {
+    while (variantIndex < vEvents.length && vEvents[variantIndex].atMs <= elapsed) {
+      const ev = vEvents[variantIndex]
+      if (elapsed - ev.atMs > VARIANT_DEFER_MAX_MS) { variantIndex++; continue }
+      const need = ev.kind === 'wisp' ? 2 : 1
+      if (max - nonBossCount < need) break
+      const made = spawnVariant(ev.kind, canvasW, canvasH, enemies.filter((e) => e.type === 'skull'))
+      if (!made) break
+      enemies = [...enemies, ...made]
+      nonBossCount += made.length
+      next0 = withTip(next0, ev.kind, made[0].x, made[0].y, canvasW, canvasH)
+      variantIndex++
+    }
+  }
+  // The skull stays away from the finale boss entrance (R5.2).
+  const skullQuiet = !bonus && !!stageCfg.finale && elapsed >= stageCfg.finale.bossAtMs - stageCfg.finale.skullQuietMs
+
   // Ghost
   timers.ghost -= deltaMs * rate
   if (timers.ghost <= 0) {
@@ -127,7 +152,7 @@ export function tickSpawners(
   // Skull (max 1 non-exiting at a time; a leaving skull does not block)
   timers.skull -= deltaMs * rate
   if (timers.skull <= 0) {
-    if (mix.skull && nonBossCount < max && !skullActive) {
+    if (mix.skull && !skullQuiet && nonBossCount < max && !skullActive) {
       enemies = [...enemies, createSkull(canvasW, canvasH, mult)]
       nonBossCount++
     }
@@ -151,8 +176,9 @@ export function tickSpawners(
     timers.pumpkin = resetTimer(timers.pumpkin, cfg.spawnIntervalMs.pumpkin)
   }
 
-  let next = setSpawnTimers(state, timers)
+  let next = setSpawnTimers(next0, timers)
   next = setEnemies(next, enemies)
+  if (variantIndex !== next.variantIndex) next = { ...next, variantIndex }
   return waveIndex === next.waveIndex ? next : { ...next, waveIndex }
 }
 

@@ -28,6 +28,8 @@ import {
 } from '../audio/sfx'
 
 const SPAWN_GRACE_MS = 300
+/** Extra points for defeating the Hollow King (more-content R6.6). */
+export const FINALE_BONUS = 2000
 /** A hit flash below this many 60 Hz frames remaining is over (avoids a 2nd flash frame at 16 ms ticks). */
 const FLASH_EPSILON = 0.25
 
@@ -324,7 +326,7 @@ export function resolveHits(
     if (s.phase === 'gameover') {
       updatedEnemies.push(enemy)
     } else {
-      s = scoreWithPop(s, enemy, 1000 * combo)
+      s = scoreWithPop(s, enemy, 1000 * combo + (enemy.finale ? FINALE_BONUS : 0))
       s = incrementBanished(s)
       s = addParticles(s, spawnGhostPuff(enemy.x, enemy.y))
       s = addParticles(s, spawnBatPuff(enemy.x, enemy.y))

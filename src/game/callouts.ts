@@ -21,7 +21,7 @@ export const PRAISE: Readonly<Record<2 | 3 | 4, string>> = {
   4: 'PERFECT!',
 }
 
-export type CalloutKind = 'tierUp' | 'praise'
+export type CalloutKind = 'tierUp' | 'praise' | 'tip'
 
 export interface Callout {
   x: number

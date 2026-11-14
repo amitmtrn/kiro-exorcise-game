@@ -11,6 +11,9 @@ export function seatLabel(seat: Seat): string {
   return `P${seat + 1}`
 }
 
+/** Badge on a one-player card after the finale is cleared (more-content R5.6). */
+export const FINALE_BADGE = 'FINALE CLEARED'
+
 /** Winner's card says WINNER, both cards say TIE on a tie, the loser's has no badge. */
 export function badgeFor(winner: Winner, seat: Seat): string | undefined {
   if (winner === 'tie') return 'TIE'

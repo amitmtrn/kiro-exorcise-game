@@ -27,15 +27,16 @@
 - [x] Commit: `feat(more-content-T3): new ghost art and colourblind palette keys`
 
 ## T4 — Stage 6 and the Hollow King
-- [ ] `stages.ts`: stage 6 config (`variantEvents`, `finale`), `tickSpawners` consumes the events and stops skulls before the boss; `variantIndex` reset on stage entry.
-- [ ] `bossPhases.ts`: `FINALE_PARAMS`, `createMinions` (blink / wisp pair / mirror), minion cap counts; `createBoss(finale)`; `bossDue` spawns it at 22 s; finale bonus 2000 on defeat.
-- [ ] Flow: `advanceToNextStage` 5 → 6, 6 → victory; no stage-5 victory; 2P and card code read `STAGES.length` not 5.
-- [ ] `patterns.ts`: `finale` track; `trackForStage(n ≥ 6)`.
-- [ ] Callouts: tip call-outs for first sightings, "THE HOLLOW KING!"; stage-title hint lines with icon shapes; onboarding line; card badge "FINALE CLEARED".
-- [ ] Render: crown, aura, "HOLLOW KING" label.
-- [ ] Tests: stage 6 config, event order and cut-off times, victory only after stage 6, finale params (telegraph ≥ 400 ms, vulnerable ≥ 1200 ms per cycle), minion kinds per phase, music track validity, tips shown once.
-- [ ] `npm test` and `npm run build` both clean.
-- [ ] Commit: `feat(more-content-T4): stage 6 finale with the Hollow King`
+- [x] `stages.ts`: stage 6 config (`variantEvents`, `finale`), `tickSpawners` consumes the events and stops skulls before the boss; `variantIndex` reset on stage entry.
+- [x] `bossPhases.ts`: `FINALE_PARAMS`, `paramsFor`, `finaleMinionKinds` (blink / wisp pair / mirror), minion cap counts; `createBoss(finale)`; `finale.ts` `bossDue` spawns it at 22 s; finale bonus 2000 on defeat.
+- [x] Flow: `advanceToNextStage` 5 → 6, 6 → victory; no stage-5 victory; 2P and card code read `STAGES.length` not 5.
+- [x] `patterns.ts`: `finale` track; `trackForStage(n ≥ 6)`.
+- [x] Callouts: tip call-outs for first sightings, "THE HOLLOW KING!"; stage-title hint lines with icon shapes; onboarding line; card badge "FINALE CLEARED".
+- [x] Render: crown, aura, "HOLLOW KING" label.
+- [x] Demo: stage range 1–6 in `params.ts` / `runtime.ts`; default seed 6 (seed 5 loses the 960×540 take on the finale), README / KIRO.md / harness README / `run.sh` / judge-docs test updated together.
+- [x] Tests: stage 6 config, event order and cut-off times, victory only after stage 6, finale params (telegraph ≥ 400 ms, vulnerable ≥ 1200 ms per cycle), minion kinds per phase, music track validity, tips shown once, finale card badge, onboarding line; existing stage-5-is-last tests moved to stage 6.
+- [x] `npm test` and `npm run build` both clean.
+- [x] Commit: `feat(more-content-T4): stage 6 finale with the Hollow King`
 
 ## T5 — High-score table core
 - [ ] Create `src/game/highScores.ts`: types, `sanitizeName`, `generateName`, `qualifies`, `insertScore`, `renameEntry`, `parseTable`, `loadTable` (with migration), `saveTable`, `recordScore`, `tableBest`.
@@ -69,7 +70,7 @@
 
 ## T9 — Demo mode and balance check
 - [ ] Demo driver: respects variant vulnerability, hits both wisps inside the window.
-- [ ] `demo.sim.test.ts`: full run reaches stage 6 and victory, nothing saved, no name screen; re-check seed 5 at the tested sizes (change the default seed and docs only if it fails).
+- [ ] `demo.sim.test.ts`: full run reaches stage 6 and victory, nothing saved, no name screen; re-check the default seed at the tested sizes after the driver change.
 - [ ] Motion harness / balancer: run the report-only check on stage 6 and note the result in `design.md` (the balancer edits nothing).
 - [ ] `npm test` and `npm run build` both clean.
 - [ ] Commit: `feat(more-content-T9): demo plays the finale`

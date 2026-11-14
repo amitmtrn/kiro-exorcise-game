@@ -25,6 +25,8 @@ export interface Palette {
   boss: string
   bossWindup: string
   bossEnraged: string
+  /** The Hollow King's crown and idle aura (more-content R6.5). */
+  bossCrown: string
   candy: readonly [string, string, string, string]
   life: string
   score: string
@@ -41,7 +43,7 @@ export interface Palette {
 
 export const DEFAULT: Palette = {
   ghost: '#e8e8f0', bat: '#2a0845', batEye: '#ffd166', skull: '#ff6b1a', skullEye: '#c0392b',
-  lunger: '#9b59b6', pumpkin: '#ff6b1a', wisp: '#7fe0d0', mirror: '#a8c0ff', blink: '#f0e6a0', boss: '#e8e8f0', bossWindup: '#ff6b1a', bossEnraged: '#c0392b',
+  lunger: '#9b59b6', pumpkin: '#ff6b1a', wisp: '#7fe0d0', mirror: '#a8c0ff', blink: '#f0e6a0', boss: '#e8e8f0', bossWindup: '#ff6b1a', bossEnraged: '#c0392b', bossCrown: '#ffd166',
   candy: ['#ff6b1a', '#ffd166', '#39ff14', '#9b59b6'],
   life: '#c0392b', score: '#ffd166', combo: '#39ff14', danger: '#c0392b',
   p1: '#e8e8f0', p2: '#e8e8f0',
@@ -57,7 +59,7 @@ export const OKABE = {
 
 export const OKABE_ITO: Palette = {
   ghost: '#E8E8F0', bat: OKABE.blue, batEye: OKABE.yellow, skull: OKABE.vermillion, skullEye: '#0d0014',
-  lunger: OKABE.skyBlue, pumpkin: OKABE.yellow, wisp: '#999988', mirror: '#bbeebb', blink: '#ccaa66', boss: '#E8E8F0', bossWindup: OKABE.orange, bossEnraged: OKABE.vermillion,
+  lunger: OKABE.skyBlue, pumpkin: OKABE.yellow, wisp: '#999988', mirror: '#bbeebb', blink: '#ccaa66', boss: '#E8E8F0', bossWindup: OKABE.orange, bossEnraged: OKABE.vermillion, bossCrown: OKABE.yellow,
   candy: [OKABE.orange, OKABE.skyBlue, OKABE.purple, OKABE.yellow],
   life: OKABE.vermillion, score: OKABE.yellow, combo: OKABE.skyBlue, danger: OKABE.vermillion,
   p1: OKABE.skyBlue, p2: OKABE.orange,
