@@ -99,5 +99,5 @@ describe('wave spawner — properties', () => {
       })()
       expect(Math.abs(count(a) - count(b))).toBeLessThanOrEqual(1)
     }), { numRuns: 15 })
-  })
+  }, 30_000) // 30 simulations of 300 s at 8-100 ms ticks: long on purpose, ~0.4 s locally
 })

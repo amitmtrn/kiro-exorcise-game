@@ -23,12 +23,35 @@ describe('frame budget properties', () => {
     }))
   })
 
+  /**
+   * Runs a constant frame time for `totalMs` and reports whether every level change went the same way.
+   * Only the direction is kept (no per-change objects), so the long runs stay cheap.
+   */
+  function oneDirection(f: number, totalMs: number, start: number): boolean {
+    let s = createFrameBudget(start as 0)
+    let dir = 0
+    for (let t = 0; t < totalMs; t += f) {
+      const n = stepFrameBudget(s, f)
+      if (n.level !== s.level) {
+        const d = Math.sign(n.level - s.level)
+        if (dir !== 0 && d !== dir) return false
+        dir = d
+      }
+      s = n
+    }
+    return true
+  }
+
+  // 60 s is enough (ci-timeout design.md): the last possible level change is before ~40 s (refresh estimate settled by
+  // 10.3 s at most, then three 9 s up steps), and the measured worst case over a sweep of f and start levels is 25.3 s.
   it('constant frame time moves the level in one direction only (R1.5)', () => {
-    fc.assert(fc.property(fc.double({ min: 2, max: 120, noNaN: true }), fc.integer({ min: 0, max: 3 }), (f, start) => {
-      const { changes } = levels(f, 120_000, start)
-      const dirs = new Set(changes.map((c) => Math.sign(c.to - c.from)))
-      return dirs.size <= 1
-    }), { numRuns: 200 })
+    fc.assert(fc.property(fc.double({ min: 2, max: 120, noNaN: true }), fc.integer({ min: 0, max: 3 }), (f, start) => oneDirection(f, 60_000, start)), { numRuns: 200 })
+  }, 30_000) // ~0.2 s locally; 200 runs of up to 30 000 steps, so a slow shared runner gets an explicit budget
+
+  // Fixed examples at the original 120 s span: both ends of the range and every band edge
+  // (14 / 20 ms floors, 60 Hz and 30 Hz scaled thresholds 16.67 x 1.1, x 1.3 and 33.33 x 1.1, x 1.3, and the 15 % snap edges).
+  it.each([2, 120, 14, 16.67, 18.34, 20, 21.67, 28.9, 29, 36.67, 38.3, 38.4, 43.33])('frame time %s ms moves the level one way only over 120 s, from every start level (R1.5)', (f) => {
+    for (const start of [0, 1, 2, 3]) expect(oneDirection(f, 120_000, start)).toBe(true)
   })
 
   it('a steady 30 fps cap never steps down from level 0', () => {
