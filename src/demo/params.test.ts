@@ -40,6 +40,16 @@ describe('parseDemoParams (demo-mode R1.1)', () => {
   })
 })
 
+describe('keydown without a key (demo-mode R1.4)', () => {
+  it('is ignored and never throws', () => {
+    const e = {} as unknown as { key: string }
+    expect(demoKeyAction(e)).toBe('ignore')
+    expect(isDemoToggleKey(e, true)).toBe(false)
+    expect(routeDemoKey(e, { demoOn: true, onTitle: true, msSinceLeft: 1e9 })).toBe('pass')
+    expect(routeDemoKey(e, { demoOn: false, onTitle: true, msSinceLeft: 1e9 })).toBe('pass')
+  })
+})
+
 describe('demoKeyAction (demo-mode R1.2–R1.4)', () => {
   it('G toggles, with or without shift', () => {
     expect(demoKeyAction({ key: 'g' })).toBe('toggle')

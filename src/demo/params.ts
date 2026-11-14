@@ -81,6 +81,7 @@ const FUNCTION_KEY = /^F([1-9]|1[0-2])$/
  * anything else leaves demo mode (R1.3, R1.4).
  */
 export function demoKeyAction(e: KeyLike): DemoKeyAction {
+  if (typeof e.key !== 'string') return 'ignore' // synthetic key events (autofill, extensions) can lack a key
   const plain = !e.ctrlKey && !e.metaKey && !e.altKey
   if (plain && e.key.toLowerCase() === DEMO_TOGGLE_KEY) return 'toggle'
   if (MODIFIER_KEYS.has(e.key) || FUNCTION_KEY.test(e.key) || SYSTEM_KEY.test(e.key) || !plain) return 'ignore'
@@ -90,7 +91,7 @@ export function demoKeyAction(e: KeyLike): DemoKeyAction {
 
 /** True when a key press on the normal title screen should switch demo mode on (R1.2). */
 export function isDemoToggleKey(e: KeyLike, onTitleScreen: boolean): boolean {
-  return onTitleScreen && !e.ctrlKey && !e.metaKey && !e.altKey && e.key.toLowerCase() === DEMO_TOGGLE_KEY
+  return onTitleScreen && typeof e.key === 'string' && !e.ctrlKey && !e.metaKey && !e.altKey && e.key.toLowerCase() === DEMO_TOGGLE_KEY
 }
 
 export type DemoKeyRoute = 'leave' | 'enter' | 'swallow' | 'pass'
