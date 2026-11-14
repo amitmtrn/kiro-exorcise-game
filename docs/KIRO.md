@@ -5,8 +5,8 @@ hands in front of a webcam. Frame differencing detects the motion. The whole gam
 runs client-side in TypeScript + Vite.
 
 This page is the write-up for the Kiroween 2026 judges. Every number comes from
-this repo (the command is shown) or from the off-repo orchestration notes
-(`kiro-facts.md`, marked "(log)"). Repo counts are taken at merge commit `df26f4d`
+this repo (the command is shown) or from off-repo orchestration logs
+(marked "(log)"). Repo counts are taken at merge commit `df26f4d`
 (PR #5, before the `judge-docs` spec) unless stated otherwise, so they stay
 reproducible: `git checkout df26f4d` and run the same command.
 
@@ -20,15 +20,15 @@ reproducible: `git checkout df26f4d` and run the same command.
 | Commits | 175 | `git rev-list --count df26f4d` |
 | Commits named after a spec task, `<type>(<spec>-T<n>)` (67 `feat`, 14 `docs`, 6 `test`, 2 `fix`) | 89 | `git log df26f4d --oneline -E --grep='\([a-z0-9-]+-T[0-9]+\)' \| wc -l` |
 | `fix(...)` commits, mostly review fixes | 57 | `git log df26f4d --oneline -E --grep='^fix' \| wc -l` |
-| Unit and property tests | 1120 passed, 0 failed, 0 skipped | `npm test` |
-| Test files | 96 | `npm test` ("Test Files") |
+| Unit and property tests | 1120 passed, 0 failed, 0 skipped (1152 in 98 files with this spec) | `npm test` |
+| Test files | 96 (98 with this spec) | `npm test` ("Test Files") |
 | Property tests: `fc.assert` calls | 119 in 31 files | `grep -rh 'fc\.assert' src tools \| wc -l` |
 | Hooks | 5 hook entries in 3 files | `ls .kiro/hooks` |
 | Steering files | 3, 233 lines | `wc -l .kiro/steering/*.md` |
 | Custom agents | 1 (`balancer`) | `ls .kiro/agents` |
 | MCP servers | 1 (`motion-harness`, local stdio, 2 tools) | `.kiro/settings/mcp.json` |
 | Pull requests | 5 merged (#1 to #5), 1 open (#6) | (log) |
-| Kiro credits | 522.26 of a 4000 bonus pool, after PR #6 | (log) |
+| Kiro credits | 534.66 of a 4000 bonus pool, after `judge-docs` | (log) |
 | Kiro app | Kiro CLI 3.3.0 only | (log) |
 
 Test counts per PR are in "Test count history" below.
@@ -430,9 +430,9 @@ Cumulative Kiro `/usage`, from a bonus pool of 4000 (log):
 | After two-player-card (PR #4) | 254.37 |
 | After motion-ui-ergonomics (PR #5) | 324.89, then 333.24 after its final fixes |
 | After demo-mode (PR #6, open) | 522.26 |
+| After judge-docs (this spec, 12.40 credits) | 534.66 |
 
-The largest steps: demo-mode (about 189 credits) and motion-ui-ergonomics (about 70,
-then about 8 more for its final fixes).
+Largest steps: demo-mode (about 189) and motion-ui-ergonomics (about 70, plus 8).
 
 ## Demo mode
 

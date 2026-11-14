@@ -10,7 +10,7 @@ const readme = readFileSync(join(root, 'README.md'), 'utf8')
 
 const HEADING = '## Built with Kiro (for judges)'
 /** The new README section: from its heading to the next `## ` heading. */
-export function judgeSection(text) {
+function judgeSection(text) {
   const i = text.indexOf(HEADING)
   if (i < 0) return ''
   const rest = text.slice(i + HEADING.length)
@@ -83,7 +83,7 @@ describe('docs structure', () => {
     expect(bullets).toBeLessThanOrEqual(8)
   })
   it('the TL;DR row and the history table agree on the test counts', () => {
-    expect(kiro).toMatch(/\| Unit and property tests \| 1120 passed, 0 failed, 0 skipped \|/)
+    expect(kiro).toMatch(/\| Unit and property tests \| 1120 passed, 0 failed, 0 skipped \(1152 in 98 files with this spec\) \|/)
     expect(kiro).toMatch(/\| #5 \| motion-ui-ergonomics \| 1120 \|/)
     expect(kiro).toMatch(/\| #6 \(open\) \| demo-mode \| 1254 \|/)
   })

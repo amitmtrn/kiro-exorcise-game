@@ -15,7 +15,12 @@ restricted to loopback. It needs `python3` + `numpy`, `google-chrome` and Node >
 |---|---|---|
 | `sweep` | A hand-sized blob sweeps through the enemy path. Space starts the game. | Frame-diff hit detection: `hits` must be > 0. |
 | `wave` | The hand waves over the 1 PLAYER button in 2 s bursts. No keypress. | Wave-to-press buttons: `firstPlayAtMs` must be >= 0 within a few seconds. |
-| `demo` | No camera. Seeded, deterministic playthrough. | Demo mode only. Added in PR #6; not on branches without it. |
+
+### Demo mode (needs PR #6, open)
+
+`demo`: no camera, seeded deterministic playthrough. It exists only on branches with
+PR #6 (open) until it merges. Without it, `run.sh` treats `demo` as a Space-start run.
+Do not pick it from the table above.
 
 ## How to run
 

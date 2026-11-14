@@ -15,7 +15,7 @@ fetches, new audio or other assets.
 ## R1 — `docs/KIRO.md` (facts only)
 
 **R1.1** Every number and claim comes from the repo (git log, `.kiro/`, `src/`,
-`tools/`, tests) or from the off-repo facts file `/workspace/kiroween/kiro-facts.md`.
+`tools/`, tests) or from off-repo orchestration logs.
 Anything that cannot be verified is left out. Repo numbers show the command that
 produced them where useful.
 

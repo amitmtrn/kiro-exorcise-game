@@ -23,7 +23,7 @@ like `tools/hooks.test.mjs` and `tools/balancer-config.test.mjs`.
 | property tests, files | `grep -rl 'fc\.assert' src tools`, `grep -rh 'fc\.assert' src tools \| wc -l` |
 | test files, test count | `npm test` |
 | hooks, steering, agent, MCP | the files in `.kiro/` |
-| credits, per-PR test counts, review rounds and catches, harness results | `/workspace/kiroween/kiro-facts.md` |
+| credits, per-PR test counts, review rounds and catches, harness results | off-repo orchestration logs |
 | UI audit before → after | `/workspace/kiroween/logs/ui-audit.md` |
 
 Counts that change with later work are stated "at this branch" with the command.

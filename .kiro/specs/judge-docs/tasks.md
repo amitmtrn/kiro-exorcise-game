@@ -11,7 +11,7 @@ Files: `.kiro/powers/exorcise-motion-harness/**`, `tools/power-manifest.test.mjs
 ## T2 — docs/KIRO.md
 Files: `docs/KIRO.md`
 
-- [x] Compute every repo number with the commands in the design; read `kiro-facts.md` for the rest.
+- [x] Compute every repo number with the commands in the design; read the off-repo orchestration logs for the rest.
 - [x] Write all required sections (R1.2–R1.11), 250–450 lines.
 - [x] `npm test` and `npm run build` both clean.
 - [x] Commit: `docs(judge-docs-T2): Kiro write-up for judges`
@@ -61,3 +61,14 @@ Files: `docs/KIRO.md`, `README.md`, `tools/judge-docs.test.mjs`, `.kiro/specs/ju
 - [x] NIT: run-harness skill description lists only `sweep` and `wave`, matching `run.sh`.
 - [x] `npm test` and `npm run build` clean.
 - [x] Commit: `fix(judge-docs): third review fixes`
+
+## T8 — Fourth review fixes
+
+- [x] NIT: TL;DR states the branch counts (1152 tests, 98 files) inside the existing rows.
+- [x] NIT: `docs/KIRO.md` stays under the 450-line cap by trimming the credits note.
+- [x] NIT: run-harness skill moves `demo` under a "needs PR #6 (open)" sub-heading.
+- [x] NIT: `judgeSection` no longer exported from the test file.
+- [x] Off-repo source is called "off-repo orchestration logs" without a file name.
+- [x] Credits: judge-docs took the pool from 522.26 to 534.66 (12.40); TL;DR and credits table updated.
+- [x] `npm test` and `npm run build` clean.
+- [x] Commit: `fix(judge-docs): fourth review fixes`
