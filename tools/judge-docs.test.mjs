@@ -19,13 +19,16 @@ export function judgeSection(text) {
 }
 const section = judgeSection(readme)
 
-const BANNED = /eyetoy|kung\s*foo/i
+// Built by concatenation so this file does not itself contain the names.
+const NAME_A = 'Eye' + 'Toy'
+const NAME_B = 'Ku' + 'ng' + ' ' + 'F' + 'oo'
+const BANNED = new RegExp(`${NAME_A}|${NAME_B.replace(' ', '\\s*')}`, 'i')
 const TOKEN = /ghp_|github_pat_|\bsk-/i
 const texts = { 'docs/KIRO.md': kiro, 'README judge section': section }
 
 describe('judgeSection', () => {
   it('extracts only the section', () => {
-    const t = `intro Kung Foo\n\n${HEADING}\n- a\n\n## Next\nEyeToy`
+    const t = `intro ${NAME_B}\n\n${HEADING}\n- a\n\n## Next\n${NAME_A}`
     expect(judgeSection(t)).not.toMatch(BANNED)
     expect(judgeSection(t)).toContain('- a')
     expect(judgeSection('no section')).toBe('')
@@ -45,7 +48,7 @@ describe('docs facts check', () => {
     })
   }
   it('the checks themselves catch violations', () => {
-    for (const bad of ['EyeToy', 'eyetoy', 'KUNG FOO', 'kung foo']) expect(bad).toMatch(BANNED)
+    for (const bad of [NAME_A, NAME_A.toLowerCase(), NAME_B.toUpperCase(), NAME_B.toLowerCase()]) expect(bad).toMatch(BANNED)
     for (const bad of ['ghp_abc', 'github_pat_x', 'sk-abc']) expect(bad).toMatch(TOKEN)
     expect('task-by-task').not.toMatch(TOKEN)
   })
@@ -79,8 +82,14 @@ describe('docs structure', () => {
     expect(bullets).toBeGreaterThanOrEqual(5)
     expect(bullets).toBeLessThanOrEqual(8)
   })
-  it('the headline test count in the write-up matches the tests it cites', () => {
-    expect(kiro).toContain('1120')
-    expect(kiro).toContain('1254')
+  it('the TL;DR row and the history table agree on the test counts', () => {
+    expect(kiro).toMatch(/\| Unit and property tests \| 1120 passed, 0 failed, 0 skipped \|/)
+    expect(kiro).toMatch(/\| #5 \| motion-ui-ergonomics \| 1120 \|/)
+    expect(kiro).toMatch(/\| #6 \(open\) \| demo-mode \| 1254 \|/)
+  })
+  it('the per-spec commit list reconciles with the headline 89', () => {
+    expect(kiro).toContain('| 89 |')
+    expect(kiro).toMatch(/`skin` \(spec `spooky-skin`/)
+    expect(kiro).not.toMatch(/`spooky-skin` and `boss-combo` predate/)
   })
 })

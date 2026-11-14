@@ -18,8 +18,8 @@ reproducible: `git checkout df26f4d` and run the same command.
 | Ticked task checkboxes | 805 | `cat .kiro/specs/*/tasks.md \| grep -c '^- \[x\]'` |
 | Unticked task checkboxes | 103 (49 are in `boss-combo`, superseded by `stages`; the rest are manual checks such as webcam playthroughs) | `grep -c '^- \[ \]'` per file |
 | Commits | 175 | `git rev-list --count df26f4d` |
-| Commits named after a spec task, `feat(<spec>-T<n>)` | 89 | `git log df26f4d --oneline -E --grep='\([a-z0-9-]+-T[0-9]+\)' \| wc -l` |
-| Review-fix commits `fix(...)` | 57 | `git log df26f4d --oneline -E --grep='^fix' \| wc -l` |
+| Commits named after a spec task, `<type>(<spec>-T<n>)` (67 `feat`, 14 `docs`, 6 `test`, 2 `fix`) | 89 | `git log df26f4d --oneline -E --grep='\([a-z0-9-]+-T[0-9]+\)' \| wc -l` |
+| `fix(...)` commits, mostly review fixes | 57 | `git log df26f4d --oneline -E --grep='^fix' \| wc -l` |
 | Unit and property tests | 1120 passed, 0 failed, 0 skipped | `npm test` |
 | Test files | 96 | `npm test` ("Test Files") |
 | Property tests: `fc.assert` calls | 119 in 31 files | `grep -rh 'fc\.assert' src tools \| wc -l` |
@@ -51,10 +51,9 @@ Every spec followed the same loop (log):
 ```
  1. Kiro writes requirements.md, design.md, tasks.md        (no code yet)
  2. Kiro implements the tasks, one commit per task
- 3. An independent reviewer reads the branch, read-only
-    (file-edit tools disabled; it can run build and tests,
-     read the code and git). It writes a review that ends in
-    VERDICT: READY or VERDICT: NOT READY
+ 3. An independent reviewer (Claude Code, not Kiro) reads the branch, read-only
+    (no file edits; it can run build, tests, read code and git). Its
+    review ends in VERDICT: READY or VERDICT: NOT READY
  4. The review is fed back to Kiro, which fixes the findings
  5. Repeat 3 and 4 until READY (optional nit pass, then re-review)
 ```
@@ -98,8 +97,8 @@ clear the mute button, never below 40 %).
 | Constant | Value | Meaning |
 |---|---|---|
 | `ROW_A` | 0.19 H | first row (prefer 15–35 %) |
-| row B | `ROW_A·H + 3.1·r` | second row, centre distance 3.1 r (gap 1.1 r); ≤ 0.40 H |
-| `COL_OUTER` | 0.12 | left column in 1P, screen-edge column in 2P |
+| row B | `ROW_A·H + 3.1·r` | second row, centre distance 3.1 r (gap 1.1 r); ≤ 0.40 H … |
+| … | … | other rows omitted |
 ```
 
 **Tasks excerpt** (`.kiro/specs/motion-ui-ergonomics/tasks.md`):
@@ -137,10 +136,12 @@ the same pattern, for example `feel-fix`: T1 `99adc0b`, T2 `0177b84`, T3 `eba093
 T4 `064e923`.
 
 Task commits per spec (`git log df26f4d --oneline --grep='(<spec>-T' | wc -l`):
-stages 9; balancer, motion-ui-ergonomics, pbt 7; juice, music-v2, waves 6;
-boss-phases, exorcist-card, onboarding, two-player, two-player-card 5; audio,
-feel-fix, hooks 4. The older specs `mvp`, `deploy`, `hit-detection-fix`,
-`spooky-skin` and `boss-combo` predate the `(<spec>-T<n>)` naming.
+stages 9 (8 under the TL;DR regex: `f28b4da feat(stages-T3/T5/T6)` is one
+commit for three tasks); balancer, motion-ui-ergonomics, pbt 7; juice, music-v2,
+waves 6; boss-phases, exorcist-card, onboarding, two-player, two-player-card 5;
+audio, feel-fix, hooks 4; `skin` (spec `spooky-skin`, `feat(skin-T1)` to
+`feat(skin-T5)`) 5. The older specs `mvp`, `deploy`, `hit-detection-fix` and
+`boss-combo` predate the `(<spec>-T<n>)` naming.
 
 ### Comparison with vibe coding
 
@@ -168,7 +169,7 @@ What the repo does show:
 - **Specs record the bugs.** `pbt/tasks.md` has a "Bugs found by properties"
   section (BUG-1 to BUG-5), each with the requirement, the fix and the regression test.
 - **Cost.** The spec-first loop is slower per feature: 1 to 6 review rounds each.
-  Of 175 commits, 57 are `fix(...)` commits that came out of reviews. The review fixes show how much a first implementation still got wrong.
+  Of 175 commits, 57 are `fix(...)` commits, mostly review fixes. They show how much a first implementation still got wrong.
 - **Limits.** Some specs drifted from the code during review fixes. The `hooks`
   spec's `tasks.md` carries "superseded by T5/T6" notes where later fixes changed
   earlier tasks, and the `spec-drift-check` hook exists to catch this kind of drift.
@@ -334,8 +335,8 @@ found one real bug directly and made the reviewer's four findings cheap to pin.
 
 **The flaky property.** `src/game/swipe.property.test.ts` failed intermittently
 for inputs within 1e-6 of the swipe threshold. Fix (`5eb2b14`): such cases are
-skipped with `fc.pre`. The `pbt` spec was reviewed 3 times (log) and a flaky
-property was one of the findings. Seeded randomness helpers
+skipped with `fc.pre`. That fix landed during the `balancer` review round
+(`fix(balancer)`), not the `pbt` reviews. Seeded randomness helpers
 (`src/test/prng.ts`: `mulberry32`, `withSeededRandom`) keep other properties
 deterministic.
 

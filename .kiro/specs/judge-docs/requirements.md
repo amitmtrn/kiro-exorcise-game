@@ -83,7 +83,7 @@ paths, nothing outside the repo.
 ## R4 — Facts check test
 
 **R4.1** A Vitest test fails if `docs/KIRO.md`, or the new README section,
-contains "EyeToy" or "Kung Foo" (case-insensitive). Existing README lines outside
+mentions either banned name of the inspiring game (case-insensitive; the names are listed in the test, not here). Existing README lines outside
 the section may keep them.
 
 **R4.2** The same test fails if either text contains a token-like string

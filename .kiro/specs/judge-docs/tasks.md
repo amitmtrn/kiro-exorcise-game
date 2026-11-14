@@ -31,3 +31,14 @@ Files: `tools/judge-docs.test.mjs`
 - [x] Required headings, line range, README links (R4.3).
 - [x] `npm test` and `npm run build` both clean; `node tools/sync-readme-tests.mjs --check` exits 0.
 - [x] Commit: `test(judge-docs-T4): facts check for judge docs`
+
+## T5 — Review fixes
+Files: `docs/KIRO.md`, `README.md`, `tools/judge-docs.test.mjs`, `.kiro/specs/judge-docs/*`
+
+- [x] R1.1: per-spec commit list reconciles with the headline 89 (`skin` 5 added, `stages` 9 vs 8 explained).
+- [x] Commit label is `<type>(<spec>-T<n>)` (README and write-up); `fix` count reworded to "mostly review fixes".
+- [x] Flaky-property fix attributed to the balancer round; design excerpt marked with ellipsis; reviewer named as Claude Code.
+- [x] Tests: count test checks the TL;DR row and history table; per-spec reconciliation test; line limit kept at 450 by trimming first.
+- [x] Banned names built by concatenation in the test and removed from the spec text (R4.1 reworded).
+- [x] `npm test` and `npm run build` both clean.
+- [x] Commit: `fix(judge-docs): review fixes for write-up, README and facts check`
