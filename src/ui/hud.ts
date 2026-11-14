@@ -20,6 +20,9 @@ const C_OUTLINE = 'rgba(13, 0, 20, 0.85)'  // Midnight
 export const HUD_FONT_FAMILY =
   "'Arial Rounded MT Bold', 'Nunito', 'Varela Round', 'Segoe UI', system-ui, sans-serif"
 
+/** The timer blinks (below 10 s) with a half-period of this many ms: one flash per second, within WCAG 2.3.1's 3. */
+export const TIMER_BLINK_MS = 500
+
 /** Combo-increment pulse: scale 1.5 → 1.0 over this many ms. */
 export const COMBO_PULSE_MS = 200
 
@@ -115,7 +118,7 @@ export function renderHUD(ctx: CanvasRenderingContext2D, state: GameState, now: 
   const secs = secsRemaining % 60
   const timerText = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`
   const isLow = state.roundTimeMs <= 10_000
-  const flashVisible = !isLow || Math.floor(now / 500) % 2 === 0
+  const flashVisible = !isLow || Math.floor(now / TIMER_BLINK_MS) % 2 === 0
   if (flashVisible) {
     drawHudText(ctx, timerText, W - pad, pad, isLow ? pal.life : pal.score, {
       font: `bold ${fontSize}px monospace`, align: 'right', glow: isLow ? 18 : 12,

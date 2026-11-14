@@ -16,6 +16,7 @@ import type { Knock } from './knock'
 import { drawAtmosphere } from './atmosphere'
 import { getPalette } from '../ui/palette'
 import { getSettings } from '../settings/runtime'
+import { overlayAlpha, shakeScale } from './flash'
 import { calloutPx, scaled } from '../ui/textScale'
 import { getQualityInfo, formatQualityLine } from './quality'
 import { getMotionGrid } from '../webcam/grid'
@@ -50,11 +51,15 @@ export function renderFrame(
   ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height)
 
   // Screen shake (spooky-skin R4.1): jitter the whole frame while shakeFrames > 0
+  // Reduced flashing (playtest-polish R10): weaker shake, no white hit silhouette, a capped / ramped / rate-limited
+  // flash. The random numbers are drawn either way so a seeded demo replays the same.
+  const reduced = getSettings().reducedFlash
   ctx.save()
   if (state.shakeFrames > 0) {
+    const k = shakeScale(reduced)
     ctx.translate(
-      (Math.random() * 2 - 1) * SHAKE_AMPLITUDE_PX,
-      (Math.random() * 2 - 1) * SHAKE_AMPLITUDE_PX,
+      (Math.random() * 2 - 1) * SHAKE_AMPLITUDE_PX * k,
+      (Math.random() * 2 - 1) * SHAKE_AMPLITUDE_PX * k,
     )
   }
 
@@ -64,14 +69,14 @@ export function renderFrame(
   // Enemies — any with hitFlashFrames > 0 render in solid white (spooky-skin R4.2)
   const whiteCtx = whiteFillProxy(ctx)
   for (const enemy of state.enemies) {
-    drawEnemy(enemy.hitFlashFrames > 0 ? whiteCtx : ctx, enemy, now)
+    drawEnemy(enemy.hitFlashFrames > 0 && !reduced ? whiteCtx : ctx, enemy, now)
   }
   // Knocked-away enemies (juice R2): the normal enemy routines, rotated, shrunk and faded
   for (const k of state.knocks) drawKnock(ctx, k, now)
 
   // Enemies banished this frame are gone from state but flash white once;
   // drawn after the knocks so the flash is not covered by the knock's first frame.
-  if (state.phase === 'playing') {
+  if (state.phase === 'playing' && !reduced) {
     for (const enemy of opts.banished ?? lastBanished) drawEnemy(whiteCtx, enemy, now)
   }
 
@@ -84,10 +89,11 @@ export function renderFrame(
   if (boss) drawBossHealthBar(ctx, boss)
 
   // Red/orange flash overlay
-  if (now < state.flashEndTime) {
+  const flashAlpha = overlayAlpha(ctx.canvas, state.flashEndTime, now, reduced)
+  if (flashAlpha > 0) {
     ctx.save()
-    ctx.globalAlpha = 0.4
-    ctx.fillStyle = '#c0392b'
+    ctx.globalAlpha = flashAlpha
+    ctx.fillStyle = P().danger
     ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height)
     ctx.restore()
   }

@@ -60,11 +60,11 @@
 - [x] Commit: `feat(playtest-polish-T8): colourblind palette in the renderer and bigger text`
 
 ## T9 — Reduced flashing
-- [ ] Create `src/game/flash.ts` (scheduler, ramped waveform, shake scale); `render.ts` uses it when reduced flashing is on; white hit silhouette skipped; random numbers still drawn.
-- [ ] Tests: ≤ 3 flashes per second, alpha cap 0.15, ramps ≥ 120 ms, timer blink rate, reduced off keeps the old 0.4 flash.
-- [ ] Property test: random request streams never exceed 3 flashes in any 1000 ms window.
-- [ ] `npm test` and `npm run build` both clean.
-- [ ] Commit: `feat(playtest-polish-T9): reduced flashing`
+- [x] Create `src/game/flash.ts` (scheduler, ramped waveform, shake scale); `render.ts` uses it when reduced flashing is on; white hit silhouette skipped; random numbers still drawn.
+- [x] Tests: ≤ 3 flashes per second, alpha cap 0.15, ramps ≥ 120 ms, timer blink rate, reduced off keeps the old 0.4 flash.
+- [x] Property test: random request streams never exceed 3 flashes in any 1000 ms window.
+- [x] `npm test` and `npm run build` both clean.
+- [x] Commit: `feat(playtest-polish-T9): reduced flashing`
 
 ## T10 — Docs
 - [ ] README: settings, URL parameters (`quality`, `cb`, `bigtext`, `reducedflash`), quality levels, controls table (`O`), spec table row and count, measured benchmark numbers, audio levels note, project structure.

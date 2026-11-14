@@ -226,11 +226,16 @@ sizes: HUD 16, menu 12 (`MIN_TEXT_PX`), call-out 24.
 const MAX_FLASHES_PER_S = 3
 const REDUCED_ALPHA = 0.15, NORMAL_ALPHA = 0.4
 const RAMP_MS = 120
-interface FlashScheduler { events: {at, until, alpha}[] }
-requestFlash(sch, now, durMs, alpha, reduced): FlashScheduler   // drops the 4th in 1 s
-flashAlphaAt(sch, now): number                                   // ramped waveform
+interface FlashScheduler { alpha; at; targetEnd; peak; onsets }
+requestFlash(s, now, durMs, alpha): FlashScheduler   // extends an active flash, drops the 4th in a window
+advance(s, now): FlashScheduler                      // alpha follows the target at cap / RAMP_MS per ms
+simulateWaveform(requests, from, to): number[]       // for the flash-rate analysis
 shakeScale(reduced) = reduced ? 0.25 : 1
 ```
+
+The alpha is slew-limited (a follower, not a hand-shaped envelope), so it never jumps, even when a request
+arrives during a fade-out. Onsets are counted over `1000 ms + RAMP_MS`: a flash becomes visible up to one ramp
+after its onset, so any four visible flashes are more than 1000 ms apart.
 
 `render.ts` keeps its `state.flashEndTime` input. It derives a flash *request* per
 distinct `flashEndTime`, feeds it to a module scheduler and draws
