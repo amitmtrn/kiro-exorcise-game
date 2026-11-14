@@ -39,11 +39,11 @@
 - [x] Commit: `feat(playtest-polish-T5): master bus with compressor and limiter`
 
 ## T6 — Colour maths and palette
-- [ ] Create `src/ui/cvd.ts` (Lab, ΔE76, ΔE2000, Machado matrices) and `src/ui/palette.ts` (default and Okabe-Ito).
-- [ ] Unit tests against published ΔE2000 reference pairs and CVD identities.
-- [ ] Property tests: ΔE symmetric / zero on equal / non-negative; key pairs keep their minimum ΔE under none, protan, deutan, tritan.
-- [ ] `npm test` and `npm run build` both clean.
-- [ ] Commit: `feat(playtest-polish-T6): CVD simulation, deltaE2000 and Okabe-Ito palette`
+- [x] Create `src/ui/cvd.ts` (Lab, ΔE76, ΔE2000, Machado matrices) and `src/ui/palette.ts` (default and Okabe-Ito).
+- [x] Unit tests against published ΔE2000 reference pairs and CVD identities.
+- [x] Property tests: ΔE symmetric / zero on equal / non-negative; key pairs keep their minimum ΔE under none, protan, deutan, tritan.
+- [x] `npm test` and `npm run build` both clean.
+- [x] Commit: `feat(playtest-polish-T6): CVD simulation, deltaE2000 and Okabe-Ito palette`
 
 ## T7 — Settings store and panel
 - [ ] Create `src/settings/settings.ts` and `runtime.ts` (URL params, storage, prefers-reduced-motion, live settings).
