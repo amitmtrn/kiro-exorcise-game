@@ -82,7 +82,7 @@ each tick (non-demo):
   if gridForLevel(level) != getMotionGrid():
       setMotionGrid(...)
       resize currentCanvas + prevCanvas; captureFrame(prevCtx, video)
-      resetHitGates(state / both seats); clearMotionPixels()
+      resetHitGates(state / both seats) (game/hitGate.ts); publish an empty mask
       frameIsNew = false for this tick  // duplicate-frame path: no gate update
   getImageData at the grid size ...
 ```

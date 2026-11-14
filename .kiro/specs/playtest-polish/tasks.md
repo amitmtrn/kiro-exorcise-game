@@ -10,7 +10,7 @@
 
 ## T2 — Adaptive motion grid
 - [x] Create `src/webcam/grid.ts` (ladder, `getMotionGrid`, `setMotionGrid`, `gridForLevel`).
-- [x] `diff.ts`, `swipe.ts`, `halves.ts`, `collision.ts` read the grid at call time; `resetHitGates`, `clearMotionPixels` in `collision.ts`.
+- [x] `diff.ts`, `swipe.ts`, `halves.ts`, `collision.ts` read the grid at call time; `resetHitGates` in `src/game/hitGate.ts` (outside `collision.ts`, which many tests mock); the loop clears the published points by publishing an empty mask.
 - [x] Tests: default grid unchanged, normalised hitbox mapping, `motionCell` follows the grid, gate reset helper.
 - [x] Property tests: a moving blob gives a hit at every supported resolution; no blob, no hit; motion button fills with the same dwell at every grid.
 - [x] Benchmark test `src/webcam/grid.bench.test.ts` printing analysis cost per resolution.
@@ -18,13 +18,13 @@
 - [x] Commit: `feat(playtest-polish-T2): adaptive motion-diff grid`
 
 ## T3 — Wire quality into the loop, renderer and URL
-- [ ] `loop.ts`: step the controller with real frame deltas (never in demo), apply grid changes with the R2.3 protocol (resize, re-capture, gate reset, `frameIsNew = false`).
-- [ ] `main.ts`: `?quality=` → `configureQuality`; demo ignores it.
-- [ ] `state.ts` / `callouts.ts`: particle thinning and call-out cap at level ≥ 1; `atmosphere.ts` level 3 (no fog, static candles).
-- [ ] `render.ts`: debug overlay line with level, mode, frame ms, resolution.
-- [ ] Tests: level 0 identity, thinning, atmosphere flag, demo stays at level 0 / 320 × 180, debug text.
-- [ ] `npm test` and `npm run build` both clean.
-- [ ] Commit: `feat(playtest-polish-T3): wire adaptive quality into loop, atmosphere and overlay`
+- [x] `loop.ts`: step the controller with real frame deltas (never in demo), apply grid changes with the R2.3 protocol (resize, re-capture, gate reset, `frameIsNew = false`).
+- [x] `main.ts`: `?quality=` → `configureQuality`; demo ignores it.
+- [x] `state.ts` / `callouts.ts`: particle thinning and call-out cap at level ≥ 1; `atmosphere.ts` level 3 (no fog, static candles).
+- [x] `render.ts`: debug overlay line with level, mode, frame ms, resolution.
+- [x] Tests: level 0 identity, thinning, atmosphere flag, demo stays at level 0 / 320 × 180, debug text.
+- [x] `npm test` and `npm run build` both clean.
+- [x] Commit: `feat(playtest-polish-T3): wire adaptive quality into loop, atmosphere and overlay`
 
 ## T4 — SFX recipes and level normalisation
 - [ ] Create `src/audio/recipes.ts` (voice data, `renderRecipe`, `SFX_GAIN`, `MUSIC_GAIN`, `gainFor`); `sfx.ts` plays recipes through a per-sound gain.

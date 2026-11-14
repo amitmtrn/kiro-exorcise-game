@@ -17,6 +17,7 @@ import { routePointer } from './ui/pointerRoute'
 import { SOUND_HINT, soundHintFontPx } from './ui/layout'
 import { hudFontSize, muteButtonRect, muteButtonRect2P } from './ui/hud'
 import { parseDemoParams, routeDemoKey } from './demo/params'
+import { configureQuality, parseQualityMode, resetQuality } from './game/quality'
 import type { DemoParams } from './demo/params'
 import { DemoRuntime } from './demo/runtime'
 
@@ -147,6 +148,7 @@ function urlWithoutDemo(): string {
 /** Starts demo mode: no getUserMedia, no onboarding, no video element (demo-mode R2). */
 async function bootDemo(params: DemoParams): Promise<void> {
   soundHint.hidden = true
+  resetQuality() // demo mode ignores ?quality: always level 0 (playtest-polish R3.2)
   demoBooting = true
   leaveWhenBooted = false
   // The font first: the runtime patches the clock and Math.random, which must not happen while no loop (and no DEMO badge) runs.
@@ -186,6 +188,7 @@ async function boot(): Promise<void> {
   // After leaving demo the URL is ignored: the normal game starts even if `replaceState` failed.
   const params = parseDemoParams(demoLeft ? '' : location.search)
   if (params.demo) { await bootDemo(params); return }
+  configureQuality(parseQualityMode(location.search)) // ?quality=low|med|high|auto
 
   // Start the font load alongside the permission prompt instead of delaying it.
   const fontReady = loadTitleFont().catch(() => undefined)

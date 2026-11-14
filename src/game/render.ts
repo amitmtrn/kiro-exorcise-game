@@ -13,7 +13,9 @@ import { BOSS_HITS_NEEDED } from './enemies/boss'
 import { PHASE2_BELOW, PHASE3_BELOW } from './enemies/bossPhases'
 import { knockPose } from './knock'
 import type { Knock } from './knock'
-import { drawFog, drawCandleGlow } from './atmosphere'
+import { drawAtmosphere } from './atmosphere'
+import { getQualityInfo, formatQualityLine } from './quality'
+import { getMotionGrid } from '../webcam/grid'
 
 // ─── Debug mode ───────────────────────────────────────────────────────────────
 let debugMode = false
@@ -60,8 +62,7 @@ export function renderFrame(
   }
 
   // Atmosphere sits behind everything (spooky-skin R2)
-  drawFog(ctx, now)
-  drawCandleGlow(ctx, now)
+  drawAtmosphere(ctx, now)
 
   // Enemies — any with hitFlashFrames > 0 render in solid white (spooky-skin R4.2)
   const whiteCtx = whiteFillProxy(ctx)
@@ -530,5 +531,6 @@ function drawDebugOverlay(
   ctx.fillStyle = 'rgba(255,255,0,0.9)'
   ctx.font = 'bold 12px monospace'
   ctx.fillText('DEBUG [D]', 8, ctx.canvas.height - 8)
+  ctx.fillText(formatQualityLine(getQualityInfo(), getMotionGrid()), 8, ctx.canvas.height - 24)
   ctx.restore()
 }

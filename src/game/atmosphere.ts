@@ -6,6 +6,9 @@
  * (`fogBanks`, `candleGlowAlpha`, `candlePositions`) are pure so they can be
  * unit-tested without a real canvas.
  */
+import { atmosphereOn, getQuality } from './quality'
+import type { QualityLevel } from './quality'
+
 
 // ─── Palette (see .kiro/steering/design.md) ──────────────────────────────────
 export const WEBCAM_TINT   = 'rgba(40, 0, 60, 0.22)'   // haunted purple-blue
@@ -116,6 +119,19 @@ export function candlePositions(width: number, height: number): Array<{ x: numbe
     { x: CANDLE_INSET, y: height - CANDLE_INSET },
     { x: width - CANDLE_INSET, y: height - CANDLE_INSET },
   ]
+}
+
+/**
+ * Background atmosphere: fog and flickering candles. At quality level 3 the fog is skipped and the
+ * candles are drawn steady (playtest-polish R3.4).
+ */
+export function drawAtmosphere(ctx: CanvasRenderingContext2D, now: number, level: QualityLevel = getQuality()): void {
+  if (atmosphereOn(level)) {
+    drawFog(ctx, now)
+    drawCandleGlow(ctx, now)
+  } else {
+    drawCandleGlow(ctx, 0) // sin(0): a fixed mid-level glow, no flicker
+  }
 }
 
 /** Draws a pulsing orange radial glow and a small flame at each candle position. */

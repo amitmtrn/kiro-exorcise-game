@@ -108,6 +108,11 @@ export function configureQuality(mode: QualityMode): void {
 /** Back to level 0 / auto (demo mode, tests). */
 export function resetQuality(): void { activeLevel = 0; activeMode = 'auto'; lastAvgMs = 0 }
 
+/** Debug overlay line: `Q2 auto  17.4 ms  160×90`. */
+export function formatQualityLine(info: QualityInfo, grid: { w: number; h: number }): string {
+  return `Q${info.level} ${info.mode}  ${info.avgMs.toFixed(1)} ms  ${grid.w}×${grid.h}`
+}
+
 // ─── Level effects ───────────────────────────────────────────────────────────
 
 /** Keeps every 2nd item from level 1 up; the input array itself at level 0. */

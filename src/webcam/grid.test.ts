@@ -1,7 +1,8 @@
 import { describe, it, expect, afterEach } from 'vitest'
 import { GRID_LADDER, FULL_GRID, gridForLevel, getMotionGrid, setMotionGrid, resetMotionGrid } from './grid'
 import { scaleHitbox, computeMotionMask, MOTION_W, MOTION_H } from './diff'
-import { updateMotionPixels, motionCell, resetHitGates, clearMotionPixels, lastMotionPixels } from '../game/collision'
+import { updateMotionPixels, motionCell } from '../game/collision'
+import { resetHitGates } from '../game/hitGate'
 import { cropMotionHalf, motionHalfWidth } from '../game/halves'
 import { createInitialState, makeEnemy } from '../game/state'
 
@@ -81,12 +82,5 @@ describe('motion grid', () => {
     expect(out.enemies[0]).toMatchObject({ hitCount: 0, motionX: undefined, motionY: undefined, x: 10, y: 20 })
     const clean = { ...st, enemies: [{ ...e, hitCount: 0, motionX: undefined, motionY: undefined }] }
     expect(resetHitGates(clean)).toBe(clean)
-  })
-
-  it('clearMotionPixels empties the published points', () => {
-    updateMotionPixels({ points: [{ x: 4, y: 4 }], sampled: 1, moved: 1, changed: true }, 320, 180)
-    expect(lastMotionPixels.length).toBe(1)
-    clearMotionPixels()
-    expect(lastMotionPixels.length).toBe(0)
   })
 })

@@ -4,7 +4,11 @@
 
 import { drawWebcamFrame } from '../webcam/capture'
 import { drawWebcamTint } from './atmosphere'
-import { captureFrame, calibrateDiffThreshold, computeMotionMask, MOTION_W, MOTION_H } from '../webcam/diff'
+import { captureFrame, calibrateDiffThreshold, computeMotionMask } from '../webcam/diff'
+import { getMotionGrid, setMotionGrid, resetMotionGrid, gridForLevel } from '../webcam/grid'
+import {
+  createFrameBudget, stepFrameBudget, getQuality, setQualityLevel, setQualityAvg, getQualityInfo, resetQuality,
+} from './quality'
 import {
   createInitialState,
   tickTimer,
@@ -15,6 +19,7 @@ import {
 import type { GameState } from './state'
 import { stepSimulation, tickEffects } from './step'
 import { resolveHits, updateMotionPixels, lastMotionPixels } from './collision'
+import { resetHitGates } from './hitGate'
 import { tickParticles, tickScoreLabels } from './particles'
 import { tickKnocks } from './knock'
 import { splitHitStop } from './hitstop'
@@ -146,12 +151,15 @@ export async function startLoop(
   activeDemo = demo
   twoPlayerActive = false
   startRequest = null // a Space pressed during permission/onboarding must not skip the title
+  // Demo mode is always full quality and the full 320 × 180 grid, so seeded runs replay identically (R3.2).
+  if (demo) { resetQuality(); resetMotionGrid() } else setMotionGrid(gridForLevel(getQuality()))
+  const grid0 = getMotionGrid()
   const currentCanvas = document.createElement('canvas')
-  currentCanvas.width = MOTION_W; currentCanvas.height = MOTION_H
+  currentCanvas.width = grid0.w; currentCanvas.height = grid0.h
   const currentCtx = currentCanvas.getContext('2d')!
 
   const prevCanvas = document.createElement('canvas')
-  prevCanvas.width = MOTION_W; prevCanvas.height = MOTION_H
+  prevCanvas.width = grid0.w; prevCanvas.height = grid0.h
   const prevCtx = prevCanvas.getContext('2d')!
 
   // Show the first webcam frame + a banner while the 1 s noise calibration runs (no camera in demo mode)
@@ -253,6 +261,7 @@ export async function startLoop(
     return true
   }
   let lastTimestamp = 0
+  let budget = createFrameBudget(getQuality())
   let prevPhase = state.phase
 
   // ── Two-player session (two-player spec). `two` is non-null while a 2P game is on screen. ──
@@ -426,6 +435,7 @@ export async function startLoop(
 
   function tickBody(timestamp: number, forcedDeltaMs?: number): void {
     const deltaMs = forcedDeltaMs ?? (lastTimestamp === 0 ? 16 : Math.min(timestamp - lastTimestamp, 100))
+    const rawMs = lastTimestamp === 0 ? 0 : timestamp - lastTimestamp
     lastTimestamp = timestamp
     titleVisible = state.phase === 'start' && !two
     const now = performance.now()
@@ -447,6 +457,28 @@ export async function startLoop(
       cardOpen = session.isOpen
     }
 
+    // Adaptive quality (playtest-polish R1, R2.3): never in demo mode. In auto mode the monitor decides;
+    // a pinned level (?quality=) never moves. A new grid size runs the change protocol below.
+    let gridChanged = false
+    if (!demo) {
+      if (getQualityInfo().mode === 'auto') {
+        budget = stepFrameBudget({ ...budget, level: getQuality() }, rawMs)
+        setQualityLevel(budget.level)
+        setQualityAvg(budget.avgMs)
+      }
+      if (setMotionGrid(gridForLevel(getQuality()))) {
+        const g = getMotionGrid()
+        currentCanvas.width = g.w; currentCanvas.height = g.h
+        prevCanvas.width = g.w; prevCanvas.height = g.h // resizing blanks both canvases
+        captureFrame(prevCtx, video!)
+        updateMotionPixels({ points: [], sampled: 0, moved: 0, changed: true }, displayW, displayH) // drop points of the old grid
+        state = resetHitGates(state)
+        if (two) two = { ...two, seats: [resetHitGates(two.seats[0]), resetHitGates(two.seats[1])] }
+        gridChanged = true
+      }
+    }
+    const grid = getMotionGrid()
+
     let currentData: ImageData
     let prevData: ImageData
     if (demo) {
@@ -463,15 +495,16 @@ export async function startLoop(
 
       // Capture motion frame every tick for motion buttons to work on all screens
       captureFrame(currentCtx, video!)
-      currentData = currentCtx.getImageData(0, 0, MOTION_W, MOTION_H)
-      prevData = prevCtx.getImageData(0, 0, MOTION_W, MOTION_H)
+      currentData = currentCtx.getImageData(0, 0, grid.w, grid.h)
+      prevData = prevCtx.getImageData(0, 0, grid.w, grid.h)
     }
 
     // Whole-frame motion mask: drives the motion buttons + debug overlay, and
     // tells us whether the camera actually delivered a new frame this tick.
-    const mask = computeMotionMask(currentData, prevData, MOTION_W, MOTION_H)
-    updateMotionPixels(mask, displayW, displayH)
-    const frameIsNew = mask.changed
+    const mask = computeMotionMask(currentData, prevData, grid.w, grid.h)
+    // On the tick of a grid change the previous frame was just re-captured: no new camera frame (R2.3).
+    const frameIsNew = mask.changed && !gridChanged
+    updateMotionPixels(gridChanged ? { ...mask, changed: false } : mask, displayW, displayH)
 
     // ── Two-player game (own state machine; the 1P branches below are untouched) ──
     if (two) {

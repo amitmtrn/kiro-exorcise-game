@@ -64,20 +64,6 @@ export function updateMotionPixels(mask: MotionMask, displayW: number, displayH:
 }
 
 /**
- * Grid change protocol (playtest-polish R2.3): forget the published motion pixels so nothing
- * computed on the old grid is read after the switch.
- */
-export function clearMotionPixels(): void {
-  lastMotionPixels = []
-}
-
-/** Resets every enemy's 2-frame hit gate and stored swipe centroid (grid change protocol). */
-export function resetHitGates(state: GameState): GameState {
-  if (!state.enemies.some((e) => e.hitCount !== 0 || e.motionX !== undefined || e.motionY !== undefined)) return state
-  return setEnemies(state, state.enemies.map((e) => ({ ...e, hitCount: 0, motionX: undefined, motionY: undefined })))
-}
-
-/**
  * Counts new camera frames published by updateMotionPixels (motion-ui-ergonomics R2.4).
  * A motion button evaluates only when this changed, so the stale points kept on a
  * duplicate frame never keep it filling.
