@@ -162,8 +162,8 @@ function drawEnemy(ctx: CanvasRenderingContext2D, enemy: Enemy, now: number): vo
     case 'candy':   drawCandy(ctx, enemy, now); break
     case 'boss':    drawBoss(ctx, enemy, now); break
     case 'wisp':    drawWisp(ctx, enemy, now); break
-    case 'mirror':  drawMirror(ctx, enemy, now); break
-    case 'blink':   drawBlink(ctx, enemy, now); break
+    case 'mirror':  drawMirror(ctx, enemy); break
+    case 'blink':   drawBlink(ctx, enemy); break
   }
   ctx.restore()
 }

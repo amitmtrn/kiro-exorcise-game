@@ -99,7 +99,7 @@ take 5.0 s to reach the centre (their target is the exact centre of the area).
 
 **R2.2** *Linking.* The first confirmed hit on either wisp does not banish it. It
 becomes **lit** for `TWIN_WINDOW_MS` = 2000 ms: drawn with a bright ring and a
-link line to its partner, and a ring timer that shrinks.
+link line to its partner, and a ring timer that shrinks steadily over the whole window (it does not refill when the merge telegraph begins).
 
 **R2.3** *Both hit.* A confirmed hit on the partner while the first is lit banishes
 **both** (2 × 150 × combo, one streak step each; both score at the combo in force when the pair was hit, even if the first banish crosses a tier). The partner can be hit at any

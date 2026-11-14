@@ -155,3 +155,6 @@
 ## T19 — Review fixes (round 8)
 - [x] R8.4: `saveHighScore` runs once on entering victory (the duplicate call in the entry hook is gone); the entry-frame test counts one write.
 - [x] R8.4: `tickRound` no longer saves the high score in victory / gameover (dead path, the loop stores it once on entry); the round test now pins that it writes nothing.
+- [x] R2.2 / R2.4: the twin-wisp ring is one monotonically shrinking ring over the whole `TWIN_WINDOW_MS` (`wispRingFraction`), blinking only while merging; 3 tests pin the fraction (full at start, no refill at merge, monotonic).
+- [x] Cleanup: `drawMirror` / `drawBlink` no longer take an unused `now`.
+- [ ] T11 stays open (needs a real webcam); also check the title high-score table against the heading at 640x360.

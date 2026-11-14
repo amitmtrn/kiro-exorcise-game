@@ -2,12 +2,12 @@
 import { describe, it, expect, beforeEach, afterAll } from 'vitest'
 import fc from 'fast-check'
 import { renderFrame } from './render'
-import { blinkAlpha, variantPulseHz, pulse01, VARIANT_PULSE_HZ } from './renderVariants'
+import { blinkAlpha, wispRingFraction, variantPulseHz, pulse01, VARIANT_PULSE_HZ } from './renderVariants'
 import { createInitialState, makeEnemy } from './state'
 import type { Enemy, GameState, VariantState } from './state'
 import { initSettings, resetSettings } from '../settings/runtime'
 import { OKABE_ITO, DEFAULT } from '../ui/palette'
-import { stateSchedule, ABSORB_COOLDOWN_MS } from './enemies/variants'
+import { stateSchedule, ABSORB_COOLDOWN_MS, TWIN_WINDOW_MS, TELEGRAPH_MS } from './enemies/variants'
 
 interface Rec { fills: string[]; texts: string[]; dashes: number[][]; alphas: number[] }
 function recorder(w = 640, h = 480): { ctx: CanvasRenderingContext2D; rec: Rec } {
@@ -174,5 +174,31 @@ describe('mirror absorb ring honours reduced flashing (more-content R1.8)', () =
     const early = ring(true, ABSORB_COOLDOWN_MS - 10), late = ring(true, 10)
     expect(early.alpha).toBeLessThanOrEqual(0.3)
     expect(late.r).toBe(early.r)
+  })
+})
+
+describe('twin wisp ring timer (R2.2, R2.4)', () => {
+  const wisp = (vState: VariantState, vTimerMs: number): Enemy => enemy('wisp', { vState, vTimerMs, pairId: 'p' })
+  const LIT = TWIN_WINDOW_MS - TELEGRAPH_MS
+
+  it('is full at the start of the window and empty at its end', () => {
+    expect(wispRingFraction(wisp('lit', 0))).toBe(1)
+    expect(wispRingFraction(wisp('merging', TELEGRAPH_MS))).toBe(0)
+  })
+
+  it('does not refill when the merging telegraph begins', () => {
+    const endLit = wispRingFraction(wisp('lit', LIT))
+    const startMerge = wispRingFraction(wisp('merging', 0))
+    expect(startMerge).toBeCloseTo(endLit, 9)
+    expect(startMerge).toBeCloseTo(TELEGRAPH_MS / TWIN_WINDOW_MS, 9)
+  })
+
+  it('shrinks monotonically over the whole window', () => {
+    let prev = 2
+    for (let t = 0; t <= TWIN_WINDOW_MS; t += 25) {
+      const f = t < LIT ? wispRingFraction(wisp('lit', t)) : wispRingFraction(wisp('merging', t - LIT))
+      expect(f).toBeLessThanOrEqual(prev)
+      prev = f
+    }
   })
 })

@@ -63,6 +63,12 @@ function hexagon(ctx: CanvasRenderingContext2D, r: number): void {
 
 // ─── Twin wisp ────────────────────────────────────────────────────────────────
 
+/** Fraction of the twin window left (1 → 0, monotonic): the lit part first, then the merging telegraph. */
+export function wispRingFraction(e: Enemy): number {
+  const elapsed = e.vTimerMs + (e.vState === 'merging' ? WISP_LIT_MS : 0)
+  return Math.max(0, Math.min(1, 1 - elapsed / TWIN_WINDOW_MS))
+}
+
 export function drawWisp(ctx: CanvasRenderingContext2D, e: Enemy, now: number): void {
   const color = P().wisp
   const linked = isLinked(e)
@@ -76,8 +82,8 @@ export function drawWisp(ctx: CanvasRenderingContext2D, e: Enemy, now: number): 
   icon(ctx, '∞', color, -56)
 
   if (linked) {
-    // Ring timer: shrinks over the lit window, blinks slowly while merging (the telegraph).
-    const frac = e.vState === 'lit' ? 1 - e.vTimerMs / WISP_LIT_MS : 1 - e.vTimerMs / TELEGRAPH_MS
+    // Ring timer: one ring shrinking over the whole twin window, blinking slowly only while merging (the telegraph).
+    const frac = wispRingFraction(e)
     ctx.save()
     ctx.shadowBlur = 0
     ctx.strokeStyle = color; ctx.lineWidth = 5
@@ -110,7 +116,7 @@ export function drawWispLinks(ctx: CanvasRenderingContext2D, enemies: readonly E
 
 // ─── Mirror ghost ─────────────────────────────────────────────────────────────
 
-export function drawMirror(ctx: CanvasRenderingContext2D, e: Enemy, now: number): void {
+export function drawMirror(ctx: CanvasRenderingContext2D, e: Enemy): void {
   const color = P().mirror
   const st = e.vState
   const protectedNow = st === 'shield' || st === 'cracking'
@@ -165,7 +171,6 @@ export function drawMirror(ctx: CanvasRenderingContext2D, e: Enemy, now: number)
     ctx.restore()
   }
   icon(ctx, protectedNow ? '▮' : '▯', color, -72)
-  void now
 }
 
 // ─── Blink ghost ──────────────────────────────────────────────────────────────
@@ -181,7 +186,7 @@ export function blinkAlpha(e: Enemy): number {
   }
 }
 
-export function drawBlink(ctx: CanvasRenderingContext2D, e: Enemy, now: number): void {
+export function drawBlink(ctx: CanvasRenderingContext2D, e: Enemy): void {
   const color = P().blink
   const base = ctx.globalAlpha
   const solidish = e.vState === 'solid' || e.vState === 'warnOut'
@@ -201,5 +206,4 @@ export function drawBlink(ctx: CanvasRenderingContext2D, e: Enemy, now: number):
   eyes(ctx, 1)
   ctx.globalAlpha = base
   icon(ctx, solidish ? '◆' : '◇', color, -62)
-  void now
 }

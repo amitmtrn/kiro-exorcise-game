@@ -185,8 +185,9 @@ original bass / lead: a pedal bass climbing A–C–D–E and a bell-like lead).
 ## Rendering (`render.ts`, procedural)
 
 - **Wisp**: two small ghosts; link line between partners (dashed when idle, solid
-  when lit); lit wisp: ring that shrinks with `1 − vTimerMs / lit`, in `merging` the
-  ring blinks at `variantPulseHz()` (1.5 Hz, 0.375 Hz with reduced flashing). Icon: ∞ drawn above.
+  when lit); lit wisp: one ring that shrinks monotonically over the whole `TWIN_WINDOW_MS`
+  (`wispRingFraction`: `1 − (vTimerMs + (merging ? lit : 0)) / TWIN_WINDOW_MS`, no refill
+  at the merge); only while `merging` the ring blinks at `variantPulseHz()` (1.5 Hz, 0.375 Hz with reduced flashing). Icon: ∞ drawn above.
 - **Mirror**: ghost body with a hexagonal shield; closed = filled bar "▮" icon;
   `cracking` = crack lines growing, glow rising; `open` = broken outline; absorb =
   white ring that expands for `absorbMs`.
