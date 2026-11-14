@@ -187,7 +187,7 @@ original bass / lead). `trackForStage(n ≥ 6)` returns it; stage 5 stays `boss`
 
 ## Audio
 
-Three procedural recipes in `recipes.ts` (`wispLink`, `shield`, `blinkPhase`, all
+Two procedural recipes in `recipes.ts` (`wispLink`, `shield`; the blink ghost is silent, its state is visual; all
 peak ≤ −3 dBFS, in the loudness table): link = rising two-note chime, shield = short
 metallic tick, finale fanfare reuses `bossDefeated`. No files.
 

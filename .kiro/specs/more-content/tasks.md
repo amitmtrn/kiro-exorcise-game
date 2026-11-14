@@ -10,21 +10,21 @@
 - [x] Commit: `feat(more-content-T1): twin wisp, mirror and blink ghost state machines`
 
 ## T2 — Hit rules, spawning and threats
-- [ ] `collision.ts`: mirror absorb (feedback, cool-down), wisp link and both-hit banish (2 × 150 × combo), blink banish only while vulnerable.
-- [ ] `step.ts` / `reach.ts`: a wisp pair costs one life; the partner is removed with it.
-- [ ] Create `src/game/enemies/variantSpawn.ts`: creators (`createWispPair`, `createMirror`, `createBlink`), `pickSpawn` with skull clearance, 2P half bounds, pair spawn side by side.
-- [ ] Unit tests: absorb, link, both-hit, window expiry, blink gate reset, one life per pair, 2P seat bounds.
-- [ ] Property tests: clearance from skulls, pair never spans a half, spawn grace respected.
-- [ ] `npm test` and `npm run build` both clean.
-- [ ] Commit: `feat(more-content-T2): variant hit rules, pair threat and safe spawning`
+- [x] `collision.ts`: mirror absorb (feedback, cool-down), wisp link and both-hit banish (2 × 150 × combo), blink banish only while vulnerable.
+- [x] `step.ts` / `reach.ts`: a wisp pair costs one life; the partner is removed with it.
+- [x] `recipes.ts` / `sfx.ts`: `wispLink` and `shield` recipes in the loudness table (`sfxWispLink`, `sfxShield`).
+- [x] Create `src/game/enemies/variantSpawn.ts`: creators (`createWispPair`, `createMirror`, `createBlink`), `pickSpawn` with skull clearance, 2P half bounds, pair spawn side by side.
+- [x] Unit tests: absorb, link, both-hit, window expiry, blink gate reset, one life per pair, 2P seat bounds.
+- [x] Property tests: clearance from skulls, pair never spans a half, spawn grace respected.
+- [x] `npm test` and `npm run build` both clean.
+- [x] Commit: `feat(more-content-T2): variant hit rules, pair threat and safe spawning`
 
-## T3 — Rendering, palette and sound
+## T3 — Rendering and palette
 - [ ] `render.ts`: `drawWisp`, `drawMirror`, `drawBlink` with state icons (∞, ▮ / cracks, ◆ / ◇), dashed outlines, link line, ring timer, absorb ring; telegraph pulses use `pulseRate()`; no strobe.
 - [ ] `palette.ts`: `wisp`, `mirror`, `blink` in both palettes; `palette.property.test.ts` includes them in the enemy pairs.
-- [ ] `recipes.ts` / `sfx.ts`: `wispLink`, `shield`, `blinkPhase` recipes in the loudness table.
-- [ ] Tests: every state draws in both palettes without error, icon calls differ per state, pulse rate ≤ 3 Hz and ≤ 1 Hz reduced, recipe peaks.
+- [ ] Tests: every state draws in both palettes without error, icon calls differ per state, pulse rate ≤ 3 Hz and ≤ 1 Hz reduced.
 - [ ] `npm test` and `npm run build` both clean.
-- [ ] Commit: `feat(more-content-T3): new ghost art, colourblind palette keys and sounds`
+- [ ] Commit: `feat(more-content-T3): new ghost art and colourblind palette keys`
 
 ## T4 — Stage 6 and the Hollow King
 - [ ] `stages.ts`: stage 6 config (`variantEvents`, `finale`), `tickSpawners` consumes the events and stops skulls before the boss; `variantIndex` reset on stage entry.

@@ -52,6 +52,24 @@ export function spawnBatPuff(cx: number, cy: number): Particle[] {
   })
 }
 
+/** 8-particle cool-blue spark ring for a swat absorbed by a mirror ghost's shield (never skull orange or red). */
+export function spawnShieldSparks(cx: number, cy: number): Particle[] {
+  return Array.from({ length: 8 }, (_, i) => {
+    const angle = (i / 8) * Math.PI * 2 + Math.random() * 0.3
+    const speed = 2 + Math.random() * 2
+    return {
+      x: cx + Math.cos(angle) * 30,
+      y: cy + Math.sin(angle) * 30,
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed,
+      alpha: 1,
+      decay: 1 / (24 * 0.3),
+      color: i % 2 === 0 ? '#9fe8ff' : '#e8e8f0',
+      radius: 2 + Math.random() * 2,
+    }
+  })
+}
+
 // ─── Tick ─────────────────────────────────────────────────────────────────────
 
 /**

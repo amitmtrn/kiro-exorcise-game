@@ -14,16 +14,17 @@ import type { MotionMask } from '../webcam/diff'
 import { STAGES } from './stages'
 import { onBossHit } from './enemies/bossPhases'
 import { isHittable } from './enemies/vulnerability'
+import { isVariantHittable, onMirrorAbsorb, lightWisp, isLinked } from './enemies/variants'
 import { CANDY_POINTS } from './enemies/candy'
 import { makeKnock, addKnock } from './knock'
 import { addHitStop } from './hitstop'
 import { selectCallout, makeCallout, addCallout } from './callouts'
 import { motionPointsIn, centroid, estimateSwipe } from './swipe'
 import type { Pt, Swipe } from './swipe'
-import { spawnGhostPuff, spawnBatPuff, spawnScoreLabel } from './particles'
+import { spawnGhostPuff, spawnBatPuff, spawnScoreLabel, spawnShieldSparks } from './particles'
 import {
   sfxGhostHit, sfxBatHit, sfxSkullHit,
-  sfxBossHit, sfxBossDefeated, sfxCombo,
+  sfxBossHit, sfxBossDefeated, sfxCombo, sfxWispLink, sfxShield,
 } from '../audio/sfx'
 
 const SPAWN_GRACE_MS = 300
@@ -114,6 +115,23 @@ function comboFx(s: GameState, enemy: Enemy, prevCombo: number, displayW: number
   return { ...s, callouts: addCallout(s.callouts, makeCallout(enemy.x, enemy.y, choice, displayW, displayH)) }
 }
 
+/** Banish of a ghost-like enemy worth `base` points × combo (ghost, lunger, blink, mirror, wisp). */
+function banishGhostLike(s: GameState, enemy: Enemy, base: number, displayW: number, displayH: number): GameState {
+  s = scoreWithPop(s, enemy, base * s.combo)
+  const prevCombo = s.combo
+  s = incrementCombo(s)
+  s = comboFx(s, enemy, prevCombo, displayW, displayH)
+  s = incrementBanished(s)
+  s = shakeIfStrong(s)
+  s = addParticles(s, spawnGhostPuff(enemy.x, enemy.y))
+  s = banishFx(s, enemy, displayH)
+  try { sfxGhostHit(); if (s.combo > prevCombo) sfxCombo(s.combo) } catch { /* audio not ready */ }
+  return s
+}
+
+/** Points of a banished ghost-like type. */
+const GHOST_LIKE_POINTS: Partial<Record<Enemy['type'], number>> = { ghost: 100, lunger: 150, blink: 120, mirror: 150, wisp: 150 }
+
 function clearFlashes(s: GameState): GameState {
   return s.enemies.some((e) => e.hitFlashFrames > 0)
     ? setEnemies(s, s.enemies.map((e) => (e.hitFlashFrames > 0 ? { ...e, hitFlashFrames: 0 } : e)))
@@ -152,8 +170,11 @@ export function resolveHits(
   let s = state
   let pendingDefeat: { enemy: Enemy; combo: number } | null = null // applied after the loop so same-frame hits all resolve first
   const updatedEnemies: Enemy[] = []
+  /** Wisps banished together with their partner earlier in this call: skipped when their turn comes. */
+  const consumed = new Set<string>()
 
   for (const raw of state.enemies) {
+    if (consumed.has(raw.id)) continue
     // A white flash set last frame expires this frame unless re-triggered below.
     let enemy: Enemy = raw.hitFlashFrames > 0
       ? { ...raw, hitFlashFrames: decayFlash(raw.hitFlashFrames, dt) }
@@ -171,7 +192,8 @@ export function resolveHits(
     }
 
     // Shielded boss / approaching lunger: motion does nothing and the gate resets.
-    if (!isHittable(enemy)) {
+    // A protected mirror ghost still runs the gate: the swat is absorbed with feedback (more-content R3.1).
+    if (!isHittable(enemy) && enemy.type !== 'mirror') {
       updatedEnemies.push({ ...enemy, hitCount: 0, motionX: undefined, motionY: undefined })
       continue
     }
@@ -204,17 +226,33 @@ export function resolveHits(
 
     // ── Hit confirmed ─────────────────────────────────────────────────────────
 
-    if (enemy.type === 'ghost' || enemy.type === 'lunger') {
-      const pts = (enemy.type === 'ghost' ? 100 : 150) * s.combo
-      s = scoreWithPop(s, enemy, pts)
-      const prevCombo = s.combo
-      s = incrementCombo(s)
-      s = comboFx(s, enemy, prevCombo, displayW, displayH)
-      s = incrementBanished(s)
-      s = shakeIfStrong(s)
-      s = addParticles(s, spawnGhostPuff(enemy.x, enemy.y))
-      s = banishFx(s, enemy, displayH)
-      try { sfxGhostHit(); if (s.combo > prevCombo) sfxCombo(s.combo) } catch { /* audio not ready */ }
+    if (enemy.type === 'mirror' && !isVariantHittable(enemy)) {
+      // Shield (or cracking): absorbed, no score, no combo change.
+      const r = onMirrorAbsorb(enemy)
+      if (r.absorbed) {
+        s = addParticles(s, spawnShieldSparks(enemy.x, enemy.y))
+        try { sfxShield() } catch { /* audio not ready */ }
+      }
+      updatedEnemies.push(r.enemy)
+
+    } else if (enemy.type === 'wisp') {
+      // The partner lives either in updatedEnemies (already processed) or later in the raw list.
+      const inDone = updatedEnemies.find((e) => e.type === 'wisp' && e.pairId === enemy.pairId && e.id !== enemy.id)
+      const partner = inDone ?? state.enemies.find((e) => e.type === 'wisp' && e.pairId === enemy.pairId && e.id !== enemy.id && !consumed.has(e.id))
+      if (partner && isLinked(partner) && !isLinked(enemy)) {
+        // Both hit inside the window: banish the pair.
+        if (inDone) updatedEnemies.splice(updatedEnemies.indexOf(inDone), 1)
+        else consumed.add(partner.id)
+        s = banishGhostLike(s, enemy, 150, displayW, displayH)
+        if (s.phase !== 'gameover') s = banishGhostLike(s, partner, 150, displayW, displayH)
+      } else {
+        const lit = lightWisp(enemy)
+        if (lit.vState !== enemy.vState) { try { sfxWispLink() } catch { /* audio not ready */ } }
+        updatedEnemies.push(lit)
+      }
+
+    } else if (enemy.type === 'ghost' || enemy.type === 'lunger' || enemy.type === 'blink' || enemy.type === 'mirror') {
+      s = banishGhostLike(s, enemy, GHOST_LIKE_POINTS[enemy.type]!, displayW, displayH)
 
     } else if (enemy.type === 'bat') {
       s = scoreWithPop(s, enemy, 50 * s.combo)
