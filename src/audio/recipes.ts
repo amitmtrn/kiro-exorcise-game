@@ -6,7 +6,7 @@
 import { VOICE_PEAKS } from './music/voices'
 
 
-export const SFX_IDS = ['ghostHit', 'batHit', 'skullHit', 'lifeLost', 'combo', 'stageClear', 'bossHit', 'bossDefeated', 'wispLink', 'shield'] as const
+export const SFX_IDS = ['ghostHit', 'batHit', 'skullHit', 'lifeLost', 'combo', 'stageClear', 'bossHit', 'bossDefeated', 'wispLink', 'shield', 'gameOver', 'uiConfirm', 'countTick', 'countGo'] as const
 export type SfxId = (typeof SFX_IDS)[number]
 
 export interface ToneVoice {
@@ -61,6 +61,18 @@ export function recipeFor(id: SfxId, arg = 2): Voice[] {
     case 'bossHit': return [tone('sine', 60, 0.6, 0.005, 0.1, 0.3), noise(200, 0.2, 0.25, 0.05)]
     case 'wispLink': return [tone('sine', 660, 0.25, 0.005, 0.03, 0.12), tone('sine', 990, 0.22, 0.005, 0.03, 0.15, 0.08)]
     case 'shield': return [noise(3000, 0.2, 0.08), tone('sine', 1800, 0.2, 0.002, 0.01, 0.08)]
+    // playtest2-fixes R4.1: a slow, friendly "aww" — G4, E♭4, C4 falling, with a soft low C under the last note.
+    case 'gameOver': return [
+      tone('sine', 392.0, 0.4, 0.01, 0.18, 0.25),
+      tone('sine', 311.1, 0.4, 0.01, 0.18, 0.25, 0.32),
+      tone('sine', 261.6, 0.42, 0.01, 0.3, 0.6, 0.64),
+      tone('sawtooth', 65.4, 0.12, 0.05, 0.3, 0.55, 0.64),
+    ]
+    // playtest2-fixes R4.2: a soft two-note blip when a motion button fires.
+    case 'uiConfirm': return [tone('sine', 880, 0.25, 0.004, 0.02, 0.06), tone('sine', 1320, 0.2, 0.004, 0.02, 0.07, 0.05)]
+    // playtest2-fixes R5.1: a short wooden tick per countdown number, a brighter rise for "go".
+    case 'countTick': return [tone('sine', 660, 0.3, 0.002, 0.01, 0.05), noise(2500, 0.12, 0.03)]
+    case 'countGo': return [tone('sine', 523.3, 0.3, 0.005, 0.06, 0.12), tone('sine', 784.0, 0.3, 0.005, 0.08, 0.18, 0.08)]
     case 'bossDefeated': return FANFARE.flatMap((f, i) => [
       tone('sine', f, 0.45, 0.01, 0.2, 0.25, i * 0.3),
       tone('sine', f * 2, 0.15, 0.01, 0.1, 0.2, i * 0.3),
@@ -82,7 +94,13 @@ export const STACK_MARGIN = 0.02
 export const MUSIC_BELOW_SFX_DB = 6
 
 /**
- * Per-SFX gain, produced by `gainFor(renderRecipe(id))` (floored to 2 decimals) and checked by tests.
+ * UI sounds sit under the gameplay sounds (playtest2-fixes R4.2, R5.1): their table gain is the rule's gain plus
+ * this trim (dB), so a confirm blip or a countdown tick never competes with a hit.
+ */
+export const SFX_TRIM_DB: Readonly<Partial<Record<SfxId, number>>> = { uiConfirm: -6, countTick: -6 }
+
+/**
+ * Per-SFX gain, produced by `tableGain(id)` = `gainFor(rawLevel(id))` plus the trim (floored to 2 decimals) and checked by tests.
  * Every id has an entry.
  */
 export const SFX_GAIN: Readonly<Record<SfxId, number>> = {
@@ -96,6 +114,10 @@ export const SFX_GAIN: Readonly<Record<SfxId, number>> = {
   bossDefeated: 0.28,
   wispLink: 0.78,
   shield: 0.82,
+  gameOver: 0.37,
+  uiConfirm: 0.38,
+  countTick: 0.33,
+  countGo: 0.49,
 }
 
 /** Music bus gain (`musicGainFor(estimateMusicLevel())`, floored to 2 decimals). */
@@ -202,6 +224,11 @@ export function stackPeakCeil(): number {
 export function gainFor(l: Level): number {
   if (l.peak === 0 || l.rms === 0) return 1
   return Math.min(lin(TARGET_RMS_DB) / l.rms, lin(PEAK_CEIL_DB) / l.peak, stackPeakCeil() / l.peak)
+}
+
+/** The table gain rule for one id: `gainFor` of its worst raw level, plus its UI trim. */
+export function tableGain(id: SfxId, sampleRate = 22050): number {
+  return gainFor(rawLevel(id, sampleRate)) * lin(SFX_TRIM_DB[id] ?? 0)
 }
 
 /** Worst raw level of an id over its variants (combo tiers). */

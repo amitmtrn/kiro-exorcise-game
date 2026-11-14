@@ -169,9 +169,12 @@ Fix:
   sine notes with a low saw under them, about 1.6 s), `uiConfirm` (a soft two-note
   sine blip, about 0.15 s), `countTick` (a short wooden tick: one 660 Hz sine
   and a noise click, about 0.08 s) and `countGo` (a brighter two-note rise,
-  about 0.3 s). Gains come from `gainFor` (floored to 2 decimals) into
-  `SFX_GAIN`, so the RMS target, the −3 dBFS peak ceiling and the stack ceiling
-  (`stackPeakCeil`) apply as for every other sound. All pass through
+  about 0.4 s). Gains come from `tableGain(id)` = `gainFor(rawLevel(id))` plus a
+  UI trim `SFX_TRIM_DB` (−6 dB for `uiConfirm` and `countTick`, so the UI sounds
+  sit under the gameplay sounds), floored to 2 decimals into `SFX_GAIN`
+  (`gameOver` 0.37, `uiConfirm` 0.38, `countTick` 0.33, `countGo` 0.49). The
+  RMS target, the −3 dBFS peak ceiling and the stack ceiling (`stackPeakCeil`)
+  apply as for every other sound. All pass through
   `play()` → per-sound gain → master gain → compressor → limiter.
 - `sfx.ts` / `index.ts`: `sfxGameOver`, `sfxConfirm`, `sfxCountTick`, `sfxCountGo`.
 - **Fire once.** `updateExclusive` is the one function that resolves a press on
@@ -196,6 +199,11 @@ and the random three-sound property run over them with no new code. The new
 recipes keep every peak under `stackPeakCeil()` by the same `gainFor`. A test
 adds the new sounds to the three-sound worst case explicitly and one asserts a
 stack of `gameOver + uiConfirm + countTick + music` stays under 1.
+
+The pair / triple grid grew from 10 to 14 ids (C(14,3) = 364 triples) and the
+sting is 1.6 s long, so the grid took 26 s. It now caches the deterministic
+renders and only loops the combo tiers when the chime is in the mix (2 s). The
+random three-sound property passed once at 20 000 runs with the new sounds.
 
 ## 6. Tests
 

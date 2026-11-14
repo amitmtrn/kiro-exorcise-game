@@ -30,11 +30,12 @@ Files: `src/game/enemies/telegraph.ts`, `reach.ts`, `movement.ts`, `step.ts`, `c
 
 ## T3 — New procedural sounds in the gain table
 Files: `src/audio/recipes.ts`, `sfx.ts`, `index.ts`, `recipes.test.ts`
-- [ ] Failing tests first: the new ids are missing from `SFX_IDS` / `SFX_GAIN`.
-- [ ] Recipes `gameOver`, `uiConfirm`, `countTick`, `countGo`; gains from `gainFor`; `sfxGameOver`, `sfxConfirm`, `sfxCountTick`, `sfxCountGo`.
-- [ ] Stack tests include the new sounds; they pass at 20000 runs once.
-- [ ] `npm test` and `npm run build` both clean.
-- [ ] Commit: `feat(playtest2-fixes-T3): procedural game over sting, confirm, countdown sounds in the gain table`
+- [x] Failing tests first: the new ids are missing from `SFX_IDS` / `SFX_GAIN`.
+- [x] Recipes `gameOver`, `uiConfirm`, `countTick`, `countGo`; gains from `tableGain` (`gainFor` + `SFX_TRIM_DB`, UI sounds −6 dB); `sfxGameOver`, `sfxConfirm`, `sfxCountTick`, `sfxCountGo`.
+- [x] Stack tests include the new sounds (`sfx.new.test.ts`: sting + confirm + tick / go stack; the grid and the random property in `recipes.test.ts` run over all 14 ids, grid renders cached); the property passed once at 20000 runs.
+- [x] Playback test: each new `sfx*` goes through one per-sound gain with its table value into the master bus.
+- [x] `npm test` and `npm run build` both clean.
+- [x] Commit: `feat(playtest2-fixes-T3): procedural game over sting, confirm, countdown sounds in the gain table`
 
 ## T4 — Wire the sounds
 Files: `src/ui/motionButton.ts`, `ui/seatCard.ts`, `game/countdown.ts`, `game/loop.ts`
