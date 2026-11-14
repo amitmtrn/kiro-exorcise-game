@@ -35,7 +35,9 @@ while demo is on are ignored, so a held `G` enters demo and stays.
 
 **R1.3** In demo mode any key press or click / tap on the canvas, other than `G`
 (R1.2) and the passive keys of R1.4, leaves demo mode and shows the normal title
-screen. Loading with `?demo=0` is the same normal game as no parameter.
+screen. This also holds during the short font wait of a `?demo=1` boot: a key or click then
+leaves as soon as the runtime exists. A key event without a `key` value is ignored.
+Loading with `?demo=0` is the same normal game as no parameter.
 
 **R1.4** Passive keys do not leave demo mode: bare modifier keys (`Shift`,
 `Control`, `Alt`, `AltGraph`, `Meta`, `CapsLock`), `M` / `m` (mute), the function keys
@@ -200,7 +202,7 @@ viewers understand the input.
 **R6.3** The Exorcist Card preview uses a procedurally drawn placeholder portrait
 (a dark head-and-shoulders silhouette with a pale ghost-white rim light on a dark graveyard scene) in place of a camera snapshot,
 and the card carries the chip "DEMO". The card is never saved or downloaded in demo
-mode (the download hook is a no-op).
+mode (the download hook writes nothing and reports failure, so no "saved" status is shown).
 
 **R6.4** Demo scores never reach `localStorage`: while demo mode is on
 `saveHighScore` writes nothing and `loadHighScore` returns 0, so the "Best" line shows

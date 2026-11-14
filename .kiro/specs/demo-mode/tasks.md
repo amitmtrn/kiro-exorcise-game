@@ -121,3 +121,12 @@ Files: `src/demo/camera.ts`, `src/demo/runtime.ts`, `src/demo/driver.ts`, `src/g
 - [x] `npm test` and `npm run build` both clean.
 - [x] Commits: `fix(demo-mode): ...`
 
+## T13 — Review fixes (round 5, NITs)
+Files: `src/demo/params.ts`, `src/game/loop.ts`, `src/main.ts`, tests next to each, spec docs
+
+- [x] Key events without a `key` are ignored, never throw (R1.4); params test.
+- [x] `begin()` plays one player in demo mode; the demo card download reports failure, not "saved" (R6.3, R7.1); sim test.
+- [x] A key or click during the `?demo=1` font wait leaves demo once it is up (R1.3); main test.
+- [x] Test that leaving demo restores the sound hint (R6.5).
+- [x] `npm test` and `npm run build` both clean.
+- [x] Commits: `fix(demo-mode): ...`

@@ -11,6 +11,8 @@ const m = vi.hoisted(() => ({
   runOnboarding: vi.fn(),
   showCameraDenied: vi.fn(),
   toggleMute: vi.fn(),
+  onLocked: null as null | ((locked: boolean) => void),
+  hints: [] as Array<{ className: string; hidden: boolean }>,
 }))
 
 vi.mock('../webcam/capture', () => ({ initWebcam: m.initWebcam, stopWebcam: m.stopWebcam, drawWebcamFrame: vi.fn() }))
@@ -30,6 +32,8 @@ vi.mock('../audio/index', () => ({
 vi.mock('../audio/sfx', () => ({
   sfxGhostHit: vi.fn(), sfxBatHit: vi.fn(), sfxBossHit: vi.fn(), sfxBossDefeated: vi.fn(), sfxCombo: vi.fn(), sfxSkullHit: vi.fn(),
 }))
+
+vi.mock('../audio/unlock', () => ({ installAudioUnlock: (d: { onLocked: (l: boolean) => void }) => { m.onLocked = d.onLocked; return () => {} } }))
 
 const W = 1280, H = 720
 
@@ -75,7 +79,7 @@ function setup(search: string) {
 
   vi.stubGlobal('document', {
     getElementById: (id: string) => (id === 'webcam-canvas' ? webcamCanvas : id === 'game-canvas' ? gameCanvas : ui),
-    createElement: (tag: string) => el(tag),
+    createElement: (tag: string) => { const e = el(tag); m.hints.push(e as never); return e },
     addEventListener: (type: string, fn: (e: unknown) => void, capture = false) => { docL.push({ type, fn, capture: !!capture }) },
   })
   vi.stubGlobal('window', {
@@ -122,7 +126,8 @@ const origRandom = Math.random
 
 beforeEach(() => {
   vi.resetModules()
-  for (const f of Object.values(m)) f.mockReset()
+  for (const f of Object.values(m)) if (typeof f === 'function' && 'mockReset' in f) f.mockReset()
+  m.onLocked = null; m.hints.length = 0
   m.initWebcam.mockImplementation(() => new Promise(() => {})) // camera prompt stays open
 })
 afterEach(async () => {
@@ -213,6 +218,44 @@ describe('leaving demo mode (R1.3, R1.5)', () => {
     env.key('x')
     await flush()
     expect(audio.stopMusic).toHaveBeenCalled()
+  })
+
+  it('restores the sound hint that demo mode hid (R6.5)', async () => {
+    const env = setup('?demo=1')
+    await import('../main')
+    await flush()
+    env.frames(10)
+    const hint = m.hints.find((e) => e.className === 'sound-hint')!
+    m.onLocked!(true) // audio is locked: the controller wants the hint shown, demo mode overrides it
+    expect(hint.hidden).toBe(true)
+    env.key('x')
+    await flush()
+    expect(hint.hidden).toBe(false)
+  })
+
+  it('a key or click during the font wait leaves demo as soon as it is up (R1.3)', async () => {
+    for (const how of ['key', 'click'] as const) {
+      vi.resetModules()
+      const env = setup('?demo=1&seed=7')
+      let fontDone!: () => void
+      ;(document as unknown as { fonts: unknown }).fonts = { load: () => new Promise<void>((r) => { fontDone = r }) }
+      await import('../main')
+      await flush()
+      if (how === 'key') {
+        const ev = env.key('d') // not the debug overlay toggle
+        expect(ev.preventDefault).toHaveBeenCalled()
+      } else expect(env.click(W - 20, 20)).toBe(true)
+      expect(m.initWebcam).not.toHaveBeenCalled()
+      fontDone()
+      await flush()
+      expect(m.initWebcam, how).toHaveBeenCalledTimes(1)
+      expect(Math.random).toBe(origRandom)
+      expect(env.loc.search).toBe('')
+      const loop = await import('../game/loop')
+      loop.stopLoop()
+      m.initWebcam.mockClear()
+      vi.unstubAllGlobals()
+    }
   })
 
   it('leaves for good even when history.replaceState fails', async () => {

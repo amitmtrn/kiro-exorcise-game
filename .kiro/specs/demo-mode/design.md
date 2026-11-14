@@ -226,10 +226,10 @@ class DemoRuntime {
 - In `tickBody` the camera section is `if (demo) { backdrop; ({cur, prev} = demo.frame(view)) } else { …existing… }`.
   `view` is built from the state at the top of the tick (same state the buttons see).
 - `begin(mode)` in demo mode sets `state.stage = demo.startStage` after `startGame`
-  and calls `demo.onRunStart()`. The victory PLAY AGAIN callback goes through `begin(1)` in demo too, so a stray press starts the same seeded run. The 2 PLAYERS button is never pressed by the driver, and
+  and calls `demo.onRunStart()`. The victory PLAY AGAIN callback goes through `begin(1)` in demo too, so a stray press starts the same seeded run. `begin` coerces mode 2 to 1 in demo (no camera to split). The 2 PLAYERS button is never pressed by the driver, and
   a key that would start 2P (`2`) leaves demo first (R1.3).
 - The card session in demo: `grab` is `grabDemoPortrait`, which draws the portrait into an off-screen canvas,
-  `download` is `async () => true` (no file), and `extra: () => ({ badge: 'DEMO' })`.
+  `download` is `async () => false` (no file, and never a "saved" status), and `extra: () => ({ badge: 'DEMO' })`.
 - `state.ts`: `setHighScorePersistence(on: boolean)`; when off, `saveHighScore` is a
   no-op and `loadHighScore` returns 0. The demo sets it off on start and `dispose()` on again.
 
@@ -243,7 +243,7 @@ onboarding flag. Demo: load the title font first (for up to 1.5 s no clock or `M
 patch exists and no loop runs), skip
 `initWebcam` / onboarding, then create `DemoRuntime`, `startLoop(null, …, stage, { demo })`.
 A `keydown` handler (a bubble listener on `document`, registered before the existing one) and a capture-phase `pointerdown` listener on `window` apply
-`demoKeyAction` while demo is on: `exit` → `leaveDemo()` (stop loop, `dispose()`, `stopMusic()`,
+`demoKeyAction` while demo is on or booting (`demoBooting`: a key or click during the font wait sets `leaveWhenBooted`, and `bootDemo` leaves right after the loop starts; events without a `key` are ignored): `exit` → `leaveDemo()` (stop loop, `dispose()`, `stopMusic()`,
 `history.replaceState` removes the demo parameters so a reload is the normal game, then
 `boot()`; a module flag `demoLeft` makes every later `boot()` ignore the URL's demo
 parameters, so a failing `replaceState` cannot send it back into demo); the key event

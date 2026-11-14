@@ -37,6 +37,9 @@ const gameCtx   = gameCanvas.getContext('2d')!
 
 // Demo mode (demo-mode spec): a camera-free scripted run for filming. `demo` is non-null while it is on.
 let demo: DemoRuntime | null = null
+/** True from the start of a demo boot (font wait) until the runtime exists; a key or click then still means "leave" (R1.3). */
+let demoBooting = false
+let leaveWhenBooted = false
 /** Set once demo mode was left: later boots (camera retry) are normal whatever the URL says. */
 let demoLeft = false
 /** The camera of the normal game currently on screen (released when demo mode takes over). */
@@ -72,24 +75,25 @@ installAudioUnlock({
 // Demo keys run first (registered before the normal handler). Any key leaves demo mode except the passive ones;
 // `G` on the normal title screen starts it. The audio-unlock listener on window still sees the key.
 document.addEventListener('keydown', (e) => {
-  const route = routeDemoKey(e, { demoOn: demo !== null, onTitle: isStartScreenVisible(), msSinceLeft: performance.now() - leftDemoAt })
+  const route = routeDemoKey(e, { demoOn: demo !== null || demoBooting, onTitle: isStartScreenVisible(), msSinceLeft: performance.now() - leftDemoAt })
   if (route === 'pass') return
   consumedKeys.add(e)
   e.preventDefault()
-  if (route === 'leave') leaveDemo()
+  if (route === 'leave') { if (demoBooting) leaveWhenBooted = true; else leaveDemo() }
   else if (route === 'enter') enterDemo()
 })
 // Any click / tap leaves demo mode too; it is used up (it does not also press the mute button underneath).
 window.addEventListener('pointerdown', (e) => {
-  if (!demo) return
+  if (!demo && !demoBooting) return
   e.stopPropagation()
-  leaveDemo()
+  if (demoBooting) leaveWhenBooted = true
+  else leaveDemo()
 }, true)
 
 document.addEventListener('keydown', (e) => {
   if (consumedKeys.has(e)) return
   // In demo mode only a plain M (mute) reaches the game: the other passive keys (chords, F-keys) do nothing here.
-  if (demo !== null && !((e.key === 'm' || e.key === 'M') && !e.ctrlKey && !e.metaKey && !e.altKey)) return
+  if ((demo !== null || demoBooting) && !((e.key === 'm' || e.key === 'M') && !e.ctrlKey && !e.metaKey && !e.altKey)) return
   if (e.key === 'd' || e.key === 'D') toggleDebug()
   if (e.key === 'm' || e.key === 'M') toggleMute()
   const pickedMode = modeForKey(e.key)
@@ -143,11 +147,15 @@ function urlWithoutDemo(): string {
 /** Starts demo mode: no getUserMedia, no onboarding, no video element (demo-mode R2). */
 async function bootDemo(params: DemoParams): Promise<void> {
   soundHint.hidden = true
+  demoBooting = true
+  leaveWhenBooted = false
   // The font first: the runtime patches the clock and Math.random, which must not happen while no loop (and no DEMO badge) runs.
   await loadTitleFont().catch(() => undefined)
   const rt = new DemoRuntime({ seed: params.seed, stage: params.stage, speed: params.speed, w: gameCanvas.width, h: gameCanvas.height })
   demo = rt
+  demoBooting = false
   await startLoop(null, webcamCtx, gameCtx, 1, { demo: rt })
+  if (leaveWhenBooted) { leaveWhenBooted = false; leaveDemo() } // a key or click arrived during the font wait
 }
 
 /** `G` on the normal title screen: release the camera and switch to the scripted run (R1.2, R1.5). */
