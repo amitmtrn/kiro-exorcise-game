@@ -127,13 +127,17 @@ function drawCalibratingBanner(ctx: CanvasRenderingContext2D): void {
   ctx.clearRect(0, 0, W, H)
   ctx.fillStyle = 'rgba(13, 0, 20, 0.6)'
   ctx.fillRect(0, 0, W, H)
-  ctx.font = `bold ${hudFontSize(W)}px ${HUD_FONT_FAMILY}`
+  const msg = 'Calibrating… hold still 👻'
+  let px = hudFontSize(W)
+  ctx.font = `bold ${px}px ${HUD_FONT_FAMILY}`
+  const mw = typeof ctx.measureText === 'function' ? (ctx.measureText(msg)?.width ?? 0) : 0
+  if (mw > W * 0.9 && mw > 0) { px = Math.max(12, Math.floor(px * W * 0.9 / mw)); ctx.font = `bold ${px}px ${HUD_FONT_FAMILY}` }
   ctx.textAlign = 'center'
   ctx.textBaseline = 'middle'
   ctx.fillStyle = '#ffd166'
   ctx.shadowColor = '#ffd166'
   ctx.shadowBlur = 14
-  ctx.fillText('Calibrating… hold still 👻', W / 2, H / 2)
+  ctx.fillText(msg, W / 2, H / 2)
   ctx.restore()
 }
 

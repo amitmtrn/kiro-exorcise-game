@@ -6,7 +6,8 @@
  * Hitboxes stay in display space and are mapped through normalised space
  * (`x / displayW * grid.w`), so one display box covers the same fraction of
  * the frame at every size. `stride` keeps the sample lattice about the same
- * density: 320 / 4 and 160 / 2 both give 80 columns.
+ * density: 320 / 4 and 160 / 2 both give 80 columns;
+ * 96 / 1 gives 96, so small enemies keep at least as many samples as at full size.
  */
 
 import type { QualityLevel } from '../game/quality'
@@ -18,7 +19,7 @@ export const GRID_LADDER: readonly MotionGrid[] = [
   { w: 320, h: 180, stride: 4 },
   { w: 160, h: 90, stride: 2 },
   { w: 128, h: 72, stride: 2 },
-  { w: 96, h: 54, stride: 2 },
+  { w: 96, h: 54, stride: 1 },
 ]
 
 export const FULL_GRID: MotionGrid = GRID_LADDER[0]

@@ -8,6 +8,7 @@ import { getSettings, updateSettings } from '../settings/runtime'
 import { nextTextScale } from '../settings/settings'
 import type { Settings } from '../settings/settings'
 import { HUD_FONT_FAMILY } from './hud'
+import { MIN_MENU_PX } from './textScale'
 import type { Rect } from './layout'
 
 export const PANEL_ROW_COUNT = 4
@@ -58,10 +59,10 @@ export function inRect(r: Rect, x: number, y: number): boolean {
   return x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h
 }
 
-/** Font px that makes text of `widthAtFont` (measured at `font`) fit `avail`; never grows, floor 10. */
+/** Font px that makes text of `widthAtFont` (measured at `font`) fit `avail`; never grows, floor MIN_MENU_PX. */
 export function fitFontPx(font: number, widthAtFont: number, avail: number): number {
   if (!(widthAtFont > avail) || !(avail > 0)) return font
-  return Math.max(10, Math.floor(font * avail / widthAtFont))
+  return Math.max(MIN_MENU_PX, Math.floor(font * avail / widthAtFont))
 }
 
 export type PanelKey = 'up' | 'down' | 'activate' | 'close'

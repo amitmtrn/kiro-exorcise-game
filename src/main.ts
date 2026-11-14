@@ -131,9 +131,9 @@ document.addEventListener('keydown', (e) => {
 // Tap / click on the HUD mute button (top-right) toggles audio too.
 // Canvas pixel size equals its CSS size, so client coords map 1:1.
 gameCanvas.addEventListener('pointerdown', (e) => {
-  // Two-player: one shared mute button at the top centre (the 1P one is top-right).
   // Settings gear / panel (title screen only; not in demo mode)
   if (!demo && !demoBooting && isStartScreenVisible() && handlePanelPointer(e.clientX, e.clientY, gameCanvas.width, gameCanvas.height)) return
+  // Two-player: one shared mute button at the top centre (the 1P one is top-right).
   const fs = hudFontSize(gameCanvas.width)
   const twoPlayer = isTwoPlayerActive()
   routePointer(e.clientX, e.clientY, {

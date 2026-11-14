@@ -69,7 +69,7 @@ level 0 returns the input unchanged. `configureQuality('auto'|…)` and the loop
 
 ```ts
 export interface MotionGrid { w: number; h: number; stride: number }
-export const GRID_LADDER: readonly MotionGrid[]  // 320×180/4, 160×90/2, 128×72/2, 96×54/2
+export const GRID_LADDER: readonly MotionGrid[]  // 320×180/4, 160×90/2, 128×72/2, 96×54/1
 export function getMotionGrid(): MotionGrid
 export function setMotionGrid(g: MotionGrid): boolean   // true when it changed
 export function gridForLevel(level: QualityLevel): MotionGrid
@@ -85,7 +85,7 @@ Normalised mapping: `scaleHitbox` already computes `sx = gridW / displayW`,
 `sy = gridH / displayH`; with the grid read at call time the same display box maps
 to the same fraction at every size. Stride 4 on 320 columns and stride 2 on 160
 give the same 80 × 45 sample lattice, so a hitbox gets the same number of samples;
-128 × 72 and 96 × 54 give 64 × 36 and 48 × 27 (cheaper, coarser). `motionCell`
+128 × 72 gives 64 × 36 (cheaper, coarser). 96 × 54 uses stride 1 and gives 96 × 54, so a small enemy keeps at least as many samples as at full size. `motionCell`
 = `stride · displayW / gridW`; the motion button's needed coverage
 (`MIN_COVERAGE · π r² / cellArea`) therefore follows automatically, and the
 dwell, which is time based, is untouched.
@@ -161,7 +161,7 @@ Normalisation rule (`gainFor`): `min(10^(−22/20) / rms, 10^(−3/20) / peak)`,
 `rms` over the active span (samples ≥ 1 % of peak). The table in the source was
 produced with this function and rounded to 2 decimals; a test recomputes it and
 checks every entry is within 1.5 dB of the rule, and that the post-gain peak is
-≤ −3 dBFS and RMS ≈ −22 dBFS (or peak-limited).
+≤ −3 dBFS before the bus and RMS ≈ −22 dBFS (or peak-limited).
 
 Music is a graph of scheduled voices, not a buffer, so its level is an analytic
 estimate: per voice, `rms² ≈ peak² · duty / 2` (sine-equivalent), summed
@@ -296,10 +296,12 @@ not). Analysis = motion mask + 6 hitbox diffs on a 1280 × 720 display:
 | 320 × 180 | 4 | 3600 | 450 KB | 25.4 µs |
 | 160 × 90 | 2 | 3600 | 113 KB | 25.2 µs |
 | 128 × 72 | 2 | 2304 | 72 KB | 16.9 µs |
-| 96 × 54 | 2 | 1296 | 41 KB | 8.6 µs |
+| 96 × 54 | 1 | 5184 | 41 KB | not re-measured (stride 2 was 8.6 µs) |
 
 The JS analysis is small at every size. The saving is mainly in what the browser
 does before it: `drawImage` down-scaling into a smaller canvas and two
 `getImageData` copies per frame, 11× fewer bytes at 96 × 54. That cost is not
 measurable in Node, so the byte column is its proxy; the real effect has to be
 checked with a throttled browser (T11).
+
+Note (RF16): `DynamicsCompressorNode` applies automatic make-up gain, so the output after the bus can be louder than the pre-bus −22 dBFS target and the −3 dBFS ceiling is approximate. Not verified by ear; the master volume control covers it.

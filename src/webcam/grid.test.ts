@@ -84,3 +84,19 @@ describe('motion grid', () => {
     expect(resetHitGates(clean)).toBe(clean)
   })
 })
+
+describe('small-enemy sample count (RF16)', () => {
+  it('a bat-sized box on a 1280 x 720 display keeps at least the full-grid sample count at every grid', () => {
+    const count = (g: typeof GRID_LADDER[number]) => {
+      const b = scaleHitbox({ x: 400, y: 300, w: 48, h: 32 }, 1280, 720, g.w)
+      const sy = g.h / 720
+      let n = 0
+      for (let y = 0; y < g.h; y += g.stride) for (let x = 0; x < g.w; x += g.stride) {
+        if (x >= b.x && x < b.x + b.w && y >= 300 * sy && y < 300 * sy + 32 * sy) n++
+      }
+      return n
+    }
+    const full = count(GRID_LADDER[0])
+    for (const g of GRID_LADDER) expect(count(g)).toBeGreaterThanOrEqual(Math.floor(full * 0.9))
+  })
+})

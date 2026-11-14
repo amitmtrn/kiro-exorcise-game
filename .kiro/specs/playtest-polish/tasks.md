@@ -100,3 +100,12 @@
 - [x] RF15 (no change): `thinParticles` is per batch and all bursts are batched (`addParticles`); noted only.
 - [x] `npm test` and `npm run build` both clean.
 - [x] Commit: `fix(playtest-polish): review fixes round 2`
+
+## T14 — Review fixes (round 3)
+- [x] RF16: 96 × 54 grid uses stride 1 so small enemies keep their sample count (R2.2); design/requirements updated; test at bat size. Bus make-up gain noted in the design.
+- [x] RF17: calibration banner shrinks to fit the canvas width (min 12 px).
+- [x] RF18: settings panel text floor is `MIN_MENU_PX` (12).
+- [x] RF19: misplaced comment in `main.ts` moved.
+- [x] Skipped: steady-30 fps slow machine (needs work-time measurement, behavior matches R1.3/R1.5); P1/P2 label size and boss wind-up jitter (pre-existing, not required); card offer text scale (card content out of scope).
+- [x] `npm test` and `npm run build` both clean.
+- [x] Commit: `fix(playtest-polish): review fixes round 3`

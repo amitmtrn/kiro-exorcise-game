@@ -81,7 +81,7 @@ not counted as slow.
 ### R2 — Adaptive motion-diff resolution
 
 **R2.1** The motion grid is one of `320 × 180` (stride 4, today's value and the
-default), `160 × 90`, `128 × 72`, `96 × 54` (stride 2). Level 2 uses 160 × 90,
+default), `160 × 90`, `128 × 72`, `96 × 54` (stride 2, 2, 1 respectively). Level 2 uses 160 × 90,
 level 3 uses 96 × 54; 128 × 72 is supported and tested as an intermediate size.
 A pure module (`webcam/grid.ts`) holds the current grid; hit detection, the
 motion mask, swipe estimation and two-player halves read the grid from it.
