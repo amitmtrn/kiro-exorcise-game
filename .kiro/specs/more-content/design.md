@@ -152,7 +152,7 @@ time waits for a free slot (cap 5).
 Everything else (phase thresholds, shield-while-idle, i-frames, stagger, defeat)
 is shared with the stage-5 boss. `paramsFor(boss)` picks the table. In `tickBoss` a
 finale summon makes `finaleMinionKinds(phase, n)` (blink / wisp pair / mirror, plus a
-blink on every other phase-3 summon) with `spawnVariantAt` at the boss position; the
+blink on every other phase-3 summon) with `spawnVariantAt` beside the boss (`kingSpawnPoint`: 1.1 boss widths toward the centre column, so a minion is readable even at 640×360); a summon is held back (timer stays due) while `skullNear` the spawn point; the
 finale boss counts its summons in `vHits` (unused by bosses otherwise). A summon that
 would exceed the cap (blink, wisp, mirror and ghost alive; a pair counts 2) falls back to
 its first ghost alone (the mirror in phase 3), and is skipped when even that does not fit;

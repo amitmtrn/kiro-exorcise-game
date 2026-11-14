@@ -13,7 +13,8 @@ import { advanceToNextStage, spawnBoss } from './round'
 import {
   FINALE_PARAMS, PHASE_PARAMS, paramsFor, finaleMinionKinds, tickBoss, hoverY, atHover, moveBoss, onBossHit,
 } from './enemies/bossPhases'
-import { createBoss } from './enemies/boss'
+import { createBoss, BOSS_SIZE } from './enemies/boss'
+import { kingSpawnPoint, skullClearancePx } from './enemies/variantSpawn'
 import { MIN_TELEGRAPH_MS, MIN_WINDOW_MS } from './enemies/variants'
 import { stageHints } from '../ui/screens'
 import { withSeededRandom } from '../test/prng'
@@ -160,6 +161,32 @@ describe('the Hollow King (R6)', () => {
     const full = tickBoss({ ...createInitialState(6), phase: 'playing', enemies: [b, ...blinks, { ...blinks[0], id: 'k2' }] }, W, H)
     expect(full.enemies.filter((e) => e.type === 'mirror')).toHaveLength(0)
     expect(full.enemies.find((e) => e.type === 'boss')!.vHits).toBe(1) // nothing made: the count stays
+  })
+  it('a king summon waits while a live skull is near the spawn point (R1.6)', () => {
+    const b: Enemy = { ...createBoss(W, H, true), x: W / 2, y: hoverY(H), bossPhase: 1, summonTimerMs: 0 }
+    const at = kingSpawnPoint(b.x, b.y, W)
+    const skull = (x: number, y: number) => makeEnemy({ id: 'sk', type: 'skull', x, y, targetX: 0, targetY: 0, speed: 0.1, hitbox: { x: 0, y: 0, w: 1, h: 1 } })
+    const near = tickBoss({ ...createInitialState(6), phase: 'playing', enemies: [b, skull(at.x + 20, at.y)] }, W, H)
+    expect(near.enemies.filter((e) => e.type === 'blink')).toHaveLength(0)
+    expect(near.enemies.find((e) => e.type === 'boss')!.summonTimerMs).toBe(0) // still due: retried next tick
+    const far = tickBoss({ ...createInitialState(6), phase: 'playing', enemies: [b, skull(at.x + 2 * skullClearancePx(), at.y)] }, W, H)
+    expect(far.enemies.filter((e) => e.type === 'blink')).toHaveLength(1)
+  })
+  it('on a small canvas a summoned minion starts clear of the boss sprite (readability)', () => {
+    const w = 640, h = 360
+    for (const phase of [1, 2, 3] as const) {
+      const b: Enemy = { ...createBoss(w, h, true), x: w / 2, y: hoverY(h), bossPhase: phase, summonTimerMs: 0 }
+      const s = tickBoss({ ...createInitialState(6), phase: 'playing', enemies: [b] }, w, h)
+      const minions = s.enemies.filter((e) => e.type !== 'boss')
+      expect(minions.length).toBeGreaterThan(0)
+      for (const m of minions) {
+        const apartX = Math.abs(m.x - b.x) - (BOSS_SIZE + (m.hitbox.w)) / 2
+        const apartY = Math.abs(m.y - b.y) - (BOSS_SIZE + (m.hitbox.h)) / 2
+        expect(Math.max(apartX, apartY)).toBeGreaterThanOrEqual(0) // hitboxes do not overlap
+        expect(m.x).toBeGreaterThan(0)
+        expect(m.x).toBeLessThan(w)
+      }
+    }
   })
   it('a king summon shows the first-sighting tip of each summoned type once (R5.4)', () => {
     const b: Enemy = { ...createBoss(W, H, true), x: W / 2, y: hoverY(H), bossPhase: 3, summonTimerMs: 0 }

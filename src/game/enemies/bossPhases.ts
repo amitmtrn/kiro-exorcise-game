@@ -12,7 +12,7 @@ import { makeEnemy, setEnemies, decrementLife, resetCombo, setShake, SHAKE_FRAME
 import { BOSS_SIZE } from './boss'
 import { GHOST_SIZE, GHOST_SPEED } from './ghost'
 import { centerTarget, randomId } from './spawnUtils'
-import { spawnVariantAt } from './variantSpawn'
+import { spawnVariantAt, skullNear, kingSpawnPoint } from './variantSpawn'
 import { withTip } from '../finale'
 import type { VariantType } from './variants'
 
@@ -239,7 +239,10 @@ export function tickBoss(state: GameState, canvasW: number, canvasH: number): Ga
   }
 
   // Only at the hover line: a boss flying home from the centre keeps the summon queued.
-  if (b.bossAttack === 'idle' && b.summonTimerMs <= 0 && atHover(b, canvasH)) {
+  // A king summon waits (the timer stays due) while a live skull is within the spawn clearance (more-content R1.6).
+  const at = kingSpawnPoint(b.x, b.y, canvasW)
+  const skullBlocks = b.finale === true && skullNear(s.enemies.filter((e) => e.type === 'skull'), at.x, at.y)
+  if (b.bossAttack === 'idle' && b.summonTimerMs <= 0 && atHover(b, canvasH) && !skullBlocks) {
     const p = paramsFor(b)
     // Carry a small overshoot so cadence doesn't drift; a long wait for the hover line is not carried.
     const nextTimer = p.summonEveryMs + Math.max(b.summonTimerMs, -SUMMON_CARRY_MAX_MS)

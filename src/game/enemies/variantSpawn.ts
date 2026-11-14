@@ -8,6 +8,7 @@ import type { Enemy } from '../state'
 import { makeEnemy } from '../state'
 import { GHOST_SIZE } from './ghost'
 import { SKULL_SIZE } from './skull'
+import { BOSS_SIZE } from './boss'
 import { hitboxFor } from './movement'
 import { WISP_SIZE, initialState, speedFor } from './variants'
 import type { VariantType } from './variants'
@@ -82,9 +83,27 @@ export function spawnVariant(kind: VariantType, W: number, H: number, skulls: re
   return [kind === 'mirror' ? createMirror(p, W, H, rand) : createBlink(p, W, H, rand)]
 }
 
-/** One finale minion `kind` at the boss position (`bx`, `by`), aimed at the exact centre. A wisp makes a pair. */
+/** A minion starts this far beside the boss centre, so it clears the boss sprite even on a small canvas. */
+export const KING_MINION_OFFSET_PX = BOSS_SIZE * 1.1
+
+/** True when a live skull is within the spawn clearance of (`x`, `y`) (R1.6). */
+export function skullNear(skulls: readonly Pick<Enemy, 'x' | 'y'>[], x: number, y: number): boolean {
+  const clear = skullClearancePx()
+  return skulls.some((s) => Math.hypot(s.x - x, s.y - y) < clear)
+}
+
+/** Where the king's minions appear: beside the boss, on the side facing the centre column. */
+export function kingSpawnPoint(bx: number, by: number, W: number): Pt {
+  const side = bx <= W / 2 ? 1 : -1
+  return { x: Math.min(Math.max(bx + side * KING_MINION_OFFSET_PX, 0.1 * W), 0.9 * W), y: by }
+}
+
+/**
+ * One finale minion `kind` beside the boss (`bx`, `by`), on the side facing the centre column, aimed at the
+ * exact centre. A wisp makes a pair.
+ */
 export function spawnVariantAt(kind: VariantType, bx: number, by: number, W: number, H: number, rand: Rand = Math.random): Enemy[] {
-  const p: Pt = { x: bx, y: by }
+  const p = kingSpawnPoint(bx, by, W)
   if (kind === 'wisp') return createWispPair(p, W, H, rand)
   return [kind === 'mirror' ? createMirror(p, W, H, rand) : createBlink(p, W, H, rand)]
 }
