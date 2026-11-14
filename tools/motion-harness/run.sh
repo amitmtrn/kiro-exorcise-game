@@ -71,7 +71,7 @@ rm -rf "$OUT/profile-$MODE"; mkdir -p "$OUT/profile-$MODE"
 "$CHROME" --headless=new --user-data-dir="$OUT/profile-$MODE" --no-first-run \
   --no-default-browser-check --disable-gpu --window-size=1280,720 \
   --host-resolver-rules="MAP * ~NOTFOUND , EXCLUDE 127.0.0.1" \
-  "${CAMERA_FLAGS[@]}" \
+  ${CAMERA_FLAGS[@]+"${CAMERA_FLAGS[@]}"} \
   --autoplay-policy=no-user-gesture-required --remote-debugging-port="$PORT" \
   "$PAGE" > "$OUT/chrome-$MODE.log" 2>&1 & CHROME_PID=$!
 

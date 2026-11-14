@@ -25,7 +25,7 @@ npm run dev
 
 | Command | What it does |
 |---|---|
-| `npm test` | Run all 1228 unit tests (Vitest) |
+| `npm test` | Run all 1239 unit tests (Vitest) |
 | `npm run build` | Production build → `dist/` |
 | `npm run preview` | Preview the production build locally |
 
@@ -73,9 +73,9 @@ Open the game with `?demo=1` (for example `http://localhost:5173/kiro-exorcise-g
 | `demo=1` | Start in demo mode (`demo=0` or no parameter: normal game) |
 | `seed=N` | Run to play (default `7`). Same seed + same window size = the identical run every time |
 | `stage=N` | Start at stage N (1–5) |
-| `speed=N` | Game speed, 1–3 (default 2: a full run takes about 2.5 minutes) |
+| `speed=N` | Game speed, 1–3 (default 2: a full run takes about 2.5 minutes; other values use the default) |
 
-**Recording the submission video.** Set the browser window to the size you will record (the run depends on the canvas size; `seed=7` plays a clean run without a game over at 960×540, 1280×720, 1366×768, 1440×900 and 1920×1080), open `?demo=1&seed=7`, press `M` twice (mute, unmute: this key press also unlocks audio) and start the screen recorder. Reload the page for a re-take: it plays the same run again. Use `speed=1` for real-time gameplay. See `tools/motion-harness/README.md` for a headless check. Spec: `.kiro/specs/demo-mode/`.
+**Recording the submission video.** Set the browser window to the size you will record (the run depends on the canvas size; `seed=7` plays a clean run without a game over at 960×540, 1280×720, 1366×768, 1440×900 and 1920×1080), open `?demo=1&seed=7`, press `M` twice (mute, unmute: this key press also unlocks audio) and start the screen recorder. Reload the page for a re-take (F5 / Ctrl+R / Cmd+R and F11 for full screen do not leave demo mode): it plays the same run again. Use `speed=1` for real-time gameplay; the pace is the same on any display of 60 Hz or more. See `tools/motion-harness/README.md` for a headless check. Spec: `.kiro/specs/demo-mode/`.
 
 ### Testing hit detection without a webcam
 

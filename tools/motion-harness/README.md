@@ -39,11 +39,13 @@ ghost hand. To film the submission video:
 1. `npm run dev`, then open `http://localhost:5173/kiro-exorcise-game/?demo=1&seed=7` in a normal browser window
    sized to the recording (for example 1280×720 or full-screen 1920×1080). The run depends on the canvas size;
    `seed=7` is a clean run (no game over) at 960×540, 1280×720, 1366×768, 1440×900 and 1920×1080.
-2. Press `M` twice (mute, unmute). The key press unlocks audio; any other key or a click leaves demo mode.
+2. Press `M` twice (mute, unmute). The key press unlocks audio; any other key or a click leaves demo mode
+   (browser keys stay: `F1`–`F12` and Ctrl / Cmd / Alt chords such as reload, so `F11` full screen is fine).
 3. Start the screen recorder (OBS, the OS recorder, or `chrome --app=<url> --window-size=1280,720` for a chrome-less window).
    The title screen waits a moment, then the ghost hand presses 1 PLAYER. A run takes about 2.5 minutes at the
-   default `speed=2`; add `&speed=1` for real-time gameplay (about 5 minutes).
-4. Re-take: reload the page. The same seed at the same window size plays the identical run, and the attract loop
+   default `speed=2`; add `&speed=1` for real-time gameplay (about 5 minutes). The pace is the same on any
+   display of 60 Hz or more.
+4. Re-take: reload the page (`F5`, Ctrl+R / Cmd+R or the reload button). The same seed at the same window size plays the identical run, and the attract loop
    replays it after the card.
 
 `run.sh demo` is the headless check of the same URL in Chrome: it counts `getUserMedia` / network calls (must stay 0)
