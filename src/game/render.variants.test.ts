@@ -7,7 +7,7 @@ import { createInitialState, makeEnemy } from './state'
 import type { Enemy, GameState, VariantState } from './state'
 import { initSettings, resetSettings } from '../settings/runtime'
 import { OKABE_ITO, DEFAULT } from '../ui/palette'
-import { stateSchedule } from './enemies/variants'
+import { stateSchedule, ABSORB_COOLDOWN_MS } from './enemies/variants'
 
 interface Rec { fills: string[]; texts: string[]; dashes: number[][]; alphas: number[] }
 function recorder(w = 640, h = 480): { ctx: CanvasRenderingContext2D; rec: Rec } {
@@ -148,5 +148,31 @@ describe('the Hollow King look (R6.5)', () => {
       renderFrame(r2.ctx, stateWith(enemy('boss', { hitsNeeded: 10 })), 0)
       expect(r2.rec.texts.some((t) => t.includes('HOLLOW KING'))).toBe(false)
     }
+  })
+})
+
+describe('mirror absorb ring honours reduced flashing (more-content R1.8)', () => {
+  function ring(reducedFlash: boolean, absorbMs: number): { r: number; alpha: number } {
+    initSettings({ storage: null, search: reducedFlash ? '?reducedflash=1' : '?reducedflash=0', reducedMotion: false })
+    let r = -1, alpha = -1, cur = 1
+    const store: Record<string, unknown> = { canvas: { width: 640, height: 480 } }
+    const ctx = new Proxy(store, {
+      get: (t, k: string) => k in t ? t[k] : (...a: unknown[]) => {
+        if (k === 'arc' && a[2] !== undefined && store.strokeStyle === '#ffffff') { r = Number(a[2]); alpha = cur }
+        return { addColorStop() {}, width: 10 }
+      },
+      set: (t, k: string, v) => { t[k] = v; if (k === 'globalAlpha') cur = Number(v); return true },
+    }) as unknown as CanvasRenderingContext2D
+    renderFrame(ctx, stateWith(enemy('mirror', { vState: 'shield', absorbMs: Math.min(absorbMs, ABSORB_COOLDOWN_MS) })), 1000)
+    return { r, alpha }
+  }
+  it('normal: the ring expands and starts bright', () => {
+    expect(ring(false, ABSORB_COOLDOWN_MS - 10).alpha).toBeGreaterThan(0.9)
+    expect(ring(false, 10).r).toBeGreaterThan(ring(false, ABSORB_COOLDOWN_MS - 10).r)
+  })
+  it('reduced flashing: the ring is dim and does not expand', () => {
+    const early = ring(true, ABSORB_COOLDOWN_MS - 10), late = ring(true, 10)
+    expect(early.alpha).toBeLessThanOrEqual(0.3)
+    expect(late.r).toBe(early.r)
   })
 })

@@ -76,7 +76,8 @@ under normal vision, protanopia, deuteranopia and tritanopia.
 amplitude ramps; the fastest pulse of any new telegraph runs at ≤ 3 Hz, and at
 ≤ 1 Hz when the reduced-flash setting is on (`variantPulseHz()`: 1.5 Hz, a quarter of that when reduced). The new
 content requests no full-screen flash outside the flash scheduler (the finale
-defeat uses the existing flash, which already goes through it).
+defeat uses the existing flash, which already goes through it). With reduced flashing the mirror's
+absorb ring is a dim, fixed-size fade instead of a bright expanding pulse.
 
 **R1.9** **Settings.** The text scale, palette, reduced-flash, mute and quality
 settings apply to everything added by this spec (call-outs, tips, banners, the

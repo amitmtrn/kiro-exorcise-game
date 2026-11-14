@@ -157,9 +157,11 @@ export function drawMirror(ctx: CanvasRenderingContext2D, e: Enemy, now: number)
     const k = 1 - e.absorbMs / ABSORB_COOLDOWN_MS
     ctx.save()
     ctx.shadowBlur = 0
-    ctx.globalAlpha = 1 - k
-    ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 5
-    ctx.beginPath(); ctx.arc(0, 0, R + 6 + 22 * k, 0, Math.PI * 2); ctx.stroke()
+    // Reduced flashing: a dim ring that stays put and fades, instead of a bright expanding pulse
+    const calm = getSettings().reducedFlash
+    ctx.globalAlpha = (1 - k) * (calm ? 0.3 : 1)
+    ctx.strokeStyle = '#ffffff'; ctx.lineWidth = calm ? 3 : 5
+    ctx.beginPath(); ctx.arc(0, 0, R + 6 + (calm ? 0 : 22 * k), 0, Math.PI * 2); ctx.stroke()
     ctx.restore()
   }
   icon(ctx, protectedNow ? '▮' : '▯', color, -72)
