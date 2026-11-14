@@ -51,6 +51,8 @@ export const BUTTON_SETTLE_MS = 300
 export const BURST_MS = 2400
 export const BURST_MENU_MS = 3200
 export const RETREAT_REST_MS = 600
+/** The card never opened after this many bursts at EXORCIST CARD (it cannot open): press MAIN MENU instead. */
+export const OFFER_BURSTS_MAX = 3
 export const VICTORY_BEFORE_CARD_MS = 2500
 export const CARD_HOLD_MS = 4500
 export const BEFORE_MENU_MS = 1200
@@ -215,6 +217,8 @@ export class DemoDriver {
   private screenKey = ''
   private screenSince = 0
   private cardShown = false
+  /** Circling bursts spent on the EXORCIST CARD button this victory: after a few the hand gives up and goes to MAIN MENU. */
+  private offerBursts = 0
   private runStarted = false
   private press: 'idle' | 'resting' = 'idle'
   private needHome = false
@@ -238,6 +242,7 @@ export class DemoDriver {
     this.avoidUntil.clear()
     this.missed.clear()
     this.cardShown = false
+    this.offerBursts = 0
     this.runStarted = false
     this.press = 'idle'
     this.needHome = true
@@ -254,6 +259,7 @@ export class DemoDriver {
     this.missed.clear()
     this.idleSince = 0
     this.cardShown = false
+    this.offerBursts = 0
     this.runStarted = true
   }
 
@@ -650,7 +656,7 @@ export class DemoDriver {
         if (view.cardOpen) {
           return { screen: 'preview', id: 'close', lockMs: PREVIEW_INPUT_DELAY_MS, burstMs: BURST_MS, delayMs: CARD_HOLD_MS }
         }
-        if (!this.cardShown) {
+        if (!this.cardShown && this.offerBursts < OFFER_BURSTS_MAX) {
           return { screen: 'victory', id: 'offer', lockMs: ENTRY_LOCK_MS, burstMs: BURST_MS, delayMs: VICTORY_BEFORE_CARD_MS }
         }
         return { screen: 'victory', id: 'menu', lockMs: ENTRY_LOCK_MS + PREVIEW_INPUT_DELAY_MS, burstMs: BURST_MENU_MS, delayMs: BEFORE_MENU_MS }
@@ -692,6 +698,7 @@ export class DemoDriver {
     const w = (2 * Math.PI * CIRCLE_HZ) / 1000
     const dur = target.burstMs
     this.stats.presses++
+    if (target.id === 'offer') this.offerBursts++
     this.move = {
       kind: 'circle', dur, t: 0,
       at: (t) => ({ x: spec.cx + rho * Math.cos(theta0 + w * t), y: spec.cy + rho * Math.sin(theta0 + w * t) }),

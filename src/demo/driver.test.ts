@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { DemoDriver, handRadius, stepSafe, distToRect, REACT_MS, BURST_MS, CARD_HOLD_MS, MAX_HAND_SPEED_H } from './driver'
+import { DemoDriver, handRadius, stepSafe, distToRect, REACT_MS, BURST_MS, OFFER_BURSTS_MAX, CARD_HOLD_MS, MAX_HAND_SPEED_H } from './driver'
 import type { DemoView } from './driver'
 import { makeEnemy } from '../game/state'
 import type { Enemy } from '../game/state'
@@ -256,6 +256,18 @@ describe('buttons (R4.7)', () => {
     expect(d.stats.runs).toBe(0)
     d.update(DT, view({ phase: 'start' }))
     expect(d.stats.runs).toBe(1)
+  })
+
+  it('gives up on EXORCIST CARD after OFFER_BURSTS_MAX bursts and goes to MAIN MENU (the card never opens)', () => {
+    const d = new DemoDriver(1)
+    const menu = spec('victory', 'menu')
+    let atMenu = false
+    for (let i = 0; i < 6000 && !atMenu; i++) {
+      d.update(DT, view({ phase: 'victory', cardOpen: false }))
+      if (dist(d.hand, menu) < menu.r) atMenu = true
+    }
+    expect(atMenu).toBe(true)
+    expect(d.stats.presses).toBe(OFFER_BURSTS_MAX) // three bursts at the card button, then on to MAIN MENU
   })
 
   it('holds the card preview for CARD_HOLD_MS before pressing CLOSE', () => {
