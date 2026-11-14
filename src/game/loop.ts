@@ -291,11 +291,12 @@ export async function startLoop(
 
     // Phase hooks (music / sfx), once per transition
     if (prevTwoPhase !== t.phase) {
+      if (t.phase === 'final') finalAt = now // before any audio call, so a throwing one cannot leave the lock-out stale
       try {
         if (t.phase === 'playing') startMusic(t.stage)
         else if (t.phase === 'summary') { resetSummaryScreen(); sfxStageClear(); stopMusic() }
         else if (t.phase === 'final') {
-          resetFinalScreen(); stopMusic(); finalAt = now
+          resetFinalScreen(); stopMusic()
           if (t.seats.some((s) => s.phase !== 'gameover')) sfxStageClear() // no jingle when both are out
         }
       } catch { /* ignore */ }

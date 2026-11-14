@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest'
 import fc from 'fast-check'
-import { SeatCard, seatOfferGeometry, routeSeatClick } from './seatCard'
+import { SeatCard, seatOfferGeometry, routeSeatClick, sharedButtonMaxCy } from './seatCard'
 import type { SeatSession } from './seatCard'
 import { previewLayout, PREVIEW_INPUT_DELAY_MS } from './cardScreen'
 import { displayPointsInHalf, halfWidth } from '../game/halves'
@@ -138,6 +138,23 @@ describe('SeatCard offer', () => {
     expect(session.calls.open).toBe(0)
   })
 
+  it('an offer click during the post-close lock is ignored', () => {
+    const session = fakeSession({ open: true })
+    const card = new SeatCard(0, session, () => [])
+    const ctx = fakeCtx(HW, H)
+    card.render(ctx, 0, true)
+    const close = previewLayout(HW, H, false, true).buttons.find((b) => b.id === 'close')!
+    card.queueClick(close.cx, close.cy)
+    card.render(ctx, 1000, true)
+    const g = seatOfferGeometry(HW, H)
+    card.queueClick(g.cx, g.cy)
+    card.render(ctx, 1100, true)
+    expect(session.calls.open).toBe(0)
+    card.queueClick(g.cx, g.cy)
+    card.render(ctx, 1000 + PREVIEW_INPUT_DELAY_MS, true)
+    expect(session.calls.open).toBe(1)
+  })
+
   it('closePreview closes an open card and clears queued clicks', () => {
     const session = fakeSession({ open: true })
     const card = new SeatCard(0, session, () => [])
@@ -196,5 +213,22 @@ describe('per-half routing (two-player-card R1.3) — property', () => {
     expect(a.calls.open).toBe(0)
     expect(b.calls.open).toBe(1)
     expect(cb.isOpen && !ca.isOpen).toBe(true) // independent state
+  })
+})
+
+describe('shared end buttons vs offers', () => {
+  it('never overlap for common sizes', () => {
+    for (const [W, H] of [[800, 400], [640, 480], [1280, 720], [1920, 1080], [480, 360]]) {
+      const hw = Math.floor(W / 2)
+      const r = Math.max(48, Math.min(76, Math.round(W / 9)))
+      const by = Math.min(H * 0.7, sharedButtonMaxCy(hw, H, r))
+      const o = seatOfferGeometry(hw, H)
+      for (const seat of [0, 1]) {
+        for (const bx of [W * 0.35, W * 0.65]) {
+          const ox = o.cx + seat * hw
+          expect(Math.hypot(bx - ox, by - o.cy)).toBeGreaterThan(r + o.r)
+        }
+      }
+    }
   })
 })

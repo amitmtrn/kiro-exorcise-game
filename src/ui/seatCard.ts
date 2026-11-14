@@ -24,6 +24,12 @@ export function seatOfferGeometry(hw: number, H: number): { cx: number; cy: numb
   return { cx: hw / 2, cy: Math.max(r, H - r - 12), r }
 }
 
+/** Lowest y a shared end-screen button of radius `r` may reach so it stays clear of both offers (8 px gap). */
+export function sharedButtonMaxCy(hw: number, H: number, r: number): number {
+  const o = seatOfferGeometry(hw, H)
+  return o.cy - o.r - 8 - r
+}
+
 /** Which half a click on the full canvas belongs to, and its half-local position. */
 export function routeSeatClick(x: number, y: number, W: number): { seat: Seat; x: number; y: number } {
   const seat: Seat = x < halfWidth(W) ? 0 : 1
@@ -100,7 +106,7 @@ export class SeatCard<C extends CanvasImageSource> {
       if (this.session.isOpen) {
         const a = this.preview.hit(c.x, c.y)
         if (a) this.run(a, now)
-      } else if (live && this.offerHit(c.x, c.y)) this.run('open', now)
+      } else if (live && now >= this.liveAt && this.offerHit(c.x, c.y)) this.run('open', now)
     }
     const st = this.session.takeStatus()
     if (st) this.preview.setStatus(st === 'saved' ? 'Download started!' : "Couldn't save the card", now)

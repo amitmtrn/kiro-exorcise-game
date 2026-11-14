@@ -11,7 +11,7 @@ points. Independence then holds by construction, as it does for the game state.
  seat 0 (P1)                           seat 1 (P2)
  CardSession  ◄ observe(seat state)    CardSession  ◄ observe(seat state)
    grab = grabHalfSnapshot(video, 0)     grab = grabHalfSnapshot(video, 1)
- SeatCardUI   ◄ half-local motion       SeatCardUI   ◄ half-local motion
+ SeatCard   ◄ half-local motion       SeatCard   ◄ half-local motion
               ◄ clicks with x in half               ◄ clicks with x in half
 ```
 
@@ -20,20 +20,20 @@ points. Independence then holds by construction, as it does for the game state.
 | File | Pure? | Purpose |
 |---|---|---|
 | `src/card/halfSnapshot.ts` | geometry pure, grab = canvas | `halfSnapshotGeometry(seat, W, H)`, `grabHalfSnapshot(video, seat, W, H)` |
-| `src/card/twoPlayerCard.ts` | yes | `badgeFor(winner, seat)`, `cardFileName(seat)`, `seatLabel(seat)`, `seatCardExtra(...)` |
+| `src/card/twoPlayerCard.ts` | yes | `badgeFor(winner, seat)`, `cardFileName(seat)`, `seatLabel(seat)` |
 | `src/card/layout.ts` | yes | `CardData` / `CardTexts` / `CardLayout` gain optional `playerLabel` / `badge` boxes |
 | `src/card/draw.ts` | canvas | draws the label chip and the badge ribbon when present |
 | `src/card/session.ts` | yes | optional `extra()` dep merged into `CardData` |
 | `src/ui/motionButton.ts` | canvas | optional point source (default: whole-frame `lastMotionPixels`) |
 | `src/ui/cardScreen.ts` | canvas | `CardPreview` takes an optional point source |
-| `src/ui/seatCard.ts` | canvas | `SeatCardUI`: per-half offer button, preview, lock, click queue; `seatOfferGeometry` |
+| `src/ui/seatCard.ts` | canvas | `SeatCard`: per-half offer button, preview, lock, click queue; `seatOfferGeometry` |
 | `src/game/loop.ts` | – | per-seat sessions, routing, lifecycle on the `final` phase |
 | `src/main.ts` | – | `pointerdown` in 2P goes to `handleSeatCardPointer` |
 
 ## Half snapshot (R2.3, R2.4)
 
 ```ts
-halfSnapshotGeometry(seat, W, H): { w, h, scale, offsetX, cropX, cropW }
+halfSnapshotGeometry(seat, W, H): { w, h, scale, offsetX, halfW }
 ```
 `hw = halfWidth(W)`, `off = halfOffset(seat, W)`; `scale = scaleToFit(hw, H, 640, 480)` factor;
 the canvas is `round(hw·k) × round(H·k)`. The in-game view draws the video with
@@ -71,12 +71,12 @@ ribbon with the badge (candlelight text, gold for WINNER).
 ## Input routing (R1.3, R1.4)
 
 - **Motion.** Each tick the loop computes `displayPointsInHalf(lastMotionPixels, seat, W)`:
-  only points inside the half, with x relative to the half. `SeatCardUI` draws on a half-sized
+  only points inside the half, with x relative to the half. `SeatCard` draws on a half-sized
   transparent canvas, so the button circles and the points share the half-local coordinate
   system and a button can only ever see points of its own half. The buttons are also clamped to the half
   by their geometry (`seatOfferGeometry`, `previewLayout` use the half width).
 - **Clicks.** `handleSeatCardPointer(x, y)` returns false unless the 2P `final` screen is
-  showing. `seat = seatOfX(x, W)`, local `x − halfOffset`; the click is queued for that seat only and
+  showing. `routeSeatClick(x, y, W)` gives the seat, local `x − halfOffset`; the click is queued for that seat only and
   hit-tested against that seat's offer or preview buttons.
 - **Keys.** Not used in 2P. `main.ts` gates the card key path with `!isTwoPlayerActive()` too.
 - **Mute.** `main.ts` toggles mute when the click lies on `muteButtonRect2P`, and does not route it to a card.
@@ -87,13 +87,14 @@ ribbon with the badge (candlelight text, gold for WINNER).
 final ─ offer visible in each half (after the 1.5 s final lock-out)
   P1 offer wave/click ─► P1 preview (SAVE / NO PHOTO / CLOSE)      P2 independent
 ```
-`SeatCardUI.render(ctx, now, session, live)` draws, on its own transparent half canvas, the offer
+`SeatCard.render(ctx, now, live)` draws, on its own transparent half canvas, the offer
 button (gated: `live && now ≥ liveAt`) or the preview. After open / close of a preview it resets and
 gates the seat's offer button for 0.8 s and records `cardLockedUntil = now + 0.8 s`. The loop passes
 `buttonsLive = !anyOpen && now ≥ max(lockUntil of both seats)` to `renderTwoPlayerFinal`, which gates
 PLAY AGAIN / MAIN MENU with it and draws them at 35 % alpha while locked. On the final screen the
-PLAY AGAIN / MAIN MENU buttons sit at `0.70 H` (was `0.78 H`) so the offers at the bottom of each half
-never overlap them. The seat card layers are composited over the final overlay, and the divider is redrawn above them.
+PLAY AGAIN / MAIN MENU buttons sit at `min(0.70 H, sharedButtonMaxCy)` (was `0.78 H`), where
+`sharedButtonMaxCy` keeps an 8 px gap above both offers, so the circles never overlap (property-tested).
+Offer clicks obey the same 0.8 s gate as offer motion. `finalAt` is set before any audio call. The seat card layers are composited over the final overlay, and the divider is redrawn above them.
 
 ## Lifecycle (R2.5)
 

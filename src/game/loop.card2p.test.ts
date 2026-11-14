@@ -149,6 +149,7 @@ describe('2P end screen cards (two-player-card)', () => {
     stepFor(2500)
     h.points = []
     step()
+    expect(h.composed).toHaveLength(1)
     expect(h.composed.every((d) => d.playerLabel === 'P2')).toBe(true)
   })
 

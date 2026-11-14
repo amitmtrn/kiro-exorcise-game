@@ -54,6 +54,16 @@ Files: `src/main.ts`, `src/game/loop.ts`, `src/game/loop.card.test.ts`, `README.
 - [x] `npm test` and `npm run build` both clean.
 - [x] Commit: `docs(two-player-card-T5): README`
 
+## T7 — Review fixes
+- [x] NIT 1: `finalAt = now` set before the audio calls in `tickTwo`.
+- [x] NIT 2: `sharedButtonMaxCy` keeps PLAY AGAIN / MAIN MENU clear of both offers; property test.
+- [x] NIT 3: "other half" test also asserts exactly one card composed.
+- [x] NIT 4: offer clicks gated by `liveAt` like motion; test.
+- [x] NIT 5: design names match the code.
+- [x] NIT 6 skipped: cosmetic (pill stays inside the card).
+- [x] `npm test` and `npm run build` both clean.
+- [x] Commit: `fix(two-player-card): review nits`
+
 ## T6 — Manual smoke test (two people, webcam)
 - [ ] Finish a 2P game: each half shows an EXORCIST CARD button; waving in one half never moves the other half's buttons.
 - [ ] Each card shows its own half, mirrored like the game, P1 / P2 label, WINNER (or TIE on both), own numbers.

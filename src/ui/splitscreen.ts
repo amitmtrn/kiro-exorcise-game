@@ -10,6 +10,8 @@ import { MotionButton } from './motionButton'
 import { TITLE_FONT_FAMILY } from './fonts'
 import { SUMMARY_AUTO_ADVANCE_MS } from '../game/state'
 import type { Seat } from '../game/halves'
+import { halfWidth } from '../game/halves'
+import { sharedButtonMaxCy } from './seatCard'
 
 export const FINAL_INPUT_DELAY_MS = 1500
 const FINAL_FADE_MS = 400
@@ -177,7 +179,7 @@ export function renderTwoPlayerFinal(
   })
 
   const r = clamp(W / 9, 48, 76)
-  const by = H * 0.7 // above the per-player card offers at the bottom of each half
+  const by = Math.min(H * 0.7, sharedButtonMaxCy(halfWidth(W), H, r)) // never reaches the per-player card offers at the bottom of each half
   if (!againBtn || againBtn.radius !== r) againBtn = new MotionButton(W * 0.35, by, r, 'PLAY AGAIN')
   else { againBtn.cx = W * 0.35; againBtn.cy = by }
   if (!menuBtn || menuBtn.radius !== r) menuBtn = new MotionButton(W * 0.65, by, r, 'MAIN MENU')
