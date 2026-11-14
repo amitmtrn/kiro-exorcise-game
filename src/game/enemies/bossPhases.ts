@@ -256,7 +256,7 @@ export function tickBoss(state: GameState, canvasW: number, canvasH: number): Ga
       const nb: Enemy = { ...b, summonTimerMs: nextTimer, vHits: made.length > 0 ? b.vHits + 1 : b.vHits }
       s = setEnemies(s, [...s.enemies.map((e) => (e.id === nb.id ? nb : e)), ...made])
       // A type whose scripted event was dropped still gets its first-sighting tip when the king summons it.
-      if (made.length > 0) for (const k of kinds) s = withTip(s, k, b.x, b.y, canvasW, canvasH)
+      if (made.length > 0) for (const k of kinds) s = withTip(s, k, made[0].x, made[0].y, canvasW, canvasH)
       return s
     }
     const alive = s.enemies.filter((e) => e.type === 'ghost').length

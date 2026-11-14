@@ -145,6 +145,14 @@ describe('the Hollow King (R6)', () => {
     expect(hit.boss.vHits).toBe(0)
     expect(finaleMinionKinds(3, hit.boss.vHits)).toEqual(['mirror'])
   })
+  it('the first-sighting tip of a king-summoned ghost sits at the minion, not the boss (R5.4)', () => {
+    const b: Enemy = { ...createBoss(W, H, true), x: W / 2, y: hoverY(H), bossPhase: 1, summonTimerMs: 0 }
+    const s = tickBoss({ ...createInitialState(6), phase: 'playing' as const, enemies: [b] }, W, H)
+    const blink = s.enemies.find((e) => e.type === 'blink')!
+    expect(s.callouts).toHaveLength(1)
+    expect(s.callouts[0].x).not.toBeCloseTo(b.x, 0)
+    expect(Math.abs(s.callouts[0].x - blink.x)).toBeLessThan(Math.abs(s.callouts[0].x - b.x))
+  })
   it('summons at the hover line, respecting the cap (a pair counts 2)', () => {
     const boss = (phase: 1 | 2 | 3): Enemy => ({ ...createBoss(W, H, true), x: W / 2, y: hoverY(H), bossPhase: phase, summonTimerMs: 0 })
     const play = (b: Enemy, extra: Enemy[] = []) => ({ ...createInitialState(6), phase: 'playing' as const, enemies: [b, ...extra] })

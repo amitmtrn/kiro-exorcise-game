@@ -149,3 +149,4 @@
 ## T18 — Review fixes (round 7)
 - [x] R8.4: the 1P summary screen stores the best score once on entry too (not every frame); the loop test covers summary.
 - [x] R5.2: a scripted new ghost that cannot fit (a wisp pair with fewer than two free slots) is skipped for now and retried, so it no longer holds back the other due events (`variantDone` in game state); test with a blocked wisp and a due blink.
+- [x] R5.4: the first-sighting tip of a king-summoned ghost is placed at the minion (`made[0]`), next to the boss rather than on it; test added.
