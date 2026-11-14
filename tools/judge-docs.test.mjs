@@ -22,7 +22,7 @@ const section = judgeSection(readme)
 // Built by concatenation so this file does not itself contain the names.
 const NAME_A = 'Eye' + 'Toy'
 const NAME_B = 'Ku' + 'ng' + ' ' + 'F' + 'oo'
-const BANNED = new RegExp(`${NAME_A.replace('Toy', '\\s*Toy')}|${NAME_B.replace(' ', '\\s*')}`, 'i')
+const BANNED = new RegExp(`${NAME_A.replace('Toy', '[\\s_-]*Toy')}|${NAME_B.replace(' ', '[\\s_-]*')}`, 'i')
 const TOKEN = /ghp_|github_pat_|\bsk-/i
 const texts = { 'docs/KIRO.md': kiro, 'README judge section': section }
 

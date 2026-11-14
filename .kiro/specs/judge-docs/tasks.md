@@ -52,3 +52,12 @@ Files: `docs/KIRO.md`, `README.md`, `tools/judge-docs.test.mjs`, `.kiro/specs/ju
 - [x] NIT: `demo` command moved out of the copy-paste block in the run-harness skill.
 - [x] `npm test` (1152 passed, 0 failed, 0 skipped) and `npm run build` clean.
 - [x] Commit: `fix(judge-docs): second review fixes`
+
+## T7 — Third review fixes
+
+- [x] NIT: `fede042` attributed to T12 in `docs/KIRO.md`; file now 449 lines (headroom under the 450 cap).
+- [x] NIT: README project tree lists `judge-docs/`, `.kiro/powers/`, `docs/KIRO.md` and the two new tool tests.
+- [x] NIT: banned-name regex separator is `[\s_-]*` (hyphen and underscore variants caught).
+- [x] NIT: run-harness skill description lists only `sweep` and `wave`, matching `run.sh`.
+- [x] `npm test` and `npm run build` clean.
+- [x] Commit: `fix(judge-docs): third review fixes`

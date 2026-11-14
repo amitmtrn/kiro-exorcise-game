@@ -248,13 +248,19 @@ src/
     two-player/         Local split-screen two-player mode spec
     balancer/           Harness MCP server + balancer agent spec
     exorcist-card/      Shareable local-only Exorcist Card spec
+    judge-docs/         Judge-facing write-up and README spec
+  powers/               exorcise-motion-harness Kiro power
   settings/mcp.json     Workspace MCP registration (motion-harness, stdio, relative path)
   agents/balancer.json  Report-only playtest-tuner agent
   hooks/                test-on-save.json, spec-drift-check.json, readme-test-count.json (save/create/delete)
+docs/
+  KIRO.md               Judge-facing write-up of how Kiro was used
 tools/
   sync-readme-tests.mjs Run tests and sync the README test count (used by a hook)
   sync-readme-tests.test.mjs Unit tests for the sync script's pure functions
   hooks.test.mjs        Structural + matcher tests for .kiro/hooks/*.json
+  judge-docs.test.mjs   Checks docs/KIRO.md and the README judge section
+  power-manifest.test.mjs  Kiro power manifest checks
   balancer-config.test.mjs  MCP / agent config checks (no secrets, local only, restricted tools)
   motion-harness/
     mcp-server.mjs      stdio MCP server: run_harness, read_stage_config (+ unit and property tests)

@@ -1,6 +1,6 @@
 ---
 name: run-harness
-description: Run the Exorcise synthetic-webcam motion harness (sweep, wave, demo) and read its metrics. Use when checking that hit detection, wave-to-press buttons or game flow still work without a real camera.
+description: Run the Exorcise synthetic-webcam motion harness (sweep, wave) and read its metrics. Use when checking that hit detection, wave-to-press buttons or game flow still work without a real camera.
 ---
 
 # Run the motion harness

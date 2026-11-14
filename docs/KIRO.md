@@ -130,10 +130,9 @@ The requirement `R1.1` above leads to task T1, and T1 names its commit. The
 | T6 | `c12ed85` | docs(motion-ui-ergonomics-T6): controls, harness and spec index |
 | T11 | `f658afb` | feat(motion-ui-ergonomics-T11): buttons within raised-hand reach at 2.5 m |
 
-T7 to T10 were review fixes (fix commits such as `1fb0ca8`, `53ff6eb`, `b5ecbd4`,
-`fede042`). T11 came from a later review finding (see below). Other specs follow
-the same pattern, for example `feel-fix`: T1 `99adc0b`, T2 `0177b84`, T3 `eba093f`,
-T4 `064e923`.
+T7 to T10 and T12 were review fixes (fix commits such as `1fb0ca8`, `53ff6eb`,
+`b5ecbd4`, `fede042`). T11 came from a later review finding (see below). Other specs
+follow the same pattern, for example `feel-fix`: T1 `99adc0b`, T2 `0177b84`, T3 `eba093f`, T4 `064e923`.
 
 Task commits per spec (`git log df26f4d --oneline --grep='(<spec>-T' | wc -l`):
 stages 9 (8 under the TL;DR regex: `f28b4da feat(stages-T3/T5/T6)` is one
