@@ -250,6 +250,7 @@ export async function startLoop(
   /** Start a game in `mode` (remembered for the session). */
   function begin(mode: PlayerMode): void {
     setPlayerMode(mode)
+    gameOverVisible = false
     if (mode === 2) {
       two = createTwoPlayer()
       prevTwoPhase = null
@@ -265,6 +266,7 @@ export async function startLoop(
   /** Back to the title screen from the two-player end screen. */
   function toMenu(): void {
     resetSeatCards()
+    gameOverVisible = false
     two = null
     prevTwoPhase = null
     state = createInitialState(1)

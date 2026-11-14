@@ -110,3 +110,14 @@ Files: `src/ui/layout.ts`, `src/ui/screens.ts`, `src/ui/layout.test.ts`, `src/ui
 - [x] Property test: every centre within the far-distance reach, outside the torso band, at or above 40 % height.
 - [x] `npm test` and `npm run build` both clean.
 - [x] Commit: `feat(motion-ui-ergonomics-T11): buttons within raised-hand reach at 2.5 m`
+
+## T12 — Fifth review fixes
+Files: `src/ui/layout.ts`, `src/ui/screens.ts`, `src/ui/onboarding.ts`, `src/game/loop.ts`, `src/style.css`, `tools/motion-harness/make_y4m.py`, `src/ui/screens.text.test.ts`, spec docs
+- [x] R5.1 SHOULD-FIX: `fitFontPx` takes a floor; menu text uses `MIN_TEXT_PX` = 12. Start title / subtitle / Best, victory tagline and the onboarding caption moved below 47 % H and fitted to the wide band (R5.1 and code agree).
+- [x] Test `screens.text.test.ts`: every non-button line >= 12 px at 640 and 1280 wide on start, game over (both variants), victory and summary; centred lines fit their band; title / subtitle / tagline below 47 % H; caption floor at 640.
+- [x] NIT: 1P summary rows start at 50 % H (outside the narrow band rule); TIME'S UP uses `fit()`; stale "17 %" and "0.42h" comments fixed; `gameOverVisible` cleared in `begin` and `toMenu`.
+- [x] Harness: wave hand at 19 % H (button centre `ROW_A`); cached y4m regenerated. Real metrics (headless Chrome, fake camera):
+  - `run.sh wave 30`: no key pressed, play started at 5214 ms (the 1 PLAYER button was pressed by the waving hand), 1010 play frames, 1803 frames total, maxMotion 214. Hits 0 is expected: the hand stays over the button.
+  - `run.sh sweep 55`: Space start at 2963 ms, 16 hits, 2768 play frames, 3304 frames total, maxMotion 287, high score saved 3000.
+- Not changed: two entry clocks on the 2P end screen (`finalAt` / `finalLock`, set on the same tick; no drift today) and the sound-hint timer start (intended, T5, R6.2).
+- [x] Commit: `fix(motion-ui-ergonomics): readable menu text, bands match R5.1, harness re-run`

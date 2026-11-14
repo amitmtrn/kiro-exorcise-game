@@ -15,7 +15,7 @@ import {
 } from '../webcam/framing'
 import { drawWebcamFrame } from '../webcam/capture'
 import { drawWebcamTint } from '../game/atmosphere'
-import { buttonLayout, fitFontPx, TEXT_BAND_1P } from './layout'
+import { buttonLayout, fitFontPx, TEXT_BAND_LOW } from './layout'
 
 /** The line under the silhouette that explains the hand targets (motion-ui-ergonomics R7.1). */
 export const GUIDE_HANDS_LINE = 'Wave a hand over the glowing circles to press them'
@@ -152,8 +152,9 @@ export function drawGuide(ctx: CanvasRenderingContext2D, stable: boolean, timeMs
 
   // Caption under the shoulders' top edge, inside the central text band (clear of the hand targets)
   ctx.save()
-  const band = (TEXT_BAND_1P[1] - TEXT_BAND_1P[0]) * w
-  const px = Math.round(fitFontPx(GUIDE_HANDS_LINE, Math.max(14, Math.min(26, w / 40)), band))
+  // below the button rows (0.54 H >= 0.47 H), so the wide band applies (R5.1)
+  const band = (TEXT_BAND_LOW[1] - TEXT_BAND_LOW[0]) * w
+  const px = Math.round(fitFontPx(GUIDE_HANDS_LINE, Math.max(14, Math.min(26, w / 40)), band, 12))
   ctx.font = `bold ${px}px sans-serif`
   ctx.textAlign = 'center'
   ctx.textBaseline = 'middle'

@@ -3,7 +3,7 @@
  * returns the button rects of every screen for a canvas size, so rendering, hit
  * testing, onboarding and the tests all read the same numbers.
  *
- * Buttons sit in two edge columns at raised-hand height (rows at 17 % and ~38 % of the
+ * Buttons sit in two edge columns at raised-hand height (rows at 19 % and ~28 % of the
  * height), never on the player's body centreline and never below 40 %. Display
  * coordinates: the camera view is mirrored, so a button on the player's right is
  * reached with the right hand (no x flip anywhere).
@@ -124,9 +124,9 @@ export function muteRectFor(aw: number, half: boolean, W: number = aw * 2): Rect
 }
 
 /** Shrinks `px` so `text` (≈ 0.6 em per glyph) fits in `maxW`. */
-export function fitFontPx(text: string, px: number, maxW: number): number {
+export function fitFontPx(text: string, px: number, maxW: number, minPx = 8): number {
   const n = Math.max(1, [...text].length)
-  return Math.max(8, Math.min(px, maxW / (n * 0.6)))
+  return Math.max(minPx, Math.min(px, maxW / (n * 0.6)))
 }
 
 interface Slot { col: number; y: number }

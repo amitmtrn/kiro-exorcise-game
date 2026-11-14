@@ -51,7 +51,7 @@ soundHintRect(W, H) : Rect                               // mirrors the CSS of .
 get `DESTRUCTIVE_DWELL_MS`.
 
 Text: 1P menu screens keep their text in `x ∈ [0.38 W, 0.62 W]` above 47 % of H (`TEXT_BAND_1P`, titles are shrunk
-with `fitFontPx`) and in `[0.2 W, 0.8 W]` below it (`TEXT_BAND_LOW`, e.g. the start hint at 90 %), so the columns (≤ 0.36 W) are free at the button rows. 2P shared
+with `fitFontPx`, floor `MIN_TEXT_PX` = 12) and in `[0.2 W, 0.8 W]` below it (`TEXT_BAND_LOW`: start title 58 %, subtitle 68 %, Best 77 %, hint 90 %; victory tagline 53 %; onboarding caption 54 %; 1P summary rows from 50 %), so the columns (≤ 0.36 W) are free at the button rows. 2P shared
 text (STAGE CLEAR, PLAYER n WINS, scores) moves below 47 % of H, under the rows
 of buttons. The card preview image is limited to 60 % of the area width and sits
 between the columns.
@@ -151,7 +151,7 @@ the head/shoulders (inside the text band).
 * 2P shared decisions: either player's deliberate dwell fires the action (not both). Rationale: a player who
   walked away cannot hold the other hostage, and sway cannot reach a raised edge button with 12 % coverage and
   a 650 ms dwell. MAIN MENU needs 1000 ms.
-* Motion harness `wave` mode now hovers over the 1 PLAYER zone (mirrored raw x = 70 %, y = 17 %), in 2 s bursts
+* Motion harness `wave` mode now hovers over the 1 PLAYER zone (mirrored raw x = 70 %, y = 19 %), in 2 s bursts
   with 1 s gaps so the start screen's release latch (R2.5) sees the hand leave; `drive.mjs` clicks the onboarding Skip.
 
 ## Review fixes (T7)

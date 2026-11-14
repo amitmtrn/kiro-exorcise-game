@@ -197,7 +197,7 @@ html, body {
   text-align: center;
   background: linear-gradient(to top, rgba(13, 0, 20, 0.92) 70%, rgba(13, 0, 20, 0));
   pointer-events: all;
-  max-height: 40vh; /* keeps the hand targets (0.42h) clear, R2.5 */
+  max-height: 40vh; /* keeps the hand targets (rows at ~19 % and ~28 % of the height) clear, R2.5 */
   overflow-y: auto;
 }
 

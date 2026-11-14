@@ -47,8 +47,11 @@ const VICTORY_INPUT_DELAY_MS = ENTRY_LOCK_MS
 const VICTORY_FADE_MS = 400
 
 /** Font px that keeps `text` inside the central text band (menu text never reaches the button columns). */
+/** Readable floor for fitted menu text (R5.1): at 640 px wide nothing is drawn smaller than this. */
+export const MIN_TEXT_PX = 12
+
 function fit(text: string, px: number, W: number, band: readonly [number, number] = TEXT_BAND_1P): number {
-  return Math.round(fitFontPx(text, px, (band[1] - band[0]) * W))
+  return Math.round(fitFontPx(text, px, (band[1] - band[0]) * W, MIN_TEXT_PX))
 }
 
 // ─── Start screen ─────────────────────────────────────────────────────────────
@@ -68,22 +71,22 @@ export function renderStartScreen(
 
   // Title
   ctx.textAlign = 'center'
-  ctx.font = `${fit('👻 EXORCISE', clamp(W / 8, 56, 120), W)}px ${TITLE_FONT_FAMILY}`
+  ctx.font = `${fit('👻 EXORCISE', clamp(W / 8, 56, 120), W, TEXT_BAND_LOW)}px ${TITLE_FONT_FAMILY}`
   ctx.fillStyle = '#ff6b1a'
   ctx.shadowColor = '#ff6b1a'; ctx.shadowBlur = 24
-  ctx.fillText('👻 EXORCISE', W / 2, H * 0.28)
+  ctx.fillText('👻 EXORCISE', W / 2, H * 0.58)
 
   // Subtitle
   const sub = 'Swat the ghosts with your hands!'
-  ctx.font = `${fit(sub, clamp(W / 28, 18, 28), W)}px sans-serif`
+  ctx.font = `${fit(sub, clamp(W / 28, 18, 28), W, TEXT_BAND_LOW)}px sans-serif`
   ctx.fillStyle = '#e8e8f0'; ctx.shadowBlur = 0
-  ctx.fillText(sub, W / 2, H * 0.42)
+  ctx.fillText(sub, W / 2, H * 0.68)
 
   // High score
   if (state.highScore > 0) {
-    ctx.font = `bold ${fit(`Best: ${state.highScore}`, clamp(W / 36, 16, 22), W)}px sans-serif`
+    ctx.font = `bold ${fit(`Best: ${state.highScore}`, clamp(W / 36, 16, 22), W, TEXT_BAND_LOW)}px sans-serif`
     ctx.fillStyle = '#ffd166'
-    ctx.fillText(`Best: ${state.highScore}`, W / 2, H * 0.52)
+    ctx.fillText(`Best: ${state.highScore}`, W / 2, H * 0.77)
   }
 
   // Mode buttons in the raised-hand columns: 1 PLAYER at the left edge, 2 PLAYERS at the right
@@ -188,8 +191,8 @@ export function renderSummary(
     [`Best combo`, `x${state.bestCombo}`],
     [`Score`,    `${state.score}`],
   ]
-  const rowH = H * 0.09
-  let ry = H * 0.42
+  const rowH = H * 0.08
+  let ry = H * 0.5
   ctx.font = `${clamp(W / 30, 16, 24)}px sans-serif`
   rows.forEach(([label, val], i) => {
     ctx.globalAlpha = outroRowAlpha(state.summaryShownMs, i + 1)
@@ -236,7 +239,7 @@ export function renderGameOver(
   if (state.lives > 0) {
     // Lives remain, so the stage timer ran out with the boss alive (boss-phases R6.5).
     ctx.shadowBlur = 0
-    ctx.font = `bold ${clamp(W / 28, 18, 30)}px sans-serif`
+    ctx.font = `bold ${fit("TIME'S UP", clamp(W / 28, 18, 30), W)}px sans-serif`
     ctx.fillStyle = '#ff6b1a'
     ctx.fillText("TIME'S UP", W / 2, H * 0.35)
     ctx.font = `${goPx}px ${TITLE_FONT_FAMILY}`
@@ -312,17 +315,17 @@ export function renderVictory(
   ctx.textAlign = 'center'
   ctx.shadowBlur = 0
   const tag = 'The ghosts have been exorcised 🎃'
-  ctx.font = `${fit(tag, clamp(W / 26, 18, 30), W)}px sans-serif`
+  ctx.font = `${fit(tag, clamp(W / 26, 18, 30), W, TEXT_BAND_LOW)}px sans-serif`
   ctx.fillStyle = '#e8e8f0'
-  ctx.fillText(tag, W / 2, H * 0.36)
+  ctx.fillText(tag, W / 2, H * 0.53)
   ctx.font = `bold ${fit(`Total score: ${state.score}`, clamp(W / 18, 26, 44), W)}px sans-serif`
   ctx.fillStyle = '#ffd166'; ctx.shadowColor = '#ffd166'; ctx.shadowBlur = 12
-  ctx.fillText(`Total score: ${state.score}`, W / 2, H * 0.48)
+  ctx.fillText(`Total score: ${state.score}`, W / 2, H * 0.38)
   ctx.shadowBlur = 0
   if (state.highScore > state.score) {
     ctx.font = `${fit(`Best: ${state.highScore}`, clamp(W / 34, 14, 20), W)}px sans-serif`
     ctx.fillStyle = 'rgba(232,232,240,0.6)'
-    ctx.fillText(`Best: ${state.highScore}`, W / 2, H * 0.56)
+    ctx.fillText(`Best: ${state.highScore}`, W / 2, H * 0.6)
   }
 
   // Same zones as game over: card offer and PLAY AGAIN stacked on the left, MAIN MENU alone on the right.

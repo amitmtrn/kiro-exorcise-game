@@ -146,7 +146,9 @@ mute rect is disjoint from every 2P button.
 **R5.1** Radii scale with the canvas: `r = clamp(min(0.065·H, 0.06·W or 0.105·halfW, 0.12·aw − 10), 20, 80)`.
 The cap keeps the progress ring (radius + 9 px with its stroke) on the canvas at the outer column.
 Nothing is clipped at any size from 640×480 to 2560×1440 (including odd aspect
-ratios in that range). Text of the menu screens is fitted to the central 60 %.
+ratios in that range). Menu text is fitted to a band: above 47 % of H to the narrow central band `[0.38, 0.62] W` (24 %), below 47 % H
+to the wide band `[0.2, 0.8] W` (60 %). Fitted text is never smaller than 12 px (at 640 wide too), so the start
+title, subtitle, high score, victory tagline and the onboarding caption sit below 47 % H in the wide band.
 
 ## R6 — Sound-unlock hint
 
