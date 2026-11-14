@@ -19,10 +19,10 @@ Files: `docs/KIRO.md`
 ## T3 — README section
 Files: `README.md`
 
-- [ ] Add "Built with Kiro (for judges)" near the top (5–8 bullets, links, live demo), spec index row, spec count.
-- [ ] Run `node tools/sync-readme-tests.mjs` so the test count is right.
-- [ ] `npm test` and `npm run build` both clean.
-- [ ] Commit: `docs(judge-docs-T3): README section for judges`
+- [x] Add "Built with Kiro (for judges)" near the top (5–8 bullets, links, live demo), spec index row, spec count.
+- [x] Run `node tools/sync-readme-tests.mjs` so the test count is right.
+- [x] `npm test` and `npm run build` both clean.
+- [x] Commit: `docs(judge-docs-T3): README section for judges`
 
 ## T4 — Facts check test
 Files: `tools/judge-docs.test.mjs`
