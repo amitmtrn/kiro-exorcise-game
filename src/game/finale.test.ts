@@ -126,6 +126,14 @@ describe('the Hollow King (R6)', () => {
     expect(finaleMinionKinds(3, 0)).toEqual(['mirror'])
     expect(finaleMinionKinds(3, 1)).toEqual(['mirror', 'blink'])
   })
+  it('a phase change restarts the summon count, so the first phase-3 summon has no blink (R6.3)', () => {
+    const b: Enemy = { ...createBoss(W, H, true), bossPhase: 2, bossHitsReceived: 6, vHits: 5, bossInvulnMs: 0 }
+    const hit = onBossHit(b)
+    expect(hit.phaseChanged).toBe(true)
+    expect(hit.boss.bossPhase).toBe(3)
+    expect(hit.boss.vHits).toBe(0)
+    expect(finaleMinionKinds(3, hit.boss.vHits)).toEqual(['mirror'])
+  })
   it('summons at the hover line, respecting the cap (a pair counts 2)', () => {
     const boss = (phase: 1 | 2 | 3): Enemy => ({ ...createBoss(W, H, true), x: W / 2, y: hoverY(H), bossPhase: phase, summonTimerMs: 0 })
     const play = (b: Enemy, extra: Enemy[] = []) => ({ ...createInitialState(6), phase: 'playing' as const, enemies: [b, ...extra] })

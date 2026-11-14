@@ -73,7 +73,7 @@ export function paramsFor(boss: Pick<Enemy, 'finale' | 'bossPhase'>, phase: Boss
 /** Types that count against the minion cap of the finale boss. */
 const FINALE_MINIONS: readonly Enemy['type'][] = ['blink', 'wisp', 'mirror', 'ghost']
 
-/** New ghosts a finale summon makes in `phase` (`n` = summons so far): blink / wisp pair / mirror (+ blink every other one). */
+/** New ghosts a finale summon makes in `phase` (`n` = summons so far in this phase): blink / wisp pair / mirror (+ blink every other one). */
 export function finaleMinionKinds(phase: BossPhase, n: number): VariantType[] {
   if (phase === 1) return ['blink']
   if (phase === 2) return ['wisp']
@@ -130,6 +130,7 @@ export function onBossHit(boss: Enemy): BossHitResult {
       bossAttack: 'idle',
       bossTimerMs: paramsFor(boss, phase).idleMs,
       summonTimerMs: 0, // queue an immediate summon
+      vHits: 0, // finale: summons counted per phase, so phase 3 starts its blink parity at 0 (R6.3)
       bossStrike: false,
     }
   } else if (boss.bossAttack === 'windup' || boss.bossAttack === 'lunge') {
