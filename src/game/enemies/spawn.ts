@@ -3,12 +3,14 @@
  * respecting the stage config, enemy cap, and skull/boss uniqueness rules.
  */
 
-import type { GameState } from '../state'
+import type { GameState, Enemy } from '../state'
 import { setEnemies, setSpawnTimers } from '../state'
 import { STAGES } from '../stages'
 import { createSkull } from './skull'
 import { createLunger } from './lunger'
 import { spawnWave } from './waveSpawn'
+import { spawnVariant, skullClearancePx } from './variantSpawn'
+import { withTip, VARIANT_DEFER_MAX_MS } from '../finale'
 import { intensityAt, spawnRateFor, speedFactorFor, pickPath, BONUS_ROUND } from '../waves'
 import type { WaveKind } from '../waves'
 import type { WavePath } from '../paths'
@@ -110,6 +112,35 @@ export function tickSpawners(
     }
   }
 
+  // New ghosts (more-content R5.2): scripted spawns of the stage, in order. A wisp pair needs two free
+  // slots; an event that cannot fit within VARIANT_DEFER_MAX_MS of its time is dropped, so nothing new
+  // arrives late in the stage. A spawn with no safe edge point waits for the next tick.
+  let next0 = state
+  let variantIndex = state.variantIndex
+  let variantDone = state.variantDone
+  const vEvents = bonus ? undefined : stageCfg.variantEvents
+  if (vEvents) {
+    // A due event that cannot fit (no free slots, no safe edge point) is skipped for now and retried on
+    // later ticks; it never holds back the other due events, and is dropped after VARIANT_DEFER_MAX_MS.
+    for (let i = variantIndex; i < vEvents.length && vEvents[i].atMs <= elapsed; i++) {
+      if (variantDone.includes(i)) continue
+      const ev = vEvents[i]
+      if (elapsed - ev.atMs > VARIANT_DEFER_MAX_MS) { variantDone = [...variantDone, i]; continue }
+      const need = ev.kind === 'wisp' ? 2 : 1
+      if (max - nonBossCount < need) continue
+      const made = spawnVariant(ev.kind, canvasW, canvasH, enemies.filter((e) => e.type === 'skull'))
+      if (!made) continue
+      enemies = [...enemies, ...made]
+      nonBossCount += made.length
+      next0 = withTip(next0, ev.kind, made[0].x, made[0].y, canvasW, canvasH)
+      variantDone = [...variantDone, i]
+    }
+    while (variantDone.includes(variantIndex)) variantIndex++
+    variantDone = variantDone.filter((i) => i >= variantIndex)
+  }
+  // The skull stays away from the finale boss entrance (R5.2).
+  const skullQuiet = !bonus && !!stageCfg.finale && elapsed >= stageCfg.finale.bossAtMs - stageCfg.finale.skullQuietMs
+
   // Ghost
   timers.ghost -= deltaMs * rate
   if (timers.ghost <= 0) {
@@ -127,11 +158,19 @@ export function tickSpawners(
   // Skull (max 1 non-exiting at a time; a leaving skull does not block)
   timers.skull -= deltaMs * rate
   if (timers.skull <= 0) {
-    if (mix.skull && nonBossCount < max && !skullActive) {
-      enemies = [...enemies, createSkull(canvasW, canvasH, mult)]
-      nonBossCount++
+    let skullWaits = false
+    if (mix.skull && !skullQuiet && nonBossCount < max && !skullActive) {
+      // Keep clear of new ghosts still near their spawn edge (R1.6, both directions); retry next tick if no safe point.
+      const newGhosts = enemies.filter((e) => e.type === 'blink' || e.type === 'wisp' || e.type === 'mirror')
+      const clear = skullClearancePx()
+      let skull: Enemy | null = null
+      for (let i = 0; i < 6 && !skull; i++) {
+        const c = createSkull(canvasW, canvasH, mult)
+        if (newGhosts.every((g) => Math.hypot(g.x - c.x, g.y - c.y) >= clear)) skull = c
+      }
+      if (skull) { enemies = [...enemies, skull]; nonBossCount++ } else skullWaits = true
     }
-    timers.skull = resetTimer(timers.skull, cfg.spawnIntervalMs.skull)
+    if (!skullWaits) timers.skull = resetTimer(timers.skull, cfg.spawnIntervalMs.skull)
   }
 
   // Lunger
@@ -151,8 +190,9 @@ export function tickSpawners(
     timers.pumpkin = resetTimer(timers.pumpkin, cfg.spawnIntervalMs.pumpkin)
   }
 
-  let next = setSpawnTimers(state, timers)
+  let next = setSpawnTimers(next0, timers)
   next = setEnemies(next, enemies)
+  if (variantIndex !== next.variantIndex || variantDone !== state.variantDone) next = { ...next, variantIndex, variantDone }
   return waveIndex === next.waveIndex ? next : { ...next, waveIndex }
 }
 

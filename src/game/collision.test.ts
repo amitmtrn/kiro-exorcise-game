@@ -174,11 +174,11 @@ describe('resolveHits — boss phases (boss-phases R3.5, R6)', () => {
     expect(r.shakeFrames).toBeGreaterThan(0)
   })
 
-  it('defeating the boss in stage 5 ends the game with victory, clears minions and keeps the total score', () => {
+  it('defeating the boss in the final stage ends the game with victory, clears minions and keeps the total score', () => {
     mockDiff.mockReturnValue(true)
     const minion = enemy('ghost', 'g1', { hitCount: 0, x: 50, y: 50, hitbox: { x: 10, y: 10, w: 80, h: 80 } })
     mockDiff.mockImplementation((_c: unknown, _p: unknown, hb: { x: number }) => hb.x !== 10)
-    const s = { ...createInitialState(5), phase: 'playing' as const, score: 2000, enemies: [minion, boss({ bossHitsReceived: 9, bossPhase: 3, bossAttack: 'recover' })] }
+    const s = { ...createInitialState(6), phase: 'playing' as const, score: 2000, enemies: [minion, boss({ bossHitsReceived: 9, bossPhase: 3, bossAttack: 'recover' })] }
     const r = resolveHits(s, FAKE, FAKE, DW, DH, 1000)
     expect(r.phase).toBe('victory')
     expect(r.enemies).toHaveLength(0)
@@ -194,7 +194,7 @@ describe('resolveHits — boss phases (boss-phases R3.5, R6)', () => {
   it('losing the last life on the defeat frame is still game over', () => {
     mockDiff.mockReturnValue(true)
     const skull = enemy('skull', 's1', { hitCount: 1 })
-    const s = { ...createInitialState(5), phase: 'playing' as const, lives: 1, enemies: [boss({ bossHitsReceived: 9, bossPhase: 3, bossAttack: 'recover' }), skull] }
+    const s = { ...createInitialState(6), phase: 'playing' as const, lives: 1, enemies: [boss({ bossHitsReceived: 9, bossPhase: 3, bossAttack: 'recover' }), skull] }
     const r = resolveHits(s, FAKE, FAKE, DW, DH, 1000)
     expect(r.phase).toBe('gameover')
     // the boss is left alive and unscored
@@ -204,7 +204,7 @@ describe('resolveHits — boss phases (boss-phases R3.5, R6)', () => {
 
   it('defeat on the same tick the timer would expire wins (R6.6)', () => {
     mockDiff.mockReturnValue(true)
-    const s = { ...createInitialState(5), phase: 'playing' as const, roundTimeMs: 10, enemies: [boss({ bossHitsReceived: 9, bossPhase: 3, bossAttack: 'recover' })] }
+    const s = { ...createInitialState(6), phase: 'playing' as const, roundTimeMs: 10, enemies: [boss({ bossHitsReceived: 9, bossPhase: 3, bossAttack: 'recover' })] }
     const r = tickTimer(resolveHits(s, FAKE, FAKE, DW, DH, 1000), 16)
     expect(r.phase).toBe('victory')
   })

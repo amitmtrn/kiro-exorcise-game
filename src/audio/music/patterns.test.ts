@@ -19,8 +19,8 @@ describe('noteToMidi', () => {
 })
 
 describe('track data validity', () => {
-  it('has the six expected tracks with unique ids', () => {
-    expect(TRACK_IDS).toEqual(['title', 'stage1', 'stage2', 'stage3', 'stage4', 'boss'])
+  it('has the seven expected tracks with unique ids', () => {
+    expect(TRACK_IDS).toEqual(['title', 'stage1', 'stage2', 'stage3', 'stage4', 'boss', 'finale'])
     expect(new Set(TRACK_IDS).size).toBe(TRACKS.length)
   })
 
@@ -86,6 +86,15 @@ describe('track data validity', () => {
     expect(new Set(keys).size).toBe(TRACKS.length)
   })
 
+  it('the finale has its own bass and lead, distinct from every other track, and a floor of 2', () => {
+    const f = getTrack('finale')
+    expect(f.minTier).toBe(2)
+    for (const t of TRACKS.filter((x) => x.id !== 'finale')) {
+      expect(t.bass).not.toBe(f.bass)
+      expect(t.lead).not.toBe(f.lead)
+    }
+  })
+
   it('title is fixed at tier 3 and boss has a floor of 2', () => {
     expect(getTrack('title').fixedTier).toBe(3)
     expect(getTrack('boss').minTier).toBe(2)
@@ -121,7 +130,8 @@ describe('trackForStage', () => {
     expect(trackForStage(1)).toBe('stage1')
     expect(trackForStage(4)).toBe('stage4')
     expect(trackForStage(5)).toBe('boss')
-    expect(trackForStage(9)).toBe('boss')
+    expect(trackForStage(6)).toBe('finale')
+    expect(trackForStage(9)).toBe('finale')
     expect(trackForStage(0)).toBe('stage1')
     expect(trackForStage(NaN)).toBe('stage1')
   })

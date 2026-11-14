@@ -9,6 +9,8 @@ import type { PathSpec } from './paths'
 import type { Knock } from './knock'
 import type { Callout } from './callouts'
 import { thinParticles } from './quality'
+import { highScorePersistence } from './persistence'
+import { ensureTable, loadTable, tableBest } from './highScores'
 
 export interface Hitbox {
   x: number // top-left x
@@ -17,7 +19,13 @@ export interface Hitbox {
   h: number // height
 }
 
-export type EnemyType = 'ghost' | 'bat' | 'skull' | 'lunger' | 'pumpkin' | 'boss' | 'candy'
+export type EnemyType = 'ghost' | 'bat' | 'skull' | 'lunger' | 'pumpkin' | 'boss' | 'candy' | 'wisp' | 'mirror' | 'blink'
+
+/** State of a new ghost (more-content): wisp idle|lit|merging, mirror shield|cracking|open|closing, blink solid|warnOut|ethereal|warnIn. */
+export type VariantState =
+  | 'idle' | 'lit' | 'merging'
+  | 'shield' | 'cracking' | 'open' | 'closing'
+  | 'solid' | 'warnOut' | 'ethereal' | 'warnIn'
 
 export type MovePhase = 'approach' | 'windup' | 'lunge'
 
@@ -51,6 +59,13 @@ export interface Enemy {
   summonTimerMs: number  // ms until next summon (counts down while idle)
   bossInvulnMs: number   // post-hit i-frames
   bossStrike: boolean    // set the tick a lunge lands; consumed by tickBoss
+  // More-content: new ghosts (twin wisps, mirror, blink) and the finale boss
+  vState: VariantState   // 'idle' for every enemy that is not a new ghost
+  vTimerMs: number       // ms spent in vState (counts up, overshoot carried)
+  vHits: number          // mirror: absorbed hits counted toward the crack
+  absorbMs: number       // mirror: ms of clink feedback left (also the absorb cool-down)
+  pairId?: string        // wisp: shared by both wisps of a pair
+  finale: boolean        // boss only: the Hollow King
   // Waves spec: scripted path, a pure function of pathMs (absent → straight line to target)
   path?: PathSpec
   pathMs: number     // accumulated path time, advanced by deltaMs
@@ -106,7 +121,7 @@ export interface GameState {
   spawnTimers: SpawnTimers
   flashEndTime: number
   // Stage tracking
-  stage: number           // 1–5
+  stage: number           // 1–6
   stageTitleMs: number    // countdown for title card (3 s)
   streak: number          // consecutive banishes since the last reset
   combo: number           // score multiplier derived from streak (x1–x4)
@@ -115,8 +130,11 @@ export interface GameState {
   stageMissed: number     // enemies that reached center this stage
   highScore: number       // all-time high score from localStorage
   summaryShownMs: number  // how long summary has been shown
-  bossActive: boolean     // stage 5 boss spawned
+  bossActive: boolean     // the stage boss (stage 5 boss or stage 6 Hollow King) has spawned
   waveIndex: number       // next scripted wave event to fire (waves spec)
+  variantIndex: number    // next scripted new-ghost event (more-content)
+  variantDone: number[]   // scripted new-ghost events past variantIndex that already fired (a blocked one is skipped, not waited on)
+  seenVariants: string[]  // new-ghost types whose tip call-out already showed this stage
   bonus: boolean          // playing the bonus round after the stage's summary (waves spec)
   shakeFrames: number     // spooky-skin R4.1 — frames of screen shake remaining
   knocks: Knock[]         // juice R2 — banished enemies flying off along the swipe
@@ -157,6 +175,11 @@ export function makeEnemy(partial: Partial<Enemy> & Pick<Enemy, 'id' | 'type' | 
     summonTimerMs: 0,
     bossInvulnMs: 0,
     bossStrike: false,
+    vState: 'idle',
+    vTimerMs: 0,
+    vHits: 0,
+    absorbMs: 0,
+    finale: false,
     hitFlashFrames: 0,
     pathMs: 0,
     harmless: false,
@@ -168,21 +191,22 @@ export function makeEnemy(partial: Partial<Enemy> & Pick<Enemy, 'id' | 'type' | 
 
 // ─── Initial state ────────────────────────────────────────────────────────────
 
-/** Demo mode turns this off: demo scores must never reach localStorage (demo-mode R6.4). */
-let persistHighScore = true
-export function setHighScorePersistence(on: boolean): void { persistHighScore = on }
+export { setHighScorePersistence, highScorePersistence } from './persistence'
 
+/** All-time best: the larger of the legacy single score and the top of the table (0 with persistence off). */
 export function loadHighScore(): number {
-  if (!persistHighScore) return 0
+  if (!highScorePersistence()) return 0
+  let legacy = 0
   try {
-    return parseInt(localStorage.getItem('exorcise-highscore') ?? '0', 10) || 0
-  } catch {
-    return 0
-  }
+    legacy = parseInt(localStorage.getItem('exorcise-highscore') ?? '0', 10) || 0
+  } catch { /* ignore */ }
+  return Math.max(legacy, tableBest(loadTable()))
 }
 
+/** Keeps the legacy single-score key written too, so older builds still see the best score (more-content R8.4). */
 export function saveHighScore(score: number): void {
-  if (!persistHighScore) return
+  if (!highScorePersistence()) return
+  ensureTable()
   try {
     localStorage.setItem('exorcise-highscore', String(score))
   } catch { /* ignore */ }
@@ -216,6 +240,9 @@ export function createInitialState(stage = 1): GameState {
     summaryShownMs: 0,
     bossActive: false,
     waveIndex: 0,
+    variantIndex: 0,
+    variantDone: [],
+    seenVariants: [],
     bonus: false,
     shakeFrames: 0,
     knocks: [],

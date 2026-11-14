@@ -122,3 +122,9 @@ export function sfxBossHit(): void { play('bossHit') }
 
 /** Boss defeated — triumphant fanfare */
 export function sfxBossDefeated(): void { play('bossDefeated') }
+
+/** Twin wisp linked — two rising chime notes */
+export function sfxWispLink(): void { play('wispLink') }
+
+/** Mirror ghost shield absorbed a swat — short metallic tick */
+export function sfxShield(): void { play('shield') }

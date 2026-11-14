@@ -7,7 +7,7 @@ import { DEFICIENCIES, deltaE2000, deltaE76, hexDeltaE, minHexDeltaE, parseHex, 
 const MIN_PAIR_DE = 12
 const MIN_DANGER_DE = 20
 
-const ENEMY: Array<keyof Palette> = ['ghost', 'bat', 'skull', 'lunger', 'pumpkin']
+const ENEMY: Array<keyof Palette> = ['ghost', 'bat', 'skull', 'lunger', 'pumpkin', 'wisp', 'mirror', 'blink']
 const HUD: Array<keyof Palette> = ['life', 'score', 'combo']
 const RING: Array<keyof Palette> = ['ringIdle', 'ringFill', 'ringDanger']
 
@@ -32,11 +32,27 @@ describe('Okabe-Ito palette keeps its pairs apart under every deficiency (R8.4)'
     }
   }
 
+  it('boss crown stays apart from the boss body and the yellow enemies under every deficiency (R6.5)', () => {
+    for (const d of DEFICIENCIES) {
+      for (const k of ['boss', 'pumpkin', 'batEye'] as const) {
+        expect(hexDeltaE(hex(OKABE_ITO, 'bossCrown'), hex(OKABE_ITO, k), d), `crown/${k} ${d}`).toBeGreaterThanOrEqual(MIN_PAIR_DE)
+      }
+    }
+  })
+
   it('skull and danger cues stand out from the background (>= 20) under every deficiency', () => {
     for (const d of DEFICIENCIES) {
       for (const k of ['skull', 'danger'] as const) {
         expect(hexDeltaE(hex(OKABE_ITO, k), OKABE_ITO.background, d), `${k} ${d}`).toBeGreaterThanOrEqual(MIN_DANGER_DE)
       }
+    }
+  })
+
+  it('the new ghost colours are never the skull orange / danger red and stand out from the background', () => {
+    for (const k of ['wisp', 'mirror', 'blink'] as const) {
+      for (const d of DEFICIENCIES) expect(hexDeltaE(hex(OKABE_ITO, k), OKABE_ITO.background, d), `${k} ${d}`).toBeGreaterThanOrEqual(40)
+      expect(minHexDeltaE(hex(DEFAULT, k), DEFAULT.skull)).toBeGreaterThanOrEqual(MIN_PAIR_DE)
+      expect(minHexDeltaE(hex(DEFAULT, k), DEFAULT.danger)).toBeGreaterThanOrEqual(MIN_PAIR_DE)
     }
   })
 

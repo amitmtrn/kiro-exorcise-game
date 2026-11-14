@@ -12,6 +12,9 @@ import { makeEnemy, setEnemies, decrementLife, resetCombo, setShake, SHAKE_FRAME
 import { BOSS_SIZE } from './boss'
 import { GHOST_SIZE, GHOST_SPEED } from './ghost'
 import { centerTarget, randomId } from './spawnUtils'
+import { spawnVariantAt, skullNear, kingSpawnPoint } from './variantSpawn'
+import { withTip } from '../finale'
+import type { VariantType } from './variants'
 
 export const PHASE2_BELOW = 0.66
 export const PHASE3_BELOW = 0.33
@@ -50,6 +53,31 @@ export const PHASE_PARAMS: Record<BossPhase, PhaseParams> = {
        summonEveryMs: 6000, summonCount: 1, maxMinions: 3, attacks: true },
   3: { idleMs: 1500, windupMs: 350, recoverMs: 700, lungeSpeed: 1.5, swayRate: 1.1,
        summonEveryMs: 3500, summonCount: 2, maxMinions: 5, attacks: true },
+}
+
+/** The Hollow King (more-content R6): longer telegraphs (>= 400 ms), slower lunges, new ghosts as minions. */
+export const FINALE_PARAMS: Record<BossPhase, PhaseParams> = {
+  1: { idleMs: 0, windupMs: 0, recoverMs: 0, lungeSpeed: 0, swayRate: 0.5,
+       summonEveryMs: 6000, summonCount: 1, maxMinions: 2, attacks: false },
+  2: { idleMs: 3000, windupMs: 700, recoverMs: 1400, lungeSpeed: 0.9, swayRate: 0.7,
+       summonEveryMs: 8000, summonCount: 1, maxMinions: 4, attacks: true },
+  3: { idleMs: 2000, windupMs: 450, recoverMs: 1350, lungeSpeed: 1.3, swayRate: 1.1,
+       summonEveryMs: 7000, summonCount: 1, maxMinions: 3, attacks: true },
+}
+
+/** Parameters of this boss: the Hollow King has its own table. */
+export function paramsFor(boss: Pick<Enemy, 'finale' | 'bossPhase'>, phase: BossPhase = boss.bossPhase): PhaseParams {
+  return (boss.finale ? FINALE_PARAMS : PHASE_PARAMS)[phase]
+}
+
+/** Types that count against the minion cap of the finale boss. */
+const FINALE_MINIONS: readonly Enemy['type'][] = ['blink', 'wisp', 'mirror', 'ghost']
+
+/** New ghosts a finale summon makes in `phase` (`n` = summons so far in this phase): blink / wisp pair / mirror (+ blink every other one). */
+export function finaleMinionKinds(phase: BossPhase, n: number): VariantType[] {
+  if (phase === 1) return ['blink']
+  if (phase === 2) return ['wisp']
+  return n % 2 === 1 ? ['mirror', 'blink'] : ['mirror']
 }
 
 /** Phase for `received` hits out of `needed` (R1.1). */
@@ -100,12 +128,13 @@ export function onBossHit(boss: Enemy): BossHitResult {
     next = {
       ...next,
       bossAttack: 'idle',
-      bossTimerMs: PHASE_PARAMS[phase].idleMs,
+      bossTimerMs: paramsFor(boss, phase).idleMs,
       summonTimerMs: 0, // queue an immediate summon
+      vHits: 0, // finale: summons counted per phase, so phase 3 starts its blink parity at 0 (R6.3)
       bossStrike: false,
     }
   } else if (boss.bossAttack === 'windup' || boss.bossAttack === 'lunge') {
-    next = { ...next, bossAttack: 'recover', bossTimerMs: PHASE_PARAMS[phase].recoverMs }
+    next = { ...next, bossAttack: 'recover', bossTimerMs: paramsFor(boss, phase).recoverMs }
   }
   return { boss: next, defeated, phaseChanged }
 }
@@ -129,7 +158,7 @@ function steer(boss: Enemy, tx: number, ty: number, pxPerSec: number, dt: number
 /** Advances timers, the attack cycle and position by `deltaMs`. */
 export function moveBoss(boss: Enemy, deltaMs: number, canvasW: number, canvasH: number): Enemy {
   const dt = deltaMs / 1000
-  const p = PHASE_PARAMS[boss.bossPhase]
+  const p = paramsFor(boss)
   let b: Enemy = boss
   if (b.bossInvulnMs > 0) b = { ...b, bossInvulnMs: Math.max(0, b.bossInvulnMs - deltaMs) }
   // The summon timer runs in every attack state; a due summon waits for idle + hover (R3.7).
@@ -210,13 +239,30 @@ export function tickBoss(state: GameState, canvasW: number, canvasH: number): Ga
   }
 
   // Only at the hover line: a boss flying home from the centre keeps the summon queued.
-  if (b.bossAttack === 'idle' && b.summonTimerMs <= 0 && atHover(b, canvasH)) {
-    const p = PHASE_PARAMS[b.bossPhase]
+  // A king summon waits (the timer stays due) while a live skull is within the spawn clearance (more-content R1.6).
+  const at = kingSpawnPoint(b.x, b.y, canvasW)
+  const skullBlocks = b.finale === true && skullNear(s.enemies.filter((e) => e.type === 'skull'), at.x, at.y)
+  if (b.bossAttack === 'idle' && b.summonTimerMs <= 0 && atHover(b, canvasH) && !skullBlocks) {
+    const p = paramsFor(b)
+    // Carry a small overshoot so cadence doesn't drift; a long wait for the hover line is not carried.
+    const nextTimer = p.summonEveryMs + Math.max(b.summonTimerMs, -SUMMON_CARRY_MAX_MS)
+    if (b.finale) {
+      const alive = s.enemies.filter((e) => FINALE_MINIONS.includes(e.type)).length
+      const wanted = finaleMinionKinds(b.bossPhase, b.vHits)
+      const cost = (ks: readonly VariantType[]) => ks.reduce((a, k) => a + (k === 'wisp' ? 2 : 1), 0)
+      // A pair that does not fit the cap falls back to its first ghost alone (phase 3: the mirror).
+      const kinds = [wanted, wanted.slice(0, 1)].find((ks) => alive + cost(ks) <= p.maxMinions) ?? []
+      const made = kinds.flatMap((k) => spawnVariantAt(k, b.x, b.y, canvasW, canvasH))
+      const nb: Enemy = { ...b, summonTimerMs: nextTimer, vHits: made.length > 0 ? b.vHits + 1 : b.vHits }
+      s = setEnemies(s, [...s.enemies.map((e) => (e.id === nb.id ? nb : e)), ...made])
+      // A type whose scripted event was dropped still gets its first-sighting tip when the king summons it.
+      if (made.length > 0) for (const k of kinds) s = withTip(s, k, made[0].x, made[0].y, canvasW, canvasH)
+      return s
+    }
     const alive = s.enemies.filter((e) => e.type === 'ghost').length
     const n = Math.max(0, Math.min(p.summonCount, p.maxMinions - alive))
     const minions = Array.from({ length: n }, () => createMinion(b, canvasW, canvasH))
-    // Carry a small overshoot so cadence doesn't drift; a long wait for the hover line is not carried.
-    const nb: Enemy = { ...b, summonTimerMs: p.summonEveryMs + Math.max(b.summonTimerMs, -SUMMON_CARRY_MAX_MS) }
+    const nb: Enemy = { ...b, summonTimerMs: nextTimer }
     s = setEnemies(s, [...s.enemies.map((e) => (e.id === nb.id ? nb : e)), ...minions])
   }
   return s

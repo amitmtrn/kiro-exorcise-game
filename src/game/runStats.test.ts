@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { createRunStats, observeRun, totalBanished, momentRank } from './runStats'
+import { createRunStats, observeRun, totalBanished, momentRank, bossDefeatedSince } from './runStats'
 import type { ObservedState } from './runStats'
 
 const st = (o: Partial<ObservedState> = {}): ObservedState => ({
@@ -71,6 +71,20 @@ describe('momentRank', () => {
     expect(o.moment).toEqual({ kind: 'boss', rank: 100 })
     o = observeRun(o.stats, st({ phase: 'victory' }))
     expect(o.moment).toBeNull()
+  })
+
+  it('1P: a stage-5 boss defeat (summary) is the boss moment, even when stage 6 later ends in game over (R7.1)', () => {
+    expect(bossDefeatedSince(true, 'summary')).toBe(true)
+    expect(bossDefeatedSince(true, 'victory')).toBe(true)
+    expect(bossDefeatedSince(true, 'gameover')).toBe(false) // timeout with the boss alive
+    expect(bossDefeatedSince(true, 'playing')).toBe(false)
+    expect(bossDefeatedSince(false, 'summary')).toBe(false) // an ordinary stage clear
+    let o = observeRun(createRunStats(), st())
+    const bossDefeated = bossDefeatedSince(true, 'summary')
+    o = observeRun(o.stats, st({ phase: 'summary', ...(bossDefeated ? { bossDefeated } : {}) }))
+    expect(o.moment).toEqual({ kind: 'boss', rank: 100 })
+    o = observeRun(o.stats, st({ phase: 'gameover' }))
+    expect(o.moment?.kind).toBe('end') // later moments are still offered, the boss one is not repeated
   })
 
   it('orders boss > combo tiers > end', () => {

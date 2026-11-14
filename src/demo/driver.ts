@@ -10,6 +10,7 @@
 
 import type { Enemy, GamePhase, Hitbox } from '../game/state'
 import { isHittable } from '../game/enemies/vulnerability'
+import { isLinked } from '../game/enemies/variants'
 import { isThreat, CENTER_THRESHOLD } from '../game/enemies/reach'
 import { pathDurationMs } from '../game/paths'
 import { buttonLayout } from '../ui/layout'
@@ -493,6 +494,8 @@ export class DemoDriver {
     for (const e of view.enemies) {
       if (e.type === 'skull') continue
       if (!isHittable(e)) continue
+      // A lit twin wisp ignores further hits: its partner is the target (more-content R12.3).
+      if (isLinked(e)) continue
       if (!this.onScreen(e, view.w, view.h)) continue
       if (view.now - e.spawnedAt < SPAWN_MIN_AGE_MS) continue
       if ((this.avoidUntil.get(e.id) ?? 0) > this.t) continue
@@ -500,6 +503,7 @@ export class DemoDriver {
       if (!tr || tr.first === null) continue
       if (this.t - tr.first < tr.react) continue
       const attacking = (e.type === 'boss' && e.bossAttack !== 'idle') || (e.type === 'lunger' && e.movePhase !== 'approach')
+        || this.partnerLit(e, view)
       if (attacking && this.t - tr.attackSince < tr.attackReact) continue
       // Attacks first; then threats by how soon they cost a life; then an idle boss; then harmless targets.
       const ttt = timeToThreatMs(e, view.w, view.h)
@@ -508,6 +512,12 @@ export class DemoDriver {
       if (key[0] < bestKey[0] || (key[0] === bestKey[0] && key[1] < bestKey[1])) { best = e; bestKey = key }
     }
     return best
+  }
+
+  /** True for a wisp whose partner is lit: it must be hit inside the twin window, so it ranks with attacks. */
+  private partnerLit(e: Enemy, view: DemoView): boolean {
+    return e.type === 'wisp' && e.pairId !== undefined
+      && view.enemies.some((o) => o.id !== e.id && o.type === 'wisp' && o.pairId === e.pairId && isLinked(o))
   }
 
   private planSwipe(view: DemoView, R: number, e: Enemy, skulls: readonly Enemy[]): Move | null {

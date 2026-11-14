@@ -21,7 +21,7 @@ export const PRAISE: Readonly<Record<2 | 3 | 4, string>> = {
   4: 'PERFECT!',
 }
 
-export type CalloutKind = 'tierUp' | 'praise'
+export type CalloutKind = 'tierUp' | 'praise' | 'tip'
 
 export interface Callout {
   x: number
@@ -54,11 +54,18 @@ export function makeCallout(x: number, y: number, choice: CalloutChoice, canvasW
   return { x: cx, y: cy, text: choice.text, kind: choice.kind, ageMs: 0, lifeMs: CALLOUT_LIFE_MS }
 }
 
-/** Appends a call-out; beyond MAX_CALLOUTS the oldest is dropped. */
+/**
+ * Appends a call-out. The quality cap (3 full, 1 reduced) applies to combo and praise call-outs and drops the
+ * oldest of those; tips and the king banner have their own slots (at most MAX_CALLOUTS) so a combo call-out
+ * never cuts a tip short (more-content R5.4).
+ */
 export function addCallout(list: Callout[], c: Callout): Callout[] {
   const next = [...list, c]
   const cap = calloutCap() // playtest-polish R3.4: 3 at full quality, 1 below
-  return next.length > cap ? next.slice(next.length - cap) : next
+  const tips = next.filter((x) => x.kind === 'tip').slice(-MAX_CALLOUTS)
+  const rest = next.filter((x) => x.kind !== 'tip')
+  const kept = new Set<Callout>([...tips, ...rest.slice(Math.max(0, rest.length - cap))])
+  return next.filter((x) => kept.has(x))
 }
 
 export function tickCallouts(list: Callout[], deltaMs: number): Callout[] {

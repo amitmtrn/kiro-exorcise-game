@@ -156,8 +156,8 @@ describe('lock release by killActive (R3.5b)', () => {
 
 describe('readStageConfig (R2)', () => {
   const cfg = readStageConfig()
-  it('has the five stages with tuning fields', () => {
-    expect(cfg.stages.map((s) => s.id)).toEqual([1, 2, 3, 4, 5])
+  it('has the six stages with tuning fields', () => {
+    expect(cfg.stages.map((s) => s.id)).toEqual([1, 2, 3, 4, 5, 6])
     for (const s of cfg.stages) {
       expect(s.durationMs).toBeGreaterThan(0)
       expect(s.maxEnemies).toBeGreaterThan(0)
@@ -435,7 +435,7 @@ describe('spawned MCP server', () => {
     const c = client()
     const r = await c.request('tools/call', { name: 'read_stage_config', arguments: {} })
     expect(r.result.isError).toBe(false)
-    expect(r.result.structuredContent.stages).toHaveLength(5)
+    expect(r.result.structuredContent.stages).toHaveLength(6)
     expect(r.result.structuredContent.stages[0].durationMs).toBe(45_000)
     c.close()
   })

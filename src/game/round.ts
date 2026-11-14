@@ -9,7 +9,6 @@ import {
   setEnemies,
   STAGE_TITLE_DURATION_MS,
   SUMMARY_AUTO_ADVANCE_MS,
-  saveHighScore,
 } from './state'
 import { STAGES } from './stages'
 import { BONUS_ROUND } from './waves'
@@ -50,34 +49,25 @@ export function tickRound(
           stageMissed: 0,
           bossActive: false,
           waveIndex: 0,
+          variantIndex: 0,
+          variantDone: [],
+          seenVariants: [],
         }
       }
       return { ...state, stageTitleMs }
     }
 
-    case 'playing': {
-      // Stage 5 boss: spawn boss when time drops to last 55 s and boss not yet active
-      if (state.stage === 5 && !state.bossActive && state.roundTimeMs <= state.roundTimeMs) {
-        // Actually spawn boss on first tick of playing (stage 5 only has boss + helper ghosts)
-      }
-      // Timer handled by tickTimer in loop; this just passes through
+    case 'playing':
+      // Timer handled by tickTimer in the loop; bosses are spawned by step.ts (finale.ts bossDue).
       return state
-    }
 
     case 'summary': {
-      // Save high score whenever we reach summary
-      saveHighScore(state.highScore)
       const summaryShownMs = state.summaryShownMs + deltaMs
       if (summaryShownMs >= SUMMARY_AUTO_ADVANCE_MS) {
         return advanceToNextStage(state, canvasW, canvasH)
       }
       return { ...state, summaryShownMs }
     }
-
-    case 'victory':
-    case 'gameover':
-      saveHighScore(state.highScore)
-      return state
 
     default:
       return state
@@ -139,9 +129,9 @@ export function retryStage(state: GameState): GameState {
   }
 }
 
-/** Spawn boss for stage 5. Called from loop when stage=5 and bossActive=false. */
+/** Spawns the boss of the current stage (the Hollow King on the finale stage). */
 export function spawnBoss(state: GameState, canvasW: number, canvasH: number): GameState {
-  const boss = createBoss(canvasW, canvasH)
+  const boss = createBoss(canvasW, canvasH, !!STAGES[state.stage - 1]?.finale)
   return {
     ...setEnemies(state, [...state.enemies, boss]),
     bossActive: true,

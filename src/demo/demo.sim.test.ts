@@ -54,7 +54,7 @@ vi.mock('../card/draw', () => ({
   },
 }))
 
-import { startLoop, stopLoop, isCardPreviewOpen } from '../game/loop'
+import { startLoop, stopLoop, isCardPreviewOpen, isNameEntryOpen } from '../game/loop'
 import { DemoRuntime } from './runtime'
 import { DEMO } from './params'
 import { getPlayerMode, setPlayerMode, resetPlayerMode } from '../game/playerMode'
@@ -120,6 +120,10 @@ interface Run {
   missingBadge: GamePhase[]
   badgePhases: Set<string>
   gameOvers: number
+  /** Ticks on which a name screen was open (demo scores are never recorded, more-content R12.2). */
+  nameTicks: number
+  /** New ghost types and the Hollow King seen on the field. */
+  newKinds: Set<string>
   victoryScores: number[]
   highScoresShown: number[]
   /** Compact fingerprint of the run (hand path + score), for determinism checks. */
@@ -133,7 +137,7 @@ async function simulate(seed: number, victories = 1, maxTicks = MAX_TICKS * vict
   await startLoop(null, ctx(), ctx(true), 1, { demo: rt })
   const run: Run = {
     ticks: 0, phases: new Set(), at: {}, maxCombo: 1, bossPhases: new Set(), stages: new Set(), bonus: false,
-    skullSeen: false, missingBadge: [], badgePhases: new Set(), gameOvers: 0, victoryScores: [], highScoresShown: [], trace: '', runTraces: [],
+    skullSeen: false, missingBadge: [], badgePhases: new Set(), gameOvers: 0, nameTicks: 0, newKinds: new Set(), victoryScores: [], highScoresShown: [], trace: '', runTraces: [],
   }
   let ts = 0
   let prev: GamePhase | null = null
@@ -160,7 +164,10 @@ async function simulate(seed: number, victories = 1, maxTicks = MAX_TICKS * vict
       for (const e of s.enemies) {
         if (e.type === 'boss') run.bossPhases.add(e.bossPhase)
         if (e.type === 'skull') run.skullSeen = true
+        if (e.type === 'wisp' || e.type === 'mirror' || e.type === 'blink') run.newKinds.add(e.type)
+        if (e.type === 'boss' && e.finale) run.newKinds.add('king')
       }
+      if (isNameEntryOpen()) run.nameTicks++
       if (s.phase === 'gameover' && prev !== 'gameover') run.gameOvers++
       if (s.phase === 'victory' && prev !== 'victory') { run.victoryScores.push(s.score); run.at.victory ??= i }
       if (isCardPreviewOpen()) run.at.card ??= i
@@ -185,7 +192,7 @@ async function simulate(seed: number, victories = 1, maxTicks = MAX_TICKS * vict
 }
 
 describe('full demo run, headless (demo-mode R4, R5, R6)', () => {
-  it(`default seed ${DEMO.defaultSeed}: title → 5 stages → victory → DEMO card → title, cleanly, within the bound`, async () => {
+  it(`default seed ${DEMO.defaultSeed}: title → 6 stages → victory → DEMO card → title, cleanly, within the bound`, async () => {
     const run = await simulate(DEMO.defaultSeed)
     // Script order and bound
     expect(run.at.victory).toBeDefined()
@@ -195,7 +202,7 @@ describe('full demo run, headless (demo-mode R4, R5, R6)', () => {
     expect(run.at.card!).toBeLessThan(run.at.titleAgain!)
     expect(run.ticks).toBeLessThan(MAX_TICKS)
     // Every stage, the bonus round and every boss phase are played; combo reaches x4; no game over
-    expect(run.stages).toEqual(new Set([1, 2, 3, 4, 5]))
+    expect(run.stages).toEqual(new Set([1, 2, 3, 4, 5, 6]))
     expect(run.bonus).toBe(true)
     expect(run.bossPhases).toEqual(new Set([1, 2, 3]))
     expect(run.maxCombo).toBe(4)
@@ -218,6 +225,9 @@ describe('full demo run, headless (demo-mode R4, R5, R6)', () => {
     expect(net.setItem).not.toHaveBeenCalled()
     // The stored best (4242) is never shown: demo starts from 0
     expect(run.highScoresShown[0]).toBe(0)
+    // Stage 6 shows every new ghost and the Hollow King; no name screen, no table write (more-content R12)
+    expect(run.newKinds).toEqual(new Set(['wisp', 'mirror', 'blink', 'king']))
+    expect(run.nameTicks).toBe(0)
   }, 60_000)
 
   it('is deterministic: the same seed plays the identical run twice', async () => {
@@ -253,14 +263,14 @@ describe('full demo run, headless (demo-mode R4, R5, R6)', () => {
   it('the attract mode leaves the remembered player mode alone (R7.1)', async () => {
     setPlayerMode(2)
     try {
-      const run = await simulate(DEMO.defaultSeed, 1, 600, 5)
+      const run = await simulate(DEMO.defaultSeed, 1, 600, 6)
       expect(run.phases.has('playing')).toBe(true)
       expect(getPlayerMode()).toBe(2)
     } finally { resetPlayerMode() }
   }, 60_000)
 
   it('PLAY AGAIN on the victory screen starts the seeded demo stage, not an un-seeded stage 1 (R4.8)', async () => {
-    const rt = new DemoRuntime({ seed: DEMO.defaultSeed, stage: 5, speed: DEMO.timeScale, w: W, h: H })
+    const rt = new DemoRuntime({ seed: DEMO.defaultSeed, stage: 6, speed: DEMO.timeScale, w: W, h: H })
     await startLoop(null, ctx(), ctx(true), 1, { demo: rt })
     try {
       let ts = 0
@@ -274,7 +284,7 @@ describe('full demo run, headless (demo-mode R4, R5, R6)', () => {
       expect(spy).toHaveBeenCalledTimes(1)
       for (let i = 0; i < 5; i++) { ts += 1000 / 60; const q = rafQueue; rafQueue = []; q.forEach((f) => f(ts)) }
       expect(h.state?.phase).not.toBe('victory')
-      expect(h.state?.stage).toBe(5)
+      expect(h.state?.stage).toBe(6)
     } finally { stopLoop(); rt.dispose() }
   }, 60_000)
 
@@ -328,9 +338,9 @@ describe('full demo run, headless (demo-mode R4, R5, R6)', () => {
     }, 60_000)
   }
 
-  it('stage=5 starts at the boss: phases 1–3, victory, card', async () => {
-    const run = await simulate(DEMO.defaultSeed, 1, MAX_TICKS, 5)
-    expect(run.stages).toEqual(new Set([5]))
+  it('stage=6 starts at the finale: new ghosts, the Hollow King phases 1–3, victory, card', async () => {
+    const run = await simulate(DEMO.defaultSeed, 1, MAX_TICKS, 6)
+    expect(run.stages).toEqual(new Set([6]))
     expect(run.bossPhases).toEqual(new Set([1, 2, 3]))
     expect(run.at.card).toBeDefined()
     expect(run.ticks).toBeLessThan(3000)

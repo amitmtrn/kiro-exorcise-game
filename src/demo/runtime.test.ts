@@ -130,8 +130,8 @@ describe('persistence and frames', () => {
     } finally { rt.dispose() }
   })
 
-  it('clamps the start stage to 1–5', () => {
-    for (const [given, want] of [[0, 1], [3, 3], [9, 5]] as const) {
+  it('clamps the start stage to 1–6', () => {
+    for (const [given, want] of [[0, 1], [3, 3], [9, 6]] as const) {
       const rt = new DemoRuntime({ ...opts, stage: given })
       expect(rt.startStage).toBe(want)
       rt.dispose()

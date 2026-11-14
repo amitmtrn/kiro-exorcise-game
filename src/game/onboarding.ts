@@ -18,6 +18,16 @@ export const HOWTO_STEPS: ReadonlyArray<{ icon: string; text: string }> = [
   { icon: '🔥', text: 'Chain hits to build combos' },
 ]
 
+/** One line on the last how-to card about the stage-6 ghosts (more-content R7.3). */
+export const HOWTO_LATER = 'Later stages bring twin wisps, mirror ghosts and blinkers'
+
+/** Body text of how-to card `i`: the last card adds the HOWTO_LATER line. */
+export function howtoBody(i: number): string {
+  const step = HOWTO_STEPS[i]
+  const base = `${step.icon}  ${step.text}`
+  return i === HOWTO_STEPS.length - 1 ? `${base}. ${HOWTO_LATER}.` : base
+}
+
 export type OnboardingStep = 'guide' | 'howto' | 'denied' | 'done'
 export type ResumeStep = 'guide' | 'howto' | 'done'
 

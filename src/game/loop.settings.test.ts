@@ -69,7 +69,7 @@ describe('settings panel on the title screen', () => {
     frame(48)
     expect(vi.mocked(resetStartScreen)).toHaveBeenCalledTimes(1)
     expect(vi.mocked(renderStartScreen)).toHaveBeenCalledTimes(2)
-    expect(vi.mocked(renderStartScreen).mock.calls[1][4]).toEqual({ gear: true })
+    expect(vi.mocked(renderStartScreen).mock.calls[1][4]).toEqual({ gear: true, table: [] })
   })
 
   it('stopLoop closes the panel', async () => {

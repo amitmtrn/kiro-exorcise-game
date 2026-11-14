@@ -64,10 +64,10 @@ describe('tickRound — summary', () => {
     expect(s.stage).toBe(2)
   })
 
-  it('does not wrap back to stage 1 after stage 5 (boss-phases R6.4)', () => {
-    let s = gs({ phase: 'summary', summaryShownMs: 4900, stage: 5 })
+  it('does not wrap back to stage 1 after the final stage (boss-phases R6.4)', () => {
+    let s = gs({ phase: 'summary', summaryShownMs: 4900, stage: 6 })
     s = tickRound(s, 200, W, H)
-    expect(s.stage).toBe(5)
+    expect(s.stage).toBe(6)
     expect(s.phase).toBe('victory')
   })
 })
@@ -92,16 +92,16 @@ describe('advanceToNextStage', () => {
   })
 
   it('after the final stage it goes to victory with the total score, not back to stage 1', () => {
-    let s = gs({ stage: 5, lives: 2, score: 7000, highScore: 7000, phase: 'summary' })
+    let s = gs({ stage: 6, lives: 2, score: 7000, highScore: 7000, phase: 'summary' })
     s = advanceToNextStage(s, W, H)
     expect(s.phase).toBe('victory')
-    expect(s.stage).toBe(5)
+    expect(s.stage).toBe(6)
     expect(s.score).toBe(7000)
     expect(s.lives).toBe(2)
   })
 
   it('a summary auto-advancing from the final stage ends in victory', () => {
-    let s = gs({ stage: 5, score: 100, phase: 'summary', summaryShownMs: 4990 })
+    let s = gs({ stage: 6, score: 100, phase: 'summary', summaryShownMs: 4990 })
     s = tickRound(s, 100, W, H)
     expect(s.phase).toBe('victory')
   })
@@ -110,11 +110,11 @@ describe('advanceToNextStage', () => {
 describe('tickRound — victory', () => {
   afterEach(() => { vi.unstubAllGlobals() })
 
-  it('stays in victory and saves the high score', () => {
+  it('stays in victory and writes nothing (the loop stores the score once on entry)', () => {
     const setItem = vi.fn()
     vi.stubGlobal('localStorage', { getItem: () => null, setItem })
-    const s = gs({ phase: 'victory', stage: 5, score: 4200, highScore: 4200 })
+    const s = gs({ phase: 'victory', stage: 6, score: 4200, highScore: 4200 })
     expect(tickRound(s, 16, W, H).phase).toBe('victory')
-    expect(setItem).toHaveBeenCalledWith('exorcise-highscore', '4200')
+    expect(setItem).not.toHaveBeenCalled()
   })
 })

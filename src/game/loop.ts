@@ -51,10 +51,11 @@ import {
 import { isPanelOpen, closePanel, renderSettingsPanel } from '../ui/settingsPanel'
 import { resolveStartRequest, setPlayerMode } from './playerMode'
 import type { PlayerMode, StartRequest } from './playerMode'
+import { bossDefeatedSince } from './runStats'
 import { CardSession } from '../card/session'
 import { grabMirroredSnapshot, releaseSnapshot } from '../card/snapshot'
 import { grabHalfSnapshot } from '../card/halfSnapshot'
-import { badgeFor, cardFileName, seatLabel } from '../card/twoPlayerCard'
+import { badgeFor, cardFileName, seatLabel, FINALE_BADGE } from '../card/twoPlayerCard'
 import { composeCard } from '../card/draw'
 import { downloadCanvasPng } from '../card/download'
 import { CardPreview, cardKeyAction, offerHit, lockEndButtons } from '../ui/cardScreen'
@@ -65,8 +66,31 @@ import type { DemoRuntime } from '../demo/runtime'
 import type { DemoView } from '../demo/driver'
 import { handRadius } from '../demo/driver'
 import { drawDemoBackdrop, drawDemoBadge, drawGhostHand, grabDemoPortrait } from '../demo/overlay'
+import { loadTable, recordScore, renameStored } from './highScores'
+import type { ScoreEntry } from './highScores'
+import { newNameEntry, tickNameEntry, pickStep, confirm, nameKey, finalName } from './nameEntry'
+import type { NameEntry } from './nameEntry'
+import { NameScreen } from '../ui/nameScreen'
+import type { NameInfo } from '../ui/nameScreen'
 
 let rafId = 0
+
+// Name entry (more-content R9.3): while a name screen is open, keys are queued here by main.ts.
+let nameKeys: string[] = []
+let nameClicks: Array<{ seat: 0 | 1 | null; x: number; y: number }> = [] // clicks / taps on the name screen (area pixels)
+let nameActive = false
+/** 2P: only seat 0 (the keyboard player) takes keys; blocked while just the other half has an open name screen. */
+let nameKeysBlocked = false
+/** Forwards a key to an open name screen; true when it was taken (the caller then skips its other key handling). */
+export function handleNameKey(key: string, repeat = false): boolean {
+  if (!nameActive || nameKeysBlocked) return false
+  const relevant = key === 'Enter' || key === 'Backspace' || (key.length === 1 && /^[a-z0-9-]$/i.test(key))
+  if (!relevant) return false
+  if (!repeat || key === 'Backspace') nameKeys.push(key)
+  return true
+}
+/** True while a name screen is on screen (main.ts, tests). */
+export function isNameEntryOpen(): boolean { return nameActive }
 
 /** True while the title screen of a 1P game is showing (main.ts: the `G` demo toggle works only there). */
 let titleVisible = false
@@ -91,6 +115,7 @@ let cardOpen = false
 
 /** Forwards a key; returns true when the card flow wants it (caller may preventDefault). */
 export function handleCardKey(key: string, repeat = false): boolean {
+  if (nameActive) return false // the name screen takes the letters (more-content R9.3)
   if (repeat) return onEndScreen && cardKeyAction(key, cardOpen) !== null // held key: swallow, never re-trigger
   if (!onEndScreen || cardKeyAction(key, cardOpen) === null) return false
   cardInputs.push({ kind: 'key', key })
@@ -102,6 +127,10 @@ export function isCardPreviewOpen(): boolean { return cardOpen }
 
 /** Forwards a click / tap in canvas pixels; returns true when it was queued. */
 export function handleCardPointer(x: number, y: number): boolean {
+  if (nameActive) { // the name screen: a tap on ◀ / OK / ▶ works like the motion buttons
+    nameClicks.push({ seat: null, x, y })
+    return true
+  }
   if (!onEndScreen) return false
   cardInputs.push({ kind: 'click', x, y })
   return true
@@ -114,6 +143,12 @@ let seatClickW = 0
 
 /** Forwards a click / tap in canvas pixels on the 2P end screen; returns true when it was queued for a half. */
 export function handleSeatCardPointer(x: number, y: number): boolean {
+  if (nameActive) {
+    if (seatClickW <= 0) return false
+    const r = routeSeatClick(x, y, seatClickW)
+    nameClicks.push({ seat: r.seat, x: r.x, y: r.y })
+    return true
+  }
   if (!twoFinal || !seatCardsRef || seatClickW <= 0) return false
   const r = routeSeatClick(x, y, seatClickW)
   seatCardsRef[r.seat].queueClick(r.x, r.y)
@@ -179,6 +214,62 @@ export async function startLoop(
 
   let state: GameState = createInitialState(initialStage)
 
+  // High scores (more-content R8–R10). The table is re-read on title entry and after every write; demo reads nothing.
+  let scoreTable: ScoreEntry[] = demo ? [] : loadTable()
+  let ownIds: string[] = []
+  let pendingName: { id: string; entry: NameEntry; info: NameInfo } | null = null
+  const nameScreen = new NameScreen()
+  nameKeys = []
+  nameClicks = []
+  nameActive = false
+  nameKeysBlocked = false
+
+  /** A 1P run ended (game over or victory): record it with a generated name and open the name screen. */
+  function onRunEnd(now: number): void {
+    pendingName = null
+    ownIds = [] // a run that does not qualify must not highlight the previous run's row
+    if (demo) return
+    const r = recordScore({ score: state.score, stage: state.stage, mode: '1P' })
+    scoreTable = loadTable()
+    if (!r) return
+    ownIds = [r.entry.id]
+    pendingName = { id: r.entry.id, entry: newNameEntry(r.entry.name, now), info: { score: r.entry.score, rank: r.rank } }
+    nameScreen.reset()
+    nameKeys = []
+    nameClicks = []
+  }
+
+  /** Runs the open name screen for this frame; true while it covers the end screen. */
+  function runNameScreen(now: number, onDone: () => void): boolean {
+    if (!pendingName) { nameActive = false; return false }
+    let e = pendingName.entry
+    for (const k of nameKeys) e = nameKey(e, k, now) ?? e
+    nameKeys = []
+    e = tickNameEntry(e, now)
+    const clicks = nameClicks
+    nameClicks = []
+    if (!e.done) {
+      const a = nameScreen.render(gameCtx, e, now, pendingName.info)
+      if (a) e = a.kind === 'ok' ? confirm(e, now) : pickStep(e, a.dir, now)
+      for (const c of clicks) {
+        if (e.done) break
+        const pa = nameScreen.pointerAction(c.x, c.y, gameCtx.canvas.width, gameCtx.canvas.height)
+        if (pa) e = pa.kind === 'ok' ? confirm(e, now) : pickStep(e, pa.dir, now)
+      }
+    }
+    if (e.done) {
+      renameStored(pendingName.id, finalName(e))
+      scoreTable = loadTable()
+      pendingName = null
+      nameActive = false
+      onDone() // fresh lock-out for the end screen: the wave that pressed OK presses nothing else
+      return false
+    }
+    pendingName = { ...pendingName, entry: e }
+    nameActive = true
+    return true
+  }
+
   // Exorcist Card: snapshot + run stats live in memory only and die with the screen.
   // Demo mode: a procedural placeholder portrait instead of a camera snapshot, a DEMO chip on the card,
   // and a download that writes nothing (demo-mode R6.3).
@@ -192,7 +283,8 @@ export async function startLoop(
     releaseCard: releaseSnapshot,
     // demo: nothing is written, so the save must never report "saved"
     download: demo ? async () => false : (c) => downloadCanvasPng(c),
-    ...(demo ? { extra: () => ({ badge: 'DEMO' }) } : {}),
+    // Demo: the DEMO chip. A finale win (victory after the last stage) gets the FINALE CLEARED chip (more-content R5.6).
+    extra: () => (demo ? { badge: 'DEMO' } : state.phase === 'victory' ? { badge: FINALE_BADGE } : {}),
   })
   const preview = new CardPreview()
 
@@ -216,8 +308,79 @@ export async function startLoop(
   /** Each half's motion points for its own copies of the shared buttons. */
   const seatSources: [() => typeof seatPoints[0], () => typeof seatPoints[0]] = [() => seatPoints[0], () => seatPoints[1]]
   let finalAt = 0
+  // Two-player names (more-content R11): one entry and one name screen per half, driven by that half's points only.
+  const seatNames: Array<{ id: string; entry: NameEntry; info: NameInfo } | null> = [null, null]
+  const seatNameScreens = SEATS.map((seat) => new NameScreen(seat, seatSources[seat]))
+  /** True while either half still has an open name screen. */
+  const namesOpen2P = (): boolean => seatNames.some((n) => n !== null && !n.entry.done)
+
+  /** The 2P game ended: record every seat that scored (mode 2P, its own stage) and open its name screen. */
+  function onTwoPlayerEnd(t: TwoPlayerState, now: number): void {
+    const recorded: Array<{ entry: ScoreEntry } | null> = [null, null]
+    for (const seat of SEATS) {
+      seatNames[seat] = null
+      const s = t.seats[seat]
+      recorded[seat] = recordScore({ score: s.score, stage: s.stage, mode: '2P' })
+    }
+    // Ranks come from the final table, after both inserts; an entry pushed out by the other seat gets no name screen.
+    const table = loadTable()
+    for (const seat of SEATS) {
+      const r = recorded[seat]
+      if (!r) continue
+      const rank = table.findIndex((e) => e.id === r.entry.id) + 1
+      if (rank === 0) continue
+      seatNames[seat] = { id: r.entry.id, entry: newNameEntry(r.entry.name, now), info: { score: r.entry.score, rank } }
+      seatNameScreens[seat].reset()
+    }
+    nameKeys = []
+    nameClicks = []
+    scoreTable = loadTable()
+  }
+
+  /** Runs both halves' name screens for this frame (keyboard edits P1); true while the end buttons must wait. */
+  function runSeatNames(now: number, W: number, H: number): boolean {
+    if (!namesOpen2P()) { nameActive = false; nameKeysBlocked = false; return false }
+    seatClickW = W
+    nameKeysBlocked = !(seatNames[0] && !seatNames[0].entry.done)
+    const hw = halfWidth(W)
+    for (const seat of SEATS) {
+      const n = seatNames[seat]
+      const c = (cardCanvases[seat] ??= document.createElement('canvas'))
+      if (c.width !== hw) c.width = hw
+      if (c.height !== H) c.height = H
+      const cctx = c.getContext('2d')!
+      cctx.clearRect(0, 0, hw, H)
+      let e = n ? n.entry : { ...newNameEntry('', now), done: true }
+      if (n && seat === 0) { for (const k of nameKeys) e = nameKey(e, k, now) ?? e }
+      if (n) e = tickNameEntry(e, now)
+      if (!e.done) {
+        const a = seatNameScreens[seat].render(cctx, e, now, n!.info)
+        if (a) e = a.kind === 'ok' ? confirm(e, now) : pickStep(e, a.dir, now)
+        for (const c of nameClicks) {
+          if (c.seat !== seat || e.done) continue
+          const pa = seatNameScreens[seat].pointerAction(c.x, c.y, hw, H)
+          if (pa) e = pa.kind === 'ok' ? confirm(e, now) : pickStep(e, pa.dir, now)
+        }
+      }
+      if (n && e.done && !n.entry.done) renameStored(n.id, finalName(e))
+      if (n) seatNames[seat] = { ...n, entry: e }
+      if (e.done) seatNameScreens[seat].render(cctx, e, now, n?.info ?? { score: 0, rank: 0 }) // "waiting for the other player"
+      gameCtx.drawImage(c, halfOffset(seat, W), 0)
+    }
+    nameKeys = []
+    nameClicks = []
+    if (namesOpen2P()) { nameActive = true; return true }
+    nameKeysBlocked = false
+    // Both halves done: fresh lock-out for the shared end buttons and the cards.
+    nameActive = false
+    scoreTable = loadTable()
+    finalAt = now
+    resetFinalScreen()
+    return false
+  }
   /** Per seat: a boss was on that seat's field at the previous tick (so its disappearance means it was defeated). */
   const seatHadBoss: [boolean, boolean] = [false, false]
+  let hadBoss1P = false
   seatCardsRef = seatCards
   twoFinal = false
 
@@ -281,6 +444,8 @@ export async function startLoop(
   let panelWasOpen = false
   /** True while the game-over screen is the visible screen (entry detection for its lock-out). */
   let gameOverVisible = false
+  /** True while the victory screen is the visible screen (records the run once per visit). */
+  let victoryVisible = false
   /** Action requested by a 2P screen button during a tick; applied after the tick returns (so it is not overwritten). */
   let twoAction: 'next' | 'again' | 'menu' | null = null
 
@@ -307,6 +472,8 @@ export async function startLoop(
   /** Back to the title screen from the two-player end screen. */
   function toMenu(): void {
     resetSeatCards()
+    seatNames[0] = seatNames[1] = null
+    nameActive = false
     gameOverVisible = false
     two = null
     prevTwoPhase = null
@@ -342,7 +509,7 @@ export async function startLoop(
 
     // Phase hooks (music / sfx), once per transition
     if (prevTwoPhase !== t.phase) {
-      if (t.phase === 'final') finalAt = now // before any audio call, so a throwing one cannot leave the lock-out stale
+      if (t.phase === 'final') { finalAt = now; onTwoPlayerEnd(t, now) } // before any audio call, so a throwing one cannot leave the lock-out stale
       try {
         if (t.phase === 'playing') startMusic(t.stage)
         else if (t.phase === 'summary') { resetSummaryScreen(); sfxStageClear(); stopMusic() }
@@ -384,6 +551,9 @@ export async function startLoop(
 
     if (t.phase === 'summary') {
       renderTwoPlayerSummary(gameCtx, t, now, () => { twoAction = 'next' }, seatSources)
+    } else if (t.phase === 'final' && runSeatNames(now, W, H)) {
+      // Name entry first (more-content R11.2): the cards and the shared buttons wait until both halves are done.
+      twoFinal = false
     } else if (t.phase === 'final') {
       // Per-player cards (two-player-card): each half draws its own offer / preview layer first, so the
       // shared buttons can be gated by what the cards are doing; the layers are composited above the overlay.
@@ -458,8 +628,11 @@ export async function startLoop(
       cardInputs = []
       cardOpen = false
     } else {
-      session.observe(state, displayW, displayH)
-      onEndScreen = state.phase === 'gameover' || state.phase === 'victory'
+      // Boss defeated on the previous tick (stage 5 now goes to summary, not victory): snapshot the boss moment.
+      const bossDefeated = bossDefeatedSince(hadBoss1P, state.phase)
+      hadBoss1P = state.enemies.some((e) => e.type === 'boss')
+      session.observe(bossDefeated ? { ...state, bossDefeated } : state, displayW, displayH)
+      onEndScreen = (state.phase === 'gameover' || state.phase === 'victory') && !pendingName
       if (onEndScreen) drainCardInputs(now)
       else cardInputs = []
       cardOpen = session.isOpen
@@ -525,7 +698,7 @@ export async function startLoop(
         seatPoints[seat] = displayPointsInHalf(lastMotionPixels, seat, displayW)
         const ss = two.seats[seat]
         // Boss defeated in this half on the previous tick: snapshot now, while the player is still in front of the camera.
-        const bossDefeated = seatHadBoss[seat] && (ss.phase === 'summary' || ss.phase === 'victory')
+        const bossDefeated = bossDefeatedSince(seatHadBoss[seat], ss.phase)
         seatHadBoss[seat] = ss.enemies.some((e) => e.type === 'boss')
         seatSessions[seat].observe(bossDefeated ? { ...ss, bossDefeated } : ss, displayW, displayH)
       }
@@ -534,7 +707,7 @@ export async function startLoop(
       const action: typeof twoAction = twoAction
       twoAction = null
       if (action === 'next' && two.phase === 'summary') two = advanceSession(two, displayW, displayH)
-      else if (action === 'again') { resetSeatCards(); two = createTwoPlayer(); prevTwoPhase = null }
+      else if (action === 'again') { resetSeatCards(); seatNames[0] = seatNames[1] = null; two = createTwoPlayer(); prevTwoPhase = null }
       else if (action === 'menu') toMenu()
       if (!two) twoPlayerActive = false
       startRequest = null // keys pressed during a 2P game must not leak to the start screen (R6.2)
@@ -545,7 +718,7 @@ export async function startLoop(
 
     // ── Start screen ──────────────────────────────────────────────────────────
     if (state.phase === 'start') {
-      if (!startVisible) { resetStartScreen(); startVisible = true; closePanel() } // explicit entry: lock-out + fresh buttons
+      if (!startVisible) { resetStartScreen(); startVisible = true; closePanel(); scoreTable = demo ? [] : loadTable(); ownIds = []; pendingName = null; nameActive = false } // explicit entry: lock-out + fresh buttons
       try { startTitleMusic() } catch { /* ignore */ }
       renderFrame(gameCtx, state, now)
       if (isPanelOpen()) {
@@ -558,7 +731,7 @@ export async function startLoop(
         return
       }
       if (panelWasOpen) { resetStartScreen(); panelWasOpen = false } // wave that closed nothing must not press a button
-      renderStartScreen(gameCtx, state, now, (mode) => { begin(mode) }, { gear: !demo })
+      renderStartScreen(gameCtx, state, now, (mode) => { begin(mode) }, { gear: !demo, table: scoreTable })
       // Space / 1 / 2 fallback (only honoured while actually on the start screen)
       if (startRequest !== null && state.phase === 'start' && !twoStarted()) begin(resolveStartRequest(startRequest))
       startRequest = null
@@ -570,6 +743,7 @@ export async function startLoop(
     startVisible = false
     startRequest = null // a stray key outside the start screen is ignored
     if (state.phase !== 'gameover') gameOverVisible = false
+    if (state.phase !== 'victory') victoryVisible = false
 
     // ── Stage title card ──────────────────────────────────────────────────────
     if (state.phase === 'stageTitle') {
@@ -583,7 +757,6 @@ export async function startLoop(
 
     // ── Summary ───────────────────────────────────────────────────────────────
     if (state.phase === 'summary') {
-      saveHighScore(state.highScore)
       state = tickRound(state, deltaMs, displayW, displayH)
       state = tickEffects(state, deltaMs)
       renderFrame(gameCtx, state, now)
@@ -602,15 +775,15 @@ export async function startLoop(
 
     // ── Game Over ─────────────────────────────────────────────────────────────
     if (state.phase === 'gameover') {
-      if (!gameOverVisible) { resetGameOverScreen(); gameOverVisible = true } // explicit entry: lock-out + fresh buttons
-      saveHighScore(state.highScore)
+      if (!gameOverVisible) { resetGameOverScreen(); gameOverVisible = true; onRunEnd(now); saveHighScore(state.highScore) } // explicit entry: lock-out + fresh buttons; best score stored once
       state = tickEffects(state, deltaMs)
       renderFrame(gameCtx, state, now)
-      if (!renderCardPreview(now)) {
+      if (!runNameScreen(now, resetGameOverScreen) && !renderCardPreview(now)) {
         renderGameOver(gameCtx, state, now,
           () => { state = retryStage(state) },
           () => { state = createInitialState(1) },
           () => runCardAction('open', now),
+          { table: scoreTable, ownIds },
         )
       }
       prevCtx.drawImage(currentCanvas, 0, 0)
@@ -620,7 +793,7 @@ export async function startLoop(
 
     // ── Victory (boss-phases R6.3) ────────────────────────────────────────────
     if (state.phase === 'victory') {
-      saveHighScore(state.highScore)
+      if (!victoryVisible) { victoryVisible = true; onRunEnd(now); saveHighScore(state.highScore) } // a finished run is recorded and the best score stored once per visit
       if (prevPhase !== 'victory') {
         // Entry hooks live here so every route into victory gets the lockout reset.
         resetVictoryScreen()
@@ -629,7 +802,7 @@ export async function startLoop(
       }
       state = tickEffects(state, deltaMs)
       renderFrame(gameCtx, state, now)
-      if (!renderCardPreview(now)) {
+      if (!runNameScreen(now, resetVictoryScreen) && !renderCardPreview(now)) {
         renderVictory(gameCtx, state, now,
           () => {
             if (demo) { state = createInitialState(1); begin(1) } // seeded run at the demo stage, like any other start
@@ -637,6 +810,7 @@ export async function startLoop(
           },
           () => { state = createInitialState(1) },
           () => runCardAction('open', now),
+          { table: scoreTable, ownIds },
         )
       }
       prevCtx.drawImage(currentCanvas, 0, 0)
@@ -683,6 +857,7 @@ export async function startLoop(
         try { startMusic(state.stage) } catch { /* ignore */ }
       } else if (state.phase === 'summary') {
         try { sfxStageClear(); stopMusic() } catch { /* ignore */ }
+        saveHighScore(state.highScore) // best score stored once per stage clear, so a closed tab keeps it
       } else if (state.phase === 'gameover') {
         try { stopMusic() } catch { /* ignore */ }
       }
@@ -706,6 +881,10 @@ let activeDemo: DemoRuntime | null = null
 
 export function stopLoop(): void {
   resetSession?.(); resetSession = null // the snapshot must not outlive the loop
+  nameActive = false
+  nameKeysBlocked = false
+  nameKeys = []
+  nameClicks = []
   activeDemo?.dispose(); activeDemo = null
   onEndScreen = false
   cardOpen = false

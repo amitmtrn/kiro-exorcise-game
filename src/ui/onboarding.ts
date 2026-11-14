@@ -8,7 +8,7 @@
 import { scaled } from './textScale'
 import {
   createOnboarding, onboardingReducer, shouldPersist, persistSeen,
-  PRIVACY_LINE, GUIDE_TITLE, GUIDE_TEXT, HOWTO_STEPS,
+  PRIVACY_LINE, GUIDE_TITLE, GUIDE_TEXT, HOWTO_STEPS, howtoBody,
   type OnboardingState, type OnboardingEvent, type OnboardingStorage,
 } from '../game/onboarding'
 import {
@@ -335,9 +335,8 @@ function buildPanel(): Panel {
         next.textContent = 'Next'
         panel.setFraming(s)
       } else if (s.step === 'howto') {
-        const step = HOWTO_STEPS[s.howtoIndex]
         title.textContent = `How to play ${s.howtoIndex + 1}/${HOWTO_STEPS.length}`
-        body.textContent = `${step.icon}  ${step.text}`
+        body.textContent = howtoBody(s.howtoIndex)
         hint.hidden = true
         dots.hidden = false
         dots.textContent = HOWTO_STEPS.map((_, i) => (i === s.howtoIndex ? '●' : '○')).join(' ')

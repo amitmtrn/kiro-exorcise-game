@@ -8,7 +8,7 @@
  * transposed at playback by `transpose` semitones.
  */
 
-export type TrackId = 'title' | 'stage1' | 'stage2' | 'stage3' | 'stage4' | 'boss'
+export type TrackId = 'title' | 'stage1' | 'stage2' | 'stage3' | 'stage4' | 'boss' | 'finale'
 
 export interface TrackDef {
   id: TrackId
@@ -282,6 +282,30 @@ export const TRACKS: TrackDef[] = [
       arpBar('A4', 'C5', 'E5'), arpBar('E4', 'G#4', 'B4'),
     ),
   },
+  // Finale — The Midnight Finale (more-content R5.5): original pattern, a rising bell-like lead over a
+  // pedal bass that climbs a step each bar; never below drums + bass.
+  {
+    id: 'finale', bpm: 138, transpose: 0, minTier: 2,
+    bass: join(
+      bar('R . . R . R . . R . . R F . R .', { R: 'A2', F: 'C3' }),
+      bar('R . . R . R . . R . . R F . R .', { R: 'C3', F: 'E3' }),
+      bar('R . . R . R . . R . . R F . R .', { R: 'D3', F: 'F3' }),
+      bar('R . . R . R . . R . . R F . G .', { R: 'E3', F: 'G#2', G: 'B2' }),
+    ),
+    kick: join(rep(KICK_SYNC, 3), KICK_GALLOP),
+    snare: join(rep(SNARE_BACK, 3), SNARE_FILL),
+    hat: rep(HAT_16, 4),
+    lead: join(
+      'E5 _ _ _ A5 _ _ _ G#5 _ E5 _ C5 _ _ _',
+      'G5 _ _ _ C6 _ _ _ B5 _ G5 _ E5 _ _ _',
+      'A5 _ _ _ F5 _ _ _ D5 _ F5 _ A5 _ D6 _',
+      'C6 _ B5 _ A5 _ G#5 _ B5 _ _ _ E5 _ _ _',
+    ),
+    arp: join(
+      arpPulse('A4', 'E5'), arpPulse('C5', 'G5'),
+      arpPulse('D5', 'A5'), arpPulse('E5', 'B5'),
+    ),
+  },
 ]
 
 export const TRACK_IDS: TrackId[] = TRACKS.map(t => t.id)
@@ -292,9 +316,10 @@ export function getTrack(id: TrackId): TrackDef {
   return t
 }
 
-/** Stage number → track id (stage 5 is the boss stage). */
+/** Stage number → track id (stage 5 is the boss stage, stage 6 and later the finale). */
 export function trackForStage(stage: number): TrackId {
   if (!Number.isFinite(stage) || stage <= 1) return 'stage1'
+  if (stage >= 6) return 'finale'
   if (stage >= 5) return 'boss'
   return `stage${Math.trunc(stage)}` as TrackId
 }

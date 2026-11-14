@@ -12,6 +12,7 @@ import { PUMPKIN_SIZE } from './pumpkin'
 import { BOSS_SIZE } from './boss'
 import { CANDY_SIZE } from './candy'
 import { moveBoss } from './bossPhases'
+import { stepVariant, isVariantType, WISP_SIZE } from './variants'
 import { pathPosition, pathEnd, pathDurationMs, pathProgress, pathExits } from '../paths'
 
 /** Sine phase rate, rad/s (the old per-frame step × 60). */
@@ -95,6 +96,11 @@ function movePath(enemy: Enemy, deltaMs: number, canvasW: number, canvasH: numbe
 }
 
 function moveSingle(enemy: Enemy, deltaMs: number, canvasW: number, canvasH: number): Enemy {
+  const moved = moveBase(enemy, deltaMs, canvasW, canvasH)
+  return isVariantType(moved.type) ? stepVariant(moved, deltaMs) : moved
+}
+
+function moveBase(enemy: Enemy, deltaMs: number, canvasW: number, canvasH: number): Enemy {
   if (enemy.type === 'boss') return moveBoss(enemy, deltaMs, canvasW, canvasH)
   if (enemy.path) return movePath(enemy, deltaMs, canvasW, canvasH)
   if (enemy.type === 'lunger') return moveLunger(enemy, deltaMs, canvasH)
@@ -112,8 +118,8 @@ function moveSingle(enemy: Enemy, deltaMs: number, canvasW: number, canvasH: num
   let newX = enemy.x + ux * step
   let newY = enemy.y + uy * step
 
-  if (enemy.type === 'ghost' || enemy.type === 'bat') {
-    const amp = enemy.type === 'bat' ? BAT_ZIGZAG_AMP : GHOST_WOBBLE_AMP
+  if (enemy.type === 'ghost' || enemy.type === 'bat' || isVariantType(enemy.type)) {
+    const amp = enemy.type === 'bat' ? BAT_ZIGZAG_AMP : enemy.type === 'blink' ? GHOST_WOBBLE_AMP / 2 : GHOST_WOBBLE_AMP
     // Sample the sine at the step midpoint so the integral is step-size independent.
     const lateral = Math.sin(enemy.sineOffset + rate * dt / 2) * amp * canvasH * dt
     newX += px * lateral
@@ -158,6 +164,12 @@ function advanceLunger(enemy: Enemy, pxPerSec: number, deltaMs: number): Enemy {
 export function hitboxFor(type: Enemy['type'], cx: number, cy: number) {
   const scale = 1.2
   switch (type) {
+    case 'wisp': {
+      const w = WISP_SIZE * scale, h = WISP_SIZE * scale
+      return { x: cx - w / 2, y: cy - h / 2, w, h }
+    }
+    case 'mirror':
+    case 'blink':
     case 'ghost': {
       const w = GHOST_SIZE * scale, h = GHOST_SIZE * scale
       return { x: cx - w / 2, y: cy - h / 2, w, h }

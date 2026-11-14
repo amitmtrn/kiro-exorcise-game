@@ -41,11 +41,19 @@ export function splitReached(
   canvasH: number,
 ): { survivors: Enemy[]; missed: number } {
   if (bonus) return { survivors: enemies, missed: 0 }
-  const survivors: Enemy[] = []
+  let survivors: Enemy[] = []
   let missed = 0
+  const lostPairs = new Set<string>()
   for (const e of enemies) {
-    if (isThreat(e) && reached(e, canvasW, canvasH)) missed++
-    else survivors.push(e)
+    if (isThreat(e) && reached(e, canvasW, canvasH)) {
+      // A twin wisp pair costs one life: the first wisp that arrives takes its partner with it (more-content R2.5).
+      if (e.type === 'wisp' && e.pairId !== undefined) {
+        if (lostPairs.has(e.pairId)) continue
+        lostPairs.add(e.pairId)
+      }
+      missed++
+    } else survivors.push(e)
   }
+  if (lostPairs.size > 0) survivors = survivors.filter((e) => !(e.type === 'wisp' && e.pairId !== undefined && lostPairs.has(e.pairId)))
   return { survivors, missed }
 }

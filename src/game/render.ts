@@ -20,6 +20,7 @@ import { overlayAlpha, shakeScale } from './flash'
 import { calloutPx, scaled } from '../ui/textScale'
 import { getQualityInfo, formatQualityLine } from './quality'
 import { getMotionGrid } from '../webcam/grid'
+import { drawWisp, drawMirror, drawBlink, drawWispLinks } from './renderVariants'
 
 /** Active palette (colourblind-safe variant when the setting is on). */
 const P = getPalette
@@ -73,6 +74,7 @@ export function renderFrame(
 
   // Enemies — any with hitFlashFrames > 0 render in solid white (spooky-skin R4.2)
   const whiteCtx = whiteFillProxy(ctx)
+  drawWispLinks(ctx, state.enemies, now)
   for (const enemy of state.enemies) {
     drawEnemy(enemy.hitFlashFrames > 0 && !reduced ? whiteCtx : ctx, enemy, now)
   }
@@ -159,6 +161,9 @@ function drawEnemy(ctx: CanvasRenderingContext2D, enemy: Enemy, now: number): vo
     case 'pumpkin': drawPumpkin(ctx, enemy); break
     case 'candy':   drawCandy(ctx, enemy, now); break
     case 'boss':    drawBoss(ctx, enemy, now); break
+    case 'wisp':    drawWisp(ctx, enemy, now); break
+    case 'mirror':  drawMirror(ctx, enemy); break
+    case 'blink':   drawBlink(ctx, enemy); break
   }
   ctx.restore()
 }
@@ -392,7 +397,7 @@ function drawBoss(ctx: CanvasRenderingContext2D, enemy: Enemy, now: number): voi
   const windup = enemy.bossAttack === 'windup'
   const shielded = enemy.bossPhase >= 2 && enemy.bossAttack === 'idle' && enemy.hitFlashFrames === 0
   const enraged = enemy.bossPhase === 3
-  const aura = windup ? P().bossWindup : enraged ? P().bossEnraged : '#7b2fbe'
+  const aura = windup ? P().bossWindup : enraged ? P().bossEnraged : enemy.finale ? P().bossCrown : '#7b2fbe'
 
   // Wind-up telegraph (boss-phases R3.2): shake, orange glow, pulsing ring, "!"
   if (windup) {
@@ -442,6 +447,7 @@ function drawBoss(ctx: CanvasRenderingContext2D, enemy: Enemy, now: number): voi
   ctx.quadraticCurveTo(w - bw * 1.5, h * 0.9, w - bw * 2, h * 0.6)
   ctx.quadraticCurveTo(-w + bw * 0.5, h * 0.9, -w, h * 0.6)
   ctx.closePath(); ctx.fill()
+  if (enemy.finale) { drawCrown(ctx, h); drawBossEyes(ctx, h); return }
   // Witch hat
   ctx.shadowBlur = 0; ctx.fillStyle = '#1a0030'
   ctx.beginPath(); ctx.moveTo(-50, -h*0.1); ctx.lineTo(50, -h*0.1)
@@ -451,6 +457,27 @@ function drawBoss(ctx: CanvasRenderingContext2D, enemy: Enemy, now: number): voi
   ctx.fillStyle = '#ff6b1a'
   ctx.fillRect(-16, -h*0.38, 32, 7)
   // Eyes
+  ctx.fillStyle = C_EYE
+  ctx.beginPath(); ctx.ellipse(-28, -h*0.05, 14, 18, 0, 0, Math.PI*2); ctx.fill()
+  ctx.beginPath(); ctx.ellipse(28, -h*0.05, 14, 18, 0, 0, Math.PI*2); ctx.fill()
+}
+
+/** The Hollow King wears a gold crown with three points and round jewels (more-content R6.5). */
+function drawCrown(ctx: CanvasRenderingContext2D, h: number): void {
+  ctx.shadowBlur = 0
+  ctx.fillStyle = P().bossCrown
+  ctx.beginPath()
+  ctx.moveTo(-48, -h * 0.18)
+  ctx.lineTo(-48, -h * 0.5); ctx.lineTo(-24, -h * 0.32)
+  ctx.lineTo(0, -h * 0.62); ctx.lineTo(24, -h * 0.32)
+  ctx.lineTo(48, -h * 0.5); ctx.lineTo(48, -h * 0.18)
+  ctx.closePath(); ctx.fill()
+  ctx.strokeStyle = '#1a0030'; ctx.lineWidth = 3; ctx.stroke()
+  ctx.fillStyle = '#1a0030'
+  for (const x of [-30, 0, 30]) { ctx.beginPath(); ctx.arc(x, -h * 0.25, 5, 0, Math.PI * 2); ctx.fill() }
+}
+
+function drawBossEyes(ctx: CanvasRenderingContext2D, h: number): void {
   ctx.fillStyle = C_EYE
   ctx.beginPath(); ctx.ellipse(-28, -h*0.05, 14, 18, 0, 0, Math.PI*2); ctx.fill()
   ctx.beginPath(); ctx.ellipse(28, -h*0.05, 14, 18, 0, 0, Math.PI*2); ctx.fill()
@@ -486,7 +513,7 @@ function drawBossHealthBar(ctx: CanvasRenderingContext2D, boss: Enemy): void {
   ctx.font = 'bold 13px sans-serif'
   ctx.textAlign = 'center'
   const tag = boss.bossPhase === 3 ? 'ENRAGED' : `PHASE ${boss.bossPhase}`
-  ctx.fillText(`👻 BOSS ${tag}  ${remaining} / ${BOSS_HITS_NEEDED}`, W / 2, y - 6)
+  ctx.fillText(`👻 ${boss.finale ? 'HOLLOW KING' : 'BOSS'} ${tag}  ${remaining} / ${BOSS_HITS_NEEDED}`, W / 2, y - 6)
   ctx.textAlign = 'left'
   ctx.restore()
 }

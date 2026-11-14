@@ -100,7 +100,8 @@ describe('docs structure', () => {
     expect(kiro).toMatch(/\| #6 \| demo-mode \| 1254 \|/)
     expect(kiro).toContain('536.22')
     expect(kiro).toContain('629.18')
-    expect(readme).toContain('629.18')
+    expect(kiro).toContain('777.68')
+    expect(readme).toContain('777.68')
     expect(kiro).not.toContain('534.' + '66')
     expect(kiro).not.toMatch(/open PR #6|not on main|#7 \(open\)/)
   })
@@ -109,9 +110,10 @@ describe('docs structure', () => {
     expect(m).not.toBeNull()
     const n = m[1]
     expect(kiro).toContain(`${n} passed, 0 failed, 0 skipped on this branch`)
-    expect(kiro).toMatch(new RegExp(`\\| playtest-polish \\(open PR\\) \\| .* \\| ${n} \\|`))
+    expect(kiro).toMatch(new RegExp(`\\| more-content \\(this branch\\) \\| .* \\| ${n} \\|`))
+    expect(kiro).toMatch(/\| #8 \| playtest-polish .* \| 1515 \|/)
     expect(kiro).toMatch(/\| #7 \| judge-docs .* \| 1291 \|/)
-    expect(readme).toContain(`playtest-polish (open PR) after merging main: ${n}.`)
+    expect(readme).toContain(`#8 playtest-polish: 1515; more-content (this branch): ${n}.`)
   })
   it('the per-spec commit list reconciles with the headline 89', () => {
     expect(kiro).toContain('| 89 |')

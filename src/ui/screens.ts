@@ -4,7 +4,7 @@
  */
 
 import type { GameState } from '../game/state'
-import { stageLabel } from '../game/stages'
+import { stageLabel, STAGES } from '../game/stages'
 import { STAGE_TITLE_DURATION_MS } from '../game/state'
 import { introPose, outroPose, outroRowAlpha } from '../game/transitions'
 import { EntryLock, ENTRY_LOCK_MS, updateExclusive } from './motionButton'
@@ -16,6 +16,11 @@ import type { PlayerMode } from '../game/playerMode'
 import { offerButton, endButtonsLive, registerEndButtonReset } from './cardScreen'
 import { drawSettingsGear } from './settingsPanel'
 import { scaled } from './textScale'
+import type { ScoreEntry } from '../game/highScores'
+import { drawTable, endRows, pageAt, tableRows, TITLE_HEADING } from './scoreTable'
+
+/** High-score table shown on an end screen, with the ids of this run's own entries (more-content R10.2). */
+export interface EndScores { table: readonly ScoreEntry[]; ownIds: readonly string[] }
 
 // ─── Motion buttons (persistent instances reused across frames) ───────────────
 // Geometry comes from layout.ts (raised-hand zones). Every screen has an entry lockout with a
@@ -32,9 +37,12 @@ export const START_INPUT_DELAY_MS = ENTRY_LOCK_MS
 const startLock = new EntryLock()
 const gameOverLock = new EntryLock()
 
+/** Screen clock at the first render after entering the title (the table's page timer starts there). */
+let titleEnteredAt: number | null = null
+
 /** Call when the start screen is (re)entered: restarts the input lock-out and drops stale button fill. */
 export function resetStartScreen(): void {
-  startLock.reset(); startSet.clear()
+  startLock.reset(); startSet.clear(); titleEnteredAt = null
 }
 
 /** Call when the game enters `gameover`: restarts the lock-out so the flail at death presses nothing. */
@@ -68,7 +76,7 @@ export function renderStartScreen(
   state: GameState,
   now: number,
   onStart: (mode: PlayerMode) => void,
-  opts: { gear?: boolean } = {},
+  opts: { gear?: boolean; table?: readonly ScoreEntry[] } = {},
 ): void {
   const { width: W, height: H } = ctx.canvas
 
@@ -95,6 +103,14 @@ export function renderStartScreen(
     ctx.font = `bold ${fit(`Best: ${state.highScore}`, clamp(W / 36, 16, 22), W, TEXT_BAND_LOW)}px sans-serif`
     ctx.fillStyle = '#ffd166'
     ctx.fillText(`Best: ${state.highScore}`, W / 2, H * 0.77)
+  }
+
+  // High scores (more-content R10.1): pages of 5 in the central band above the subtitle, switching every 4 s.
+  const table = opts.table ?? []
+  if (table.length > 0) {
+    titleEnteredAt ??= now
+    const page = pageAt(table, now - titleEnteredAt)
+    drawTable(ctx, tableRows(table, page), titleTableBox(W, H), TITLE_HEADING)
   }
 
   // Mode buttons in the raised-hand columns: 1 PLAYER at the left edge, 2 PLAYERS at the right
@@ -127,6 +143,16 @@ export function renderStartScreen(
   else if (won === 1) onStart(2)
 }
 
+/** Title-screen table box: central text band, between the top bar and 46 % of the height. */
+export function titleTableBox(W: number, H: number): { x: number; y: number; w: number; h: number } {
+  return { x: TEXT_BAND_1P[0] * W, y: 0.09 * H, w: (TEXT_BAND_1P[1] - TEXT_BAND_1P[0]) * W, h: 0.37 * H }
+}
+
+/** End-screen table box: wide text band below the score lines (game over from 58 %, victory from 65 %). */
+export function endTableBox(W: number, H: number, top: number): { x: number; y: number; w: number; h: number } {
+  return { x: TEXT_BAND_LOW[0] * W, y: top * H, w: (TEXT_BAND_LOW[1] - TEXT_BAND_LOW[0]) * W, h: (0.97 - top) * H }
+}
+
 // ─── Stage title card ─────────────────────────────────────────────────────────
 
 export function renderStageTitle(ctx: CanvasRenderingContext2D, state: GameState): void {
@@ -142,21 +168,44 @@ export function renderStageTitle(ctx: CanvasRenderingContext2D, state: GameState
   ctx.fillStyle = 'rgba(13,0,20,0.82)'
   ctx.fillRect(0, 0, W, H)
 
+  // Stage 6 carries hint lines, so the name and subtitle sit higher and the countdown is placed from the
+  // subtitle's measured size: its digit never touches the subtitle at any canvas or text scale (more-content R1.9).
+  const hints = stageHints(state)
+  const hinted = hints.length > 0
+  const nameY = hinted ? 0.3 : 0.38
+  const subY = hinted ? 0.42 : 0.52
+
   ctx.textAlign = 'center'
   ctx.font = `${fit(cfg.name, clamp(W / 11, 42, 80), W, WIDE_BAND)}px ${TITLE_FONT_FAMILY}`
   ctx.fillStyle = '#ff6b1a'
   ctx.shadowColor = '#ff6b1a'; ctx.shadowBlur = 20
-  ctx.fillText(cfg.name, W / 2 + pose.nameX * W, H * 0.38)
+  ctx.fillText(cfg.name, W / 2 + pose.nameX * W, H * nameY)
 
-  ctx.font = `${fit(cfg.subtitle, clamp(W / 20, 24, 40), W, WIDE_BAND)}px sans-serif`
+  const subPx = fit(cfg.subtitle, clamp(W / 20, 24, 40), W, WIDE_BAND)
+  ctx.font = `${subPx}px sans-serif`
   ctx.fillStyle = '#ffd166'; ctx.shadowBlur = 0
-  ctx.fillText(cfg.subtitle, W / 2 + pose.subX * W, H * 0.52)
+  ctx.fillText(cfg.subtitle, W / 2 + pose.subX * W, H * subY)
 
-  ctx.font = `bold ${fit(String(secs), clamp(W / 12, 40, 72), W, WIDE_BAND)}px monospace`
+  // Stage 6: one hint line per new ghost, each led by its state icon (more-content R5.3)
+  const cdPx = fit(String(secs), clamp(W / 12, 40, 72), W, WIDE_BAND)
+  const countY = hinted ? Math.max(H * 0.58, H * subY + 0.25 * subPx + 0.75 * cdPx + 4) : H * 0.7
+  ctx.font = `bold ${cdPx}px monospace`
   ctx.fillStyle = '#e8e8f0'
-  ctx.fillText(String(secs), W / 2, H * 0.7)
+  ctx.fillText(String(secs), W / 2, countY)
+  if (hinted) {
+    const px = Math.min(...hints.map((l) => fit(l, clamp(W / 40, 14, 22), W, TEXT_BAND_LOW)))
+    ctx.font = `bold ${px}px sans-serif`
+    ctx.fillStyle = '#ffd166'
+    hints.forEach((l, i) => ctx.fillText(l, W / 2, H * 0.75 + i * px * 1.5))
+  }
 
   ctx.restore()
+}
+
+/** Hint lines of the stage title card (none for the bonus round or stages without new ghosts). */
+export function stageHints(state: Pick<GameState, 'stage' | 'bonus'>): readonly string[] {
+  if (state.bonus) return []
+  return STAGES[state.stage - 1]?.hints ?? []
 }
 
 // ─── Stage summary ────────────────────────────────────────────────────────────
@@ -233,6 +282,7 @@ export function renderGameOver(
   onRetry: () => void,
   onMenu: () => void,
   onCard?: () => void,
+  scores?: EndScores,
 ): void {
   const { width: W, height: H } = ctx.canvas
 
@@ -264,6 +314,7 @@ export function renderGameOver(
     ctx.fillStyle = 'rgba(232,232,240,0.6)'
     ctx.fillText(`Best: ${state.highScore}`, W / 2, H * 0.51)
   }
+  if (scores && scores.table.length > 0) drawTable(ctx, endRows(scores.table, scores.ownIds), endTableBox(W, H, 0.58))
 
   // Buttons in the raised-hand columns: card offer and retry stacked on the left, MENU alone on the
   // right (it abandons the run: longer dwell). One action per frame, offer > retry > menu.
@@ -298,6 +349,7 @@ export function renderVictory(
   onPlayAgain: () => void,
   onMenu: () => void,
   onCard?: () => void,
+  scores?: EndScores,
 ): void {
   const { width: W, height: H } = ctx.canvas
   if (victoryShownAt === null) victoryShownAt = now
@@ -336,6 +388,7 @@ export function renderVictory(
     ctx.fillStyle = 'rgba(232,232,240,0.6)'
     ctx.fillText(`Best: ${state.highScore}`, W / 2, H * 0.6)
   }
+  if (scores && scores.table.length > 0) drawTable(ctx, endRows(scores.table, scores.ownIds), endTableBox(W, H, 0.65))
 
   // Same zones as game over: card offer and PLAY AGAIN stacked on the left, MAIN MENU alone on the right.
   // Buttons ignore motion (and must be left) until the entry lockout ends.

@@ -6,7 +6,7 @@
 import { VOICE_PEAKS } from './music/voices'
 
 
-export const SFX_IDS = ['ghostHit', 'batHit', 'skullHit', 'lifeLost', 'combo', 'stageClear', 'bossHit', 'bossDefeated'] as const
+export const SFX_IDS = ['ghostHit', 'batHit', 'skullHit', 'lifeLost', 'combo', 'stageClear', 'bossHit', 'bossDefeated', 'wispLink', 'shield'] as const
 export type SfxId = (typeof SFX_IDS)[number]
 
 export interface ToneVoice {
@@ -59,6 +59,8 @@ export function recipeFor(id: SfxId, arg = 2): Voice[] {
     case 'combo': return [tone('sine', comboFreq(arg), 0.3, 0.005, 0.05, 0.15)]
     case 'stageClear': return [261.6, 329.6, 392.0, 523.3].map((f, i) => tone('sine', f, 0.4, 0.01, 0.15, 0.2, i * 0.25))
     case 'bossHit': return [tone('sine', 60, 0.6, 0.005, 0.1, 0.3), noise(200, 0.2, 0.25, 0.05)]
+    case 'wispLink': return [tone('sine', 660, 0.25, 0.005, 0.03, 0.12), tone('sine', 990, 0.22, 0.005, 0.03, 0.15, 0.08)]
+    case 'shield': return [noise(3000, 0.2, 0.08), tone('sine', 1800, 0.2, 0.002, 0.01, 0.08)]
     case 'bossDefeated': return FANFARE.flatMap((f, i) => [
       tone('sine', f, 0.45, 0.01, 0.2, 0.25, i * 0.3),
       tone('sine', f * 2, 0.15, 0.01, 0.1, 0.2, i * 0.3),
@@ -87,6 +89,8 @@ export const SFX_GAIN: Readonly<Record<SfxId, number>> = {
   stageClear: 0.35,
   bossHit: 0.29,
   bossDefeated: 0.28,
+  wispLink: 0.78,
+  shield: 1.03,
 }
 
 /** Music bus gain (`musicGainFor(estimateMusicLevel())`, floored to 2 decimals). */

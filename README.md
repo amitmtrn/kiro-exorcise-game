@@ -14,8 +14,8 @@ Ghosts and bats fly in from the dark edges of the screen toward your webcam imag
 - **20 specs** at PR #5 in [`.kiro/specs`](.kiro/specs) (requirements, design, tasks): 805 ticked task checkboxes, 89 commits named after a task (`<type>(<spec>-T<n>)`).
 - **3 steering files** in [`.kiro/steering`](.kiro/steering), **5 hooks** in [`.kiro/hooks`](.kiro/hooks), **1 custom agent** (`balancer`) and **1 local MCP server** (`motion-harness`, stdio only, no network).
 - **1120 tests** at PR #5, 0 failed, 0 skipped; **119 property tests** (`fc.assert`) in 31 files, both at PR #5 (df26f4d). A property found a spawner-cap bug that unit tests had missed (BUG-1), and four more bugs got regression properties.
-- **One PR per feature from #2 on** (#1 bundled the P0/P1 specs): #1 to #7 merged (#6 is demo mode, merge commit 46d9551; #7 is the judge write-up, merge commit 7575a07). Test count by PR: 806, 912, 994, 1045, 1120, 1254, 1291; playtest-polish (open PR) after merging main: 1515.
-- **629.18 Kiro credits** used after the playtest-polish spec and its review fixes (bonus pool of 4000).
+- **One PR per feature from #2 on** (#1 bundled the P0/P1 specs): #1 to #7 merged (#6 is demo mode, merge commit 46d9551; #7 is the judge write-up, merge commit 7575a07). Test count by PR: 806, 912, 994, 1045, 1120, 1254, 1291; #8 playtest-polish: 1515; more-content (this branch): 1728.
+- **777.68 Kiro credits** used after the more-content spec and its review fixes (bonus pool of 4000).
 - **Read the full write-up: [docs/KIRO.md](docs/KIRO.md).** Local power: [`.kiro/powers/exorcise-motion-harness`](.kiro/powers/exorcise-motion-harness).
 - **Live demo:** <https://amitmtrn.github.io/kiro-exorcise-game/>
 
@@ -36,7 +36,7 @@ npm run dev
 
 | Command | What it does |
 |---|---|
-| `npm test` | Run all 1515 unit tests (Vitest) |
+| `npm test` | Run all 1728 unit tests (Vitest) |
 | `npm run build` | Production build → `dist/` |
 | `npm run preview` | Preview the production build locally |
 
@@ -44,14 +44,19 @@ npm run dev
 
 On your first visit a short onboarding shows a head-and-hands silhouette over your live camera (with a quick framing check), three how-to-play cards and a privacy note. It is skippable (Skip / `Esc`) and remembered in `localStorage`. **Your video stays on your device. Nothing is uploaded.** If the camera is blocked you get step-by-step instructions to allow it.
 
-Five stages of 45 to 60 seconds, each with its own enemy mix and music.
+Six stages of 45 to 60 seconds, each with its own enemy mix and music. Stage 5 is a boss fight; stage 6, **The Midnight Finale**, brings three new ghosts and the final boss.
 
 - **Ghosts** float toward the center of the screen. Swat them before they arrive — each one that gets through costs a life.
 - **Bats** zigzag in fast. Quick swipe to send them packing.
 - **Lungers** stop, wind up, then lunge at you — they can only be hit once the wind-up starts (they look faded until then).
 - **Pumpkins** take two hits.
 - **Cursed Skull** ☠️ — glows red on purpose. **Don't hit it.** Costs a life if you do.
-- **Stage 5 boss** — a hat-wearing giant ghost with a 10-hit health bar and three phases. It summons ghosts while swaying along the top; below 66 % health it hides behind a shield and lunges at you after a glowing, shaking 0.6 s wind-up (hit it then!); below 33 % it enrages with faster lunges and more minions. Beat it to win the game and see your total score; if the timer runs out first, it's game over.
+- **Stage 5 boss** — a hat-wearing giant ghost with a 10-hit health bar and three phases. It summons ghosts while swaying along the top; below 66 % health it hides behind a shield and lunges at you after a glowing, shaking 0.6 s wind-up (hit it then!); below 33 % it enrages with faster lunges and more minions. Beat it to clear the stage; if the timer runs out first, it's game over.
+- **Twin Wisps** ∞ (stage 6) — a small pair joined by a line. The first swat lights one up with a shrinking ring; swat the other within 2 s to banish both. If the ring runs out (it blinks slowly for the last 0.5 s) the wisp goes back to normal. A pair that reaches the centre costs one life.
+- **Mirror Ghost** ▮ (stage 6) — spawns behind a hexagonal shield that absorbs swats with a clink (no score, no penalty). Two waves, or 1.5 s, crack it; 0.5 s of cracks later it is open (▯) for 1.8 s, then the shield fades back in.
+- **Blink Ghost** ◆ (stage 6) — solid for 2.1 s (◆, solid outline), then ethereal for 1.9 s (◇, dashed outline, see-through), on a steady 4 s rhythm with a 0.5 s fade before each change. Swats only count while it is solid.
+- **The Hollow King** (stage 6 finale) — a crowned giant ghost that enters 22 s into the stage after a "THE HOLLOW KING!" warning. It uses the stage-5 boss rules (10 hits, three phases, shielded between attacks) with longer wind-ups (0.7 s / 0.45 s), slower lunges, and the new ghosts as minions. Beat it to win the game (+2000 bonus) and see your total score.
+- Every new ghost changes state only after a visible telegraph of at least 0.4 s, has its own icon and outline in both palettes (not just a colour), never spawns next to a Cursed Skull, and follows the reduced-flashing setting. The stage-6 title card shows a hint line for each.
 - 3 lives. Consecutive hits build a **combo multiplier** (×2 at 3 hits, ×3 at 6, ×4 at 10+; an enemy reaching the centre resets it) and the screen shakes from a 3-hit streak. Enemies move at the same real-time speed on any display refresh rate and scale with screen height; the Cursed Skull leaves after 4 s. A stage-clear screen rates you with stars, and your high score is saved locally.
 
 **Exorcist Card.** On the game-over and victory screens you can choose "📸 EXORCIST CARD" (wave, click or `C`) to make a trading card with a snapshot from your best moment (best combo or the boss defeat), a rank title from *Apprentice Exorcist* to *Grand Exorcist*, your score, best combo, stage and banish count. It is only made when you ask for it, drawn on a canvas on your device and saved with a normal download. The snapshot is kept in memory only, never stored or uploaded (no network request is made), and is dropped when you leave the screen or retry. A *no photo* silhouette variant is one button away.
@@ -60,7 +65,7 @@ Hit detection uses **frame differencing**: fast motion inside an enemy's hitbox 
 
 ### Two players (split screen)
 
-Pick **1 PLAYER** or **2 PLAYERS** on the title screen (wave over a button, or press `1` / `2`; `Space` starts in the last mode, remembered for the session only). In 2 PLAYERS the mirrored camera view is split down the middle by an orange divider: the player standing on the **left** of the room sees themselves on the left and plays the left half, the other plays the right half. Each half is its own game: enemies, waves, score, lives, combo, hit-stop and HUD. Motion in one half never hits enemies in the other. Both play the same stage on one shared timer; a player who loses all lives shows **OUT** and the other keeps going; on stage 5 each half has its own boss. The end screen shows both scores and the winner (or a tie), and each player can make their **own** Exorcist Card from their own half: their own snapshot (cropped to their half, mirrored like the game), stats, rank title, a P1 / P2 label and a WINNER (or TIE) badge. Each half has its own offer and SAVE / NO PHOTO / CLOSE buttons, operated by a wave or click in that half only; files are `exorcist-card-p1.png` / `-p2.png`. Same single webcam, no network, no video stored. Spec: `.kiro/specs/two-player/`.
+Pick **1 PLAYER** or **2 PLAYERS** on the title screen (wave over a button, or press `1` / `2`; `Space` starts in the last mode, remembered for the session only). In 2 PLAYERS the mirrored camera view is split down the middle by an orange divider: the player standing on the **left** of the room sees themselves on the left and plays the left half, the other plays the right half. Each half is its own game: enemies, waves, score, lives, combo, hit-stop and HUD. Motion in one half never hits enemies in the other. Both play the same stage on one shared timer; a player who loses all lives shows **OUT** and the other keeps going; on stages 5 and 6 each half has its own boss. The end screen shows both scores and the winner (or a tie), and each player can make their **own** Exorcist Card from their own half: their own snapshot (cropped to their half, mirrored like the game), stats, rank title, a P1 / P2 label and a WINNER (or TIE) badge. Each half has its own offer and SAVE / NO PHOTO / CLOSE buttons, operated by a wave or click in that half only; files are `exorcist-card-p1.png` / `-p2.png`. Same single webcam, no network, no video stored. Spec: `.kiro/specs/two-player/`.
 
 ### Controls
 
@@ -75,6 +80,8 @@ Pick **1 PLAYER** or **2 PLAYERS** on the title screen (wave over a button, or p
 | `O` or the ⚙ button (bottom-left, title screen) | Open the settings panel: `↑` / `↓` select, `Enter` / `Space` / click change, `Esc` or `O` close. Keyboard and mouse / touch only (no wave button: the title's raised-hand zones are taken by 1 PLAYER and 2 PLAYERS) |
 | `G` (title screen) | Start the camera-free demo / attract mode; in demo mode any key (except `M`) or click returns to the normal game |
 | `C` (game over / victory, 1 PLAYER only) | Open the Exorcist Card preview; then `S` / `Enter` save, `N` photo ↔ silhouette, `Esc` close |
+| Wave over ◀ / ▶ / OK (name screen after a high score; each half has its own in 2 PLAYERS) | ◀ / ▶ pick a letter (the first press starts a new name at `A`), OK moves to the next of 3 letters and saves on the last. Doing nothing keeps the generated name (saved after 10 s) |
+| Type `A`–`Z`, `0`–`9`, `-`, `Backspace`, `Enter` (name screen; P1 in 2 PLAYERS) | Type a name of up to 8 characters, `Enter` saves. While the name screen is open these keys type (so `M`, `D`, `C` do not mute, debug or open the card; the 🔊 button still works) |
 
 ### Demo / attract mode (no camera)
 
@@ -83,11 +90,15 @@ Open the game with `?demo=1` (for example `http://localhost:5173/kiro-exorcise-g
 | Parameter | Meaning |
 |---|---|
 | `demo=1` | Start in demo mode (`demo=0` or no parameter: normal game) |
-| `seed=N` | Run to play (default `5`). Same seed + same window size = the identical run every time |
-| `stage=N` | Start at stage N (1–5) |
+| `seed=N` | Run to play (default `6`). Same seed + same window size = the identical run every time |
+| `stage=N` | Start at stage N (1–6) |
 | `speed=N` | Game speed, 1–3 (default 2: a full run takes about 2.5 minutes; other values use the default) |
 
 **Recording the submission video.** Set the browser window to the size you will record (the run depends on the canvas size; `seed=5` plays a clean run without a game over at 960×540, 1280×720, 1366×768, 1440×900 and 1920×1080), open `?demo=1&seed=5`, press `M` twice (mute, unmute: this key press also unlocks audio) and start the screen recorder. Reload the page for a re-take (F5 / Ctrl+R / Cmd+R and F11 for full screen do not leave demo mode): it plays the same run again. Use `speed=1` for real-time gameplay; the pace is the same on any display of 60 Hz or more. See `tools/motion-harness/README.md` for a headless check. Spec: `.kiro/specs/demo-mode/`.
+
+### High scores
+
+The game keeps a **top-10 table** in `localStorage` (key `exorcise-highscores`): name, score, stage reached, date and 1P / 2P, nothing else (never video or images). A finished run that makes the table is saved at once under a generated spooky name such as `GHOST-7F`, then a name screen lets you change it with the ◀ / OK / ▶ motion buttons (raised-hand zones, like every other button) the keyboard, or a click / tap on the buttons. In 2 PLAYERS each player gets their own name screen in their own half, at the same time, and both entries are marked 2P. The title screen shows the table (two pages of 5, switching every 4 s) and the game-over and victory screens show the top 5 with your entry highlighted. An older saved single high score is moved into the table once as `OLD-BEST`. Demo mode reads and writes nothing. Spec: `.kiro/specs/more-content/`.
 
 ### Settings, URL parameters and quality
 
@@ -167,10 +178,11 @@ Every feature was planned as a Kiro spec before implementation:
 | `playtest-polish/` | Adaptive quality (frame-budget monitor, 320 → 160 → 96 wide motion grid, `?quality=`), master compressor / limiter and per-sound loudness table, settings panel (`O`), colourblind palette with shape cues and CIEDE2000 tests, bigger text, reduced flashing (≤ 3 per second) |
 | `demo-mode/` | Camera-free attract mode for filming: `?demo=1&seed=N` or `G`, a deterministic scripted ghost hand that feeds synthetic motion frames into the real hit detection, fixed time step and seeded run, DEMO badge, placeholder card portrait, scores never saved |
 | `judge-docs/` | Judge-facing Kiro write-up (`docs/KIRO.md`), README section, local `exorcise-motion-harness` power, facts-check test |
+| `more-content/` | Three new ghosts (twin wisps, mirror ghost, blink ghost) with telegraphed state machines and fairness property tests, stage 6 "The Midnight Finale" with the Hollow King and its own music, local top-10 high scores with motion-button name entry (1P and per half in 2P) |
 
 Each spec has `requirements.md`, `design.md`, and `tasks.md`. Writing requirements and design before tasks surfaced design gaps (e.g. skull penalty rules, hitbox coordinate system, mirror parity bug) that would have been painful to fix mid-implementation.
 
-All twenty-three specs are implemented. Every task in `tasks.md` is ticked except the manual smoke tests (a webcam playthrough, a two-person split-screen playthrough, the music-v2 listening test, a demo-mode browser check, enabling GitHub Pages in the repo settings), and `boss-combo/` carries a status note explaining it was superseded by `stages/`.
+All twenty-four specs are implemented. Every task in `tasks.md` is ticked except the manual smoke tests (a webcam playthrough, a two-person split-screen playthrough, the music-v2 listening test, a demo-mode browser check, the more-content webcam check, enabling GitHub Pages in the repo settings), and `boss-combo/` carries a status note explaining it was superseded by `stages/`.
 
 ### Kiro hooks (`.kiro/hooks/`)
 Standalone `v1` hook files, loaded by Kiro IDE and Kiro CLI V3. Spec: `.kiro/specs/hooks/`.
@@ -226,8 +238,13 @@ src/
                         "Calibrating…" banner, all phases, shake + score-label ticks
     state.ts            GameState types + pure reducers (lives, score, combo,
                         shake, score labels, high score)
-    round.ts            Phase machine: start → stageTitle → playing → summary → (victory after stage 5)
-    stages.ts           5 StageConfig entries (enemy mix, spawn rates, music, wave script, bonus round)
+    round.ts            Phase machine: start → stageTitle → playing → summary → (victory after stage 6)
+    stages.ts           6 StageConfig entries (enemy mix, spawn rates, music, wave script, bonus round, new-ghost events, finale)
+    finale.ts           Stage 6: boss entrance time, tip call-outs, the Hollow King banner
+    highScores.ts       Top-10 table: validation, ordering, migration, localStorage (scores only)
+    persistence.ts      High-score persistence switch (off in demo mode)
+    nameEntry.ts        Name picker / keyboard state and timeouts (pure)
+    renderVariants.ts   Art of the new ghosts (state icons, outlines, link line, ring timer)
     paths.ts            Closed-form enemy paths (line, arc, flyby, drop, swarm) — frame-rate and canvas-size independent
     waves.ts            Wave scripts, intensity curves and the bonus round (plain data)
     collision.ts        Per-enemy hit resolution — 2-frame gate, spawn grace,
@@ -251,7 +268,9 @@ src/
                         boss health bar, debug overlay (D key)
     enemies/
       ghost.ts / bat.ts / skull.ts / lunger.ts / pumpkin.ts / boss.ts
-      bossPhases.ts     3-phase boss behaviour
+      bossPhases.ts     3-phase boss behaviour (stage 5 boss and the Hollow King)
+      variants.ts       Twin wisp, mirror and blink ghost state machines (deltaMs, telegraphs)
+      variantSpawn.ts   New-ghost spawning: skull clearance, pairs inside one half
       vulnerability.ts  Per-enemy vulnerability windows
       movement.ts       Per-type movement + lunge phase machine; hitboxes +20%
       spawn.ts          Stage-aware, intensity-scaled spawn timers + scripted wave events
@@ -276,7 +295,9 @@ src/
     textScale.ts        Text scale helper, pure HUD layout, call-out size
     settingsPanel.ts    Settings panel and ⚙ button
     seatCard.ts         2P per-half card offer / preview with half-only input routing
-    screens.ts          Start (1 / 2 player buttons), stage title, summary (stars), victory, game over
+    screens.ts          Start (1 / 2 player buttons, high scores), stage title, summary (stars), victory, game over
+    nameScreen.ts       Name screen with ◀ / OK / ▶ motion buttons (1P and per half)
+    scoreTable.ts       High-score rows, pages and drawing
     splitscreen.ts      Two-player divider, OUT / CLEARED overlays, shared summary, winner screen
     onboarding.ts       First-run guide, how-to cards, camera-denied screen
     fonts.ts            TITLE_FONT_FAMILY + local font preload (Creepster)
@@ -289,7 +310,7 @@ src/
     context.ts          AudioContext singleton, master gain, mute / volume
     bus.ts              Master bus: gain → compressor → limiter → destination
     recipes.ts          SFX as data, offline renderer, loudness table, music level estimate
-    sfx.ts              8 procedural Web Audio sound effects
+    sfx.ts              10 procedural Web Audio sound effects
     music.ts            Music API (startMusic, startTitleMusic, stopMusic, setMusicCombo)
     music/              patterns, look-ahead scheduler, combo layers, voices, engine + crossfade
 .kiro/
@@ -315,6 +336,7 @@ src/
     demo-mode/          Camera-free scripted attract mode for filming spec
     playtest-polish/    Adaptive quality, audio levels, accessibility options spec
     judge-docs/         Judge-facing write-up and README spec
+    more-content/       New ghosts, stage 6 finale, local high scores spec
   powers/               exorcise-motion-harness Kiro power
   settings/mcp.json     Workspace MCP registration (motion-harness, stdio, relative path)
   agents/balancer.json  Report-only playtest-tuner agent

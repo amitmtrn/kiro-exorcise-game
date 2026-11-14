@@ -47,7 +47,7 @@ function request(id: TrackId): void {
   getEngine().play(id)
 }
 
-/** Stages 1–4 play their own theme; stage 5 plays the boss theme. */
+/** Stages 1–4 play their own theme; stage 5 plays the boss theme, stage 6 the finale theme. */
 export function startMusic(stage: number): void {
   request(trackForStage(stage))
 }

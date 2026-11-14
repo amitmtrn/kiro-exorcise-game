@@ -284,7 +284,7 @@ describe('boss stage (R3.3, R4.2, R4.3)', () => {
     const mx = Math.round((bossBox.x + bossBox.w / 2) * 160 / (W / 2)) + 160
     const my = Math.round((bossBox.y + bossBox.h / 2) * MOTION_H / H)
     const after = tickTwoPlayer(t, 16, W, H, frames([{ x: mx - 15, y: my - 15, w: 30, h: 30 }]))
-    expect(after.seats[1].phase).toBe('victory')
+    expect(after.seats[1].phase).toBe('summary') // stage 5 is no longer the last stage (more-content R5.1)
     expect(seatStatus(after, 1)).toBe('cleared') // R4.2: shown as CLEARED while the other half plays
     expect(seatStatus(after, 0)).toBe('playing')
     expect(after.seats[1].score).toBeGreaterThanOrEqual(1000)
