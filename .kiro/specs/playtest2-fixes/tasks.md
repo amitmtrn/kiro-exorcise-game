@@ -49,9 +49,10 @@ Files: `src/ui/motionButton.ts`, `ui/seatCard.ts`, `game/countdown.ts`, `game/lo
 
 ## T5 — Docs
 Files: `README.md`, `docs/KIRO.md`, `tools/judge-docs.test.mjs`
-- [ ] `docs/KIRO.md` spec list, test count history, credits rows; README "Built with Kiro", spec tree, counts.
-- [ ] `tools/judge-docs.test.mjs` passes; `npm test` and `npm run build` clean.
-- [ ] Commit: `docs(playtest2-fixes-T5): README and KIRO.md for the second playtest`
+- [x] `docs/KIRO.md` spec list (27), TL;DR test row, PR row (#11 merged, fce349d), history rows `#11 playtest1-fixes` 1853 and `playtest2-fixes (this branch)`, credits rows `After playtest1-fixes (PR #11) | 868.84` and `After playtest2-fixes` (figure left for the operator); README "Built with Kiro" (PR #11 merged, test counts, 868.84 credits line), spec table, tree, `npm test` count.
+- [x] Judge-docs pins updated to the new wording (not loosened); two KIRO.md paragraphs reflowed to stay within 450 lines.
+- [x] `tools/judge-docs.test.mjs` passes; `npm test` and `npm run build` clean.
+- [x] Commit: `docs(playtest2-fixes-T5): README and KIRO.md for the second playtest`
 
 ## T6 — Manual: webcam replay
 - [ ] Stage 2: a ghost ends near the player, a red ring shrinks for about 1 s first, "MISSED" shows where the heart goes.
