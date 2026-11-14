@@ -288,6 +288,16 @@ The balancer agent is report-only: it reads `stages.ts` / `waves.ts` through the
 motion-harness MCP. Stage 6 uses `variantEvents` and `finale`, which the harness
 reports as data; no balancer rule changes.
 
+**Balance check (T9).** `read_stage_config` returns all six stages with the new
+fields; a 20 s `run_harness` sweep is unchanged in kind (1021 play frames, 4 hits,
+no high score saved). The stage-6 numbers come from the headless demo simulation
+(the ghost hand plays through the real loop): demo stage 6 started fresh, seeds 1–10
+at 1280×720, 960×540 and 1920×1080 (30 runs). The Hollow King entered at 22.0 s in
+every run and fell between 34.3 s and 40.5 s of stage time (12–18.5 s of fighting,
+of 38 s available); 29 runs lost no life in stage 6, one lost one. No tuning change
+was needed. The balancer agent was not run: it edits nothing, and its harness mode
+plays stage 1 only.
+
 ## Tests
 
 | File | Covers |

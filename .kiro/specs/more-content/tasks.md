@@ -69,11 +69,11 @@
 - [x] Commit: `feat(more-content-T8): per-player name entry in two-player games`
 
 ## T9 — Demo mode and balance check
-- [ ] Demo driver: respects variant vulnerability, hits both wisps inside the window.
-- [ ] `demo.sim.test.ts`: full run reaches stage 6 and victory, nothing saved, no name screen; re-check the default seed at the tested sizes after the driver change.
-- [ ] Motion harness / balancer: run the report-only check on stage 6 and note the result in `design.md` (the balancer edits nothing).
-- [ ] `npm test` and `npm run build` both clean.
-- [ ] Commit: `feat(more-content-T9): demo plays the finale`
+- [x] Demo driver: respects variant vulnerability (`isHittable`), skips a lit wisp and ranks its partner with attacks (`partnerLit`).
+- [x] `demo.sim.test.ts`: full run reaches stage 6 (every new ghost and the Hollow King) and victory, nothing saved, no name screen; default seed 6 re-checked clean at the tested sizes after the driver change; `driver.variants.test.ts`.
+- [x] Motion harness MCP (`read_stage_config`, `run_harness`) and a headless stage-6 sweep; result noted in `design.md` (report only, no tuning change).
+- [x] `npm test` and `npm run build` both clean.
+- [x] Commit: `feat(more-content-T9): demo plays the finale`
 
 ## T10 — Docs
 - [ ] README: controls table, stages, enemies, high scores, specs tree (`more-content/`), test count.
