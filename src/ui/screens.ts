@@ -148,7 +148,7 @@ export function titleTableBox(W: number, H: number): { x: number; y: number; w: 
   return { x: TEXT_BAND_1P[0] * W, y: 0.09 * H, w: (TEXT_BAND_1P[1] - TEXT_BAND_1P[0]) * W, h: 0.37 * H }
 }
 
-/** End-screen table box: wide text band below the score lines (game over from 60 %, victory from 66 %). */
+/** End-screen table box: wide text band below the score lines (game over from 58 %, victory from 65 %). */
 export function endTableBox(W: number, H: number, top: number): { x: number; y: number; w: number; h: number } {
   return { x: TEXT_BAND_LOW[0] * W, y: top * H, w: (TEXT_BAND_LOW[1] - TEXT_BAND_LOW[0]) * W, h: (0.97 - top) * H }
 }
