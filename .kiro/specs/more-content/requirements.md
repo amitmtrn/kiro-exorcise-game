@@ -297,6 +297,10 @@ on an untouched default accepts the name. The entry is renamed in place.
 replaces the default and appends up to 8 characters, Backspace deletes, Enter
 accepts. Other keys do nothing. Space is not used.
 
+**R9.3a** *Pointer fallback.* A click or tap on a name-screen button (◀, OK, ▶) does what
+the motion button does, in 1P and in each 2P half (the click is routed to the half
+that contains it). A click on no button does nothing.
+
 **R9.4** *Timeout.* An untouched name screen accepts the default after 10 s; once
 a button or key was used the screen waits up to 30 s since the last input, then
 accepts what is there (an empty name falls back to the default). All name-screen

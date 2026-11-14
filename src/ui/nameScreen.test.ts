@@ -28,6 +28,24 @@ function press(screen: NameScreen, label: string, t0: number): { acts: NameActio
   return { acts, t }
 }
 
+describe('name screen pointer path (a click or tap on a button)', () => {
+  const specs = areaButtons('name', W, H, null)
+  it('maps each button to its action and a miss to null', () => {
+    const sc = new NameScreen()
+    const at = (label: string) => specs.find((b) => b.label === label)!
+    expect(sc.pointerAction(at('OK').cx, at('OK').cy, W, H)).toEqual({ kind: 'ok' })
+    expect(sc.pointerAction(at(NAME_PREV).cx, at(NAME_PREV).cy, W, H)).toEqual({ kind: 'step', dir: -1 })
+    expect(sc.pointerAction(at(NAME_NEXT).cx, at(NAME_NEXT).cy, W, H)).toEqual({ kind: 'step', dir: 1 })
+    expect(sc.pointerAction(2, 2, W, H)).toBeNull()
+  })
+  it('uses the half geometry in 2P (the label follows the button, not the seat)', () => {
+    const half = areaButtons('name2p', W / 2, H, 1)
+    const sc = new NameScreen(1)
+    const prev = half.find((b) => b.label === NAME_PREV)!
+    expect(sc.pointerAction(prev.cx, prev.cy, W / 2, H)).toEqual({ kind: 'step', dir: -1 })
+  })
+})
+
 describe('name screen', () => {
   it('draws the title, the default name, score and rank, and three buttons', () => {
     const { ctx, texts } = recorder()

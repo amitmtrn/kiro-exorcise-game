@@ -27,7 +27,8 @@ vi.mock('./state', async (orig) => {
 vi.mock('../card/snapshot', () => ({ grabMirroredSnapshot: () => null, releaseSnapshot: vi.fn() }))
 vi.mock('../card/draw', () => ({ composeCard: () => ({ width: 600, height: 840 }) }))
 
-import { startLoop, stopLoop, handleNameKey, isNameEntryOpen, handleCardKey } from './loop'
+import { startLoop, stopLoop, handleNameKey, isNameEntryOpen, handleCardKey, handleCardPointer } from './loop'
+import { areaButtons } from '../ui/layout'
 import { renderGameOver, renderVictory, renderStartScreen, resetGameOverScreen } from '../ui/screens'
 import { IDLE_ACCEPT_MS } from './nameEntry'
 import { STORAGE_KEY } from './highScores'
@@ -90,6 +91,22 @@ describe('1P run end', () => {
     expect(scores.table[0].name).toBe('ZOE')
     expect(scores.ownIds).toEqual([scores.table[0].id])
     expect(resetGameOverScreen).toHaveBeenCalledTimes(2) // entry, and again after the name screen
+  })
+  it('a tap on ▶ edits the name and a tap on OK confirms it (no motion needed)', async () => {
+    await startLoop({} as HTMLVideoElement, ctx(), ctx())
+    frame(16)
+    const name = table()[0].name
+    const specs = areaButtons('name', 1280, 720, null)
+    const tap = (label: string) => { const b = specs.find((x) => x.label.includes(label))!; expect(handleCardPointer(b.cx, b.cy)).toBe(true) }
+    tap('▶'); frame(32)
+    expect(isNameEntryOpen()).toBe(true) // a step does not finish the screen
+    tap('OK'); frame(48) // first letter confirmed, the rest of the picker follows
+    for (let i = 0; i < 8 && isNameEntryOpen(); i++) { tap('OK'); frame(64 + i * 16) }
+    expect(isNameEntryOpen()).toBe(false)
+    expect(table()[0].name).not.toBe(name) // the picked letters replaced the generated name
+    expect(handleCardPointer(5, 5)).toBe(false) // not on the end screen yet: nothing queued
+    frame(400)
+    expect(renderGameOver).toHaveBeenCalled()
   })
   it('an untouched name screen accepts the default after 10 s; the run is recorded once', async () => {
     await startLoop({} as HTMLVideoElement, ctx(), ctx())

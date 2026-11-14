@@ -31,6 +31,18 @@ export class NameScreen {
     this.set = new ButtonSet(source)
   }
 
+  /**
+   * The button under a click / tap at (x, y) in this area's pixels (the whole canvas in 1P, the half in 2P),
+   * as the action it would fire; null when the point is on no button. A pointer path for players without motion.
+   */
+  pointerAction(x: number, y: number, W: number, H: number): NameAction | null {
+    const specs = areaButtons(this.seat !== null ? 'name2p' : 'name', W, H, this.seat)
+    const hit = specs.find((b) => Math.hypot(x - b.cx, y - b.cy) <= b.r)
+    if (!hit) return null
+    const step = nameStepOf(hit)
+    return step === 0 ? { kind: 'ok' } : { kind: 'step', dir: step }
+  }
+
   /** Call when the screen is (re)entered: fresh buttons and a new entry lock-out. */
   reset(): void { this.lock.reset(); this.set.clear() }
 

@@ -14,7 +14,7 @@ Ghosts and bats fly in from the dark edges of the screen toward your webcam imag
 - **20 specs** at PR #5 in [`.kiro/specs`](.kiro/specs) (requirements, design, tasks): 805 ticked task checkboxes, 89 commits named after a task (`<type>(<spec>-T<n>)`).
 - **3 steering files** in [`.kiro/steering`](.kiro/steering), **5 hooks** in [`.kiro/hooks`](.kiro/hooks), **1 custom agent** (`balancer`) and **1 local MCP server** (`motion-harness`, stdio only, no network).
 - **1120 tests** at PR #5, 0 failed, 0 skipped; **119 property tests** (`fc.assert`) in 31 files, both at PR #5 (df26f4d). A property found a spawner-cap bug that unit tests had missed (BUG-1), and four more bugs got regression properties.
-- **One PR per feature from #2 on** (#1 bundled the P0/P1 specs): #1 to #7 merged (#6 is demo mode, merge commit 46d9551; #7 is the judge write-up, merge commit 7575a07). Test count by PR: 806, 912, 994, 1045, 1120, 1254, 1291; #8 playtest-polish: 1515; more-content (this branch): 1719.
+- **One PR per feature from #2 on** (#1 bundled the P0/P1 specs): #1 to #7 merged (#6 is demo mode, merge commit 46d9551; #7 is the judge write-up, merge commit 7575a07). Test count by PR: 806, 912, 994, 1045, 1120, 1254, 1291; #8 playtest-polish: 1515; more-content (this branch): 1723.
 - **777.68 Kiro credits** used after the more-content spec and its review fixes (bonus pool of 4000).
 - **Read the full write-up: [docs/KIRO.md](docs/KIRO.md).** Local power: [`.kiro/powers/exorcise-motion-harness`](.kiro/powers/exorcise-motion-harness).
 - **Live demo:** <https://amitmtrn.github.io/kiro-exorcise-game/>
@@ -36,7 +36,7 @@ npm run dev
 
 | Command | What it does |
 |---|---|
-| `npm test` | Run all 1719 unit tests (Vitest) |
+| `npm test` | Run all 1723 unit tests (Vitest) |
 | `npm run build` | Production build → `dist/` |
 | `npm run preview` | Preview the production build locally |
 
@@ -98,7 +98,7 @@ Open the game with `?demo=1` (for example `http://localhost:5173/kiro-exorcise-g
 
 ### High scores
 
-The game keeps a **top-10 table** in `localStorage` (key `exorcise-highscores`): name, score, stage reached, date and 1P / 2P, nothing else (never video or images). A finished run that makes the table is saved at once under a generated spooky name such as `GHOST-7F`, then a name screen lets you change it with the ◀ / OK / ▶ motion buttons (raised-hand zones, like every other button) or the keyboard. In 2 PLAYERS each player gets their own name screen in their own half, at the same time, and both entries are marked 2P. The title screen shows the table (two pages of 5, switching every 4 s) and the game-over and victory screens show the top 5 with your entry highlighted. An older saved single high score is moved into the table once as `OLD-BEST`. Demo mode reads and writes nothing. Spec: `.kiro/specs/more-content/`.
+The game keeps a **top-10 table** in `localStorage` (key `exorcise-highscores`): name, score, stage reached, date and 1P / 2P, nothing else (never video or images). A finished run that makes the table is saved at once under a generated spooky name such as `GHOST-7F`, then a name screen lets you change it with the ◀ / OK / ▶ motion buttons (raised-hand zones, like every other button) the keyboard, or a click / tap on the buttons. In 2 PLAYERS each player gets their own name screen in their own half, at the same time, and both entries are marked 2P. The title screen shows the table (two pages of 5, switching every 4 s) and the game-over and victory screens show the top 5 with your entry highlighted. An older saved single high score is moved into the table once as `OLD-BEST`. Demo mode reads and writes nothing. Spec: `.kiro/specs/more-content/`.
 
 ### Settings, URL parameters and quality
 

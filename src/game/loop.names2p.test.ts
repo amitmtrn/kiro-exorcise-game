@@ -129,7 +129,19 @@ describe('two-player names (more-content R11)', () => {
     for (const e of t) expect(e.name).toMatch(/^[A-Z]+-[0-9A-F]{2}$/)
     expect(isNameEntryOpen()).toBe(true)
     expect(h.finalCalls).toBe(0)
-    expect(handleSeatCardPointer(1, 1)).toBe(false)
+    expect(handleSeatCardPointer(1, 1)).toBe(true) // a tap goes to the name screen (it hits no button here)
+    step()
+    expect(table().map((e) => e.name)).toEqual(t.map((e) => e.name))
+  })
+  it('a tap on a half\'s OK button names that half, and only that half (pointer path)', async () => {
+    h.scores = [3000, 5000]; h.stages = [4, 6]
+    await startFinal()
+    const tap = (b: { x: number; y: number }) => { expect(handleSeatCardPointer(b.x, b.y)).toBe(true); step() }
+    tap(btn(1, 'stepA')) // first step picks a letter
+    for (let i = 0; i < 3; i++) tap(btn(1, 'ok'))
+    expect(table().find((e) => e.score === 5000)!.name).toBe('AAA')
+    expect(isNameEntryOpen()).toBe(true) // the left half is still naming
+    expect(table().find((e) => e.score === 3000)!.name).toMatch(/^[A-Z]+-[0-9A-F]{2}$/)
   })
   it('each half names itself with its own buttons; one half done does not end the other; buttons after both', async () => {
     h.scores = [3000, 5000]; h.stages = [4, 6]

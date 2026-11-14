@@ -264,7 +264,9 @@ the player's own row.
   the end screen renders the `NameScreen`; then the normal end screen with the
   table and a fresh lock-out. Keyboard: `main.ts` forwards keys through
   `handleNameKey` before its other key handling, so M / D / C type letters while the
-  name screen is open (the mute button still works); card keys and clicks wait.
+  name screen is open (the mute button still works); card keys and card clicks wait.
+  Clicks / taps are queued (`nameClicks`) and hit-tested by `NameScreen.pointerAction`
+  against the same button circles; in 2P `handleSeatCardPointer` routes them to the half.
 - 2P `final`: on entry (`onTwoPlayerEnd`) both seats are recorded; each qualifying
   seat gets its own `NameEntry` and `NameScreen(seat, seatSources[seat])`, drawn into
   that half's card layer (`runSeatNames`). A seat with nothing to name shows "Waiting

@@ -77,6 +77,7 @@ let rafId = 0
 
 // Name entry (more-content R9.3): while a name screen is open, keys are queued here by main.ts.
 let nameKeys: string[] = []
+let nameClicks: Array<{ seat: 0 | 1 | null; x: number; y: number }> = [] // clicks / taps on the name screen (area pixels)
 let nameActive = false
 /** 2P: only seat 0 (the keyboard player) takes keys; blocked while just the other half has an open name screen. */
 let nameKeysBlocked = false
@@ -126,7 +127,11 @@ export function isCardPreviewOpen(): boolean { return cardOpen }
 
 /** Forwards a click / tap in canvas pixels; returns true when it was queued. */
 export function handleCardPointer(x: number, y: number): boolean {
-  if (!onEndScreen || nameActive) return false
+  if (nameActive) { // the name screen: a tap on ◀ / OK / ▶ works like the motion buttons
+    nameClicks.push({ seat: null, x, y })
+    return true
+  }
+  if (!onEndScreen) return false
   cardInputs.push({ kind: 'click', x, y })
   return true
 }
@@ -138,7 +143,12 @@ let seatClickW = 0
 
 /** Forwards a click / tap in canvas pixels on the 2P end screen; returns true when it was queued for a half. */
 export function handleSeatCardPointer(x: number, y: number): boolean {
-  if (nameActive) return false
+  if (nameActive) {
+    if (seatClickW <= 0) return false
+    const r = routeSeatClick(x, y, seatClickW)
+    nameClicks.push({ seat: r.seat, x: r.x, y: r.y })
+    return true
+  }
   if (!twoFinal || !seatCardsRef || seatClickW <= 0) return false
   const r = routeSeatClick(x, y, seatClickW)
   seatCardsRef[r.seat].queueClick(r.x, r.y)
@@ -210,6 +220,7 @@ export async function startLoop(
   let pendingName: { id: string; entry: NameEntry; info: NameInfo } | null = null
   const nameScreen = new NameScreen()
   nameKeys = []
+  nameClicks = []
   nameActive = false
   nameKeysBlocked = false
 
@@ -225,6 +236,7 @@ export async function startLoop(
     pendingName = { id: r.entry.id, entry: newNameEntry(r.entry.name, now), info: { score: r.entry.score, rank: r.rank } }
     nameScreen.reset()
     nameKeys = []
+    nameClicks = []
   }
 
   /** Runs the open name screen for this frame; true while it covers the end screen. */
@@ -234,9 +246,16 @@ export async function startLoop(
     for (const k of nameKeys) e = nameKey(e, k, now) ?? e
     nameKeys = []
     e = tickNameEntry(e, now)
+    const clicks = nameClicks
+    nameClicks = []
     if (!e.done) {
       const a = nameScreen.render(gameCtx, e, now, pendingName.info)
       if (a) e = a.kind === 'ok' ? confirm(e, now) : pickStep(e, a.dir, now)
+      for (const c of clicks) {
+        if (e.done) break
+        const pa = nameScreen.pointerAction(c.x, c.y, gameCtx.canvas.width, gameCtx.canvas.height)
+        if (pa) e = pa.kind === 'ok' ? confirm(e, now) : pickStep(e, pa.dir, now)
+      }
     }
     if (e.done) {
       renameStored(pendingName.id, finalName(e))
@@ -314,12 +333,14 @@ export async function startLoop(
       seatNameScreens[seat].reset()
     }
     nameKeys = []
+    nameClicks = []
     scoreTable = loadTable()
   }
 
   /** Runs both halves' name screens for this frame (keyboard edits P1); true while the end buttons must wait. */
   function runSeatNames(now: number, W: number, H: number): boolean {
     if (!namesOpen2P()) { nameActive = false; nameKeysBlocked = false; return false }
+    seatClickW = W
     nameKeysBlocked = !(seatNames[0] && !seatNames[0].entry.done)
     const hw = halfWidth(W)
     for (const seat of SEATS) {
@@ -335,6 +356,11 @@ export async function startLoop(
       if (!e.done) {
         const a = seatNameScreens[seat].render(cctx, e, now, n!.info)
         if (a) e = a.kind === 'ok' ? confirm(e, now) : pickStep(e, a.dir, now)
+        for (const c of nameClicks) {
+          if (c.seat !== seat || e.done) continue
+          const pa = seatNameScreens[seat].pointerAction(c.x, c.y, hw, H)
+          if (pa) e = pa.kind === 'ok' ? confirm(e, now) : pickStep(e, pa.dir, now)
+        }
       }
       if (n && e.done && !n.entry.done) renameStored(n.id, finalName(e))
       if (n) seatNames[seat] = { ...n, entry: e }
@@ -342,6 +368,7 @@ export async function startLoop(
       gameCtx.drawImage(c, halfOffset(seat, W), 0)
     }
     nameKeys = []
+    nameClicks = []
     if (namesOpen2P()) { nameActive = true; return true }
     nameKeysBlocked = false
     // Both halves done: fresh lock-out for the shared end buttons and the cards.
@@ -858,6 +885,7 @@ export function stopLoop(): void {
   nameActive = false
   nameKeysBlocked = false
   nameKeys = []
+  nameClicks = []
   activeDemo?.dispose(); activeDemo = null
   onEndScreen = false
   cardOpen = false
