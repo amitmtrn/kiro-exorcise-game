@@ -42,7 +42,9 @@ export class DemoRuntime {
 
   private camera: SyntheticCamera
   private clock = CLOCK_START_MS
-  private lastProcessed = Number.NEGATIVE_INFINITY
+  private lastTimestamp: number | null = null
+  /** Real time banked towards the next fixed step, ms. */
+  private acc = 0
   private lastDelta: number = DEMO.stepMs * DEMO.timeScale
   private rng: () => number
   private disposed = false
@@ -75,12 +77,17 @@ export class DemoRuntime {
   get clockMs(): number { return this.clock }
 
   /**
-   * Called at the top of every rAF callback. Returns null when the frame is too soon after the last
-   * processed one (a high-refresh display); otherwise the fixed, scaled step and advances the clock.
+   * Called at the top of every rAF callback. Real elapsed time is banked; a frame runs one fixed,
+   * scaled step once a full real step (1/60 s) has accumulated, so the pace is 60 ticks per second on
+   * any refresh rate of 60 Hz or more (frames in between return null). Below 60 Hz it is one step per frame.
    */
   beginTick(timestamp: number): { deltaMs: number } | null {
-    if (timestamp - this.lastProcessed < DEMO.minFrameMs) return null
-    this.lastProcessed = timestamp
+    const gap = this.lastTimestamp === null ? DEMO.stepMs : timestamp - this.lastTimestamp
+    this.lastTimestamp = timestamp
+    const stalled = gap > DEMO.maxGapMs
+    this.acc += Math.min(DEMO.maxGapMs, Math.max(0, gap))
+    if (this.acc < DEMO.stepMs - DEMO.stepSlackMs) return null
+    this.acc = stalled ? 0 : Math.max(-DEMO.stepSlackMs, Math.min(this.acc - DEMO.stepMs, DEMO.stepMs))
     this.lastDelta = DEMO.stepMs * this.speed
     this.clock += this.lastDelta
     return { deltaMs: this.lastDelta }

@@ -27,22 +27,46 @@ describe('fixed step (demo-mode R5.1)', () => {
       for (const s of [a, b, c]) expect(s.deltaMs).toBeCloseTo(DEMO.stepMs * 2, 9)
     } finally { rt.dispose() }
   })
-  it('skips frames that arrive sooner than minFrameMs (high-refresh displays)', () => {
+  it('skips frames that arrive before a full real step has accumulated', () => {
     const rt = new DemoRuntime(opts)
     try {
       expect(rt.beginTick(1000)).not.toBeNull()
       expect(rt.beginTick(1008)).toBeNull()
-      expect(rt.beginTick(1016)).not.toBeNull()
-      let processed = 0
-      for (let t = 2000; t < 3000; t += 1000 / 144) if (rt.beginTick(t)) processed++
-      expect(processed).toBeGreaterThan(60); expect(processed).toBeLessThan(80)
+      expect(rt.beginTick(1016.7)).not.toBeNull()
+    } finally { rt.dispose() }
+  })
+  it('runs 60 ticks per real second at every refresh rate from 60 Hz up (R5.1)', () => {
+    for (const hz of [60, 75, 90, 120, 144, 165, 240]) {
+      const rt = new DemoRuntime(opts)
+      try {
+        let processed = 0
+        for (let i = 0; i <= 10 * hz; i++) if (rt.beginTick(5000 + (i * 1000) / hz)) processed++
+        expect(processed / 10, `${hz} Hz`).toBeGreaterThan(59)
+        expect(processed / 10, `${hz} Hz`).toBeLessThan(61.5)
+      } finally { rt.dispose() }
+    }
+  })
+  it('timer jitter at 60 Hz does not drop ticks', () => {
+    const rt = new DemoRuntime(opts)
+    try {
+      let t = 1000, processed = 0
+      for (let i = 0; i < 600; i++) { t += 1000 / 60 + (i % 2 ? 1 : -1); if (rt.beginTick(t)) processed++ }
+      expect(processed).toBeGreaterThanOrEqual(598)
+    } finally { rt.dispose() }
+  })
+  it('a long stall counts for at most maxGapMs and never bursts', () => {
+    const rt = new DemoRuntime(opts)
+    try {
+      rt.beginTick(1000)
+      expect(rt.beginTick(60_000)).not.toBeNull() // one step, not hundreds
+      expect(rt.beginTick(60_001)).toBeNull()
     } finally { rt.dispose() }
   })
   it('the step does not depend on the real timestamps', () => {
     const rt = new DemoRuntime({ ...opts, speed: 3 })
     try {
       expect(rt.beginTick(10)!.deltaMs).toBeCloseTo(DEMO.stepMs * 3, 9)
-      expect(rt.beginTick(5000)!.deltaMs).toBeCloseTo(DEMO.stepMs * 3, 9)
+      expect(rt.beginTick(30)!.deltaMs).toBeCloseTo(DEMO.stepMs * 3, 9)
     } finally { rt.dispose() }
   })
 })

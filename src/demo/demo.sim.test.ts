@@ -80,7 +80,8 @@ beforeEach(() => {
   vi.stubGlobal('document', { createElement: () => canvas() })
   vi.stubGlobal('performance', { now: () => 0 })
   vi.stubGlobal('requestAnimationFrame', (f: (ts: number) => void) => { rafQueue.push(f); return 1 })
-  vi.stubGlobal('cancelAnimationFrame', () => {})
+  // A real browser drops the cancelled callback: a stopped loop must not keep ticking into the next simulated run.
+  vi.stubGlobal('cancelAnimationFrame', () => { rafQueue = [] })
   vi.stubGlobal('localStorage', { getItem: () => '4242', setItem: net.setItem })
   vi.stubGlobal('fetch', net.fetch)
   vi.stubGlobal('XMLHttpRequest', function XHR() { net.xhr() })
