@@ -36,7 +36,7 @@ Fixes:
 - **`enemies/telegraph.ts`**: `TELEGRAPH_MIN_MS = 1000`, `TELEGRAPH_LEAD_MS = 1400`,
   `etaMs(e, W, H)` (remaining travel time: path duration minus `pathMs` for a
   path, `(dist − REACH_PX) / (speed · H)` for a straight mover, approach +
-  windup + lunge for a lunger), `tickWarn(e, deltaMs, W, H)` (adds `deltaMs` to
+  windup + lunge for a lunger), `isAlarmed`, `tickWarn(e, deltaMs, W, H)` (adds `deltaMs` to
   `e.warnMs` while the centre is on screen and `etaMs ≤ TELEGRAPH_LEAD_MS`;
   never decreases) and `telegraphProgress(e)` (`warnMs / TELEGRAPH_MIN_MS`, 0–1).
   `moveEnemies` calls `tickWarn` for every threat after moving it.
@@ -52,9 +52,11 @@ Fixes:
   2.4 × to 1.1 × the enemy size over `warnMs`, a red tint of the same ring, and a
   "!" mark above it. The dashed outline and the "!" are shapes, so the cue works
   in the colour-blind palette (uses `palette.danger`) and in greyscale. Reduced
-  flash: the ring does not pulse (steady alpha), the "!" does not blink. The
-  skull's old cb-only cue (`drawDangerCue`) is replaced by this one for every
-  user; the skull's red glow stays.
+  flash: the ring does not pulse (steady alpha), the "!" does not blink. A skull
+  in its spawn grace shows the same ring (progress = grace elapsed, no "!"), so
+  "it becomes dangerous when the ring closes"; afterwards it keeps its red glow
+  and the colour-blind cue (`drawDangerCue`) as before. `dangerProgress(e)` picks
+  the ring for any enemy.
 - **MISSED call-out**: `step.ts` adds a `'miss'` call-out ("MISSED", red) at
   each lost enemy's position (`makeCallout` clamps it into the canvas), once per
   arrival and also inside the heart grace. `calloutPose` / `drawCallout` draw
@@ -79,6 +81,8 @@ Fixes:
   is amended in that spec. Body motion can now swat a ghost standing in the
   player zone; that is by design (it is the player's own space), and a swat still
   needs `diffThreshold` motion over `hitRatio` of the hitbox on two camera frames.
+- **Demo driver:** `timeToThreatMs` returns `max(travel, TELEGRAPH_MIN_MS − warnMs)`
+  for an alarmed threat, so the hand's urgency matches when the heart really goes.
 - **Not changed:** boss lunges keep their boss-phases windup and pose (their
   telegraph is the 350–700 ms windup, tuned there); the bonus round and
   harmless enemies are not threats (`isThreat`).

@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { resolveHits, lastBanished } from './collision'
 import { createInitialState, makeEnemy } from './state'
+import { TELEGRAPH_MIN_MS } from './enemies/telegraph'
 import type { Enemy } from './state'
 import { splitReached } from './enemies/reach'
 import { stepVariant } from './enemies/variants'
@@ -129,7 +130,7 @@ describe('twin wisps', () => {
 describe('one life per pair', () => {
   const W = 640, H = 360
   const at = (id: string, pairId: string | undefined, x: number): Enemy =>
-    enemy('wisp', id, { pairId, x, y: 180, targetX: 320, targetY: 180 })
+    enemy('wisp', id, { pairId, x, y: 180, targetX: 320, targetY: 180, warnMs: TELEGRAPH_MIN_MS })
   it('removes the partner and counts a single miss', () => {
     const r = splitReached([at('a', 'p', 320), at('b', 'p', 100), at('c', 'q', 100)], false, W, H)
     expect(r.missed).toBe(1)
@@ -139,8 +140,8 @@ describe('one life per pair', () => {
     expect(splitReached([at('a', 'p', 320), at('b', 'p', 330)], false, W, H).missed).toBe(1)
   })
   it('a mirror ghost and a blink ghost cost a life each like a ghost', () => {
-    const m = enemy('mirror', 'm', { x: 320, y: 180, targetX: 320, targetY: 180 })
-    const b = enemy('blink', 'b', { x: 320, y: 180, targetX: 320, targetY: 180 })
+    const m = enemy('mirror', 'm', { x: 320, y: 180, targetX: 320, targetY: 180, warnMs: TELEGRAPH_MIN_MS })
+    const b = enemy('blink', 'b', { x: 320, y: 180, targetX: 320, targetY: 180, warnMs: TELEGRAPH_MIN_MS })
     expect(splitReached([m, b], false, W, H).missed).toBe(2)
   })
 })

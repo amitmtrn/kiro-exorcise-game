@@ -13,6 +13,8 @@ import { BOSS_SIZE } from './boss'
 import { CANDY_SIZE } from './candy'
 import { moveBoss } from './bossPhases'
 import { stepVariant, isVariantType, WISP_SIZE } from './variants'
+import { isThreat } from './reach'
+import { tickWarn } from './telegraph'
 import { pathPosition, pathEnd, pathDurationMs, pathProgress, pathExits } from '../paths'
 
 /** Sine phase rate, rad/s (the old per-frame step × 60). */
@@ -32,7 +34,10 @@ export function moveEnemies(
   canvasW: number,
   canvasH: number,
 ): Enemy[] {
-  return enemies.map((enemy) => moveSingle(enemy, deltaMs, canvasW, canvasH))
+  return enemies.map((enemy) => {
+    const moved = moveSingle(enemy, deltaMs, canvasW, canvasH)
+    return isThreat(moved) ? tickWarn(moved, deltaMs, canvasW, canvasH) : moved
+  })
 }
 
 /** Straight-line step toward the target, never overshooting it. */

@@ -18,14 +18,15 @@ Files: `src/game/zones.ts`, `enemies/skull.ts`, `enemies/movement.ts`, `collisio
 
 ## T2 — Telegraph for every heart-costing arrival, MISSED call-out
 Files: `src/game/enemies/telegraph.ts`, `reach.ts`, `movement.ts`, `step.ts`, `callouts.ts`, `render.ts`, `src/demo/driver.ts`
-- [ ] Failing tests first: a short-path ghost costs a heart with `warnMs` 0; no MISSED call-out; a skull in grace shows no ring.
-- [ ] `telegraph.ts` (`etaMs`, `tickWarn`, `telegraphProgress`); `reached()` gated on `TELEGRAPH_MIN_MS`.
-- [ ] `splitReached` returns `lost`; `step.ts` adds the `'miss'` call-out; red "MISSED" drawn.
-- [ ] Danger ring with dashed outline and "!" on alarmed threats and on skulls in their grace (reduced flash: steady; cb: palette danger).
-- [ ] Property tests (`telegraph.property.test.ts`): no threat costs a heart before `warnMs ≥ 1000` at any tick split; one call-out per arrival.
-- [ ] Demo driver `timeToThreatMs` includes the telegraph wait.
-- [ ] `npm test` and `npm run build` both clean; demo seed 5 sims clean.
-- [ ] Commit: `fix(playtest2-fixes-T2): telegraph every heart-costing arrival for 1 s, MISSED call-out`
+- [x] Failing tests first: a short-path ghost costs a heart with `warnMs` 0; no MISSED call-out; a skull in grace shows no ring.
+- [x] `telegraph.ts` (`etaMs`, `tickWarn`, `telegraphProgress`); `reached()` gated on `TELEGRAPH_MIN_MS`.
+- [x] `splitReached` returns `lost`; `step.ts` adds the `'miss'` call-out; red "MISSED" drawn.
+- [x] Danger ring with dashed outline and "!" on alarmed threats and on skulls in their grace (reduced flash: steady; cb: palette danger).
+- [x] Property tests (`telegraph.property.test.ts`): no threat (line, arc, drop, lunger, blink, mirror, a ghost spawned next to its target) costs a heart before `warnMs ≥ 1000` at any tick split; one call-out per arrival, also in the heart grace. Render tests (`render.telegraph.test.ts`): ring shrinks, reduced flash steady, cb palette, skull grace ring, MISSED colour.
+- [x] Arrival fixtures in existing reach / lives / bonus / variant tests carry `warnMs: TELEGRAPH_MIN_MS` (the rule changed).
+- [x] Demo driver `timeToThreatMs` includes the telegraph wait.
+- [x] `npm test` and `npm run build` both clean; demo seed 5 sims clean.
+- [x] Commit: `fix(playtest2-fixes-T2): telegraph every heart-costing arrival for 1 s, MISSED call-out`
 
 ## T3 — New procedural sounds in the gain table
 Files: `src/audio/recipes.ts`, `sfx.ts`, `index.ts`, `recipes.test.ts`

@@ -21,7 +21,10 @@ export const PRAISE: Readonly<Record<2 | 3 | 4, string>> = {
   4: 'PERFECT!',
 }
 
-export type CalloutKind = 'tierUp' | 'praise' | 'tip'
+export type CalloutKind = 'tierUp' | 'praise' | 'tip' | 'miss'
+
+/** playtest2-fixes R1.3: shown where an enemy cost a heart by arriving. */
+export const MISS_TEXT = 'MISSED'
 
 export interface Callout {
   x: number
@@ -47,6 +50,11 @@ export function selectCallout(prevCombo: number, newCombo: number, streak: numbe
   return null
 }
 
+/** The MISSED call-out at the arrival point of an enemy that cost a heart (playtest2-fixes R1.3). */
+export function missCallout(x: number, y: number, canvasW: number, canvasH: number): Callout {
+  return makeCallout(x, y + 70, { text: MISS_TEXT, kind: 'miss' }, canvasW, canvasH)
+}
+
 /** Starts above the enemy and stays inside the canvas. */
 export function makeCallout(x: number, y: number, choice: CalloutChoice, canvasW: number, canvasH: number): Callout {
   const cx = Math.min(canvasW * 0.8, Math.max(canvasW * 0.2, x))
@@ -62,8 +70,10 @@ export function makeCallout(x: number, y: number, choice: CalloutChoice, canvasW
 export function addCallout(list: Callout[], c: Callout): Callout[] {
   const next = [...list, c]
   const cap = calloutCap() // playtest-polish R3.4: 3 at full quality, 1 below
-  const tips = next.filter((x) => x.kind === 'tip').slice(-MAX_CALLOUTS)
-  const rest = next.filter((x) => x.kind !== 'tip')
+  // A MISSED call-out explains a lost heart: it keeps its slot like a tip.
+  const own = (x: Callout) => x.kind === 'tip' || x.kind === 'miss'
+  const tips = next.filter(own).slice(-MAX_CALLOUTS)
+  const rest = next.filter((x) => !own(x))
   const kept = new Set<Callout>([...tips, ...rest.slice(Math.max(0, rest.length - cap))])
   return next.filter((x) => kept.has(x))
 }

@@ -13,6 +13,7 @@ import { isHittable } from '../game/enemies/vulnerability'
 import { isLinked } from '../game/enemies/variants'
 import { isThreat, CENTER_THRESHOLD } from '../game/enemies/reach'
 import { pathDurationMs } from '../game/paths'
+import { TELEGRAPH_MIN_MS, TELEGRAPH_LEAD_MS } from '../game/enemies/telegraph'
 import { buttonLayout } from '../ui/layout'
 import type { ButtonSpec, ScreenId } from '../ui/layout'
 import { ENTRY_LOCK_MS } from '../ui/motionButton'
@@ -81,6 +82,13 @@ const LUNGE_MULT = 2.5
  */
 export function timeToThreatMs(e: Enemy, w: number, h: number): number {
   if (!isThreat(e)) return Infinity
+  const travel = travelToThreatMs(e, w, h)
+  // An arrival waits for its telegraph (playtest2-fixes R1.1): the heart goes no sooner than the telegraph ends.
+  const alarmed = e.warnMs > 0 || travel <= TELEGRAPH_LEAD_MS
+  return alarmed ? Math.max(travel, TELEGRAPH_MIN_MS - e.warnMs) : travel
+}
+
+function travelToThreatMs(e: Enemy, w: number, h: number): number {
   if (e.path) return Math.max(0, pathDurationMs(e.path, w, h) - e.pathMs)
   const pxPerMs = (e.speed * h) / 1000
   if (pxPerMs <= 0) return Infinity
