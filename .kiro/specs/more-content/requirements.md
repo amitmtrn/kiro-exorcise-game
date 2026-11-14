@@ -166,8 +166,10 @@ design.md justifies this choice against restructuring.
 **R5.2** Stage 6 timeline (stage clock = elapsed time of the 60 s round):
 a scripted introduction of the three new ghosts, one at a time, starting at 2 s,
 one wave of mixed new ghosts at 14 s, and **the finale boss** (R6) at 22 s. No
-scripted new-ghost event fires after 17 s, and no skull spawns after 15 s, so the
-boss fight starts on a clear field. The stage cap is 5 enemies.
+scripted new-ghost event is scheduled after 17 s (an event still waiting for a
+free slot is dropped 3 s after its time, so nothing scripted spawns after 19.5 s),
+and no skull spawns after 15 s, so the boss fight starts on a clear field. The
+stage cap is 5 enemies.
 
 **R5.3** *Stage title card.* The stage-6 card shows one hint line per new ghost
 ("TWIN WISPS: hit both", "MIRROR: wave twice, then swat", "BLINK: swat while
