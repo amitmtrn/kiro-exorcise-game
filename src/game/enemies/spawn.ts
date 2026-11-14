@@ -3,7 +3,7 @@
  * respecting the stage config, enemy cap, and skull/boss uniqueness rules.
  */
 
-import type { GameState } from '../state'
+import type { GameState, Enemy } from '../state'
 import { setEnemies, setSpawnTimers } from '../state'
 import { STAGES } from '../stages'
 import { createSkull } from './skull'
