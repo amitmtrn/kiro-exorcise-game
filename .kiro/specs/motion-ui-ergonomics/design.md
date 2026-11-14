@@ -15,15 +15,15 @@ Zones, as fractions of the **area** (the canvas in 1P, one half in 2P) :
 
 | Constant | Value | Meaning |
 |---|---|---|
-| `ROW_A` | 0.17 H | first row (prefer 15–35 %) |
-| row B | `ROW_A·H + 3.1·r` | second row, centre distance 3.1 r (gap 1.1 r); ≤ 0.387 H |
+| `ROW_A` | 0.19 H | first row (prefer 15–35 %) |
+| row B | `ROW_A·H + 3.1·r` | second row, centre distance 3.1 r (gap 1.1 r); ≤ 0.40 H (0.19 + 3.1·0.065 = 0.3915 H) |
 | `COL_OUTER` | 0.12 | left column in 1P, screen-edge column in 2P |
 | `COL_INNER_P1` / `COL_INNER_P2` | 0.80 / 0.20 | inner column of a half |
-| radius | `clamp(min(0.07 H, 0.08 aw \| 0.105 aw, 0.12 aw − 10), 20, 80)` | `aw` = area width, 0.105 for a half; last term keeps the ring (`RING_OUTSET` 9) on the canvas |
+| radius | `clamp(min(0.065 H, 0.06 aw \| 0.105 aw, 0.12 aw − 10), 20, 80)` | `aw` = area width, 0.105 for a half; last term keeps the ring (`RING_OUTSET` 9) on the canvas |
 | single column y | `max(row A, muteBottom + r + 8)` | clears the mute button; always ≤ 0.40 H |
 
 Slots per area: a **stacked column** (rows A and B) and a **single column**
-(one button at the single y). 1P: stacked = left (12 %), single = right (88 %).
+(one button at the single y). 1P: stacked = left (`COL_LEFT_1P` 30 %), single = right (`COL_RIGHT_1P` 70 %), 0.20 W either side of the player (see Reach model).
 2P half: stacked = outer, single = inner (mirrored for P2). Assignment:
 
 | Screen | Stacked A | Stacked B | Single (destructive in bold) |
@@ -50,14 +50,35 @@ soundHintRect(W, H) : Rect                               // mirrors the CSS of .
 `ButtonSpec = { id, label, cx, cy, r, destructive, seat }`. `destructive` buttons
 get `DESTRUCTIVE_DWELL_MS`.
 
-Text: 1P menu screens keep their text in `x ∈ [0.2 W, 0.8 W]` (titles are shrunk
-with `fitFontPx`), so the edge columns (≤ 0.2 W) are free at any height. 2P shared
+Text: 1P menu screens keep their text in `x ∈ [0.38 W, 0.62 W]` above 47 % of H (`TEXT_BAND_1P`, titles are shrunk
+with `fitFontPx`) and in `[0.2 W, 0.8 W]` below it (`TEXT_BAND_LOW`, e.g. the start hint at 90 %), so the columns (≤ 0.36 W) are free at the button rows. 2P shared
 text (STAGE CLEAR, PLAYER n WINS, scores) moves below 47 % of H, under the rows
 of buttons. The card preview image is limited to 60 % of the area width and sits
 between the columns.
 
 2P mute: stays top centre; the inner column's single button is pushed below it
 (`muteBottom`), and the banners it used to overlap are below 47 %.
+
+## Reach model (`layout.ts`, R9)
+
+Pure functions and constants: `FOV_DEG` [65, 75], `NEAR_M` 1.5, `FAR_M` 2.5, `SHOULDER_HALF_M` 0.2,
+`ARM_M` 0.65, `PLAYER_CENTRE_1P` 0.5, `PLAYER_CENTRE_2P` [0.25, 0.75].
+
+* frame width `Wf = 2·d·tan(FOV/2)`; sideways reach as a fraction of the frame width `(0.2 + 0.65) / Wf`
+  (hand at shoulder height, arm out; a hand raised above the shoulder reaches slightly less; the 1P columns use 0.57 of the 0.65 m arm).
+
+| Distance | FOV 65° (Wf → reach) | FOV 75° (Wf → reach) | Guaranteed |
+|---|---|---|---|
+| near 1.5 m | 1.91 m → 0.445 W | 2.30 m → 0.369 W | `REACH_NEAR` 0.369 W |
+| far 2.5 m | 3.19 m → 0.267 W | 3.84 m → 0.221 W | `REACH_FAR` 0.221 W |
+
+Rule: `0.18·aw ≤ |cx − c| ≤ REACH_FAR·W` for every button centre (c = player centre), `cy ≤ 0.40 H`.
+Before: 1P columns at 12 % / 88 % were 0.38 W from the player, i.e. 1.46 m at 2.5 m (arm reach 0.85 m):
+out of reach. 2P outer columns (6 % / 94 %, 0.19 W = 0.73 m) and inner columns (40 % / 60 %, 0.15 W) were
+already in reach and stay. The 1P columns move to 30 % / 70 % (0.20 W = 0.77 m at the far FOV-75° case, so the hand is 0.57 m from the shoulder, inside the 0.65 m arm; the centre is 0.57 m outside the 0.2 m torso half-width).
+Knock-on: the 1P text band narrows to [0.38, 0.62] W above 47 % of H, `RADIUS_W_FULL` 0.08 → 0.06 and `RADIUS_H`
+0.07 → 0.065 keep the circles outside it, and `ROW_A` 0.17 → 0.19 keeps row A under the sound hint at the
+tallest hint size.
 
 ## Activation (`motionButton.ts`)
 
@@ -130,7 +151,7 @@ the head/shoulders (inside the text band).
 * 2P shared decisions: either player's deliberate dwell fires the action (not both). Rationale: a player who
   walked away cannot hold the other hostage, and sway cannot reach a raised edge button with 12 % coverage and
   a 650 ms dwell. MAIN MENU needs 1000 ms.
-* Motion harness `wave` mode now hovers over the 1 PLAYER zone (mirrored raw x = 88 %, y = 17 %), in 2 s bursts
+* Motion harness `wave` mode now hovers over the 1 PLAYER zone (mirrored raw x = 70 %, y = 17 %), in 2 s bursts
   with 1 s gaps so the start screen's release latch (R2.5) sees the hand leave; `drive.mjs` clicks the onboarding Skip.
 
 ## Review fixes (T7)

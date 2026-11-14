@@ -52,13 +52,13 @@ dismissed by webcam-only players; the 2P mute button (50 %, 14 %) overlaps the
 ## R1 — Raised-hand zones
 
 **R1.1** Every motion button of every screen and mode has its centre at or above
-**40 %** of the canvas height (rows at 17 % and about 38 %, or lower only to
+**40 %** of the canvas height (rows at 19 % and about 39 %, or lower only to
 clear the mute button, never below 40 %).
 
 **R1.2** No button centre is on a player's body centreline column:
 `|x − c| ≥ 0.18 · areaWidth`, with `c = 0.5·W` in 1P and `c = 0.25·W / 0.75·W` for
 P1 / P2 in 2P (area width = the half). Buttons sit in two edge columns of the
-area (1P: 12 % and 88 % of the width; each 2P half: an outer column at the
+area (1P: 30 % and 70 % of the width, see R9; each 2P half: an outer column at the
 screen edge and an inner column at 80 % / 20 % of the half).
 
 **R1.3** Mirror-correct: the layout is in display coordinates and the camera
@@ -143,7 +143,7 @@ mute rect is disjoint from every 2P button.
 
 ## R5 — Sizes
 
-**R5.1** Radii scale with the canvas: `r = clamp(min(0.07·H, 0.08·W or 0.105·halfW, 0.12·aw − 10), 20, 80)`.
+**R5.1** Radii scale with the canvas: `r = clamp(min(0.065·H, 0.06·W or 0.105·halfW, 0.12·aw − 10), 20, 80)`.
 The cap keeps the progress ring (radius + 9 px with its stroke) on the canvas at the outer column.
 Nothing is clipped at any size from 640×480 to 2560×1440 (including odd aspect
 ratios in that range). Text of the menu screens is fitted to the central 60 %.
@@ -169,6 +169,19 @@ line "Wave a hand over the glowing circles to press them".
 **R7.2** The start screen's instruction is two short lines ("Wave a hand over a
 glowing circle" / "or press 1 / 2 • Space = last mode"), each fitted to the
 central text band and drawn at 12 px or more on a 640 px canvas.
+
+## R9 — Reach
+
+**R9.1** Model: webcam horizontal FOV 65–75°, player 1.5 m (near) to 2.5 m (far) from the camera
+(frame 1.9–3.8 m wide), shoulder half-width 0.2 m, arm length 0.65 m, player centred at x = 0.5 in 1P and
+0.25 / 0.75 in 2P. Sideways reach from the player's centre = 0.85 m / frame width: guaranteed 0.369 W at
+the near distance and 0.221 W at the far one (FOV 75°, the hardest case).
+
+**R9.2** Every button centre of every screen and mode (1P and 2P) satisfies
+`|cx − c| ≤ 0.221 · W` (far reach), `|cx − c| ≥ 0.18 · areaWidth` (outside head / torso) and
+`cy ≤ 0.40 H` (shoulder-to-overhead). A property test checks all three over random canvases 640×480–2560×1440.
+
+**R9.3** The onboarding hand targets stay equal to the start screen's buttons (R7.1).
 
 ## R8 — Unchanged behaviour and constraints
 

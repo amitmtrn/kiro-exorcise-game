@@ -9,7 +9,7 @@ describe('layout slot assignment', () => {
     const [one, two] = buttonLayout('start', 1280, 720)
     expect(one.id).toBe('one'); expect(two.id).toBe('two')
     expect(one.cx).toBeLessThan(640); expect(two.cx).toBeGreaterThan(640)
-    expect(one.cx).toBeCloseTo(0.12 * 1280); expect(two.cx).toBeCloseTo(0.88 * 1280)
+    expect(one.cx).toBeCloseTo(0.3 * 1280); expect(two.cx).toBeCloseTo(0.7 * 1280)
   })
   it('end screens list safe actions before destructive ones', () => {
     expect(ids('gameover')).toEqual(['offer', 'retry', 'menu'])
@@ -53,8 +53,8 @@ describe('helpers', () => {
   })
   it('preview card sits between the columns', () => {
     const c = previewCardRect(1280, 720, null)
-    expect(c.x).toBeGreaterThan(0.12 * 1280)
-    expect(c.x + c.w).toBeLessThan(0.88 * 1280)
+    expect(c.x).toBeGreaterThan(0.3 * 1280)
+    expect(c.x + c.w).toBeLessThan(0.7 * 1280)
     expect(c.h).toBeLessThanOrEqual(0.8 * 720 + 1e-9)
   })
   it('sound hint font follows the viewport width, clamped to 14..22 px', () => {

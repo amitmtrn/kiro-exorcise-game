@@ -9,7 +9,7 @@ import { STAGE_TITLE_DURATION_MS } from '../game/state'
 import { introPose, outroPose, outroRowAlpha } from '../game/transitions'
 import { EntryLock, ENTRY_LOCK_MS, updateExclusive } from './motionButton'
 import { ButtonSet } from './buttonSet'
-import { buttonLayout, fitFontPx, TEXT_BAND_1P } from './layout'
+import { buttonLayout, fitFontPx, TEXT_BAND_1P, TEXT_BAND_LOW } from './layout'
 import { TITLE_FONT_FAMILY } from './fonts'
 import { getPlayerMode } from '../game/playerMode'
 import type { PlayerMode } from '../game/playerMode'
@@ -47,8 +47,8 @@ const VICTORY_INPUT_DELAY_MS = ENTRY_LOCK_MS
 const VICTORY_FADE_MS = 400
 
 /** Font px that keeps `text` inside the central text band (menu text never reaches the button columns). */
-function fit(text: string, px: number, W: number): number {
-  return Math.round(fitFontPx(text, px, (TEXT_BAND_1P[1] - TEXT_BAND_1P[0]) * W))
+function fit(text: string, px: number, W: number, band: readonly [number, number] = TEXT_BAND_1P): number {
+  return Math.round(fitFontPx(text, px, (band[1] - band[0]) * W))
 }
 
 // ─── Start screen ─────────────────────────────────────────────────────────────
@@ -104,7 +104,7 @@ export function renderStartScreen(
 
   // Instruction
   const hintLines = ['Wave a hand over a glowing circle', 'or press 1 / 2  •  Space = last mode']
-  const hintPx = Math.min(...hintLines.map((l) => fit(l, clamp(W / 40, 13, 18), W)))
+  const hintPx = Math.min(...hintLines.map((l) => fit(l, clamp(W / 40, 13, 18), W, TEXT_BAND_LOW)))
   ctx.font = `${hintPx}px sans-serif`
   ctx.fillStyle = 'rgba(232,232,240,0.6)'; ctx.shadowBlur = 0
   hintLines.forEach((l, i) => ctx.fillText(l, W / 2, H * 0.9 + i * hintPx * 1.3))

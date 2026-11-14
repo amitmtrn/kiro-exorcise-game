@@ -100,3 +100,13 @@ Files: `src/ui/soundHint.ts`, `src/ui/seatCard.ts`, `src/ui/layout.ts`, `src/ui/
 - [x] 1P summary buttons cleared on entry; stray blank line in `hud.ts`; README test count.
 - [x] `npm test` and `npm run build` both clean.
 - [x] Commit: `fix(motion-ui-ergonomics): unbound hint timers, harness re-run, lease per visit, layout NITs`
+
+## T11 — Reach model
+Files: `src/ui/layout.ts`, `src/ui/screens.ts`, `src/ui/layout.test.ts`, `src/ui/layout.property.test.ts`, `tools/motion-harness/make_y4m.py`, `README.md`, spec docs
+
+- [x] Reach model in `layout.ts` (`reachFraction`, `REACH_NEAR` 0.369, `REACH_FAR` 0.221) and spec R9 / design section.
+- [x] 1P columns 12 % / 88 % → 30 % / 70 % (were 0.38 W from the player, out of reach at 2.5 m); 2P columns checked and unchanged (0.19 W / 0.15 W).
+- [x] Knock-ons: 1P text band [0.38, 0.62] above 47 % H, wide band below; radii 0.065 H / 0.06 W; `ROW_A` 0.19; onboarding hands follow `buttonLayout`; harness wave hovers at raw x = 70 %.
+- [x] Property test: every centre within the far-distance reach, outside the torso band, at or above 40 % height.
+- [x] `npm test` and `npm run build` both clean.
+- [x] Commit: `feat(motion-ui-ergonomics-T11): buttons within raised-hand reach at 2.5 m`

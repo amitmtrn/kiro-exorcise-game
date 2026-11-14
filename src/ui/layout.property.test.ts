@@ -3,6 +3,7 @@ import fc from 'fast-check'
 import {
   buttonLayout, areaButtons, textRects, muteRectOf, soundHintRect, rectsOverlap, circleRect,
   SCREENS_1P, SCREENS_2P, MAX_CENTRE_Y, CENTRE_BAND, buttonRadius, RING_OUTSET,
+  REACH_FAR, REACH_NEAR, PLAYER_CENTRE_1P, PLAYER_CENTRE_2P, FOV_DEG, FAR_M, NEAR_M, reachFraction,
 } from './layout'
 import type { ScreenId } from './layout'
 import { halfWidth, halfOffset } from '../game/halves'
@@ -28,6 +29,27 @@ describe('layout properties (motion-ui-ergonomics R1, R4, R5, R6)', () => {
         expect(Math.abs(b.cx - c)).toBeGreaterThanOrEqual(CENTRE_BAND * aw - 1e-9)
       }
     }), { numRuns: 400 })
+  })
+
+  it('every button centre is within the raised-hand reach at the FAR distance (R9)', () => {
+    fc.assert(fc.property(size, screenArb, optsArb, ({ W, H }, s, o) => {
+      for (const b of buttonLayout(s, W, H, o)) {
+        const c = (b.seat === null ? PLAYER_CENTRE_1P : PLAYER_CENTRE_2P[b.seat]) * W
+        // 1 px slack for odd-width halves
+        expect(Math.abs(b.cx - c) / W).toBeLessThanOrEqual(REACH_FAR + 1 / W)
+        // outside the head/torso band and at shoulder-to-overhead height
+        expect(Math.abs(b.cx - c) / (b.seat === null ? W : halfWidth(W))).toBeGreaterThanOrEqual(CENTRE_BAND - 1e-3)
+        expect(b.cy).toBeLessThanOrEqual(MAX_CENTRE_Y * H)
+      }
+    }), { numRuns: 400 })
+  })
+
+  it('reach model numbers: far (2.5 m, FOV 75°) ≈ 0.221, near (1.5 m, FOV 75°) ≈ 0.369 of the frame width', () => {
+    expect(REACH_FAR).toBeCloseTo(0.2214, 3)
+    expect(REACH_NEAR).toBeCloseTo(0.3689, 3)
+    expect(reachFraction(NEAR_M, FOV_DEG[0])).toBeCloseTo(0.4448, 3)
+    expect(reachFraction(FAR_M, FOV_DEG[0])).toBeCloseTo(0.2669, 3)
+    expect(REACH_NEAR).toBeGreaterThan(REACH_FAR)
   })
 
   it('inside the canvas and inside the owning half', () => {

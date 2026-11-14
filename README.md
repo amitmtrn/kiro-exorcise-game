@@ -25,7 +25,7 @@ npm run dev
 
 | Command | What it does |
 |---|---|
-| `npm test` | Run all 1114 unit tests (Vitest) |
+| `npm test` | Run all 1116 unit tests (Vitest) |
 | `npm run build` | Production build → `dist/` |
 | `npm run preview` | Preview the production build locally |
 
@@ -55,7 +55,7 @@ Pick **1 PLAYER** or **2 PLAYERS** on the title screen (wave over a button, or p
 
 | Input | Action |
 |---|---|
-| Wave a hand over a glowing circle for about half a second (keep it moving; a still hand does not press) | Start / Next / Retry / Menu / card buttons (hands-only play). Buttons sit at the left and right edges of the upper part of the view, at shoulder-to-overhead height, never at your body or legs. A ring fills while your hand keeps moving over the circle; MENU and SAVE take about a second. In 2 PLAYERS each player has their own buttons in their half, and either player can press NEXT / PLAY AGAIN / MAIN MENU |
+| Wave a hand over a glowing circle for about half a second (keep it moving; a still hand does not press) | Start / Next / Retry / Menu / card buttons (hands-only play). Buttons sit about an arm's length to the left and right of your body (30 % / 70 % of the width in 1 PLAYER), at shoulder-to-overhead height, never at your body or legs, and are reachable with a raised hand from 2.5 m without walking (reach model in the `motion-ui-ergonomics` spec, R9). A ring fills while your hand keeps moving over the circle; MENU and SAVE take about a second. In 2 PLAYERS each player has their own buttons in their half, and either player can press NEXT / PLAY AGAIN / MAIN MENU |
 | `Space` | Start from the title screen (in the last chosen mode) |
 | `1` / `2` | Start a 1 PLAYER / 2 PLAYERS game from the title screen |
 | `M` or the 🔊 button (top-right; top centre in 2 PLAYERS) | Mute / unmute |
@@ -102,7 +102,7 @@ Every feature was planned as a Kiro spec before implementation:
 | `two-player/` | Local split-screen mode on one webcam: left / right halves with mirror-correct ownership, per-player state, shared stage clock, OUT / CLEARED, winner or tie |
 | `balancer/` | Local stdio MCP server for the motion harness and a report-only `balancer` playtest-tuner agent |
 | `exorcist-card/` | Optional shareable trading card (mirrored snapshot, spooky frame, rank title, stats) composed and downloaded locally on game over / victory |
-| `motion-ui-ergonomics/` | Raised-hand button zones (upper edges, never torso or legs) from one pure layout module, coverage + dwell + decay activation with a progress ring, entry lockout and release latch on every screen, one action per frame, per-half 2P copies, sound hint moved to the top, onboarding hand targets from the layout |
+| `motion-ui-ergonomics/` | Raised-hand button zones (an arm's length from the body, within reach at 2.5 m, never torso or legs) from one pure layout module, coverage + dwell + decay activation with a progress ring, entry lockout and release latch on every screen, one action per frame, per-half 2P copies, sound hint moved to the top, onboarding hand targets from the layout |
 | `two-player-card/` | Per-player Exorcist Card on the 2P end screen: own half of the camera, own highlight moment and stats, P1 / P2 label, WINNER / TIE badge, per-half wave / click controls |
 
 Each spec has `requirements.md`, `design.md`, and `tasks.md`. Writing requirements and design before tasks surfaced design gaps (e.g. skull penalty rules, hitbox coordinate system, mirror parity bug) that would have been painful to fix mid-implementation.

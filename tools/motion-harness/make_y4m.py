@@ -30,8 +30,8 @@ with open(out, 'wb') as f:
                 ph = ((t - 4.0) % period) / period
                 frac = ph * 2 if ph < 0.5 else 2 - ph * 2
                 cx, cy = int(-HW + frac * (W + 2 * HW)), H // 2
-            else:  # wave side-to-side over the 1 PLAYER button, ~2 Hz. Display (12 %, 17 %) is mirrored: raw x = 88 %
-                cx = int(0.88 * W + 8 * np.sin(2 * np.pi * 2 * t))
+            else:  # wave side-to-side over the 1 PLAYER button, ~2 Hz. Display (30 %, 17 %) is mirrored: raw x = 70 %
+                cx = int(0.70 * W + 8 * np.sin(2 * np.pi * 2 * t))
                 cy = int(0.17 * H + 4 * np.sin(2 * np.pi * 1 * t))
             x0, x1 = max(0, cx - HW // 2), min(W, cx + HW // 2)
             y0, y1 = max(0, cy - HH // 2), min(H, cy + HH // 2)
