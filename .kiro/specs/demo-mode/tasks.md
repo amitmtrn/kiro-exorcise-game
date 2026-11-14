@@ -69,3 +69,18 @@ Files: `README.md`, `tools/motion-harness/README.md`, `tools/motion-harness/run.
 - [ ] Any key or click leaves demo and shows the normal title (camera prompt appears); `G` on the title screen goes back to demo.
 
 Pre-check (automated, headless Chrome 1280×720, `?demo=1&seed=7`, not a substitute for the manual pass): title, playing HUD with the DEMO badge clear of score and timer, ghost-hand cursor, NEXT ring filling on the summary, YOU WIN (98,025), card preview with the DEMO chip and the placeholder portrait (via `&stage=5`), SAVE never approached, return to the title; Space left demo, removed the demo parameters from the URL and the normal flow requested the camera (no camera in headless: the camera-help screen). Still manual: the real permission prompt and `G` back into demo on a real title screen.
+
+## T9 — Review fixes
+Files: `src/demo/params.ts`, `src/demo/runtime.ts`, `src/demo/driver.ts`, `src/game/loop.ts`, `src/main.ts`, `tools/motion-harness/run.sh`, tests next to each, README
+
+- [ ] Browser keys (`F1`–`F12`, Ctrl / Meta / Alt chords) are passive in demo: no leave, no `preventDefault`, so a keyboard reload stays in demo and `F11` works (R1.4).
+- [ ] Real-time pace: accumulate real elapsed time and run one fixed step per full real step, so the pace is 60 steps/s on any display ≥ 60 Hz; stall cap `maxGapMs` (R5.1).
+- [ ] `leaveDemo()` stops the music and sets `demoLeft`, so the normal flow runs even if `replaceState` fails (R1.5).
+- [ ] `stopLoop()` disposes the demo runtime; a throwing demo tick stops the loop first (design).
+- [ ] Driver: after 3 bursts at EXORCIST CARD without the preview opening, press MAIN MENU (R4.7).
+- [ ] `speed` outside 1–3 or not a plain decimal falls back to the default instead of clamping (R1.1).
+- [ ] Spec wording aligned with the code: lunger reaction 150–230 ms (R4.2), retreat 3.2 r / 600 ms, `DemoView` fields, portrait description (R6.3).
+- [ ] `run.sh`: empty `CAMERA_FLAGS` expansion safe under `set -u` on bash < 4.4.
+- [ ] Headless simulation: `cancelAnimationFrame` stub drops the queued callback, so a stopped loop no longer ticks into the next simulated run (the determinism test compared two runs that shared a stale loop).
+- [ ] Tests for each of the above; `npm test` and `npm run build` both clean.
+- [ ] Commits: `fix(demo-mode): ...`

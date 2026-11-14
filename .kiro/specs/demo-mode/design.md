@@ -32,7 +32,8 @@ as always.
 ```ts
 export const DEMO = {
   stepMs: 1000 / 60,   // fixed real step per processed tick
-  minFrameMs: 12,      // rAF frames sooner than this after the last processed one are skipped
+  stepSlackMs: 2,      // a frame this much short of a full real step still runs it (jitter at 60 Hz)
+  maxGapMs: 100,       // one frame gap counts for at most this much real time; longer gaps clear the bank
   timeScale: 2,        // game / driver / clock advance stepMs * scale per processed tick
   frameMs: 1000 / 30,  // synthetic camera frame interval (demo time)
   defaultSeed: 7,
@@ -42,8 +43,13 @@ export const DEMO = {
 parseDemoParams(search: string): { demo: boolean; seed: number; stage: number; speed: number }
 ```
 
-`demoKeyAction`: `g` / `G` without Ctrl/Meta/Alt → `toggle`; bare modifier keys and `m` / `M`
-→ `ignore`; anything else → `exit`. Used only while demo is on (the toggle-on case is
+`parseDemoParams`: `seed` and `stage` must be plain integers, `speed` a plain decimal
+(`^\d{1,3}(\.\d{1,6})?$`); a value outside its range is invalid and takes the default (no clamping).
+
+`demoKeyAction`: `g` / `G` without Ctrl/Meta/Alt → `toggle`; bare modifier keys, `m` / `M`,
+`F1`–`F12` and every Ctrl / Meta / Alt chord → `ignore`; anything else → `exit`. `ignore`
+maps to `routeDemoKey` → `pass`: no `preventDefault`, so the browser keeps reload, full
+screen and dev tools. The normal key handler then acts only on a plain `M` while demo is on. Used only while demo is on (the toggle-on case is
 decided by `main.ts`, which also checks that the title screen is showing).
 
 ### Synthetic camera (`camera.ts`)
@@ -79,9 +85,7 @@ interface DemoView {
   enemies: readonly Enemy[]
   w: number; h: number
   now: number            // game clock (performance.now, patched in demo)
-  summaryShownMs: number
   cardOpen: boolean; hasPhoto: boolean; noPhoto: boolean
-  lives: number
 }
 class DemoDriver {
   constructor(seed: number)
@@ -147,8 +151,9 @@ boss phases 2 and 3, while the boss is shielded, the hand pre-positions at
 `sinceEntry`. A `Press` goes `wait → glide → circle → retreat → rest → glide …`:
 `wait` until `sinceEntry ≥ lockMs + 300` (lockMs = `ENTRY_LOCK_MS`, or
 `PREVIEW_INPUT_DELAY_MS` for the preview, from the existing exports); `circle` lasts
-`burstMs` (2400, MAIN MENU 3200); `retreat` moves 3 radii away and rests 500 ms so the
-release latch clears. The target button comes from `buttonLayout(screen, w, h, opts)`
+`burstMs` (2400, MAIN MENU 3200); `retreat` moves 3.2 radii away and rests 600 ms (`RETREAT_REST_MS`) so the
+release latch clears. After `OFFER_BURSTS_MAX` (3) bursts at `offer` without the preview
+opening, the victory target becomes `menu` (fallback so the loop never stalls). The target button comes from `buttonLayout(screen, w, h, opts)`
 (`start` → `one`; `summary` → `next`; `victory` → `offer` then, with the preview shown,
 hold, `close`, then `menu`; `gameover` → `retry`). The driver never picks `save`. When the
 phase returns to `start` after a run it calls `reset(seed)`.
@@ -166,8 +171,13 @@ class DemoRuntime {
 }
 ```
 
-- `beginTick`: skips the frame when `timestamp − lastProcessed < minFrameMs`; otherwise
-  `deltaMs = stepMs · speed`, advances the demo clock by `deltaMs`.
+- `beginTick`: adds the real gap since the previous rAF timestamp (first frame: one
+  `stepMs`; capped at `maxGapMs`, negative → 0) to an accumulator. Below
+  `stepMs − stepSlackMs` it returns null (skip). Otherwise it runs one step:
+  the accumulator keeps the remainder, clamped to `[−stepSlackMs, stepMs]` (a stall
+  longer than `maxGapMs` resets it to 0), `deltaMs = stepMs · speed`, and the demo clock
+  advances by `deltaMs`. `deltaMs` never depends on the timestamps, so the run stays a
+  pure function of `(seed, speed, canvas size)`; only its real-time pace follows the clock.
 - The clock starts at `CLOCK_START_MS = 2^40` for every runtime. All clock values then share
   one binade and one ulp, so `clock + step` rounds the same way in every run and differences
   are bit-identical; and it is far above any real `performance.now()`. `lockEndButtons(clock)`
@@ -178,7 +188,9 @@ class DemoRuntime {
 - `sfx.ts` noise uses a private xorshift generator: sound effects run in the browser and are
   mocked in tests, so they must not consume the seeded `Math.random` stream.
 - On construction it installs `performance.now = () => clock` and
-  `Math.random = mulberry32(seed)`; `dispose()` puts both back (also on `stopLoop`).
+  `Math.random = mulberry32(seed)`; `dispose()` puts both back. `startLoop` remembers the
+  runtime and `stopLoop()` disposes it, whoever calls `stopLoop`; an exception in a demo
+  tick calls `stopLoop()` before rethrowing, so the patches never outlive the loop.
   `performance.now()` is what the enemy factories stamp `spawnedAt` with and what the loop
   passes as `now` to the motion buttons and hit resolution, so the whole run lives on one
   deterministic clock.
@@ -223,8 +235,10 @@ onboarding state is created on the first normal boot only, so demo mode never re
 onboarding flag. Demo: load the title font, skip
 `initWebcam` / onboarding, create `DemoRuntime`, `startLoop(null, …, stage, { demo })`.
 A `keydown` / `pointerdown` handler (capture phase, before the existing ones) applies
-`demoKeyAction` while demo is on: `exit` → `leaveDemo()` (stop loop, `dispose()`, `boot()` normal,
-`history.replaceState` removes the demo parameters so a reload is the normal game); the key event
+`demoKeyAction` while demo is on: `exit` → `leaveDemo()` (stop loop, `dispose()`, `stopMusic()`,
+`history.replaceState` removes the demo parameters so a reload is the normal game, then
+`boot()`; a module flag `demoLeft` makes every later `boot()` ignore the URL's demo
+parameters, so a failing `replaceState` cannot send it back into demo); the key event
 is consumed so the key that left demo does not also start a game. `G` on the title screen
 (`isStartScreenVisible()` exported by the loop) in a normal game stops the loop, releases the
 camera (`stopWebcam`) and starts demo. The sound hint is kept hidden while demo is on.
@@ -241,12 +255,13 @@ between `new DemoRuntime` and `dispose()`.
 
 | File | Covers |
 |---|---|
-| `demo/params.test.ts` | `?demo=1` / `0` / junk, `seed`, `stage`, `speed` clamping; key table (`g`, modifiers, `m`, others) |
+| `demo/params.test.ts` | `?demo=1` / `0` / junk, `seed`, `stage`, `speed` range and form (out of range / hex / exponent → default); key table (`g`, modifiers, `m`, `F1`–`F12`, Ctrl / Meta chords, others) |
+| `demo/runtime.test.ts` | fixed step, 60 steps per real second at 60–240 Hz, jitter tolerance, stall cap, clock / `Math.random` patch and restore |
 | `demo/camera.test.ts` | frame size and layout, duplicate ticks (`cur === prev`, `changed` false), new frames (`changed` true), mask points on the 4-px grid around the hand, resting hand → no points, noise below threshold, determinism |
 | `demo/driver.test.ts` | determinism per seed, different seeds differ, reaction delay, curved swipe passes through the target, deliberate misses occur and then hit, button script (wait for lock, circle, retreat, never `save`), skull rule, run script transitions |
 | `demo/driver.property.test.ts` | any enemy layout: the hand never moves within the skull margin; positions stay on screen; same inputs → same outputs |
 | `demo/overlay.test.ts` | badge text and position, ghost hand draws, portrait draws (recording context) |
 | `demo/state.persist.test.ts` | demo scores never reach `localStorage`; restored after dispose |
 | `demo/demo.sim.test.ts` | headless full run through the real `startLoop` (fake clock, recording context, no canvas, mocked audio): victory and card preview within a bound, no skull hit, combo x4, DEMO badge every tick of every phase, no `getUserMedia` / `fetch` / XHR / `sendBeacon`, nothing stored, same result twice, loops to the title |
-| `demo/main.demo.test.ts` | `main.ts` against a stub DOM: `?demo=1` never calls `initWebcam` / `getUserMedia` / onboarding / network and draws DEMO; `M` stays in demo; any other key or a click leaves (key used up, click does not reach the mute button, clock and `Math.random` restored, URL cleaned, camera requested); `?demo=0` normal; `G` on the normal title releases the camera and starts demo |
-| `demo/normal.test.ts` | normal `startLoop` with a video: camera path used, no demo badge, no clock / `Math.random` patch, `saveHighScore` persists |
+| `demo/main.demo.test.ts` | `main.ts` against a stub DOM: `?demo=1` never calls `initWebcam` / `getUserMedia` / onboarding / network and draws DEMO; `M` stays in demo; `F5` / `F11` / `F12` / Ctrl+R / Cmd+R stay in demo without `preventDefault`; leaving stops the music and works when `replaceState` throws; any other key or a click leaves (key used up, click does not reach the mute button, clock and `Math.random` restored, URL cleaned, camera requested); `?demo=0` normal; `G` on the normal title releases the camera and starts demo |
+| `demo/normal.test.ts` | normal `startLoop` with a video: camera path used, no demo badge, no clock / `Math.random` patch, `saveHighScore` persists; `stopLoop` and a throwing demo tick dispose the runtime |

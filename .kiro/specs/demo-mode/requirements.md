@@ -25,8 +25,8 @@ demo toggle is **`G`** ("ghost hand").
 **R1.1** `?demo=1` in the page URL starts demo mode at page load. `?demo=0` (or
 no `demo` parameter) starts the normal game. Optional parameters: `seed=N`
 (non-negative integer, default `7`, a seed that plays a clean run at common window
-sizes), `stage=N` (1–5, default `1`: the stage the run starts at) and `speed=N` (1–3, default `DEMO.timeScale` = 2; above 3 the 66 ms game step is too coarse for the scripted hand). A missing or invalid
-value falls back to its default; nothing throws.
+sizes), `stage=N` (1–5, default `1`: the stage the run starts at) and `speed=N` (a plain decimal number from 1 to 3, default `DEMO.timeScale` = 2; above 3 the 66 ms game step is too coarse for the scripted hand). A missing or invalid
+value, including an out-of-range one (`speed=9`, `speed=0`) and non-decimal forms (`0x2`, `1e1`, `+2`), falls back to its default; nothing is clamped and nothing throws.
 
 **R1.2** On the title screen of a normal game, `G` (no Ctrl / Meta / Alt) switches
 demo mode on. In demo mode `G` switches it off. `G` in a normal game anywhere but
@@ -37,12 +37,17 @@ the title screen does nothing.
 screen. Loading with `?demo=0` is the same normal game as no parameter.
 
 **R1.4** Passive keys do not leave demo mode: bare modifier keys (`Shift`,
-`Control`, `Alt`, `Meta`) and `M` / `m` (mute). `M` is a key press, so it also
+`Control`, `Alt`, `Meta`), `M` / `m` (mute), the function keys `F1`–`F12`, and any
+chord with Ctrl, Meta (Cmd) or Alt (including Ctrl+G). These belong to the browser
+(reload, full screen, dev tools, tab switching): their default action is not
+prevented, so reloading a demo page by keyboard reloads the demo, and `F11` gives a
+full-screen take. Of the passive keys only `M` reaches the game. `M` is a key press, so it also
 unlocks audio for a take with sound (see R7.2).
 
 **R1.5** Leaving demo mode stops the demo loop, restores everything demo mode
-replaced (R3.3, R6.1), and starts the normal flow (camera permission, onboarding
-as usual). Entering demo mode from the title screen releases the camera that the
+replaced (R3.3, R6.1), stops the demo's music, and starts the normal flow (camera permission, onboarding
+as usual). The normal flow then runs even if the URL could not be cleaned (a failing
+`history.replaceState`): demo mode cannot be re-entered by a later boot of the page session. Entering demo mode from the title screen releases the camera that the
 normal flow had opened.
 
 ---
@@ -99,7 +104,8 @@ positions. It has no DOM and no canvas access.
 **R4.2** *Aiming.* While playing it targets a hittable enemy (`isHittable`) that is
 on screen and past the spawn grace, most urgent first (closest to the centre; ghosts
 and lungers before harmless bats and candy). It reacts after a delay of 180–320 ms
-from the first moment the enemy is on screen. During a boss wind-up it reacts after
+from the first moment the enemy is on screen (150–230 ms for a lunger, which must be
+met before it winds up). During a boss wind-up it reacts after
 the "!" and glow have shown (phase 2: 300–400 ms, phase 3: 120–180 ms), so the telegraph
 is visible before the hit.
 
@@ -131,7 +137,9 @@ a normal run reaches combo x4 (10 consecutive banishes) at least once.
 screen's entry lockout has passed, then moves in a continuous circle over it. The
 button's normal dwell (650 ms, 1000 ms for MAIN MENU / SAVE) applies; if the screen
 has not changed after a burst, the hand leaves the circle, rests, and tries again
-(release latch). It never presses SAVE.
+(release latch). It never presses SAVE. If EXORCIST CARD has not opened the preview
+after three bursts, the hand gives up on it and presses MAIN MENU, so the attract
+loop cannot stall on the victory screen.
 
 **R4.8** *Run script.* Title: 1 PLAYER. Stage title: wait. Playing: R4.2–R4.6.
 Summary: NEXT. Victory: wait ~2.5 s, press EXORCIST CARD, hold the preview ~4.5 s,
@@ -145,9 +153,15 @@ run (attract loop).
 
 **R5.1** Demo mode runs the game on a fixed step of `DEMO.stepMs` (1000 / 60) of
 real time multiplied by the time scale (default 2.0). Every game and driver timer is
-`deltaMs`-based; the scale only multiplies the `deltaMs` fed in. Frames that arrive
-sooner than `DEMO.minFrameMs` after the last processed one (high-refresh displays)
-are skipped.
+`deltaMs`-based; the scale only multiplies the `deltaMs` fed in. Real elapsed time
+between animation frames is accumulated, and a frame runs one step when a full real
+step has accumulated (2 ms slack for timer jitter); other frames are skipped. The
+pace is therefore 60 steps per real second on any display of 60 Hz or more (75, 90,
+144, 240 Hz included), so `speed=1` is real-time play and the run length does not
+depend on the monitor. At most one step runs per frame (a display below 60 Hz, or a
+dropped frame, slows the run rather than making it jump), and a gap longer than
+`DEMO.maxGapMs` (100 ms: a hidden tab or a stall) counts as one step and clears the
+accumulator.
 
 **R5.2** The demo clock (`performance.now()` while demo mode is on) advances by the
 same scaled step per processed tick, and `Math.random` is a PRNG seeded from `seed`
@@ -175,7 +189,7 @@ drawn where the synthetic motion is, above everything else except the badge, so
 viewers understand the input.
 
 **R6.3** The Exorcist Card preview uses a procedurally drawn placeholder portrait
-(silhouette with a ghost-white face on a dark scene) in place of a camera snapshot,
+(a dark head-and-shoulders silhouette with a pale ghost-white rim light on a dark graveyard scene) in place of a camera snapshot,
 and the card carries the chip "DEMO". The card is never saved or downloaded in demo
 mode (the download hook is a no-op).
 
