@@ -67,9 +67,9 @@
 - [x] Commit: `feat(playtest-polish-T9): reduced flashing`
 
 ## T10 — Docs
-- [ ] README: settings, URL parameters (`quality`, `cb`, `bigtext`, `reducedflash`), quality levels, controls table (`O`), spec table row and count, measured benchmark numbers, audio levels note, project structure.
-- [ ] `npm test` and `npm run build` both clean.
-- [ ] Commit: `docs(playtest-polish-T10): README`
+- [x] README: settings, URL parameters (`quality`, `cb`, `bigtext`, `reducedflash`), quality levels, controls table (`O`), spec table row and count, measured benchmark numbers, audio levels note, project structure.
+- [x] `npm test` and `npm run build` both clean.
+- [x] Commit: `docs(playtest-polish-T10): README`
 
 ## T11 — Manual smoke test (not checkable here)
 - [ ] Throttle the CPU (DevTools 6× slowdown): level steps down within a few seconds, hits still register, motion buttons still fill.
