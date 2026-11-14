@@ -99,3 +99,10 @@ Files: `src/game/halves.ts`, `src/game/loop.ts`, `src/game/twoPlayer.ts`, `src/u
 - [x] `npm test` and `npm run build` both clean (887 passed).
 - [x] Commit: `fix(two-player): third review fixes`
 
+
+## T10 — Merge integration with exorcist-card
+Files: `src/game/loop.ts`, `src/main.ts`, `src/ui/screens.ts`, `src/game/loop.card.test.ts`, `README.md`, both `design.md`
+
+- [x] Both features kept: 1P card offer on game over / victory, 2P split-screen end screen.
+- [x] Card is 1P only: no card bookkeeping, snapshot or input in 2P; test added.
+- [x] Decision recorded in both specs' `design.md`.

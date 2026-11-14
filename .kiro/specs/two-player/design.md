@@ -226,3 +226,10 @@ players hit — it needs cross-half collision, the thing R1.4 forbids.
 - `seatStatus` is `cleared` for any finished seat while the session is `playing`; `won` /
   `summary` only after the session leaves `playing`.
 - `isTwoPlayerActive` is cleared immediately on MAIN MENU and at `startLoop`.
+
+## Interaction with the exorcist card
+Merged with `origin/main`: the exorcist card is offered in 1P only. The 2P end screen shows
+both scores and the winner / tie with its own buttons and no card offer. While a 2P game is
+on screen the loop does not run card bookkeeping (no run stats, no snapshot), and card keys
+(C / S / N / Enter / Esc) and clicks are ignored. The mute tap target follows
+`isTwoPlayerActive()` as before. A per-player 2P card is left to a later spec.

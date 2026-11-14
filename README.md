@@ -25,7 +25,7 @@ npm run dev
 
 | Command | What it does |
 |---|---|
-| `npm test` | Run all 883 unit tests (Vitest) |
+| `npm test` | Run all 994 unit tests (Vitest) |
 | `npm run build` | Production build → `dist/` |
 | `npm run preview` | Preview the production build locally |
 
@@ -43,6 +43,8 @@ Five Kung Foo-style stages, each 60 seconds, each with its own enemy mix and mus
 - **Stage 5 boss** — a hat-wearing giant ghost with a 10-hit health bar and three phases. It summons ghosts while swaying along the top; below 66 % health it hides behind a shield and lunges at you after a glowing, shaking 0.6 s wind-up (hit it then!); below 33 % it enrages with faster lunges and more minions. Beat it to win the game and see your total score; if the timer runs out first, it's game over.
 - 3 lives. Consecutive hits build a **combo multiplier** (×2 at 3 hits, ×3 at 6, ×4 at 10+; an enemy reaching the centre resets it) and the screen shakes from a 3-hit streak. Enemies move at the same real-time speed on any display refresh rate and scale with screen height; the Cursed Skull leaves after 4 s. A stage-clear screen rates you with stars, and your high score is saved locally.
 
+**Exorcist Card.** On the game-over and victory screens you can choose "📸 EXORCIST CARD" (wave, click or `C`) to make a trading card with a snapshot from your best moment (best combo or the boss defeat), a rank title from *Apprentice Exorcist* to *Grand Exorcist*, your score, best combo, stage and banish count. It is only made when you ask for it, drawn on a canvas on your device and saved with a normal download. The snapshot is kept in memory only, never stored or uploaded (no network request is made), and is dropped when you leave the screen or retry. A *no photo* silhouette variant is one button away.
+
 Hit detection uses **frame differencing**: fast motion inside an enemy's hitbox registers as a hit — the same technique as the original EyeToy, no ML required.
 
 ### Two players (split screen)
@@ -58,6 +60,7 @@ Pick **1 PLAYER** or **2 PLAYERS** on the title screen (wave over a button, or p
 | `1` / `2` | Start a 1 PLAYER / 2 PLAYERS game from the title screen |
 | `M` or the 🔊 button (top-right) | Mute / unmute |
 | `D` | Toggle the hitbox + motion-mask debug overlay |
+| `C` (game over / victory) | Open the Exorcist Card preview; then `S` / `Enter` save, `N` photo ↔ silhouette, `Esc` close |
 
 ### Testing hit detection without a webcam
 
@@ -97,10 +100,11 @@ Every feature was planned as a Kiro spec before implementation:
 | `onboarding/` | First-run silhouette guide with framing check, 3-step how-to, privacy line, camera-denied help, self-hosted Creepster font |
 | `two-player/` | Local split-screen mode on one webcam: left / right halves with mirror-correct ownership, per-player state, shared stage clock, OUT / CLEARED, winner or tie |
 | `balancer/` | Local stdio MCP server for the motion harness and a report-only `balancer` playtest-tuner agent |
+| `exorcist-card/` | Optional shareable trading card (mirrored snapshot, spooky frame, rank title, stats) composed and downloaded locally on game over / victory |
 
 Each spec has `requirements.md`, `design.md`, and `tasks.md`. Writing requirements and design before tasks surfaced design gaps (e.g. skull penalty rules, hitbox coordinate system, mirror parity bug) that would have been painful to fix mid-implementation.
 
-All seventeen specs are implemented. Every task in `tasks.md` is ticked except the manual smoke tests (a webcam playthrough, a two-person split-screen playthrough, the music-v2 listening test, enabling GitHub Pages in the repo settings), and `boss-combo/` carries a status note explaining it was superseded by `stages/`.
+All eighteen specs are implemented. Every task in `tasks.md` is ticked except the manual smoke tests (a webcam playthrough, a two-person split-screen playthrough, the music-v2 listening test, enabling GitHub Pages in the repo settings), and `boss-combo/` carries a status note explaining it was superseded by `stages/`.
 
 ### Kiro hooks (`.kiro/hooks/`)
 Standalone `v1` hook files, loaded by Kiro IDE and Kiro CLI V3. Spec: `.kiro/specs/hooks/`.
@@ -184,6 +188,11 @@ src/
       waveSpawn.ts      Builds path-following enemies (ghost, bat, pumpkin, candy)
       reach.ts          "Reached its target" rule (never for flybys or in the bonus round)
       candy.ts          Harmless bonus-round target
+  card/
+    layout.ts           Pure card layout, fitText, coverRect (property-tested to stay inside the card)
+    snapshotStore.ts    One in-memory snapshot slot (strictly-better replacement, discard)
+    session.ts          Run stats + snapshot + preview lifecycle (discarded on retry / menu)
+    snapshot.ts         Mirrored snapshot grab; draw.ts card art; download.ts local PNG download
   ui/
     hud.ts              Hearts, timer, stage, score, combo (pulse), mute button —
                         outlined glow text, clamp(W/20, 24, 48) font
@@ -218,6 +227,7 @@ src/
     music-v2/           3-voice look-ahead music sequencer spec
     two-player/         Local split-screen two-player mode spec
     balancer/           Harness MCP server + balancer agent spec
+    exorcist-card/      Shareable local-only Exorcist Card spec
   settings/mcp.json     Workspace MCP registration (motion-harness, stdio, relative path)
   agents/balancer.json  Report-only playtest-tuner agent
   hooks/                test-on-save.json, spec-drift-check.json, readme-test-count.json (save/create/delete)

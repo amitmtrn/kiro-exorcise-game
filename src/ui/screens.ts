@@ -11,6 +11,7 @@ import { MotionButton } from './motionButton'
 import { TITLE_FONT_FAMILY } from './fonts'
 import { getPlayerMode } from '../game/playerMode'
 import type { PlayerMode } from '../game/playerMode'
+import { renderCardOffer, endButtonsLive, registerEndButtonReset } from './cardScreen'
 
 // ─── Motion buttons (persistent instances reused across frames) ───────────────
 
@@ -29,6 +30,10 @@ let menuBtn: MotionButton | null = null
 let nextBtn: MotionButton | null = null
 let winBtn: MotionButton | null = null
 let winMenuBtn: MotionButton | null = null
+
+registerEndButtonReset(() => {
+  for (const b of [retryBtn, menuBtn, winBtn, winMenuBtn]) b?.reset()
+})
 // Victory: ignore the buttons briefly so the wave that beat the boss can't trigger them.
 let victoryShownAt: number | null = null
 const VICTORY_INPUT_DELAY_MS = 1500
@@ -212,6 +217,7 @@ export function renderGameOver(
   now: number,
   onRetry: () => void,
   onMenu: () => void,
+  onCard?: () => void,
 ): void {
   const { width: W, height: H } = ctx.canvas
 
@@ -246,17 +252,22 @@ export function renderGameOver(
   // Retry button
   if (!retryBtn) retryBtn = new MotionButton(W * 0.35, H * 0.72, clamp(W / 9, 48, 76), '↩ RETRY')
   else { retryBtn.cx = W * 0.35; retryBtn.cy = H * 0.72 }
-  const r1 = retryBtn.update(now)
+  const live = endButtonsLive(now)
+  const r1 = retryBtn.updateGated(now, live)
   retryBtn.render(ctx, now)
 
   // Menu button
   if (!menuBtn) menuBtn = new MotionButton(W * 0.65, H * 0.72, clamp(W / 9, 48, 76), '⌂ MENU')
   else { menuBtn.cx = W * 0.65; menuBtn.cy = H * 0.72 }
-  const r2 = menuBtn.update(now)
+  const r2 = menuBtn.updateGated(now, live)
   menuBtn.render(ctx, now)
+
+  // Exorcist Card offer (exorcist-card R1.1): only an explicit choice makes a card.
+  const cardChosen = renderCardOffer(ctx, now, H * 0.72, clamp(W / 9, 48, 76))
 
   ctx.restore()
 
+  if (cardChosen) { onCard?.(); return }
   if (r1 === 'triggered') onRetry()
   if (r2 === 'triggered') onMenu()
 }
@@ -274,6 +285,7 @@ export function renderVictory(
   now: number,
   onPlayAgain: () => void,
   onMenu: () => void,
+  onCard?: () => void,
 ): void {
   const { width: W, height: H } = ctx.canvas
   if (victoryShownAt === null) victoryShownAt = now
@@ -319,13 +331,16 @@ export function renderVictory(
   else { winMenuBtn.cx = W * 0.65; winMenuBtn.cy = H * 0.74 }
   // Buttons ignore motion (no filling) until the input lockout ends.
   const live = t >= VICTORY_INPUT_DELAY_MS
-  const r1 = live ? winBtn.update(now) : null
+  const live2 = live && endButtonsLive(now)
+  const r1 = winBtn.updateGated(now, live2)
   winBtn.render(ctx, now)
-  const r2 = live ? winMenuBtn.update(now) : null
+  const r2 = winMenuBtn.updateGated(now, live2)
   winMenuBtn.render(ctx, now)
+  const cardChosen = renderCardOffer(ctx, now, H * 0.74, r, live)
   ctx.restore()
 
   if (!live) return
+  if (cardChosen) { onCard?.(); return }
   if (r1 === 'triggered') onPlayAgain()
   else if (r2 === 'triggered') onMenu()
 }
