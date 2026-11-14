@@ -147,3 +147,41 @@ the screen's right. No code change unless it fails.
 quality level; the adaptive level only changes the motion grid
 (`gridForLevel`), the effects (`atmosphereOn`, `thinParticles`) and the
 `captureFrame` copy. A loop test at levels 0–3 checks one full-size draw per tick.
+
+## 8. The audio stacking "flake" (operator review)
+
+`src/audio/recipes.test.ts` "any three different SFX at any offset stay under 0 dBFS
+with the music peak" failed in a full run and passed on reruns, because it ran only
+120 random cases. At `numRuns` 20000 it fails with the counterexample
+`[['lifeLost','shield','ghostHit'],[37,80,83],2]` (seed 1120058258): peak 1.0006.
+A scan of the offsets 0–100 ms in 1 ms steps finds 1.055 for the same three sounds.
+
+Root cause: `gainFor` normalised only by RMS (−22 dBFS) and a per-sound −3 dBFS
+peak ceiling. The two noise-based sounds have a high crest factor, so at RMS −22
+their peaks were large: `ghostHit` 0.319 and `shield` 0.300 (linear, after gain),
+against 0.14–0.24 for the rest. The music worst-case peak is 0.260. Three
+sounds each allowed up to −3 dBFS (0.708) can never be proven to stack below 1.0;
+the old test only passed because the shipped table happened to leave the sum of
+the three largest peaks (0.319 + 0.300 + 0.236 + 0.260 = 1.115) off the timing where
+they coincide. `shield` came with more-content and was never checked against the
+stack model; `lifeLost` is now also the third-largest peak and fires more often
+with the grace flow, so the case is reachable in play (the master limiter would
+still catch it, but the pre-bus bound of playtest-polish R6.2 was broken).
+
+Fix (`recipes.ts`): a third constraint in `gainFor`, `stackPeakCeil() =
+(1 − musicPeak·MUSIC_GAIN − STACK_MARGIN) / 3` = 0.240 (−12.4 dBFS, margin 0.02).
+With every SFX peak ≤ 0.240 the sum of any three peaks plus the music peak is at
+most 0.98, whatever the offsets, so the bound holds by construction. Only two table
+entries change: `ghostHit` 1.25 → 0.93 (RMS −24.6 dBFS) and `shield` 1.03 → 0.82
+(RMS −24.0 dBFS). All others keep their gains and their −22 dBFS RMS. The 0 dBFS
+bound is unchanged.
+
+Tests: the exact counterexample; a deterministic check that every SFX peak is
+≤ the stack ceiling and the top three plus music ≤ 0.98; every pair and triple of
+different SFX on a 25 ms offset grid for all combo tiers (about 10 000 mixes, a
+few seconds, so not the "under 1 s" a 5 ms grid would need: that is about 250 000
+mixes and about a minute); the random property raised from 120 to 300 runs. It was run once at 20000 runs with the failing seed and
+passes. The normalisation test now uses the effective ceiling to decide "peak
+limited". The loudness targets in `playtest-polish/` design (RMS −22, peak ≤ −3 dBFS,
+music 6 dB under) are unchanged for every sound except these two, which are
+peak-limited by the stack ceiling; the design note there says so.

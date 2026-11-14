@@ -166,6 +166,7 @@ Normalisation rule (`gainFor`): `min(10^(−22/20) / rms, 10^(−3/20) / peak)`,
 produced with this function and rounded to 2 decimals; a test recomputes it and
 checks every entry is within 1.5 dB of the rule, and that the post-gain peak is
 ≤ −3 dBFS before the bus and RMS ≈ −22 dBFS (or peak-limited).
+A third limit (playtest1-fixes item 8): no SFX peak above `stackPeakCeil()` (0.240, −12.4 dBFS), so any three stacked sounds plus the music peak stay below 0 dBFS. `ghostHit` and `shield` are limited by it (RMS −24.6 / −24.0 dBFS).
 
 Music is a graph of scheduled voices, not a buffer, so its level is an analytic
 estimate: per voice, `rms² ≈ peak² · duty / 2` (sine-equivalent), summed

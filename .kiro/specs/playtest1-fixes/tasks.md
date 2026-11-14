@@ -51,3 +51,18 @@ Files: `README.md`, `docs/KIRO.md`
 - [ ] Lose the last heart: freeze, GAME OVER, then the name screen about 1.5 s later.
 - [ ] Name screen: wave OK at once (finishes); ◄ / ► change the highlighted letter; OK saves.
 - [ ] Card: CLOSE closes, NO PHOTO flips, SAVE saves; no ring touches the card.
+
+## T7 — Review fix: SFX stack bound (design item 8)
+Files: `src/audio/recipes.ts`, `src/audio/recipes.test.ts`
+- [x] Reproduced: the three-SFX property fails at 20000 runs (seed 1120058258), peak 1.0006; the 1 ms scan finds 1.055.
+- [x] `stackPeakCeil()` in `gainFor`; `ghostHit` 0.93 and `shield` 0.82; 0 dBFS bound unchanged.
+- [x] Tests: the exact counterexample, per-SFX stack-ceiling bound, pair and triple grid (25 ms, all tiers), property at 300 runs; passes at 20000 runs with the failing seed.
+- [x] `npm test` and `npm run build` both clean.
+- [x] Commit: `fix(playtest1-fixes-T7): stack-safe SFX gains so three stacked sounds stay under 0 dBFS`
+
+## T8 — Review fix: docs PR numbering
+Files: `README.md`, `docs/KIRO.md`, `tools/judge-docs.test.mjs`
+- [ ] ci-timeout was merged as PR #10 (merge 8462694): labelled `#10 ci-timeout` (1741) in both history tables; "#1 to #10 merged".
+- [ ] Judge-docs pins updated to the new wording (not loosened).
+- [ ] `npm test` (twice) and `npm run build` both clean.
+- [ ] Commit: `docs(playtest1-fixes-T8): ci-timeout is PR #10`
