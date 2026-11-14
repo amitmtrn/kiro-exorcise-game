@@ -11,7 +11,7 @@ import { bossDue, withTip, withKingWarning, stageElapsedMs, TIPS, KING_BANNER, V
 import { stepSimulation } from './step'
 import { advanceToNextStage, spawnBoss } from './round'
 import {
-  FINALE_PARAMS, PHASE_PARAMS, paramsFor, finaleMinionKinds, tickBoss, hoverY, moveBoss, onBossHit,
+  FINALE_PARAMS, PHASE_PARAMS, paramsFor, finaleMinionKinds, tickBoss, hoverY, atHover, moveBoss, onBossHit,
 } from './enemies/bossPhases'
 import { createBoss } from './enemies/boss'
 import { MIN_TELEGRAPH_MS, MIN_WINDOW_MS } from './enemies/variants'
@@ -108,6 +108,8 @@ describe('the Hollow King (R6)', () => {
       expect(FINALE_PARAMS[p].lungeSpeed).toBeLessThan(PHASE_PARAMS[p].lungeSpeed)
       // vulnerable per cycle: wind-up + recover (the lunge adds more)
       expect(FINALE_PARAMS[p].windupMs + FINALE_PARAMS[p].recoverMs).toBeGreaterThanOrEqual(MIN_WINDOW_MS)
+      // R6.4: at least 1800 ms vulnerable per attack cycle after every phase change
+      expect(FINALE_PARAMS[p].windupMs + FINALE_PARAMS[p].recoverMs).toBeGreaterThanOrEqual(1800)
     }
     expect(paramsFor(createBoss(W, H, true), 2)).toBe(FINALE_PARAMS[2])
     expect(paramsFor(createBoss(W, H), 2)).toBe(PHASE_PARAMS[2])
@@ -163,12 +165,20 @@ describe('the Hollow King (R6)', () => {
     expect(m.vState).toBe('shield')
     expect(m.targetX).toBe(W / 2)
   })
-  it('fight budget: the boss can be beaten in the time left (R6.4)', () => {
+  it('fight budget: the boss can be beaten in the time left, entry flight included (R6.4)', () => {
     const left = S6.durationMs - S6.finale!.bossAtMs
-    // per hit: i-frames; per attack phase: at most one cycle per hit in the worst case
+    // entry flight: simulate the boss from spawn to its hover line
+    let b: Enemy = createBoss(W, H, true)
+    let flightMs = 0
+    while (!atHover(b, H) && flightMs < 20_000) { b = moveBoss(b, 16, W, H); flightMs += 16 }
+    expect(atHover(b, H)).toBe(true)
+    // phase 1: i-frames between hits; phases 2 and 3: a vulnerable window of >= 1800 ms
+    // takes two hits (1000 ms apart), so phase 3's three hits need two cycles; phase 2 is charged one cycle per hit
     const p2 = FINALE_PARAMS[2], p3 = FINALE_PARAMS[3]
-    const worst = 4 * 1000 + 3 * (p2.idleMs + p2.windupMs + p2.recoverMs + 1500) + 3 * (p3.idleMs + p3.windupMs + p3.recoverMs + 1200)
-    expect(worst).toBeLessThan(left)
+    const cycle2 = p2.idleMs + p2.windupMs + p2.recoverMs + 1500
+    const cycle3 = p3.idleMs + p3.windupMs + p3.recoverMs + 1200
+    const worst = flightMs + 4 * 1000 + 3 * cycle2 + 2 * cycle3
+    expect(worst).toBeLessThan(left - 2000) // at least 2 s of slack
   })
 })
 

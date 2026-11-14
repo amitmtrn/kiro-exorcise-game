@@ -147,7 +147,7 @@ time waits for a free slot (cap 5).
 |---|---|---|---|---|---|
 | Phase 1 | – | – | – | – | 1 blink / 6 s, cap 2 |
 | Phase 2 | 3 s | 700 ms | 0.9 H/s | 1.4 s | 1 wisp pair / 8 s, cap 4 |
-| Phase 3 | 2 s | 450 ms | 1.3 H/s | 0.9 s | 1 mirror (+ 1 blink on even summons) / 7 s, cap 3 |
+| Phase 3 | 2 s | 450 ms | 1.3 H/s | 1.35 s | 1 mirror (+ 1 blink on even summons) / 7 s, cap 3 |
 
 Everything else (phase thresholds, shield-while-idle, i-frames, stagger, defeat)
 is shared with the stage-5 boss. `paramsFor(boss)` picks the table. In `tickBoss` a
@@ -160,10 +160,11 @@ and the timer restarts, as for the stage-5 boss.
 Fight budget: boss enters at 22 s, 38 s remain. Phase 1 (hits 1–4) needs
 4 × 0.4 s i-frames plus swing time ≈ 5 s. A phase-2 cycle is 3 + 0.7 + lunge
 (≈ 1.4 s) + 1.4 = 6.5 s with ≥ 3.5 s vulnerable (wind-up + lunge + recover):
-3 hits ≈ 1 cycle. Phase 3 cycle 2 + 0.45 + ≈ 1.0 + 0.9 = 4.35 s with 2.35 s
-vulnerable: 3 hits ≈ 1–2 cycles. Total ≈ 5 + 7 + 9 = 21 s, leaving 17 s of slack
-(a player who misses every first window still wins). `tests` assert the
-vulnerable fraction per cycle ≥ `MIN_WINDOW_MS`.
+3 hits ≈ 1 cycle. Phase 3 cycle 2 + 0.45 + ≈ 1.0 + 1.35 = 4.8 s with 2.8 s
+vulnerable (wind-up + recover alone is 1.8 s, R6.4): 3 hits ≈ 1–2 cycles. Total ≈ 5 + 7 + 9 = 21 s, leaving 17 s of slack
+(a player who misses every first window still wins). `tests` assert wind-up +
+recover ≥ 1800 ms in both attack phases, and a worst-case budget (entry flight
+simulated, 4 × i-frames, one cycle per phase-2 hit, two phase-3 cycles) with 2 s of slack.
 
 ### Victory flow
 

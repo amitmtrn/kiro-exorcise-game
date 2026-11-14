@@ -61,7 +61,7 @@ export const FINALE_PARAMS: Record<BossPhase, PhaseParams> = {
        summonEveryMs: 6000, summonCount: 1, maxMinions: 2, attacks: false },
   2: { idleMs: 3000, windupMs: 700, recoverMs: 1400, lungeSpeed: 0.9, swayRate: 0.7,
        summonEveryMs: 8000, summonCount: 1, maxMinions: 4, attacks: true },
-  3: { idleMs: 2000, windupMs: 450, recoverMs: 900, lungeSpeed: 1.3, swayRate: 1.1,
+  3: { idleMs: 2000, windupMs: 450, recoverMs: 1350, lungeSpeed: 1.3, swayRate: 1.1,
        summonEveryMs: 7000, summonCount: 1, maxMinions: 3, attacks: true },
 }
 

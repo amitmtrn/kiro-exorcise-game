@@ -210,7 +210,8 @@ summon (cap 3). Summons only happen at the hover line, exactly as in
 
 **R6.4** *Fairness of the fight.* From the moment the boss enters, 38 s remain
 (60 − 22). With the stated windows the boss is vulnerable for at least 1800 ms
-per attack cycle after every phase change; the design.md budget shows a
+per attack cycle after every phase change (wind-up + recover: 1800 ms in phases 2 and 3,
+pinned by a test); the design.md budget shows a
 competent player needs about 20 s. Timeout with the boss alive is game over (as
 `boss-phases` R6.5).
 

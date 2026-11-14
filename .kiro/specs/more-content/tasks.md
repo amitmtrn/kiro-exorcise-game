@@ -112,3 +112,15 @@
 - [x] `nameKeysBlocked` reset in `startLoop` / `stopLoop`; `GameState.stage` comment is 1–6.
 - [x] R12.1: default demo seed back to 5 (clean at the five tested sizes and speeds 1–3); README, KIRO.md, harness README, `run.sh`, judge-docs test and specs updated.
 - [x] `npm test` and `npm run build` both clean.
+
+## T14 — Review fixes (round 3)
+- [x] R6.4: finale phase-3 `recoverMs` 900 → 1350, so wind-up + recover is 1800 ms in both attack phases; test asserts 1800; design table and budget updated.
+- [ ] R7.1: 1P derives `bossDefeated` (boss on the field last tick, phase now `summary` / `victory`) like the 2P seats; test added.
+- [ ] R6.3: phase-3 `['mirror','blink']` summon falls back to the mirror alone when the pair does not fit the cap; test added.
+- [ ] R1.6: king summons keep clear of live skulls (no summon while a skull is within clearance); test added.
+- [ ] R6.3 readability: on small canvases a summoned minion starts clear of the boss sprite; test added.
+- [x] R6.4: fight-budget test includes the entry flight and states its slack (done with the R6.4 fix).
+- [ ] R11.3: name hint says `M` is taken while typing a 1P name; spec line added.
+- [ ] `GameState.bossActive` comment corrected.
+- [ ] Demo seed 5 re-checked at the five window sizes and speeds 1–3; sim tests pass.
+- [ ] `npm test` and `npm run build` both clean after each fix.
