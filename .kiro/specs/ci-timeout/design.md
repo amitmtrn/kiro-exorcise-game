@@ -57,10 +57,11 @@ Measured with `vitest run --reporter=verbose` before the change:
 The global default is not raised.
 
 ## Workflow
-`setup-node` `node-version: 20` becomes `22`. The harness README, the MCP
-server and `.kiro/settings/mcp.json` need Node ≥ 22 (`node:` APIs used by the
-tools tests), and Node 22 is the active LTS. Steps, permissions and actions are
-otherwise identical. `package.json` has no `engines` field; none is added.
+`setup-node` `node-version: 20` becomes `22`. `tools/motion-harness/README.md`
+says "Node ≥ 22" and the MCP server (a spawned child in `mcp-server.test.mjs`)
+is documented for it, so CI should run the tools tests on the Node they
+document. Node 22 is an LTS line. Steps, permissions and actions are otherwise
+identical. `package.json` has no `engines` field; none is added.
 
 ## Duration guard: skipped
 A test that fails when a file takes longer than a budget depends on the machine

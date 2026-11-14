@@ -23,9 +23,9 @@ Files: `src/game/enemies/spawn.property.test.ts`, `src/game/enemies/spawn.waves.
 ## T3 — Node 22 in the deploy workflow
 Files: `.github/workflows/deploy.yml`
 
-- [ ] `node-version: 22`; nothing else changes (R3.1, R3.2).
-- [ ] Run `npm test` and `npm run build`; both clean.
-- [ ] Commit: `ci(ci-timeout-T3): run the deploy workflow on Node 22`
+- [x] `node-version: 22`; nothing else changes (R3.1, R3.2).
+- [x] Run `npm test` and `npm run build`; both clean.
+- [x] Commit: `ci(ci-timeout-T3): run the deploy workflow on Node 22`
 
 ## T4 — Docs and counts
 Files: `README.md`, `docs/KIRO.md`
