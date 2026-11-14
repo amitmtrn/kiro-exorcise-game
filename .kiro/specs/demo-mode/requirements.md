@@ -150,6 +150,9 @@ wait ~3 s, then 1 PLAYER with the driver re-seeded, so every loop plays the iden
 run (attract loop). After a game over, RETRY neither re-seeds the driver nor resets its clock (the
 random stream just keeps running), so a retry plays a different but still deterministic game;
 only the return to the title restarts the identical run.
+The identical-loop and clean-run properties hold at every allowed speed (1–3): the camera's
+frame clock restarts with each run, and a victory PLAY AGAIN press starts the same seeded run.
+A canvas resize drops the hand's current move and rescales its position.
 
 ---
 
@@ -187,6 +190,8 @@ scale exists only in demo mode and `STAGES` is not modified.
 **R6.1** A persistent badge "DEMO" (with a short caption) is drawn on every tick in
 every phase: title, stage title, playing, summary, game over, victory and the card
 preview. It is drawn above the game and below nothing.
+The demo runtime (and its clock / `Math.random` patch) is created only after the title font
+has loaded, so no patched clock ever runs without the loop drawing the badge.
 
 **R6.2** A translucent "ghost hand" cursor (palm, fingers, fading trail, glow) is
 drawn where the synthetic motion is, above everything else except the badge, so

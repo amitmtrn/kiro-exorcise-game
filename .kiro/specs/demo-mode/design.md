@@ -24,7 +24,7 @@ as always.
 | `rng.ts` | `mulberry32(seed)` (own copy: production code does not import from `src/test`) |
 | `camera.ts` | `SyntheticCamera`: two reusable `W×H×4` buffers, a 30 fps frame clock, a hand disc, noise |
 | `driver.ts` | `DemoDriver` (pure state machine), `DemoView`, `stepSafe` (skull rule) |
-| `overlay.ts` | `drawDemoBackdrop`, `drawGhostHand`, `drawDemoBadge`, `drawDemoPortrait` (canvas, procedural) |
+| `overlay.ts` | `drawDemoBackdrop`, `drawGhostHand`, `drawDemoBadge`, `grabDemoPortrait` (canvas, procedural placeholder portrait) |
 | `runtime.ts` | `DemoRuntime`: owns camera + driver + trail, the fixed step, the clock / `Math.random` patch, `dispose()` |
 
 ### `params.ts`
@@ -59,6 +59,8 @@ class SyntheticCamera {
   constructor(initialHand: Pt, handR: number, displayW: number, displayH: number)
   /** Advances the camera clock; returns the frames for this tick. */
   step(deltaMs: number, hand: Pt, handR: number, displayW: number, displayH: number): { cur: ImageData; prev: ImageData; isNew: boolean }
+  /** New run: the frame clock restarts, so every loop has the same new / duplicate-tick pattern at any speed. */
+  resetPhase(): void
 }
 ```
 
@@ -88,10 +90,11 @@ interface DemoView {
   cardOpen: boolean; hasPhoto: boolean; noPhoto: boolean
 }
 class DemoDriver {
-  constructor(seed: number)
-  reset(): void                        // new run: the seed restarts, so the same seed → the same run
+  constructor(seed: number, w = 1280, h = 720)   // the hand starts at (0.5 w, 0.7 h)
+  reset(): void                        // the title is back after a run: counts the loop, sends the hand home
+  // private beginRun(): the first phase after the title restarts driver time and the RNG from `seed`
   update(deltaMs: number, view: DemoView): { x: number; y: number }
-  readonly stats: { swipes; misses; presses; blocked }   // for tests and the harness
+  readonly stats: { swipes; misses; presses; blocked; detours; interrupts; whiffs; runs }   // for tests and the harness
 }
 ```
 
@@ -158,7 +161,9 @@ release latch clears. After `OFFER_BURSTS_MAX` (3) bursts at `offer` without the
 opening, the victory target becomes `menu` (fallback so the loop never stalls). The target button comes from `buttonLayout(screen, w, h, opts)`
 (`start` → `one`; `summary` → `next`; `victory` → `offer` then, with the preview shown,
 hold, `close`, then `menu`; `gameover` → `retry`). The driver never picks `save`. When the
-phase returns to `start` after a run it calls `reset(seed)`.
+phase returns to `start` after a run it calls `reset()`; the next run's first phase calls `beginRun()`, which
+re-seeds the driver. A change of `view.w` / `view.h` between ticks drops the current move and
+rescales the hand, because a `Move` closure holds pixel positions.
 
 ### Runtime (`runtime.ts`)
 
@@ -168,7 +173,7 @@ class DemoRuntime {
   beginTick(timestamp: number): { deltaMs: number } | null   // null → skip this rAF frame
   frame(view: DemoView): { cur; prev; changed? }               // driver update + camera step
   trail: Pt[]; hand: Pt
-  onRunStart(): void                  // re-seed Math.random and the driver
+  onRunStart(): void                  // re-seed Math.random and restart the camera clock (the driver re-seeds itself)
   dispose(): void                     // restores performance.now, Math.random
 }
 ```
@@ -221,9 +226,9 @@ class DemoRuntime {
 - In `tickBody` the camera section is `if (demo) { backdrop; ({cur, prev} = demo.frame(view)) } else { …existing… }`.
   `view` is built from the state at the top of the tick (same state the buttons see).
 - `begin(mode)` in demo mode sets `state.stage = demo.startStage` after `startGame`
-  and calls `demo.onRunStart()`. The 2 PLAYERS button is never pressed by the driver, and
+  and calls `demo.onRunStart()`. The victory PLAY AGAIN callback goes through `begin(1)` in demo too, so a stray press starts the same seeded run. The 2 PLAYERS button is never pressed by the driver, and
   a key that would start 2P (`2`) leaves demo first (R1.3).
-- The card session in demo: `grab` draws `drawDemoPortrait` into an off-screen canvas,
+- The card session in demo: `grab` is `grabDemoPortrait`, which draws the portrait into an off-screen canvas,
   `download` is `async () => true` (no file), and `extra: () => ({ badge: 'DEMO' })`.
 - `state.ts`: `setHighScorePersistence(on: boolean)`; when off, `saveHighScore` is a
   no-op and `loadHighScore` returns 0. The demo sets it off on start and `dispose()` on again.
@@ -234,8 +239,9 @@ class DemoRuntime {
 `routeDemoKey(e, { demoOn, onTitle, msSinceLeft })` → `leave | enter | swallow | pass`
 (`params.ts`); while demo is on, auto-repeats of any non-passive key are swallowed (one physical press is one toggle, so a held `G` enters demo and stays), and auto-repeats of the key that left demo are swallowed for 500 ms. The
 onboarding state is created on the first normal boot only, so demo mode never reads the
-onboarding flag. Demo: load the title font, skip
-`initWebcam` / onboarding, create `DemoRuntime`, `startLoop(null, …, stage, { demo })`.
+onboarding flag. Demo: load the title font first (for up to 1.5 s no clock or `Math.random`
+patch exists and no loop runs), skip
+`initWebcam` / onboarding, then create `DemoRuntime`, `startLoop(null, …, stage, { demo })`.
 A `keydown` handler (a bubble listener on `document`, registered before the existing one) and a capture-phase `pointerdown` listener on `window` apply
 `demoKeyAction` while demo is on: `exit` → `leaveDemo()` (stop loop, `dispose()`, `stopMusic()`,
 `history.replaceState` removes the demo parameters so a reload is the normal game, then

@@ -108,3 +108,16 @@ Files: `tools/motion-harness/run.sh` + README, `src/demo/params.ts`, `src/game/l
 - [x] R4.8 documents that RETRY does not re-seed the driver; design.md notes the per-tick hand trail.
 - [x] `npm test` and `npm run build` both clean.
 - [x] Commit: `fix(demo-mode): ...`
+
+## T12 — Review fixes (round 4)
+Files: `src/demo/camera.ts`, `src/demo/runtime.ts`, `src/demo/driver.ts`, `src/game/loop.ts`, `src/main.ts`, tests next to each, spec docs
+
+- [x] Camera frame clock restarts on every run start (`SyntheticCamera.resetPhase`, called from `onRunStart`); sim cases at speed 1 and 3 (clean run, no skull hit, second loop identical) (R4.8, R5.2).
+- [x] The attract-loop sim test compares the per-run hand / score trace, not only the victory score.
+- [x] `bootDemo` creates the runtime after the font wait; test that the clock and `Math.random` stay unpatched until then (R6.1).
+- [x] Driver drops its current move and rescales the hand when `view.w` / `view.h` change; driver test (R4).
+- [x] Victory PLAY AGAIN goes through `begin(1)` in demo; sim test (R4.8).
+- [x] design.md aligned with the code: `DemoDriver` constructor / `reset()` / `beginRun()` / `stats`, `grabDemoPortrait`, `resetPhase`.
+- [x] `npm test` and `npm run build` both clean.
+- [x] Commits: `fix(demo-mode): ...`
+
