@@ -137,3 +137,4 @@
 - [x] R8.4: no phantom OLD-BEST. `saveHighScore` calls `ensureTable()` first (migrates an older build's score, else stores `[]`); tests: fresh storage → stage clear → next stage → game over gives one row, older-build score still migrates.
 - [x] R12.1: stale seed 6 docs fixed to 5 (`tools/motion-harness/README.md`, `.kiro/specs/demo-mode/design.md`).
 - [x] R1.10: king-summoned wisp pair clamps so the bodies (not only centres) stay inside the area or half; property test extended.
+- [x] R2.3: pair banish keeps the partner in the enemy list if the phase is `gameover` after the first banish (defensive; no reachable path, so no test).

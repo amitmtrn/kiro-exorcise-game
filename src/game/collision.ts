@@ -248,6 +248,7 @@ export function resolveHits(
         const pairCombo = s.combo // both wisps score at the combo the pair was hit at (R2.3)
         s = banishGhostLike(s, enemy, 150, displayW, displayH, pairCombo)
         if (s.phase !== 'gameover') s = banishGhostLike(s, partner, 150, displayW, displayH, pairCombo)
+        else updatedEnemies.push(partner) // never drop the partner unscored
       } else {
         const lit = lightWisp(enemy)
         if (lit.vState !== enemy.vState) { try { sfxWispLink() } catch { /* audio not ready */ } }
