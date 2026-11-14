@@ -1,0 +1,187 @@
+# Playtest 1 Fixes — Design
+
+Every root cause below was found by reading the code and has (or gets, in the
+named task) a failing test that is committed in the same commit as its fix.
+The capture runs at about 8 fps (frames 125 ms apart), so it cannot tell one
+tick from seven; the causes below cover both readings.
+
+## 1. Instant game over
+
+Observed: 3 of 3 hearts in every frame up to 2:55.6, then NAME YOUR HUNTER
+125 ms later, with no heart lost on screen, no death sequence, no GAME OVER.
+
+Root causes (all in code, all reproduced in T1 tests):
+
+1. **One life per reached enemy in one tick.** `step.ts` calls
+   `splitReached` (returns the number of enemies that reached the target) and then
+   runs `decrementLife` once per enemy. Three ghosts arriving in the same tick
+   (stage 3 allows 6 enemies, plus the swarm and flyby waves) take 3 → 0 in one
+   `stepSimulation`.
+2. **No spacing between life losses.** Skull hit (`collision.ts`), a missed
+   enemy (`step.ts`) and a boss strike (`bossPhases.ts`) all call `decrementLife`
+   directly. Nothing stops a second one on the next tick, so a skull hit plus two
+   arrivals inside the 125 ms between two capture frames empties the hearts.
+3. **Game over opens the name screen in the same frame.** The `gameover` branch
+   of `loop.ts` calls `onRunEnd` (which makes the name entry for a table-worthy
+   score such as 30050) and `runNameScreen` on its very first frame, and only
+   draws GAME OVER when the name screen is closed. The HUD (hearts) is drawn
+   only in the `playing` branch, so the last heart loss is never drawn at all.
+   The video sequence (play frame → name screen) is exactly this.
+
+Ruled out: twin wisps (`splitReached` already counts a pair once), the HUD
+drawing stale lives (it reads `state.lives` each frame), another route to the
+name screen (only `onRunEnd` creates a name entry, called from the game-over
+and victory branches), a skull counted twice (a hit skull leaves the list; two
+different skulls need two events and are covered by the grace).
+
+### State (`state.ts`)
+```ts
+interface GameState { /* ... */
+  invulnMs: number    // life-loss grace left, counts down with game time
+  lifeFxMs: number    // HUD shake / flash left after a heart is lost
+  deathMs: number     // death transition left once phase === 'gameover'
+}
+export const LIFE_GRACE_MS = 1000
+export const LIFE_FX_MS = 700
+export const DEATH_MS = 1000
+export const NAME_DELAY_MS = 1500
+```
+- `decrementLife(s)`: returns `s` unchanged when `s.invulnMs > 0` or the phase is
+  `gameover`; else lives − 1, `invulnMs = LIFE_GRACE_MS`, `lifeFxMs = LIFE_FX_MS`;
+  at 0 lives the phase becomes `gameover` with `deathMs = DEATH_MS`.
+  `phase === 'gameover'` keeps its meaning for every existing guard (nothing
+  scores, enemies freeze); only the screens wait for `deathMs`.
+- `tickTimer` boss timeout also sets `deathMs = DEATH_MS`.
+- `tickLifeTimers(s, ms)` counts `invulnMs` and `lifeFxMs` down (called from
+  `stepSimulation` with `simMs`, and from `tickEffects`); `tickDeath` counts
+  `deathMs` down in `tickEffects`. 2P seats use the same functions.
+- `step.ts`: the miss loop keeps `incrementMissed` per enemy but resets the combo
+  once and plays the life-lost sound only when `lives` really dropped.
+- `collision.ts` skull: flash, particles and sound only when a heart was lost.
+
+### Loop (`loop.ts`)
+- gameover branch, `deathMs > 0`: scene frozen, HUD drawn with 0 hearts and the
+  loss effect, no buttons, no `onRunEnd`, no name screen.
+- After the death: GAME OVER / YOU WIN screen (as today). `onRunEnd` still records
+  the score at that moment, but `runNameScreen` is skipped until
+  `NAME_DELAY_MS` after the screen appeared (`endShownAt`).
+- 2P: `tickTwo` opens the name screens only `NAME_DELAY_MS` after `finalAt`;
+  a seat in `gameover` shows its OUT overlay after its own `deathMs`.
+
+### HUD (`hud.ts`)
+While `lifeFxMs > 0` the hearts shake (amplitude × `shakeScale(reducedFlash)`)
+and draw in Blood Red with a pulse; with `reducedFlash` the pulse is a steady
+highlight (no blink) and the shake is a quarter. Pure helper
+`lifeFx(lifeFxMs, reduced)` returns `{ dx, glow, blink }` and is unit-tested.
+
+### Tests
+`lives.property.test.ts` (fast-check): with lives > 1 no tick goes to
+`gameover`; lives never drop by more than 1 inside the grace window; gameover
+always carries `deathMs = DEATH_MS`. Unit tests: three reached enemies cost one
+heart; skull plus reach inside the grace cost one; a loop test shows the name
+screen is not drawn before GAME OVER.
+
+## 2. Motion buttons fill but do not fire
+
+Reproduced on every screen with a hand on the exact circle centre: every button
+fires once (the activation callbacks are wired, buttons are persistent in a
+`ButtonSet`, the release latch clears). The failures need a real hand:
+
+1. **A neighbour steals the press.** A button only asks "has 12 % of my circle
+   moved?". Stacked buttons sit 3.1 radii apart, so a forearm or a wide hand on
+   CLOSE (row B) also covers 12 % of NO PHOTO (row A); both fill at the same
+   rate and `updateExclusive` gives the frame to the first one in list order
+   (toggle before close, ◄ before OK). The player sees the wanted ring fill and
+   something else happens (the photo flips, the name is reset to "A").
+2. **OK did not finish naming.** After ◄ / ► had touched the name, `confirm`
+   only moved a cursor that was drawn as a 4 px underline, so OK "did nothing"
+   and the screen left by its 30 s timeout. See section 3.
+
+Fix (T2): `updateExclusive` computes each live button's moved-sample coverage on
+a new camera frame and lets only the button with the largest coverage count the
+frame as active (ties go to list order); the others see an inactive frame (they
+drain, they do not trigger). `MotionButton.update(now, allow)` and
+`coverageScore()` are new; single buttons behave as before.
+
+SAVE keeps its 1 s dwell (motion-ui-ergonomics R3.1). Not changed.
+
+## 3. Name entry flow
+
+`nameEntry.ts`:
+- `pickStep` edits the letter at `cursor` of the current text in place (a
+  non-letter becomes `A` ± 1); it no longer replaces the default by `A`.
+- `confirm` = accept: sets `done`.
+- `tickNameEntry` advances the cursor `CURSOR_ADVANCE_MS` after the last step
+  (new field `lastStepAt`, `stepped`), up to `PICK_LEN` − 1, then applies the
+  existing timeouts.
+
+`nameScreen.ts`: highlight box behind the letter at `cursor`, drawn from the
+start. Hint text per R3.4. Layout unchanged: ◄ row A and OK row B in the stacked
+column, ► alone in the other column. A NEXT LETTER button would need a slot
+below 40 % of the height (the column's second row is at 45 %), so it is not
+added; the automatic cursor advance replaces it.
+
+## 4. Exorcist card
+
+- The yellow disc at the card's top-right corner is `card/draw.ts`: the moon
+  (`arc(w·0.92, h·0.06, w·0.03)`). No motion button or ring exists there; the
+  new zone-equals-rect test lists every circle the preview draws and compares
+  them to `previewLayout`.
+- `previewCardRect` left the card 6 px from the circle edge but the progress ring
+  is drawn at `r + RING_OUTSET` (9 px), so the ring of NO PHOTO / CLOSE (and
+  SAVE) overlapped the card edge by 3 px and sat inside its glow
+  (`shadowBlur 24`). Reproduced at all sizes. Fix: the gap is
+  `RING_OUTSET + CARD_GAP` (`CARD_GAP` 12), and the card keeps its aspect inside
+  the narrower span.
+
+## 5. Mirroring (verification)
+
+One test records the transform of `drawWebcamFrame`, `captureFrame`,
+`grabMirroredSnapshot` and `grabHalfSnapshot` (all `translate(W, 0); scale(-1, 1)`),
+maps a raw point through each, and checks `mirrorX`: the raw left side lands on
+the screen's right. No code change unless it fails.
+
+## 6. Video stutter (verification)
+
+`drawWebcamFrame` is called every tick with the canvas size and never reads the
+quality level; the adaptive level only changes the motion grid
+(`gridForLevel`), the effects (`atmosphereOn`, `thinParticles`) and the
+`captureFrame` copy. A loop test at levels 0–3 checks one full-size draw per tick.
+
+## 8. The audio stacking "flake" (operator review)
+
+`src/audio/recipes.test.ts` "any three different SFX at any offset stay under 0 dBFS
+with the music peak" failed in a full run and passed on reruns, because it ran only
+120 random cases. At `numRuns` 20000 it fails with the counterexample
+`[['lifeLost','shield','ghostHit'],[37,80,83],2]` (seed 1120058258): peak 1.0006.
+A scan of the offsets 0–100 ms in 1 ms steps finds 1.055 for the same three sounds.
+
+Root cause: `gainFor` normalised only by RMS (−22 dBFS) and a per-sound −3 dBFS
+peak ceiling. The two noise-based sounds have a high crest factor, so at RMS −22
+their peaks were large: `ghostHit` 0.319 and `shield` 0.300 (linear, after gain),
+against 0.14–0.24 for the rest. The music worst-case peak is 0.260. Three
+sounds each allowed up to −3 dBFS (0.708) can never be proven to stack below 1.0;
+the old test only passed because the shipped table happened to leave the sum of
+the three largest peaks (0.319 + 0.300 + 0.236 + 0.260 = 1.115) off the timing where
+they coincide. `shield` came with more-content and was never checked against the
+stack model; `lifeLost` is now also the third-largest peak and fires more often
+with the grace flow, so the case is reachable in play (the master limiter would
+still catch it, but the pre-bus bound of playtest-polish R6.2 was broken).
+
+Fix (`recipes.ts`): a third constraint in `gainFor`, `stackPeakCeil() =
+(1 − musicPeak·MUSIC_GAIN − STACK_MARGIN) / 3` = 0.240 (−12.4 dBFS, margin 0.02).
+With every SFX peak ≤ 0.240 the sum of any three peaks plus the music peak is at
+most 0.98, whatever the offsets, so the bound holds by construction. Only two table
+entries change: `ghostHit` 1.25 → 0.93 (RMS −24.6 dBFS) and `shield` 1.03 → 0.82
+(RMS −24.0 dBFS). All others keep their gains and their −22 dBFS RMS. The 0 dBFS
+bound is unchanged.
+
+Tests: the exact counterexample; a deterministic check that every SFX peak is
+≤ the stack ceiling and the top three plus music ≤ 0.98; every pair and triple of
+different SFX on a 25 ms offset grid for all combo tiers (about 10 000 mixes, a
+few seconds, so not the "under 1 s" a 5 ms grid would need: that is about 250 000
+mixes and about a minute); the random property raised from 120 to 300 runs. It was run once at 20000 runs with the failing seed and
+passes. The normalisation test now uses the effective ceiling to decide "peak
+limited". The loudness targets in `playtest-polish/` design (RMS −22, peak ≤ −3 dBFS,
+music 6 dB under) are unchanged for every sound except these two, which are
+peak-limited by the stack ceiling; the design note there says so.

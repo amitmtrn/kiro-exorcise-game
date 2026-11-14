@@ -3,7 +3,7 @@ import fc from 'fast-check'
 import {
   SFX_IDS, SFX_GAIN, MUSIC_GAIN, renderRecipe, rawLevel, gainFor, measure, toDb,
   estimateMusicLevel, musicGainFor, MUSIC_VOICES, recipeFor, recipeSeconds, comboFreq,
-  TARGET_RMS_DB, PEAK_CEIL_DB, MUSIC_BELOW_SFX_DB, COMBO_TIERS, type SfxId,
+  TARGET_RMS_DB, PEAK_CEIL_DB, MUSIC_BELOW_SFX_DB, STACK_MARGIN, stackPeakCeil, COMBO_TIERS, type SfxId,
 } from './recipes'
 import { VOICE_PEAKS } from './music/voices'
 
@@ -41,7 +41,9 @@ describe('normalisation (R6.2)', () => {
     const peakDb = toDb(raw.peak * SFX_GAIN[id])
     const rmsDb = toDb(raw.rms * SFX_GAIN[id])
     expect(peakDb).toBeLessThanOrEqual(PEAK_CEIL_DB + 0.01)
-    const peakLimited = peakDb > PEAK_CEIL_DB - 0.5
+    const ceilDb = Math.min(PEAK_CEIL_DB, toDb(stackPeakCeil())) // the -3 dBFS ceiling or the three-way stack ceiling
+    expect(peakDb).toBeLessThanOrEqual(ceilDb + 1e-9)
+    const peakLimited = peakDb > ceilDb - 0.5
     if (!peakLimited) expect(Math.abs(rmsDb - TARGET_RMS_DB)).toBeLessThanOrEqual(1.5)
     else expect(rmsDb).toBeLessThanOrEqual(TARGET_RMS_DB + 1.5)
   })
@@ -91,14 +93,43 @@ describe('stacked worst case under 0 dBFS before the limiter (R6.2)', () => {
     expect(worst + music).toBeLessThan(1)
   })
 
+  it('the exact playtest-1 counterexample (lifeLost, shield, ghostHit at 37 / 80 / 83 ms, combo tier 2) is under 0 dBFS', () => {
+    // Before the fix: 1.0006 (shield and ghostHit were normalised by RMS only, so their noise peaks were 0.30 and 0.32).
+    expect(mixPeak([{ id: 'lifeLost', offsetMs: 37 }, { id: 'shield', offsetMs: 80 }, { id: 'ghostHit', offsetMs: 83 }]) + music).toBeLessThan(1)
+  })
+
+  it('stack bound: every SFX peak is within the stack ceiling, so ANY three overlap with the music peak stay under 0 dBFS', () => {
+    const ceil = stackPeakCeil()
+    for (const id of SFX_IDS) {
+      const l = rawLevel(id, SR)
+      expect(l.peak * SFX_GAIN[id], id).toBeLessThanOrEqual(ceil + 1e-9)
+    }
+    const top3 = SFX_IDS.map((id) => rawLevel(id, SR).peak * SFX_GAIN[id]).sort((a, b) => b - a).slice(0, 3)
+    expect(top3[0] + top3[1] + top3[2] + music).toBeLessThanOrEqual(1 - STACK_MARGIN + 1e-9)
+  })
+
+  it('every pair and triple of different SFX on a 25 ms offset grid (0-100) stays under 0 dBFS, all combo tiers', () => {
+    const grid = [0, 25, 50, 75, 100]
+    let worst = 0
+    for (let a = 0; a < SFX_IDS.length; a++) for (let b = a + 1; b < SFX_IDS.length; b++) {
+      for (const tier of COMBO_TIERS) {
+        for (const ob of grid) worst = Math.max(worst, mixPeak([{ id: SFX_IDS[a], arg: tier, offsetMs: 0 }, { id: SFX_IDS[b], arg: tier, offsetMs: ob }]) + music)
+        for (let c = b + 1; c < SFX_IDS.length; c++) for (const ob of grid) for (const oc of grid) {
+          worst = Math.max(worst, mixPeak([{ id: SFX_IDS[a], arg: tier, offsetMs: 0 }, { id: SFX_IDS[b], arg: tier, offsetMs: ob }, { id: SFX_IDS[c], arg: tier, offsetMs: oc }]) + music)
+        }
+      }
+    }
+    expect(worst).toBeLessThan(1)
+  }, 60_000) // about 10 000 mixes of a few thousand samples: legitimately long on a slow runner
+
   it('any three different SFX at any offset stay under 0 dBFS with the music peak', () => {
     fc.assert(fc.property(
       fc.uniqueArray(fc.constantFrom(...SFX_IDS), { minLength: 2, maxLength: 3 }),
       fc.array(fc.integer({ min: 0, max: 100 }), { minLength: 3, maxLength: 3 }),
       fc.constantFrom(...COMBO_TIERS),
       (ids, offs, tier) => mixPeak(ids.map((id, i) => ({ id, arg: tier, offsetMs: offs[i] }))) + music < 1,
-    ), { numRuns: 120 })
-  })
+    ), { numRuns: 300 })
+  }, 30_000) // about 35 s at 20 000 runs (checked once with the failing seed 1120058258); 300 runs keep CI fast
 })
 
 describe('MUSIC_VOICES peaks come from the voices (review fix)', () => {

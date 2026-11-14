@@ -1,9 +1,10 @@
 /**
  * Name entry (more-content R9). Pure state; times are the screen clock (`now`, ms), never frames.
  *
- * The default (generated) name is already in the table. ◀ / ▶ start the picker: the first press
- * replaces the default with "A" at position 1, presses cycle A–Z with wrap-around, OK moves on to
- * the next of PICK_LEN positions and accepts on the last. Keyboard typing replaces the default too.
+ * The default (generated) name is already in the table. OK accepts the name as shown, at once
+ * (playtest1-fixes R3.1). ◀ / ▶ change the letter under the cursor in place (A–Z with wrap-around;
+ * the default stays until a letter changes); the cursor moves to the next letter by itself
+ * CURSOR_ADVANCE_MS after the last step, up to PICK_LEN letters. Keyboard typing replaces the default.
  */
 
 import { NAME_MAX, sanitizeName, isValidName } from './highScores'
@@ -14,6 +15,8 @@ export const LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
 export const IDLE_ACCEPT_MS = 10_000
 /** Once used, the screen accepts what is there this long after the last input. */
 export const ACTIVE_ACCEPT_MS = 30_000
+/** After the last ◀ / ▶ the cursor moves on to the next letter by itself (playtest1-fixes R3.2). */
+export const CURSOR_ADVANCE_MS = 1_500
 
 export interface NameEntry {
   /** The default (generated) name: what is kept when the player does nothing. */
@@ -23,13 +26,16 @@ export interface NameEntry {
   touched: boolean
   /** Picker position (the letter ◀ / ▶ change): 0…PICK_LEN-1 when picking, the last typed letter when typing. */
   cursor: number
+  /** The letter under the cursor was changed by ◀ / ▶ (the cursor then advances after CURSOR_ADVANCE_MS). */
+  stepped: boolean
+  lastStepAt: number
   done: boolean
   startedAt: number
   lastInputAt: number
 }
 
 export function newNameEntry(defaultName: string, now: number): NameEntry {
-  return { defaultName, text: defaultName, touched: false, cursor: 0, done: false, startedAt: now, lastInputAt: now }
+  return { defaultName, text: defaultName, touched: false, cursor: 0, stepped: false, lastStepAt: now, done: false, startedAt: now, lastInputAt: now }
 }
 
 function cycle(ch: string, dir: -1 | 1): string {
@@ -38,26 +44,20 @@ function cycle(ch: string, dir: -1 | 1): string {
   return LETTERS[(((i < 0 ? 0 : i) + dir) % n + n) % n]
 }
 
-/** ◀ (−1) / ▶ (+1). */
+/** ◀ (−1) / ▶ (+1): changes the letter under the cursor in place; a non-letter becomes A first. */
 export function pickStep(e: NameEntry, dir: -1 | 1, now: number): NameEntry {
   if (e.done) return e
-  if (!e.touched) return { ...e, text: 'A', touched: true, cursor: 0, lastInputAt: now }
-  // An emptied name restarts at 'A' (like an untouched one) instead of cycling away from it.
-  if (e.text.length === 0) return { ...e, text: 'A', cursor: 0, lastInputAt: now }
+  // An emptied name restarts at 'A' instead of cycling away from it.
+  if (e.text.length === 0) return { ...e, text: 'A', touched: true, cursor: 0, stepped: true, lastStepAt: now, lastInputAt: now }
   const chars = [...e.text]
-  while (chars.length <= e.cursor) chars.push('A')
-  chars[e.cursor] = cycle(chars[e.cursor], dir)
-  return { ...e, text: chars.join('').slice(0, NAME_MAX), lastInputAt: now }
+  const pos = Math.min(e.cursor, chars.length - 1)
+  chars[pos] = LETTERS.includes(chars[pos]) ? cycle(chars[pos], dir) : 'A'
+  return { ...e, text: chars.join('').slice(0, NAME_MAX), touched: true, cursor: pos, stepped: true, lastStepAt: now, lastInputAt: now }
 }
 
-/** OK: accept the letter and move on; on the last position (or an untouched default) accept the name. */
+/** OK: accept the name as shown (an untouched default, picked or typed letters). */
 export function confirm(e: NameEntry, now: number): NameEntry {
-  if (e.done) return e
-  if (!e.touched || e.cursor >= PICK_LEN - 1) return { ...e, done: true, lastInputAt: now }
-  const cur = e.text.length === 0 ? e.text + 'A' : e.text // OK on an emptied name accepts 'A' first
-  const cursor = Math.min(PICK_LEN - 1, (e.text.length === 0 ? 0 : e.cursor) + 1)
-  const text = cur.length <= cursor ? (cur + 'A').slice(0, NAME_MAX) : cur
-  return { ...e, cursor, text, lastInputAt: now }
+  return e.done ? e : { ...e, done: true, lastInputAt: now }
 }
 
 /** Keyboard: A–Z 0–9 '-' (lower case upper-cased). The first key replaces the default. Others are ignored. */
@@ -68,14 +68,14 @@ export function typeChar(e: NameEntry, key: string, now: number): NameEntry {
   const base = e.touched ? e.text : ''
   if (base.length >= NAME_MAX) return { ...e, lastInputAt: now }
   const text = base + ch
-  return { ...e, text, touched: true, cursor: text.length - 1, lastInputAt: now }
+  return { ...e, text, touched: true, cursor: text.length - 1, stepped: false, lastInputAt: now }
 }
 
 export function backspace(e: NameEntry, now: number): NameEntry {
   if (e.done) return e
   const base = e.touched ? e.text : ''
   const text = base.slice(0, -1)
-  return { ...e, text, touched: true, cursor: Math.max(0, text.length - 1), lastInputAt: now }
+  return { ...e, text, touched: true, cursor: Math.max(0, text.length - 1), stepped: false, lastInputAt: now }
 }
 
 /** Enter: accept. */
@@ -83,9 +83,13 @@ export function accept(e: NameEntry, now: number): NameEntry {
   return e.done ? e : { ...e, done: true, lastInputAt: now }
 }
 
-/** Applies the timeouts (R9.4). */
+/** Moves the cursor on after a pause in stepping, then applies the timeouts (R9.4). */
 export function tickNameEntry(e: NameEntry, now: number): NameEntry {
   if (e.done) return e
+  if (e.stepped && now - e.lastStepAt >= CURSOR_ADVANCE_MS) {
+    const last = Math.min(PICK_LEN, [...e.text].length) - 1
+    e = e.cursor < last ? { ...e, cursor: e.cursor + 1, stepped: false } : { ...e, stepped: false }
+  }
   const limit = e.touched ? e.lastInputAt + ACTIVE_ACCEPT_MS : e.startedAt + IDLE_ACCEPT_MS
   return now >= limit ? { ...e, done: true } : e
 }

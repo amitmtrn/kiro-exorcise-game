@@ -28,6 +28,8 @@ export const DECAY_RATE = 1.5
 export const MAX_FRAME_GAP_MS = 120
 /** After a trigger the circle must be still this long before it can fill again (one wave = one action). */
 export const RELEASE_STILL_MS = 150
+/** Buttons whose centres are within this many radii compete for one hand (stacked buttons are 3.1 radii apart). */
+export const NEIGHBOUR_RADII = 4
 /** Every screen ignores motion this long after it is entered (R2.5). */
 export const ENTRY_LOCK_MS = 1200
 
@@ -66,31 +68,49 @@ export class MotionButton {
     this.dwellMs = dwellMs
   }
 
-  /** True when the moved samples cover enough of the circle (R2.2). */
-  private covered(): boolean {
-    const cellArea = Math.max(1e-6, motionCell.w * motionCell.h)
-    const need = Math.max(MIN_MOTION_PIXELS, Math.ceil((MIN_COVERAGE * Math.PI * this.radius * this.radius) / cellArea))
+  /** Moved samples inside the circle. */
+  private inside(limit = Number.POSITIVE_INFINITY): number {
     let inside = 0
     const r2 = this.radius * this.radius
     for (const mp of this.source ? this.source() : lastMotionPixels) {
       const dx = mp.x - this.cx
       const dy = mp.y - this.cy
-      if (dx * dx + dy * dy < r2 && ++inside >= need) return true
+      if (dx * dx + dy * dy < r2 && ++inside >= limit) break
     }
-    return false
+    return inside
+  }
+
+  /** Moved samples needed inside the circle for a frame to count (R2.2). */
+  private need(): number {
+    const cellArea = Math.max(1e-6, motionCell.w * motionCell.h)
+    return Math.max(MIN_MOTION_PIXELS, Math.ceil((MIN_COVERAGE * Math.PI * this.radius * this.radius) / cellArea))
+  }
+
+  /** True when the moved samples cover enough of the circle (R2.2). */
+  private covered(): boolean {
+    const need = this.need()
+    return this.inside(need) >= need
+  }
+
+  /**
+   * How far the circle is covered by the current motion, as a multiple of what a frame needs: 1 or more counts.
+   * Neighbouring buttons compare these so the one the hand is mostly on wins (playtest1-fixes R2.2).
+   */
+  coverageScore(): number {
+    return this.inside() / this.need()
   }
 
   /**
    * Call each tick. Only a real new camera frame changes anything; a duplicate frame
    * returns the previous status (R2.4). 'triggered' is returned once per wave.
    */
-  update(now: number): ButtonStatus {
+  update(now: number, allow = true): ButtonStatus {
     const seq = motionFrameSeq
     if (seq === this.lastSeq) return this.progress > 0 && !this.awaitRelease ? 'filling' : 'idle'
     this.lastSeq = seq
     const dt = Number.isFinite(this.lastEvalAt) ? Math.max(0, Math.min(MAX_FRAME_GAP_MS, now - this.lastEvalAt)) : 0
     this.lastEvalAt = now
-    const active = this.covered()
+    const active = allow && this.covered()
     const wasActive = this.wasActive
     this.wasActive = active
     if (active) this.lastActiveAt = now
@@ -115,9 +135,9 @@ export class MotionButton {
   }
 
   /** Like `update`, but while `live` is false motion is ignored and must leave the circle first. */
-  updateGated(now: number, live: boolean): ButtonStatus {
+  updateGated(now: number, live: boolean, allow = true): ButtonStatus {
     if (!live) { this.awaitRelease = true; this.progress = 0 }
-    return this.update(now)
+    return this.update(now, allow)
   }
 
   /** Drops the fill and requires the hand to leave (another button won this frame). */
@@ -232,10 +252,18 @@ export class EntryLock {
 export function updateExclusive(
   buttons: readonly MotionButton[], now: number, lives: boolean | readonly boolean[],
 ): number {
+  const liveOf = (i: number): boolean => (typeof lives === 'boolean' ? lives : lives[i])
+  // When one hand covers two neighbouring buttons only the one it covers most may count the frame; a clipped
+  // neighbour sees an inactive frame (it drains and cannot fire). Ties go to list order. Only buttons within
+  // NEIGHBOUR_RADII radii of each other compete: the two halves of a 2P screen stay independent.
+  const scores = buttons.map((b, i) => (liveOf(i) ? b.coverageScore() : 0))
+  const allowed = buttons.map((b, i) => scores[i] < 1 || !buttons.some((o, j) =>
+    j !== i && scores[j] >= 1 &&
+    Math.hypot(o.cx - b.cx, o.cy - b.cy) <= NEIGHBOUR_RADII * Math.max(o.radius, b.radius) &&
+    (scores[j] > scores[i] || (scores[j] === scores[i] && j < i))))
   let winner = -1
   buttons.forEach((b, i) => {
-    const live = typeof lives === 'boolean' ? lives : lives[i]
-    if (b.updateGated(now, live) === 'triggered' && winner < 0) winner = i
+    if (b.updateGated(now, liveOf(i), allowed[i]) === 'triggered' && winner < 0) winner = i
   })
   if (winner >= 0) buttons.forEach((b, i) => { if (i !== winner) b.suppress() })
   return winner

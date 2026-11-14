@@ -168,7 +168,7 @@ describe('player out (R4.1, R4.5)', () => {
 
   function outLeft(): TwoPlayerState {
     let t = playing()
-    for (let i = 0; i < 3; i++) t = withSeat(t, 0, (s) => decrementLife(s))
+    for (let i = 0; i < 3; i++) t = withSeat(t, 0, (s) => decrementLife({ ...s, invulnMs: 0 }))
     return t
   }
 
@@ -193,7 +193,7 @@ describe('player out (R4.1, R4.5)', () => {
 
   it('ends the game when both players are out', () => {
     let t = outLeft()
-    for (let i = 0; i < 3; i++) t = withSeat(t, 1, (s) => decrementLife(s))
+    for (let i = 0; i < 3; i++) t = withSeat(t, 1, (s) => decrementLife({ ...s, invulnMs: 0 }))
     t = tickTwoPlayer(t, 16, W, H, STILL)
     expect(t.phase).toBe('final')
   })
@@ -325,7 +325,7 @@ describe('winner (R5.1)', () => {
   it('an out player with the higher score still wins', () => {
     let t = playing()
     t = withSeat(t, 0, (s) => addScore(s, 900))
-    for (let i = 0; i < 3; i++) t = withSeat(t, 0, (s) => decrementLife(s))
+    for (let i = 0; i < 3; i++) t = withSeat(t, 0, (s) => decrementLife({ ...s, invulnMs: 0 }))
     t = withSeat(t, 1, (s) => addScore(s, 100))
     expect(winnerOf(t)).toBe(0)
   })

@@ -73,6 +73,11 @@ export function recipeFor(id: SfxId, arg = 2): Voice[] {
 /** Targets before the limiter (R6.2). */
 export const TARGET_RMS_DB = -22
 export const PEAK_CEIL_DB = -3
+/**
+ * Stack headroom (playtest1-fixes, item 8): three SFX can overlap with the music peak. If every SFX peak is at most
+ * `stackPeakCeil()`, the sum of any three peaks plus the music peak stays under 1.0 minus this margin, whatever the offsets.
+ */
+export const STACK_MARGIN = 0.02
 /** Music estimated RMS sits this far under the SFX target. */
 export const MUSIC_BELOW_SFX_DB = 6
 
@@ -81,7 +86,7 @@ export const MUSIC_BELOW_SFX_DB = 6
  * Every id has an entry.
  */
 export const SFX_GAIN: Readonly<Record<SfxId, number>> = {
-  ghostHit: 1.25,
+  ghostHit: 0.93,
   batHit: 0.67,
   skullHit: 0.41,
   lifeLost: 0.59,
@@ -90,7 +95,7 @@ export const SFX_GAIN: Readonly<Record<SfxId, number>> = {
   bossHit: 0.29,
   bossDefeated: 0.28,
   wispLink: 0.78,
-  shield: 1.03,
+  shield: 0.82,
 }
 
 /** Music bus gain (`musicGainFor(estimateMusicLevel())`, floored to 2 decimals). */
@@ -188,10 +193,15 @@ export function measure(samples: Float32Array): Level {
   return { peak, rms: Math.sqrt(sum / (b - a + 1)) }
 }
 
-/** Gain that brings a raw level to the RMS target without exceeding the peak ceiling. */
+/** Largest linear peak one SFX may have so that any three stacked plus the music peak stay below 0 dBFS. */
+export function stackPeakCeil(): number {
+  return (1 - estimateMusicLevel().peak * MUSIC_GAIN - STACK_MARGIN) / 3
+}
+
+/** Gain that brings a raw level to the RMS target without exceeding the -3 dBFS ceiling or the stack ceiling. */
 export function gainFor(l: Level): number {
   if (l.peak === 0 || l.rms === 0) return 1
-  return Math.min(lin(TARGET_RMS_DB) / l.rms, lin(PEAK_CEIL_DB) / l.peak)
+  return Math.min(lin(TARGET_RMS_DB) / l.rms, lin(PEAK_CEIL_DB) / l.peak, stackPeakCeil() / l.peak)
 }
 
 /** Worst raw level of an id over its variants (combo tiers). */

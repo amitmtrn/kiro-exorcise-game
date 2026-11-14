@@ -77,6 +77,7 @@ import { areaButtons } from '../ui/layout'
 import { STORAGE_KEY } from './highScores'
 import type { ScoreEntry } from './highScores'
 import { ENTRY_LOCK_MS, DWELL_MS } from '../ui/motionButton'
+import { NAME_DELAY_MS } from './state'
 
 const W = 800, H = 600, HW = 400
 
@@ -118,9 +119,24 @@ afterEach(() => { stopLoop(); vi.unstubAllGlobals() })
 async function startFinal(): Promise<void> {
   await startLoop({} as HTMLVideoElement, ctx(), ctx())
   step(); requestStart(2); step(); step()
+  // The end screen shows first; the name screens open NAME_DELAY_MS later (playtest1-fixes R1.6).
+  stepFor(NAME_DELAY_MS + 100)
+  h.finalCalls = 0
+  step()
 }
 
 describe('two-player names (more-content R11)', () => {
+  it('shows the end screen first and opens no name screen before NAME_DELAY_MS', async () => {
+    h.scores = [3000, 5000]; h.stages = [4, 6]
+    await startLoop({} as HTMLVideoElement, ctx(), ctx())
+    step(); requestStart(2); step(); step()
+    expect(h.finalCalls).toBeGreaterThan(0)
+    expect(isNameEntryOpen()).toBe(false)
+    stepFor(NAME_DELAY_MS - 300)
+    expect(isNameEntryOpen()).toBe(false)
+    stepFor(500)
+    expect(isNameEntryOpen()).toBe(true)
+  })
   it('records both seats with mode 2P and their own stage, and holds the end buttons back', async () => {
     h.scores = [3000, 5000]; h.stages = [4, 6]
     await startFinal()
@@ -137,9 +153,13 @@ describe('two-player names (more-content R11)', () => {
     h.scores = [3000, 5000]; h.stages = [4, 6]
     await startFinal()
     const tap = (b: { x: number; y: number }) => { expect(handleSeatCardPointer(b.x, b.y)).toBe(true); step() }
-    tap(btn(1, 'stepA')) // first step picks a letter
-    for (let i = 0; i < 3; i++) tap(btn(1, 'ok'))
-    expect(table().find((e) => e.score === 5000)!.name).toBe('AAA')
+    const before = table().find((e) => e.score === 5000)!.name
+    tap(btn(1, 'stepA')) // the arrow changes the highlighted first letter in place
+    expect(isNameEntryOpen()).toBe(true)
+    tap(btn(1, 'ok')) // OK saves the name as shown, at once
+    const after = table().find((e) => e.score === 5000)!.name
+    expect(after).not.toBe(before)
+    expect(after.slice(1)).toBe(before.slice(1)) // only the first letter changed
     expect(isNameEntryOpen()).toBe(true) // the left half is still naming
     expect(table().find((e) => e.score === 3000)!.name).toMatch(/^[A-Z]+-[0-9A-F]{2}$/)
   })
@@ -147,15 +167,17 @@ describe('two-player names (more-content R11)', () => {
     h.scores = [3000, 5000]; h.stages = [4, 6]
     await startFinal()
     stepFor(ENTRY_LOCK_MS + 200)
-    // P2 (right half): ▶ (its stacked button) twice (the first replaces the default with A), then OK three times
+    // P2 (right half): ▶ (its stacked button) twice changes the first letter by two, then OK saves
     const press = (b: { x: number; y: number; r: number }) => {
       h.points = ring(b.x, b.y, b.r * 0.9); stepFor(DWELL_MS + 200)
       h.points = []; stepFor(400)
     }
+    const before = table().find((e) => e.score === 5000)!.name
     press(btn(1, 'stepA'))
     press(btn(1, 'stepA'))
-    for (let i = 0; i < 3; i++) press(btn(1, 'ok'))
-    expect(table().find((e) => e.score === 5000)!.name).toBe('BAA')
+    press(btn(1, 'ok'))
+    const L = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+    expect(table().find((e) => e.score === 5000)!.name).toBe(L[(L.indexOf(before[0]) + 2) % 26] + before.slice(1))
     expect(isNameEntryOpen()).toBe(true) // P1 still naming
     expect(h.finalCalls).toBe(0)
     // P1 types on the keyboard

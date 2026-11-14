@@ -14,20 +14,19 @@ reproducible: `git checkout df26f4d` and run the same command.
 
 | What | Number | How to check |
 |---|---|---|
-| Specs (requirements + design + tasks each) | 20 at PR #5; 25 now (`demo-mode`, `judge-docs`, `playtest-polish`, `more-content` and `ci-timeout` added) | `ls .kiro/specs` |
+| Specs (requirements + design + tasks each) | 20 at PR #5; 26 now (`demo-mode`, `judge-docs`, `playtest-polish`, `more-content`, `ci-timeout` and `playtest1-fixes` added) | `ls .kiro/specs` |
 | Ticked task checkboxes | 805 | `cat .kiro/specs/*/tasks.md \| grep -c '^- \[x\]'` |
 | Unticked task checkboxes | 103 (49 are in `boss-combo`, superseded by `stages`; the rest are manual checks such as webcam playthroughs) | `grep -c '^- \[ \]'` per file |
 | Commits | 175 | `git rev-list --count df26f4d` |
 | Commits named after a spec task, `<type>(<spec>-T<n>)` (67 `feat`, 14 `docs`, 6 `test`, 2 `fix`) | 89 | `git log df26f4d --oneline -E --grep='\([a-z0-9-]+-T[0-9]+\)' \| wc -l` |
 | `fix(...)` commits, mostly review fixes | 57 | `git log df26f4d --oneline -E --grep='^fix' \| wc -l` |
-| Unit and property tests | 1120 passed, 0 failed, 0 skipped at PR #5; 1741 passed, 0 failed, 0 skipped on this branch (ci-timeout) after merging main (demo mode, `judge-docs`, `playtest-polish` and `more-content`) | `npm test` |
-| Test files | 96 at PR #5; 145 on this branch after merging main | `npm test` ("Test Files") |
+| Unit and property tests | 1120 passed, 0 failed, 0 skipped at PR #5; 1853 passed, 0 failed, 0 skipped on this branch (playtest1-fixes) after ci-timeout (1741), in 152 test files (96 at PR #5) | `npm test` |
 | Property tests: `fc.assert` calls (at df26f4d) | 119 in 31 files | `grep -rh 'fc\.assert' src tools \| wc -l` |
 | Hooks | 5 hook entries in 3 files | `ls .kiro/hooks` |
 | Steering files | 3, 233 lines | `wc -l .kiro/steering/*.md` |
 | Custom agents | 1 (`balancer`) | `ls .kiro/agents` |
 | MCP servers | 1 (`motion-harness`, local stdio, 2 tools) | `.kiro/settings/mcp.json` |
-| Pull requests | 9 merged (#1 to #9; #7 is the judge write-up, #8 is playtest-polish, #9 is more-content); `ci-timeout` is on this branch | (log) |
+| Pull requests | 10 merged (#1 to #10; #7 is the judge write-up, #8 is playtest-polish, #9 is more-content, #10 is ci-timeout, merge commit 8462694); `playtest1-fixes` is on this branch | (log) |
 | Kiro credits | 802.22 of 4000, after the ci-timeout spec | (log) |
 | Kiro app | Kiro CLI 3.3.0 only | (log) |
 
@@ -411,7 +410,8 @@ hip-to-shin height (72 to 92 % of the frame) to raised-hand zones (19 to 39 %) (
 | #7 | judge-docs (this write-up, after merging main) | 1291 |
 | #8 | playtest-polish (after merging main) | 1515 |
 | #9 | more-content (new ghosts, stage 6 finale, local high scores) | 1728 |
-| ci-timeout (this branch) | ci-timeout (test timeouts, Node 22 deploy) | 1741 |
+| #10 | ci-timeout (test timeouts, Node 22 deploy) | 1741 |
+| playtest1-fixes (this branch) | first real-webcam playtest bugs (hearts, motion buttons, name entry, card) | 1853 |
 
 0 failed and 0 skipped at each point (log).
 
@@ -435,6 +435,7 @@ Cumulative Kiro `/usage`, from a bonus pool of 4000 (log):
 | After playtest-polish | 629.18 |
 | After more-content, including all its review fixes | 795.43 |
 | After ci-timeout | 802.22 |
+| After playtest1-fixes | (the operator fills in the new figure) |
 
 Largest steps: demo-mode (about 189) and motion-ui-ergonomics (about 70, plus 8).
 
@@ -443,8 +444,7 @@ Demo mode is merged (PR #6, merge commit 46d9551). Open the game with `?demo=1&s
 
 ## What we didn't use
 
-- **Kiro IDE.** Not used. All work was done in Kiro CLI on a Linux box. The hooks
-  were validated with `kiro-cli agent validate` and unit tests only.
-- **Kiro Web** and **Kiro Crew.** Not used.
+- **Kiro IDE, Kiro Web and Kiro Crew.** Not used. All work was done in Kiro CLI on a Linux
+  box. The hooks were validated with `kiro-cli agent validate` and unit tests only.
 - **Installed powers.** None before the local power above, which is untested in the IDE.
 - **A vibe-coding control.** We did not build a second version without specs.

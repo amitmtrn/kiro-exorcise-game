@@ -2,6 +2,7 @@ import { describe, it, expect, vi, afterEach } from 'vitest'
 import {
   createInitialState,
   decrementLife,
+  DEATH_MS,
   addScore,
   tickTimer,
   removeEnemy,
@@ -56,14 +57,15 @@ describe('decrementLife', () => {
 
   it('transitions to gameover when lives reach 0', () => {
     let s = createInitialState()
-    s = decrementLife(s); s = decrementLife(s); s = decrementLife(s)
+    s = decrementLife(s); s = decrementLife({ ...s, invulnMs: 0 }); s = decrementLife({ ...s, invulnMs: 0 })
     expect(s.lives).toBe(0)
     expect(s.phase).toBe('gameover')
+    expect(s.deathMs).toBe(DEATH_MS)
   })
 
   it('does not go below 0 lives', () => {
     let s = createInitialState()
-    for (let i = 0; i < 10; i++) s = decrementLife(s)
+    for (let i = 0; i < 10; i++) s = decrementLife({ ...s, invulnMs: 0 })
     expect(s.lives).toBe(0)
   })
 })

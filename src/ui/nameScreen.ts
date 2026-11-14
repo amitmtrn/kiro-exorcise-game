@@ -1,6 +1,6 @@
 /**
- * Name screen (more-content R9): the default name is already saved; the player may change it with
- * three motion buttons (◀ / OK / ▶, layout.ts `name` / `name2p`) or the keyboard. One instance per
+ * Name screen (more-content R9, playtest1-fixes R3): the default name is already saved; OK finishes at
+ * once, ◀ / ▶ change the highlighted letter (layout.ts `name` / `name2p`), or the keyboard. One instance per
  * area: 1P uses the whole canvas, 2P one instance per half with that half's motion points.
  */
 
@@ -16,8 +16,8 @@ import { scaled } from './textScale'
 import { getPalette } from './palette'
 
 export const NAME_TITLE = 'NAME YOUR HUNTER'
-export const NAME_HINT = '◀ ▶ pick a letter • OK next • or type, Enter • M is a letter here'
-export const NAME_HINT_2P = '◀ ▶ letter • OK next'
+export const NAME_HINT = 'Wave OK to save • ◀ ▶ change letter • or type and press Enter'
+export const NAME_HINT_2P = 'OK saves • ◀ ▶ change letter'
 export const WAITING_TEXT = 'Waiting for the other player…'
 
 export interface NameInfo { score: number; rank: number }
@@ -83,10 +83,13 @@ export class NameScreen {
     ctx.fillStyle = '#e8e8f0'
     const nameY = half ? y(0.32) : H * 0.27
     ctx.fillText(shown, W / 2, nameY)
-    if (entry.touched) {
-      // underline the letter the arrows change
+    {
+      // The letter the arrows change is always highlighted (a box behind it and an underline), also on the untouched default.
       const glyph = namePx * 0.6
-      const x0 = W / 2 - (shown.length * glyph) / 2 + entry.cursor * glyph
+      const len = [...shown].length
+      const x0 = W / 2 - (len * glyph) / 2 + entry.cursor * glyph
+      ctx.fillStyle = 'rgba(255,209,102,0.28)'
+      ctx.fillRect(x0, nameY - namePx * 0.55, glyph, namePx * 1.1)
       ctx.fillStyle = P.score
       ctx.fillRect(x0 + 2, nameY + namePx * 0.55, glyph - 4, 4)
     }
@@ -96,7 +99,7 @@ export class NameScreen {
     ctx.fillStyle = 'rgba(232,232,240,0.8)'
     ctx.fillText(sub, W / 2, half ? y(0.55) : H * 0.55)
     const hint = half ? NAME_HINT_2P : NAME_HINT
-    ctx.font = `${Math.round(fitFontPx(hint, scaled(16), half ? 0.9 * W : 0.6 * W, 11))}px sans-serif`
+    ctx.font = `${Math.round(fitFontPx(hint, scaled(16), half ? 0.9 * W : 0.6 * W, 9))}px sans-serif`
     ctx.fillText(hint, W / 2, half ? y(0.72) : H * 0.63)
 
     const specs = areaButtons(half ? 'name2p' : 'name', W, H, this.seat)

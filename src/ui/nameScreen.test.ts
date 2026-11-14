@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
-import { NameScreen, NAME_TITLE, WAITING_TEXT, NAME_HINT } from './nameScreen'
-import { newNameEntry, pickStep } from '../game/nameEntry'
+import { NameScreen, NAME_TITLE, WAITING_TEXT, NAME_HINT, NAME_HINT_2P } from './nameScreen'
+import { newNameEntry, pickStep, typeChar } from '../game/nameEntry'
+import { updateSettings, resetSettings } from '../settings/runtime'
 import { areaButtons, buttonLayout, NAME_PREV, NAME_NEXT } from './layout'
 import { blobPoints, publish } from '../test/motionFixtures'
 import { DWELL_MS, ENTRY_LOCK_MS } from './motionButton'
@@ -55,10 +56,25 @@ describe('name screen', () => {
     expect(texts.some((x) => x.includes('4200') && x.includes('#3'))).toBe(true)
     for (const l of [NAME_PREV, 'OK', NAME_NEXT]) expect(texts.some((x) => x.includes(l))).toBe(true)
   })
-  it('shows underscores for the picked letters', () => {
+  it('shows underscores for a typed short name', () => {
     const { ctx, texts } = recorder()
-    new NameScreen().render(ctx, pickStep(newNameEntry('GHOST-7F', 0), 1, 0), 0, { score: 1, rank: 1 })
+    new NameScreen().render(ctx, typeChar(newNameEntry('GHOST-7F', 0), 'a', 0), 0, { score: 1, rank: 1 })
     expect(texts).toContain('A__')
+  })
+  it('shows the stepped default in place and always highlights the letter under the cursor', () => {
+    const rects: number[][] = []
+    const store: Record<string, unknown> = { canvas: { width: W, height: H } }
+    const ctx = new Proxy(store, {
+      get: (s, k: string) => (k === 'fillRect' ? (...a: number[]) => rects.push(a) : k in s ? s[k] : () => ({ width: 10 })),
+      set: (s, k: string, v) => { s[k] = v; return true },
+    }) as unknown as CanvasRenderingContext2D
+    const texts: string[] = []
+    const t = recorder()
+    new NameScreen().render(t.ctx, pickStep(newNameEntry('GHOST-7F', 0), 1, 0), 0, { score: 1, rank: 1 })
+    texts.push(...t.texts)
+    expect(texts).toContain('HHOST-7F')
+    new NameScreen().render(ctx, newNameEntry('GHOST-7F', 0), 0, { score: 1, rank: 1 })
+    expect(rects.filter((r) => r[3] === 4)).toHaveLength(1) // the underline exists before any step
   })
   it('ignores motion during the entry lock-out, then one wave fires one action', () => {
     for (const [label, want] of [[NAME_PREV, { kind: 'step', dir: -1 }], [NAME_NEXT, { kind: 'step', dir: 1 }], ['OK', { kind: 'ok' }]] as const) {
@@ -82,8 +98,25 @@ describe('name screen', () => {
   })
 })
 
-describe('name hint (R11.3)', () => {
-  it('tells the player that M is a letter while typing a name', () => {
-    expect(NAME_HINT).toContain('M is a letter')
+describe('name hint (playtest1-fixes R3.4)', () => {
+  it('names the flow: OK saves, arrows change the letter, typing and Enter', () => {
+    expect(NAME_HINT).toBe('Wave OK to save • ◀ ▶ change letter • or type and press Enter')
+    expect(NAME_HINT).not.toMatch(/OK next|M is a letter/)
+    expect(NAME_HINT_2P).toBe('OK saves • ◀ ▶ change letter')
+  })
+  it('fits its band at the supported sizes and text scales', () => {
+    for (const [w, h] of [[640, 360], [1280, 720], [1920, 1080]]) for (const sc of [1, 1.5]) {
+      updateSettings({ textScale: sc as 1 })
+      const widths: number[] = []
+      const store: Record<string, unknown> = { canvas: { width: w, height: h }, font: '' }
+      const ctx = new Proxy(store, {
+        get: (s, k: string) => (k === 'fillText' ? (text: string) => { if (text === NAME_HINT) widths.push(text.length * parseFloat(String(s.font).match(/(\d+(?:\.\d+)?)px/)![1]) * 0.6) } : k in s ? s[k] : () => ({ width: 10 })),
+        set: (s, k: string, v) => { s[k] = v; return true },
+      }) as unknown as CanvasRenderingContext2D
+      new NameScreen().render(ctx, newNameEntry('GHOST-7F', 0), 0, { score: 1, rank: 1 })
+      expect(widths).toHaveLength(1)
+      expect(widths[0]).toBeLessThanOrEqual(0.6 * w + 1)
+    }
+    resetSettings()
   })
 })

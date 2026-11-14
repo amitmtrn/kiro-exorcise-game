@@ -72,6 +72,8 @@ export const TEXT_BAND_1P: readonly [number, number] = [0.38, 0.62]
 export const TEXT_LOW_TOP = 0.47
 export const TEXT_BAND_LOW: readonly [number, number] = [0.2, 0.8]
 export const CARD_ASPECT = 600 / 840
+/** Clear space between a button's progress ring (outer edge `r + RING_OUTSET`) and the card image (playtest1-fixes R4.2). */
+export const CARD_GAP = 12
 
 // ─── Reach model (R9) ────────────────────────────────────────────────────────
 
@@ -216,8 +218,9 @@ export function buttonLayout(screen: ScreenId, W: number, H: number, opts: Layou
 export function previewCardRect(aw: number, H: number, seat: Seat | null): Rect {
   const r = buttonRadius(aw, H, seat !== null)
   const s = slots(aw, H, seat, r)
-  const x0 = Math.min(s.A.col, s.S.col) + r + 6
-  const x1 = Math.max(s.A.col, s.S.col) - r - 6
+  const edge = r + RING_OUTSET + CARD_GAP // the ring, not just the circle, must stay off the card
+  const x0 = Math.min(s.A.col, s.S.col) + edge
+  const x1 = Math.max(s.A.col, s.S.col) - edge
   const span = Math.max(1, x1 - x0)
   const ch = Math.min(0.8 * H, span / CARD_ASPECT)
   const cw = ch * CARD_ASPECT

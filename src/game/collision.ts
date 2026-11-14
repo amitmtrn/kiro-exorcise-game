@@ -298,8 +298,11 @@ export function resolveHits(
       }
 
     } else if (enemy.type === 'skull') {
+      // Inside the grace window after a heart was lost the skull is still swept away, but costs nothing
+      // and makes no red flash (playtest1-fixes R1.2).
+      const livesBefore = s.lives
       s = decrementLife(s)
-      s = setFlash(s, now + 300)
+      if (s.lives < livesBefore) s = setFlash(s, now + 300)
       s = addParticles(s, spawnGhostPuff(enemy.x, enemy.y))
       lastBanished.push({ ...enemy, hitFlashFrames: 1 })
       try { sfxSkullHit() } catch { /* audio not ready */ }
