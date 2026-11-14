@@ -84,7 +84,8 @@ a telegraph state and its dwell time was ≥ 400 ms.
 `movement.ts`: the three types use the ghost wobble (`GHOST_WOBBLE_*`, half the
 amplitude for blink). `moveSingle` also calls `stepVariant`. `hitboxFor` handles
 the new types (wisp 0.8 × `GHOST_SIZE`). `isThreat` already treats unknown types as
-threats; wisps are deduplicated per pair in `step.ts`.
+threats; wisps are deduplicated per pair in `reach.ts` (`splitReached`: the first
+wisp of a pair to arrive costs one life and removes its partner).
 
 ## Hit rules (`collision.ts`)
 
@@ -105,10 +106,12 @@ threats; wisps are deduplicated per pair in `step.ts`.
 Pure functions taking a `rand` (default `Math.random`): `pickSpawn(edge, W, H,
 skulls, rand)` returns an edge point at least `SKULL_CLEARANCE` from every live skull,
 trying the four edges in a random order, else `null` (the event is deferred and
-retried the next tick, bounded by the next event time). Spawned ghosts head for the
-exact centre. `tickSpawners` consumes `stageCfg.variantEvents` (`{ atMs, kind }`)
-exactly like `waveEvents` (clock = elapsed stage time, waits for a free slot),
-and skips events when the stage cap is full.
+retried the next tick). Spawned ghosts head for the exact centre. `tickSpawners`
+consumes `stageCfg.variantEvents` (`{ atMs, kind }`) like `waveEvents` (clock =
+elapsed stage time; a wisp pair needs two free slots, anything else one). An event
+that waits for a slot or a safe point is dropped once it is more than
+`VARIANT_DEFER_MAX_MS` (3 s) late, so nothing scripted arrives near the boss
+entrance.
 
 ## Stage 6 and the finale
 

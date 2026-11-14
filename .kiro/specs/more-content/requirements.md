@@ -103,8 +103,8 @@ link line to its partner, and a ring timer that shrinks.
 time after its own spawn grace, also before the first is hit.
 
 **R2.4** *Re-merge.* The last `TELEGRAPH_MS` (500 ms) of the lit window is the
-**merging** telegraph (the ring blinks slowly, the wisps drift towards each
-other). When the window ends unhit, the lit wisp returns to `idle` (nothing is
+**merging** telegraph (the ring blinks slowly and the link line pulses; the
+wisps keep their course, so their travel time is unchanged). When the window ends unhit, the lit wisp returns to `idle` (nothing is
 lost). A wisp in `merging` is still hittable and a hit there still links or
 completes the pair.
 
