@@ -23,9 +23,15 @@ describe('parseDemoParams (demo-mode R1.1)', () => {
     expect(parseDemoParams('?demo=1&seed=7').seed).toBe(7)
     expect(parseDemoParams('?demo=1&speed=').speed).toBe(DEMO.timeScale)
   })
-  it('clamps speed to 1..3', () => {
-    expect(parseDemoParams('?demo=1&speed=0.2').speed).toBe(1)
-    expect(parseDemoParams('?demo=1&speed=99').speed).toBe(3)
+  it('accepts speed 1..3 (decimals allowed)', () => {
+    expect(parseDemoParams('?demo=1&speed=1').speed).toBe(1)
+    expect(parseDemoParams('?demo=1&speed=1.5').speed).toBe(1.5)
+    expect(parseDemoParams('?demo=1&speed=3').speed).toBe(3)
+  })
+  it('falls back to the default for speed outside 1..3 and for non-decimal forms (R1.1)', () => {
+    for (const v of ['0', '0.2', '9', '99', '3.01', '-2', '0x2', '1e1', '+2', 'Infinity', 'NaN', ' ', '2,5']) {
+      expect(parseDemoParams(`?demo=1&speed=${encodeURIComponent(v)}`).speed, v).toBe(DEMO.timeScale)
+    }
   })
 })
 
@@ -34,8 +40,19 @@ describe('demoKeyAction (demo-mode R1.2–R1.4)', () => {
     expect(demoKeyAction({ key: 'g' })).toBe('toggle')
     expect(demoKeyAction({ key: 'G' })).toBe('toggle')
   })
-  it('G with Ctrl / Meta / Alt is just another key', () => {
-    expect(demoKeyAction({ key: 'g', ctrlKey: true })).toBe('exit')
+  it('G with Ctrl / Meta / Alt is a browser chord: passive', () => {
+    expect(demoKeyAction({ key: 'g', ctrlKey: true })).toBe('ignore')
+    expect(demoKeyAction({ key: 'g', metaKey: true })).toBe('ignore')
+    expect(demoKeyAction({ key: 'g', altKey: true })).toBe('ignore')
+  })
+  it('reload, full screen, dev tools and tab chords are passive (R1.4)', () => {
+    for (const key of ['F1', 'F5', 'F11', 'F12']) expect(demoKeyAction({ key })).toBe('ignore')
+    for (const key of ['r', 'R', '1', 'w', 'ArrowLeft']) {
+      expect(demoKeyAction({ key, ctrlKey: true })).toBe('ignore')
+      expect(demoKeyAction({ key, metaKey: true })).toBe('ignore')
+    }
+    expect(demoKeyAction({ key: 'F13' })).toBe('exit')
+    expect(demoKeyAction({ key: 'F' })).toBe('exit')
   })
   it('bare modifiers and M are passive', () => {
     for (const key of ['Shift', 'Control', 'Alt', 'Meta', 'm', 'M']) expect(demoKeyAction({ key })).toBe('ignore')
@@ -78,6 +95,10 @@ describe('routeDemoKey (R1.2–R1.4)', () => {
     expect(routeDemoKey({ key: ' ' }, on)).toBe('leave')
     expect(routeDemoKey({ key: 'g' }, on)).toBe('leave')
     expect(routeDemoKey({ key: '1' }, on)).toBe('leave')
+    expect(routeDemoKey({ key: 'F5' }, on)).toBe('pass')
+    expect(routeDemoKey({ key: 'F11' }, on)).toBe('pass')
+    expect(routeDemoKey({ key: 'r', ctrlKey: true }, on)).toBe('pass')
+    expect(routeDemoKey({ key: 'r', metaKey: true }, on)).toBe('pass')
     expect(routeDemoKey({ key: 'm' }, on)).toBe('pass')
     expect(routeDemoKey({ key: 'Shift' }, on)).toBe('pass')
   })

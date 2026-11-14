@@ -5,8 +5,10 @@
 export const DEMO = {
   /** Fixed real step per processed tick, ms. */
   stepMs: 1000 / 60,
-  /** rAF frames arriving sooner than this after the last processed one are skipped (high-refresh displays). */
-  minFrameMs: 12,
+  /** Real-time slack: a frame that arrives this much short of a full step still runs the step (timer jitter at 60 Hz). */
+  stepSlackMs: 2,
+  /** A single frame gap counts for at most this much real time (a hidden tab or a stall does not burst). */
+  maxGapMs: 100,
   /** Default time scale: game, driver and clock advance stepMs × scale per processed tick. */
   timeScale: 2,
   /** Synthetic camera frame interval in demo time (a 30 fps webcam). */
@@ -38,19 +40,24 @@ function intParam(v: string | null): number | null {
   return Number(v.trim())
 }
 
+/** Parses a plain decimal number (`2`, `1.5`); hex, exponent, signs and junk are null. */
+function decimalParam(v: string | null): number | null {
+  if (v === null || !/^\d{1,3}(\.\d{1,6})?$/.test(v.trim())) return null
+  return Number(v.trim())
+}
+
 /** Reads `?demo=1&seed=N&stage=N&speed=N`. Missing or invalid values fall back to the defaults. */
 export function parseDemoParams(search: string): DemoParams {
   let q: URLSearchParams
   try { q = new URLSearchParams(search) } catch { q = new URLSearchParams() }
   const seed = intParam(q.get('seed'))
   const stage = intParam(q.get('stage'))
-  const speed = Number(q.get('speed'))
+  const speed = decimalParam(q.get('speed'))
   return {
     demo: q.get('demo') === '1',
     seed: seed ?? DEMO.defaultSeed,
     stage: stage !== null && stage >= 1 && stage <= 5 ? stage : DEMO.defaultStage,
-    speed: Number.isFinite(speed) && q.get('speed') !== null && q.get('speed') !== ''
-      ? Math.min(DEMO.maxSpeed, Math.max(DEMO.minSpeed, speed)) : DEMO.timeScale,
+    speed: speed !== null && speed >= DEMO.minSpeed && speed <= DEMO.maxSpeed ? speed : DEMO.timeScale,
   }
 }
 
@@ -64,15 +71,17 @@ export interface KeyLike {
 }
 
 const MODIFIER_KEYS = new Set(['Shift', 'Control', 'Alt', 'Meta', 'AltGraph', 'CapsLock'])
+const FUNCTION_KEY = /^F([1-9]|1[0-2])$/
 
 /**
- * What a key press does while demo mode is on: `G` toggles it off, bare modifiers and `M`
- * (mute) are ignored, anything else leaves demo mode (R1.3, R1.4).
+ * What a key press does while demo mode is on: `G` toggles it off; bare modifiers, `M` (mute),
+ * `F1`–`F12` and Ctrl / Meta / Alt chords (reload, full screen, dev tools, tab keys) are ignored;
+ * anything else leaves demo mode (R1.3, R1.4).
  */
 export function demoKeyAction(e: KeyLike): DemoKeyAction {
   const plain = !e.ctrlKey && !e.metaKey && !e.altKey
   if (plain && e.key.toLowerCase() === DEMO_TOGGLE_KEY) return 'toggle'
-  if (MODIFIER_KEYS.has(e.key)) return 'ignore'
+  if (MODIFIER_KEYS.has(e.key) || FUNCTION_KEY.test(e.key) || !plain) return 'ignore'
   if (plain && (e.key === 'm' || e.key === 'M')) return 'ignore'
   return 'exit'
 }
