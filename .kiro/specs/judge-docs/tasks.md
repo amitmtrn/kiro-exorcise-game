@@ -72,3 +72,13 @@ Files: `docs/KIRO.md`, `README.md`, `tools/judge-docs.test.mjs`, `.kiro/specs/ju
 - [x] Credits: judge-docs took the pool from 522.26 to 534.66 (12.40); TL;DR and credits table updated.
 - [x] `npm test` and `npm run build` clean.
 - [x] Commit: `fix(judge-docs): fourth review fixes`
+
+## T9 — Review fixes (judge-facing accuracy)
+Files: `README.md`, `docs/KIRO.md`, `.kiro/specs/judge-docs/design.md`, `.kiro/powers/exorcise-motion-harness/skills/run-harness/SKILL.md`
+
+- [x] Off-repo `ui-audit` log marked "(log)" in `docs/KIRO.md`; machine-local path removed from `design.md`.
+- [x] README credits headline matches `docs/KIRO.md` (534.66 after `judge-docs`).
+- [x] Tasks excerpt in `docs/KIRO.md` marks skipped checkboxes with `…`.
+- [x] `demo` fallback described accurately (Space start over the wave-style video, unsupported).
+- [x] `npm test` and `npm run build` both clean.
+- [x] Commit: `fix(judge-docs): correct judge-facing doc inaccuracies from review`

@@ -19,7 +19,7 @@ restricted to loopback. It needs `python3` + `numpy`, `google-chrome` and Node >
 ### Demo mode (needs PR #6, open)
 
 `demo`: no camera, seeded deterministic playthrough. It exists only on branches with
-PR #6 (open) until it merges. Without it, `run.sh` treats `demo` as a Space-start run.
+PR #6 (open) until it merges. Without it, `run.sh` does a Space start over the wave-style video (`make_y4m.py` generates it for any mode other than `sweep`), so `demo` is unsupported here.
 Do not pick it from the table above.
 
 ## How to run

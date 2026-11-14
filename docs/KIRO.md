@@ -108,6 +108,7 @@ clear the mute button, never below 40 %).
 Files: `src/ui/layout.ts`, `src/ui/layout.test.ts`, `src/ui/layout.property.test.ts`
 
 - [x] `layout.ts`: constants, `buttonLayout`, `areaButtons`, `textBand`, ...
+- [x] …
 - [x] `npm test` and `npm run build` both clean.
 - [x] Commit: `feat(motion-ui-ergonomics-T1): pure raised-hand button layout`
 ```
@@ -365,7 +366,7 @@ repo checkout only.
 
 ### UI audit: where the buttons moved
 
-A read-only audit of every motion button (`logs/ui-audit.md`) found that all of them
+A read-only audit of every motion button (log) found that all of them
 sat in the lower body band, needed only 3 moved samples and an 800 ms dwell, and
 never decayed. The `motion-ui-ergonomics` spec moved them. Centres are in % of
 canvas (width, height) at 1280×720; this is the final table of PR #5.

@@ -24,7 +24,7 @@ like `tools/hooks.test.mjs` and `tools/balancer-config.test.mjs`.
 | test files, test count | `npm test` |
 | hooks, steering, agent, MCP | the files in `.kiro/` |
 | credits, per-PR test counts, review rounds and catches, harness results | off-repo orchestration logs |
-| UI audit before → after | `/workspace/kiroween/logs/ui-audit.md` |
+| UI audit before → after | off-repo orchestration log |
 
 Counts that change with later work are stated "at this branch" with the command.
 
