@@ -109,9 +109,10 @@ describe('docs structure', () => {
     expect(m).not.toBeNull()
     const n = m[1]
     expect(kiro).toContain(`${n} passed, 0 failed, 0 skipped on this branch`)
-    expect(kiro).toMatch(new RegExp(`\\| playtest-polish \\(open PR\\) \\| .* \\| ${n} \\|`))
+    expect(kiro).toMatch(new RegExp(`\\| more-content \\(this branch\\) \\| .* \\| ${n} \\|`))
+    expect(kiro).toMatch(/\| #8 \| playtest-polish .* \| 1515 \|/)
     expect(kiro).toMatch(/\| #7 \| judge-docs .* \| 1291 \|/)
-    expect(readme).toContain(`playtest-polish (open PR) after merging main: ${n}.`)
+    expect(readme).toContain(`#8 playtest-polish: 1515; more-content (this branch): ${n}.`)
   })
   it('the per-spec commit list reconciles with the headline 89', () => {
     expect(kiro).toContain('| 89 |')

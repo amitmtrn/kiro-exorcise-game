@@ -76,11 +76,11 @@
 - [x] Commit: `feat(more-content-T9): demo plays the finale`
 
 ## T10 — Docs
-- [ ] README: controls table, stages, enemies, high scores, specs tree (`more-content/`), test count.
-- [ ] `docs/KIRO.md`: spec lists and history, test count, credits row "After more-content".
-- [ ] Docs facts-check test passes; trademark guard passes.
-- [ ] `npm test` and `npm run build` both clean.
-- [ ] Commit: `docs(more-content-T10): README and KIRO.md`
+- [x] README: controls table, stages, enemies, high scores, specs tree (`more-content/`), test count.
+- [x] `docs/KIRO.md`: spec lists and history, test count, credits row "After more-content" (figure pending from the operator; the "After playtest-polish" row already existed with 629.18). `judge-docs.test.mjs` follows the new history rows (#8 playtest-polish 1515, more-content on this branch).
+- [x] Docs facts-check test passes; trademark guard passes.
+- [x] `npm test` and `npm run build` both clean.
+- [x] Commit: `docs(more-content-T10): README and KIRO.md`
 
 ## T11 — Manual smoke test (webcam)
 - [ ] Wisp pair: hit one, ring shows, hit the other inside 2 s to banish both; miss and watch the merge.
