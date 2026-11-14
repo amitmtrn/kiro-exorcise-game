@@ -133,6 +133,18 @@ describe('2P summary NEXT per half', () => {
       expect(cb).toHaveBeenCalledTimes(1)
     }
   })
+  it('a wave that continues through the lockout must release before it can fire', () => {
+    const cb = vi.fn()
+    resetSummaryScreen()
+    const next = btn('summary2p', 0, 'next')
+    let shown = 0
+    let t = 9_500_000
+    for (; shown < ENTRY_LOCK_MS + 2500; shown += 33, t += 33) {
+      publish(W, H, blobPoints(W, H, next.x, next.y, next.r))
+      renderTwoPlayerSummary(recorder().ctx, { ...t2, summaryShownMs: shown }, t, cb)
+    }
+    expect(cb).not.toHaveBeenCalled()
+  })
   it('text is below 47 % of the height', () => {
     resetSummaryScreen()
     const r = recorder()

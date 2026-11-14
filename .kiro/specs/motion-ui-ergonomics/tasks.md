@@ -13,7 +13,7 @@ Files: `src/ui/layout.ts`, `src/ui/layout.test.ts`, `src/ui/layout.property.test
 Files: `src/game/collision.ts`, `src/ui/motionButton.ts`, `src/ui/motionButton.test.ts`, `src/ui/motionButton.property.test.ts`
 
 - [x] `collision.ts`: `motionFrameSeq` (bumped on a new camera frame) and `motionCell` (grid cell size in canvas px).
-- [x] `MotionButton`: coverage threshold, 650 ms dwell (1000 ms destructive), ring, decay with reversal grace, stale-frame hold, release latch, `suppress()`.
+- [x] `MotionButton`: coverage threshold, 650 ms dwell (1000 ms destructive), ring, decay (no reversal grace after T7), stale-frame hold, release latch, `suppress()`.
 - [x] `EntryLock` (1200 ms) and `updateExclusive` (one action per frame).
 - [x] Unit + property tests: single frame / sub-dwell burst / sway never fires, noise below coverage never fires, stale frames never fill, latch after trigger and lockout, exclusive resolution.
 - [x] `npm test` and `npm run build` both clean.
@@ -41,7 +41,7 @@ Files: `src/ui/splitscreen.ts`, `src/ui/seatCard.ts`, `src/ui/hud.ts`, `src/game
 Files: `src/style.css`, `src/main.ts`, `src/ui/layout.ts`, `src/ui/onboarding.ts`, `src/ui/onboarding.test.ts`
 
 - [x] Sound hint at the top centre: `SOUND_HINT` in `layout.ts` applied by `main.ts` (matches `soundHintRect`).
-- [x] `guideGeometry` hand targets = layout start zones; "Raise a hand…" line drawn by `drawGuide`.
+- [x] `guideGeometry` hand targets = layout start zones; "Wave a hand…" line drawn by `drawGuide`.
 - [x] `npm test` and `npm run build` both clean.
 - [x] Commit: `feat(motion-ui-ergonomics-T5): sound hint at the top, onboarding hand targets from the layout`
 
@@ -63,4 +63,16 @@ Files: `src/ui/motionButton.ts`, `src/ui/layout.ts`, `src/ui/seatCard.ts`, `src/
 - [x] Start hint on two lines, ≥ 12 px at 640 px (R7.2).
 - [x] Design doc drift fixed (`COL_INNER_P1/P2`, `textBand(aw, seat)`, test file name).
 - [x] `npm test` and `npm run build` both clean.
-- [x] Commit: `fix(motion-ui-ergonomics): review fixes`
+- [x] Commits: `1fb0ca8` and `e12c30c` (`fix(motion-ui-ergonomics): …`)
+
+## T8 — Second review fixes
+Files: `src/ui/screens.ts`, `src/ui/onboarding.ts`, `src/ui/hud.ts`, `src/game/collision.ts`, tests, `README.md`, spec docs
+
+- [x] Copy says to wave over the circle (a still hand cannot press): start hint, onboarding line, README, R7.1 / R7.2.
+- [x] Design step 5 and T2 bullet match the no-grace model.
+- [x] Score / Best / stars lines fitted to the text band (R5.1).
+- [x] `GRID_STRIDE` exported and tested equal to `SAMPLE_STRIDE`; `hud.ts` import moved to the top.
+- [x] 2P summary latch test covers a wave continuing through the lockout.
+- [ ] Not changed: `MIN_COVERAGE` (spec-conformant; revisit after play-testing), harness re-run (needs the harness runtime), 1P summary set reset on entry (harmless, lockout zeroes it), sound-hint timer (starts when the hint is shown, per R6.2).
+- [x] `npm test` and `npm run build` both clean.
+- [x] Commit: `fix(motion-ui-ergonomics): copy, spec drift, fitted text, tests`

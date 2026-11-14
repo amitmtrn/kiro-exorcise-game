@@ -80,7 +80,7 @@ export function renderStartScreen(
 
   // High score
   if (state.highScore > 0) {
-    ctx.font = `bold ${clamp(W / 36, 16, 22)}px sans-serif`
+    ctx.font = `bold ${fit(`Best: ${state.highScore}`, clamp(W / 36, 16, 22), W)}px sans-serif`
     ctx.fillStyle = '#ffd166'
     ctx.fillText(`Best: ${state.highScore}`, W / 2, H * 0.52)
   }
@@ -102,7 +102,7 @@ export function renderStartScreen(
   ctx.stroke()
 
   // Instruction
-  const hintLines = ['Raise a hand to a glowing circle', 'or press 1 / 2  •  Space = last mode']
+  const hintLines = ['Wave a hand over a glowing circle', 'or press 1 / 2  •  Space = last mode']
   const hintPx = Math.min(...hintLines.map((l) => fit(l, clamp(W / 40, 13, 18), W)))
   ctx.font = `${hintPx}px sans-serif`
   ctx.fillStyle = 'rgba(232,232,240,0.6)'; ctx.shadowBlur = 0
@@ -177,7 +177,7 @@ export function renderSummary(
   ctx.textAlign = 'center'
   ctx.fillStyle = '#ffd166'
   ctx.shadowBlur = 0
-  ctx.font = `${clamp(W / 12, 36, 60)}px sans-serif`
+  ctx.font = `${fit('⭐'.repeat(stars) + '☆'.repeat(3 - stars), clamp(W / 12, 36, 60), W)}px sans-serif`
   ctx.globalAlpha = outroRowAlpha(state.summaryShownMs, 0)
   ctx.fillText('⭐'.repeat(stars) + '☆'.repeat(3 - stars), W / 2, H * 0.3)
 
@@ -241,11 +241,11 @@ export function renderGameOver(
   }
 
   ctx.shadowBlur = 0
-  ctx.font = `bold ${clamp(W / 22, 22, 36)}px sans-serif`
+  ctx.font = `bold ${fit(`Score: ${state.score}`, clamp(W / 22, 22, 36), W)}px sans-serif`
   ctx.fillStyle = '#ffd166'
   ctx.fillText(`Score: ${state.score}`, W / 2, H * 0.42)
   if (state.highScore > state.score) {
-    ctx.font = `${clamp(W / 34, 14, 20)}px sans-serif`
+    ctx.font = `${fit(`Best: ${state.highScore}`, clamp(W / 34, 14, 20), W)}px sans-serif`
     ctx.fillStyle = 'rgba(232,232,240,0.6)'
     ctx.fillText(`Best: ${state.highScore}`, W / 2, H * 0.51)
   }
@@ -312,12 +312,12 @@ export function renderVictory(
   ctx.font = `${fit(tag, clamp(W / 26, 18, 30), W)}px sans-serif`
   ctx.fillStyle = '#e8e8f0'
   ctx.fillText(tag, W / 2, H * 0.36)
-  ctx.font = `bold ${clamp(W / 18, 26, 44)}px sans-serif`
+  ctx.font = `bold ${fit(`Total score: ${state.score}`, clamp(W / 18, 26, 44), W)}px sans-serif`
   ctx.fillStyle = '#ffd166'; ctx.shadowColor = '#ffd166'; ctx.shadowBlur = 12
   ctx.fillText(`Total score: ${state.score}`, W / 2, H * 0.48)
   ctx.shadowBlur = 0
   if (state.highScore > state.score) {
-    ctx.font = `${clamp(W / 34, 14, 20)}px sans-serif`
+    ctx.font = `${fit(`Best: ${state.highScore}`, clamp(W / 34, 14, 20), W)}px sans-serif`
     ctx.fillStyle = 'rgba(232,232,240,0.6)'
     ctx.fillText(`Best: ${state.highScore}`, W / 2, H * 0.56)
   }

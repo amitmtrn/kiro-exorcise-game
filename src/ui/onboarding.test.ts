@@ -93,7 +93,7 @@ describe('guide hand targets = start-screen button zones (motion-ui-ergonomics R
     }), { numRuns: 200 })
   })
 
-  it('drawGuide writes the "Raise a hand" line', () => {
+  it('drawGuide writes the "Wave a hand" line', () => {
     const texts: string[] = []
     const ctx = new Proxy({ canvas: { width: 1280, height: 720 } } as Record<string, unknown>, {
       get(t, k: string) {
@@ -104,7 +104,7 @@ describe('guide hand targets = start-screen button zones (motion-ui-ergonomics R
     }) as unknown as CanvasRenderingContext2D
     drawGuide(ctx, false, 0)
     expect(texts).toContain(GUIDE_HANDS_LINE)
-    expect(GUIDE_HANDS_LINE).toBe('Raise a hand to the glowing circles to press them')
+    expect(GUIDE_HANDS_LINE).toBe('Wave a hand over the glowing circles to press them')
   })
 })
 

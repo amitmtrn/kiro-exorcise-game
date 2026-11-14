@@ -82,7 +82,7 @@ describe('start hint readability (motion-ui-ergonomics R7.2)', () => {
       set: (t, k: string, v) => { t[k] = v; return true },
     }) as unknown as CanvasRenderingContext2D
     renderStartScreen(ctx, createInitialState(1), 10_000, () => {})
-    const hint = texts.filter((t) => t.startsWith('Raise a hand') || t.startsWith('or press'))
+    const hint = texts.filter((t) => t.startsWith('Wave a hand') || t.startsWith('or press'))
     expect(hint).toHaveLength(2)
     for (const h of hint) { fonts.push(h.split('|')[1]); expect(parseInt(h.split('|')[1])).toBeGreaterThanOrEqual(12) }
     expect(fonts.length).toBe(2)

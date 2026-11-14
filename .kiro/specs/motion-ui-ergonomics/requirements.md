@@ -161,9 +161,9 @@ of the viewport width).
 
 **R7.1** The silhouette guide's hand targets are exactly the start screen's
 button zones (same layout constants, same centres and radii) and it shows the
-line "Raise a hand to the glowing circles to press them".
+line "Wave a hand over the glowing circles to press them".
 
-**R7.2** The start screen's instruction is two short lines ("Raise a hand to a
+**R7.2** The start screen's instruction is two short lines ("Wave a hand over a
 glowing circle" / "or press 1 / 2 • Space = last mode"), each fitted to the
 central text band and drawn at 12 px or more on a 640 px canvas.
 

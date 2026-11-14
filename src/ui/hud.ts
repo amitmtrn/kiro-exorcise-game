@@ -7,6 +7,8 @@
 import type { GameState } from '../game/state'
 import { stageLabel } from '../game/stages'
 import { isMuted } from '../audio/index'
+import { hudFontSize, muteButtonRect, muteButtonRect2P } from './muteRect'
+export { hudFontSize, muteButtonRect, muteButtonRect2P }
 
 // ─── Palette (see .kiro/steering/design.md) ──────────────────────────────────
 const C_LIFE   = '#c0392b'   // Blood Red
@@ -24,8 +26,6 @@ export const COMBO_PULSE_MS = 200
 
 // ─── Pure helpers (unit-tested) ───────────────────────────────────────────────
 
-import { hudFontSize, muteButtonRect, muteButtonRect2P } from './muteRect'
-export { hudFontSize, muteButtonRect, muteButtonRect2P }
 
 /** Scale factor for the combo pulse, given ms since the last increment. */
 export function comboPulseScale(elapsedMs: number): number {

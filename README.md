@@ -25,7 +25,7 @@ npm run dev
 
 | Command | What it does |
 |---|---|
-| `npm test` | Run all 1107 unit tests (Vitest) |
+| `npm test` | Run all 1109 unit tests (Vitest) |
 | `npm run build` | Production build → `dist/` |
 | `npm run preview` | Preview the production build locally |
 
@@ -55,7 +55,7 @@ Pick **1 PLAYER** or **2 PLAYERS** on the title screen (wave over a button, or p
 
 | Input | Action |
 |---|---|
-| Raise a hand to a glowing circle and keep it there for about half a second | Start / Next / Retry / Menu / card buttons (hands-only play). Buttons sit at the left and right edges of the upper part of the view, at shoulder-to-overhead height, never at your body or legs. A ring fills while your hand covers the circle; MENU and SAVE take about a second. In 2 PLAYERS each player has their own buttons in their half, and either player can press NEXT / PLAY AGAIN / MAIN MENU |
+| Wave a hand over a glowing circle for about half a second (keep it moving; a still hand does not press) | Start / Next / Retry / Menu / card buttons (hands-only play). Buttons sit at the left and right edges of the upper part of the view, at shoulder-to-overhead height, never at your body or legs. A ring fills while your hand keeps moving over the circle; MENU and SAVE take about a second. In 2 PLAYERS each player has their own buttons in their half, and either player can press NEXT / PLAY AGAIN / MAIN MENU |
 | `Space` | Start from the title screen (in the last chosen mode) |
 | `1` / `2` | Start a 1 PLAYER / 2 PLAYERS game from the title screen |
 | `M` or the 🔊 button (top-right; top centre in 2 PLAYERS) | Mute / unmute |

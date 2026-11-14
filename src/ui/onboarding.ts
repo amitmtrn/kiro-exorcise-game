@@ -18,7 +18,7 @@ import { drawWebcamTint } from '../game/atmosphere'
 import { buttonLayout, fitFontPx, TEXT_BAND_1P } from './layout'
 
 /** The line under the silhouette that explains the hand targets (motion-ui-ergonomics R7.1). */
-export const GUIDE_HANDS_LINE = 'Raise a hand to the glowing circles to press them'
+export const GUIDE_HANDS_LINE = 'Wave a hand over the glowing circles to press them'
 
 // ─── Pure helpers ─────────────────────────────────────────────────────────────
 

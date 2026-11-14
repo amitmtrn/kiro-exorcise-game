@@ -70,8 +70,8 @@ between the columns.
    `cellArea = motionCell.w · motionCell.h` (R2.2).
 4. While `awaitRelease` (after a trigger, or `updateGated(now, false)`): stay idle
    with progress 0 until the circle was still for > 150 ms.
-5. Active: `progress += dt` if the previous evaluation was active or progress > 0
-   (the first active frame only starts the clock). Inactive: `progress −= 1.5 · dt`
+5. Active: `progress += dt` only if the previous evaluation was active
+   (the first active frame after any gap only starts the clock). Inactive: `progress −= 1.5 · dt`
    on every off frame, no grace (a grace period let 3-on/3-off patterns net-fill).
 6. `progress ≥ dwell` → `'triggered'` once, progress 0, latch armed.
 
@@ -108,7 +108,7 @@ last), calls `suppress()` (progress 0, latch) on every other button (R2.7).
 
 The sound hint moves to the top centre: `SOUND_HINT` (`topFrac` 1.5 %, `maxWidthFrac` 56 %) in `layout.ts`
 is applied by `main.ts` as inline style, and `soundHintRect` uses the same constants for the tests. The onboarding silhouette takes its hand targets from
-`buttonLayout('start', w, h)` and `drawGuide` writes the "Raise a hand…" line below
+`buttonLayout('start', w, h)` and `drawGuide` writes the "Wave a hand…" line below
 the head/shoulders (inside the text band).
 
 ## Tests
