@@ -47,12 +47,12 @@
 - [x] Commit: `feat(more-content-T5): local top-10 high-score table`
 
 ## T6 — Name entry core and layout
-- [ ] Create `src/game/nameEntry.ts`: `newNameEntry`, `pickStep`, `confirm`, `typeChar`, `backspace`, `tickNameEntry`, `finalName`.
-- [ ] `layout.ts`: `name` and `name2p` screens (◀ / OK / ▶), added to `SCREENS_1P` / `SCREENS_2P`.
-- [ ] Unit tests: picker flow, wrap-around, keyboard, timeouts, default kept when untouched, layout labels and order.
-- [ ] Property tests: any input sequence ends with a valid name, picker cursor never leaves 0–2, name never longer than 8; layout properties (40 % rule, reach, clearance) pass for the new screens in 1P and per half.
-- [ ] `npm test` and `npm run build` both clean.
-- [ ] Commit: `feat(more-content-T6): name picker state and motion-button layout`
+- [x] Create `src/game/nameEntry.ts`: `newNameEntry`, `pickStep`, `confirm`, `typeChar`, `backspace`, `accept`, `tickNameEntry`, `finalName`, `nameKey`.
+- [x] `layout.ts`: `name` and `name2p` screens (`stepA` / `ok` / `stepS`, ◀ always on the left), added to `SCREENS_1P` / `SCREENS_2P`; `nameStepOf`.
+- [x] Unit tests: picker flow, wrap-around, keyboard, timeouts, default kept when untouched, layout labels and order.
+- [x] Property tests: any input sequence ends with a valid name, picker cursor never leaves 0–2, name never longer than 8; layout properties (40 % rule, reach, clearance) pass for the new screens in 1P and per half.
+- [x] `npm test` and `npm run build` both clean.
+- [x] Commit: `feat(more-content-T6): name picker state and motion-button layout`
 
 ## T7 — Name screen, table drawing and 1P loop
 - [ ] Create `src/ui/scoreTable.ts` (`tableRows`, `endRows`, `drawTable`) and `src/ui/nameScreen.ts` (`renderNameScreen`).

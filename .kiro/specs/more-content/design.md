@@ -214,19 +214,22 @@ to rename the entry later; it is stored but carries no personal data.
 ### `src/game/nameEntry.ts` (pure)
 
 ```ts
-interface NameEntry { text: string; touched: boolean; picker: number; done: boolean; startedAt: number; lastInputAt: number }
+interface NameEntry { defaultName: string; text: string; touched: boolean; cursor: number; done: boolean; startedAt: number; lastInputAt: number }
 newNameEntry(defaultName, now), pickStep(e, dir, now), confirm(e, now), typeChar(e, ch, now), backspace(e, now),
-tickNameEntry(e, now) // timeout rules R9.4, finalName(e, fallback)
+accept(e, now), tickNameEntry(e, now) /* R9.4 */, finalName(e), nameKey(e, key, now) /* keyboard router */
 ```
 
-`PICK_LEN` = 3. ◀ / ▶ with `touched = false` sets `text = 'A'`, `picker = 0`.
-OK with `picker < PICK_LEN − 1` appends `A` and moves on, else done.
+`PICK_LEN` = 3. ◀ / ▶ with `touched = false` sets `text = 'A'`, `cursor = 0`.
+OK with `cursor < PICK_LEN − 1` appends `A` and moves on, else done.
 
 ### Layout
 
 `ScreenId` gains `'name'` (1P) and `'name2p'` (2P, in `SCREENS_2P`). `areaButtons`:
-`prev` (◀, slot A), `ok` (OK, slot B, same column) and `next` (▶, slot S, opposite
-column). The stacked column and single column follow the existing slots so the
+`stepA` (slot A), `ok` (OK, slot B, same column) and `stepS` (slot S, opposite
+column). The step labels follow the geometry: the button further left is ◀, so in
+P2's mirrored half (stacked column on the right) `stepA` is ▶. `nameStepOf(button)`
+maps a label to −1 / +1. Ids stay the same in both halves, so the existing
+"P2 mirrors P1" property holds. The stacked column and single column follow the existing slots so the
 reach model, 40 % rule, text rects and mute clearance are the same code paths. The
 existing layout property tests iterate the screen lists, so adding the ids covers
 them; one test per new id asserts the three labels and order.

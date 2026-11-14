@@ -14,11 +14,16 @@ import type { Seat } from '../game/halves'
 import { hudFontSize, muteButtonRect, muteButtonRect2P } from './muteRect'
 
 export type ScreenId =
-  | 'start' | 'summary' | 'gameover' | 'victory' | 'preview'
-  | 'summary2p' | 'final2p' | 'preview2p'
+  | 'start' | 'summary' | 'gameover' | 'victory' | 'preview' | 'name'
+  | 'summary2p' | 'final2p' | 'preview2p' | 'name2p'
 
-export const SCREENS_1P: readonly ScreenId[] = ['start', 'summary', 'gameover', 'victory', 'preview']
-export const SCREENS_2P: readonly ScreenId[] = ['summary2p', 'final2p', 'preview2p']
+export const SCREENS_1P: readonly ScreenId[] = ['start', 'summary', 'gameover', 'victory', 'preview', 'name']
+export const SCREENS_2P: readonly ScreenId[] = ['summary2p', 'final2p', 'preview2p', 'name2p']
+
+/** Name-picker labels (more-content R9.2): the arrow pointing left is always the button further left. */
+export const NAME_PREV = '◀'
+export const NAME_NEXT = '▶'
+export const NAME_OK = 'OK'
 
 export interface Rect { x: number; y: number; w: number; h: number }
 
@@ -169,6 +174,17 @@ export function areaButtons(
       return [mk('offer', '📸 EXORCIST\nCARD', s.B), mk('again', 'PLAY AGAIN', s.A), mk('menu', 'MAIN MENU', s.S, true)]
     case 'final2p':
       return [mk('offer', '📸 EXORCIST\nCARD', s.B), mk('again', 'PLAY AGAIN', s.A), mk('menu', 'MAIN MENU', s.S, true)]
+    case 'name':
+    case 'name2p': {
+      // Letter step buttons: one in the stacked column (with OK under it), one alone in the other column.
+      // The label follows the geometry, so in a mirrored P2 half the left arrow is still on the left.
+      const stackedLeft = s.A.col < s.S.col
+      return [
+        mk('stepA', stackedLeft ? NAME_PREV : NAME_NEXT, s.A),
+        mk('ok', NAME_OK, s.B),
+        mk('stepS', stackedLeft ? NAME_NEXT : NAME_PREV, s.S),
+      ]
+    }
     case 'preview':
     case 'preview2p': {
       const out: ButtonSpec[] = []
@@ -178,6 +194,11 @@ export function areaButtons(
       return out
     }
   }
+}
+
+/** Letter step of a name-picker button: −1 for ◀, +1 for ▶, 0 for OK / anything else. */
+export function nameStepOf(b: Pick<ButtonSpec, 'label'>): -1 | 0 | 1 {
+  return b.label === NAME_PREV ? -1 : b.label === NAME_NEXT ? 1 : 0
 }
 
 /** Buttons of a screen in full-canvas coordinates (2P screens list both halves, P1 first). */
