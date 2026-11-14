@@ -1,6 +1,6 @@
 // judge-docs R4: facts check for the judge-facing docs.
 import { describe, it, expect } from 'vitest'
-import { readFileSync } from 'node:fs'
+import { readFileSync, readdirSync } from 'node:fs'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -25,6 +25,13 @@ const NAME_B = 'Ku' + 'ng' + ' ' + 'F' + 'oo'
 const BANNED = new RegExp(`${NAME_A.replace('Toy', '[\\s_-]*Toy')}|${NAME_B.replace(' ', '[\\s_-]*')}`, 'i')
 const TOKEN = /ghp_|github_pat_|\bsk-/i
 const texts = { 'docs/KIRO.md': kiro, 'README.md (whole file)': readme }
+const extra = {
+  'package.json': readFileSync(join(root, 'package.json'), 'utf8'),
+  ...Object.fromEntries(
+    readdirSync(join(root, '.kiro/steering')).filter((f) => f.endsWith('.md'))
+      .map((f) => [`.kiro/steering/${f}`, readFileSync(join(root, '.kiro/steering', f), 'utf8')]),
+  ),
+}
 
 describe('judgeSection', () => {
   it('extracts only the section', () => {
@@ -45,6 +52,11 @@ describe('docs facts check', () => {
     })
     it(`${name} has no token-like strings`, () => {
       expect(text).not.toMatch(TOKEN)
+    })
+  }
+  for (const [name, text] of Object.entries(extra)) {
+    it(`${name} does not mention the banned names`, () => {
+      expect(text).not.toMatch(BANNED)
     })
   }
   it('the checks themselves catch violations', () => {
@@ -83,10 +95,10 @@ describe('docs structure', () => {
     expect(bullets).toBeLessThanOrEqual(8)
   })
   it('the TL;DR row and the history table agree on the test counts', () => {
-    expect(kiro).toMatch(/\| Unit and property tests \| 1120 passed, 0 failed, 0 skipped at PR #5; 1286 passed, 0 failed, 0 skipped on this branch after merging main/)
+    expect(kiro).toMatch(/\| Unit and property tests \| 1120 passed, 0 failed, 0 skipped at PR #5; 1290 passed, 0 failed, 0 skipped on this branch after merging main/)
     expect(kiro).toMatch(/\| #5 \| motion-ui-ergonomics \| 1120 \|/)
     expect(kiro).toMatch(/\| #6 \| demo-mode \| 1254 \|/)
-    expect(kiro).toMatch(/\| #7 \| judge-docs .* \| 1286 \|/)
+    expect(kiro).toMatch(/\| #7 \| judge-docs .* \| 1290 \|/)
     expect(kiro).toContain('536.22')
     expect(kiro).not.toContain('534.' + '66')
     expect(kiro).not.toMatch(/open PR #6|not on main|#7 \(open\)/)

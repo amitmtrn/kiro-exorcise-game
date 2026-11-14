@@ -2,7 +2,7 @@
   "name": "exorcise",
   "version": "0.1.0",
   "type": "module",
-  "description": "Halloween EyeToy-style browser game",
+  "description": "Halloween camera-motion browser game",
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",

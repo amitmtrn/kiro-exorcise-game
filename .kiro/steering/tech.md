@@ -34,7 +34,7 @@ src/
 - A second off-screen canvas holds the previous frame for differencing.
 
 ## Hit Detection (v1 — Frame Differencing)
-Replicates the original EyeToy mechanic without ML:
+Replicates the classic webcam motion-game mechanic without ML:
 
 1. Capture the current webcam frame to a canvas.
 2. For each active enemy, sample the pixel region inside its hitbox on both the current and previous frame.
