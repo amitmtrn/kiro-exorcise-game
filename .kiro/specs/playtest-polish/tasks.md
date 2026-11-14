@@ -117,5 +117,5 @@
 - [x] RF23 (should-fix 3): reduced-flash onset budget is shared by both two-player halves (R10.2); test of the two-half sum.
 - [x] RF24 (nit 6): `docs/KIRO.md` edit kept; the out-of-scope line in requirements.md dropped.
 - [x] RF25 (nit 8): redundant first master-gain assignment removed in `audio/context.ts`.
-- [ ] `npm test` and `npm run build` both clean.
-- [ ] Commits: `fix(playtest-polish): ...` one per fix
+- [x] `npm test` and `npm run build` both clean.
+- [x] Commits: `fix(playtest-polish): ...` one per fix
