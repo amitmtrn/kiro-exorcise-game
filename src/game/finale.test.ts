@@ -150,6 +150,17 @@ describe('the Hollow King (R6)', () => {
     const away = tickBoss(play({ ...boss(1), y: hoverY(H) + 100 }), W, H)
     expect(away.enemies).toHaveLength(1)
   })
+  it('a phase-3 mirror + blink summon that does not fit the cap falls back to the mirror alone (R6.3)', () => {
+    const b: Enemy = { ...createBoss(W, H, true), x: W / 2, y: hoverY(H), bossPhase: 3, summonTimerMs: 0, vHits: 1 }
+    const blinks = [0, 1].map((i) => makeEnemy({ id: 'k' + i, type: 'blink', x: 0, y: 0, targetX: 0, targetY: 0, speed: 0.1, hitbox: { x: 0, y: 0, w: 1, h: 1 } }))
+    const s = tickBoss({ ...createInitialState(6), phase: 'playing', enemies: [b, ...blinks] }, W, H)
+    expect(s.enemies.filter((e) => e.type === 'mirror')).toHaveLength(1)
+    expect(s.enemies.filter((e) => e.type === 'blink')).toHaveLength(2) // cap 3 reached: no extra blink
+    expect(s.enemies.find((e) => e.type === 'boss')!.vHits).toBe(2)
+    const full = tickBoss({ ...createInitialState(6), phase: 'playing', enemies: [b, ...blinks, { ...blinks[0], id: 'k2' }] }, W, H)
+    expect(full.enemies.filter((e) => e.type === 'mirror')).toHaveLength(0)
+    expect(full.enemies.find((e) => e.type === 'boss')!.vHits).toBe(1) // nothing made: the count stays
+  })
   it('a king summon shows the first-sighting tip of each summoned type once (R5.4)', () => {
     const b: Enemy = { ...createBoss(W, H, true), x: W / 2, y: hoverY(H), bossPhase: 3, summonTimerMs: 0 }
     const s = tickBoss({ ...createInitialState(6), phase: 'playing', enemies: [b] }, W, H)

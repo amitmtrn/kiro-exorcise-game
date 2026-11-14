@@ -116,7 +116,7 @@
 ## T14 — Review fixes (round 3)
 - [x] R6.4: finale phase-3 `recoverMs` 900 → 1350, so wind-up + recover is 1800 ms in both attack phases; test asserts 1800; design table and budget updated.
 - [x] R7.1: 1P derives `bossDefeated` (boss on the field last tick, phase now `summary` / `victory`) like the 2P seats; test added.
-- [ ] R6.3: phase-3 `['mirror','blink']` summon falls back to the mirror alone when the pair does not fit the cap; test added.
+- [x] R6.3: phase-3 `['mirror','blink']` summon falls back to the mirror alone when the pair does not fit the cap; test added.
 - [ ] R1.6: king summons keep clear of live skulls (no summon while a skull is within clearance); test added.
 - [ ] R6.3 readability: on small canvases a summoned minion starts clear of the boss sprite; test added.
 - [x] R6.4: fight-budget test includes the entry flight and states its slack (done with the R6.4 fix).

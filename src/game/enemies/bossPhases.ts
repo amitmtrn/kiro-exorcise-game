@@ -245,10 +245,11 @@ export function tickBoss(state: GameState, canvasW: number, canvasH: number): Ga
     const nextTimer = p.summonEveryMs + Math.max(b.summonTimerMs, -SUMMON_CARRY_MAX_MS)
     if (b.finale) {
       const alive = s.enemies.filter((e) => FINALE_MINIONS.includes(e.type)).length
-      const kinds = finaleMinionKinds(b.bossPhase, b.vHits)
-      const made = alive + kinds.reduce((a, k) => a + (k === 'wisp' ? 2 : 1), 0) <= p.maxMinions
-        ? kinds.flatMap((k) => spawnVariantAt(k, b.x, b.y, canvasW, canvasH))
-        : []
+      const wanted = finaleMinionKinds(b.bossPhase, b.vHits)
+      const cost = (ks: readonly VariantType[]) => ks.reduce((a, k) => a + (k === 'wisp' ? 2 : 1), 0)
+      // A pair that does not fit the cap falls back to its first ghost alone (phase 3: the mirror).
+      const kinds = [wanted, wanted.slice(0, 1)].find((ks) => alive + cost(ks) <= p.maxMinions) ?? []
+      const made = kinds.flatMap((k) => spawnVariantAt(k, b.x, b.y, canvasW, canvasH))
       const nb: Enemy = { ...b, summonTimerMs: nextTimer, vHits: made.length > 0 ? b.vHits + 1 : b.vHits }
       s = setEnemies(s, [...s.enemies.map((e) => (e.id === nb.id ? nb : e)), ...made])
       // A type whose scripted event was dropped still gets its first-sighting tip when the king summons it.

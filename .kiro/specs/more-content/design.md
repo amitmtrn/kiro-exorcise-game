@@ -154,8 +154,9 @@ is shared with the stage-5 boss. `paramsFor(boss)` picks the table. In `tickBoss
 finale summon makes `finaleMinionKinds(phase, n)` (blink / wisp pair / mirror, plus a
 blink on every other phase-3 summon) with `spawnVariantAt` at the boss position; the
 finale boss counts its summons in `vHits` (unused by bosses otherwise). A summon that
-would exceed the cap (blink, wisp, mirror and ghost alive; a pair counts 2) is skipped
-and the timer restarts, as for the stage-5 boss.
+would exceed the cap (blink, wisp, mirror and ghost alive; a pair counts 2) falls back to
+its first ghost alone (the mirror in phase 3), and is skipped when even that does not fit;
+the timer restarts, as for the stage-5 boss.
 
 Fight budget: boss enters at 22 s, 38 s remain. Phase 1 (hits 1–4) needs
 4 × 0.4 s i-frames plus swing time ≈ 5 s. A phase-2 cycle is 3 + 0.7 + lunge

@@ -205,7 +205,7 @@ heights per second, so the lunge is slower than stage 5 and always beatable.
 **R6.3** *Minions are the new ghosts.* Phase 1 summons one blink ghost every
 6 s (cap 2); phase 2 summons one wisp pair every 8 s (cap 4 minions, a pair counts
 2); phase 3 summons one mirror ghost every 7 s plus a blink ghost every other
-summon (cap 3). Summons only happen at the hover line, exactly as in
+summon (cap 3). When the blink does not fit the cap the mirror is summoned alone. Summons only happen at the hover line, exactly as in
 `boss-phases` R3.7, and obey R1.5 (spawn grace).
 
 **R6.4** *Fairness of the fight.* From the moment the boss enters, 38 s remain
