@@ -20,7 +20,7 @@
 - [x] Commit: `feat(more-content-T2): variant hit rules, pair threat and safe spawning`
 
 ## T3 — Rendering and palette
-- [x] `render.ts`: `drawWisp`, `drawMirror`, `drawBlink` with state icons (∞, ▮ / cracks, ◆ / ◇), dashed outlines, link line, ring timer, absorb ring; telegraph pulses use `pulseRate()`; no strobe.
+- [x] `render.ts`: `drawWisp`, `drawMirror`, `drawBlink` with state icons (∞, ▮ / cracks, ◆ / ◇), dashed outlines, link line, ring timer, absorb ring; telegraph pulses use `variantPulseHz()`; no strobe.
 - [x] `palette.ts`: `wisp`, `mirror`, `blink` in both palettes; `palette.property.test.ts` includes them in the enemy pairs.
 - [x] Tests: every state draws in both palettes without error, icon calls differ per state, pulse rate ≤ 3 Hz and ≤ 1 Hz reduced.
 - [x] `npm test` and `npm run build` both clean.
@@ -127,8 +127,8 @@
 
 ## T15 — Review fixes (round 4)
 - [x] R1.10: king-summoned wisp pairs stay inside the area or half (midpoint clamped, vertical stack when too narrow); property test at full and half widths.
-- [ ] Tasks T3 names `variantPulseHz()`.
-- [ ] `endTableBox` comment matches the callers (0.58 / 0.65).
-- [ ] Name picker cursor follows the last typed letter beyond 3 characters; test added.
-- [ ] R8.4: legacy score migration accepts digits only; test added.
-- [ ] `npm test` and `npm run build` both clean after each fix; demo seed 5 sims pass.
+- [x] Tasks T3 names `variantPulseHz()`.
+- [x] `endTableBox` comment matches the callers (0.58 / 0.65).
+- [x] Name picker cursor follows the last typed letter beyond 3 characters; test added.
+- [x] R8.4: legacy score migration accepts digits only; test added.
+- [x] `npm test` and `npm run build` both clean after each fix; demo seed 5 sims pass.
