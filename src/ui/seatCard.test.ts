@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest'
 import fc from 'fast-check'
-import { SeatCard, seatOfferGeometry, routeSeatClick, sharedButtonLayout } from './seatCard'
+import { SeatCard, seatOfferGeometry, routeSeatClick, PREVIEW_LOCK_MAX_MS } from './seatCard'
 import type { SeatSession } from './seatCard'
 import { previewLayout, PREVIEW_INPUT_DELAY_MS } from './cardScreen'
 import { displayPointsInHalf, halfWidth } from '../game/halves'
@@ -55,13 +55,13 @@ function run(card: SeatCard<CanvasImageSource>, ctx: CanvasRenderingContext2D, t
 }
 
 describe('seatOfferGeometry', () => {
-  it('stays inside the half for many sizes, radius ≥ 36 when the half allows', () => {
-    for (const [hw, h] of [[640, 720], [400, 600], [195, 844], [960, 1080], [100, 300]]) {
-      const g = seatOfferGeometry(hw, h)
+  it('stays inside the half for many sizes, at raised-hand height, radius ≥ 20', () => {
+    for (const [hw, h] of [[320, 480], [640, 720], [400, 600], [1280, 1440]]) for (const seat of [0, 1] as const) {
+      const g = seatOfferGeometry(hw, h, seat)
       expect(g.cx - g.r).toBeGreaterThanOrEqual(0)
       expect(g.cx + g.r).toBeLessThanOrEqual(hw)
-      expect(g.cy + g.r).toBeLessThanOrEqual(h)
-      if (hw >= 72) expect(g.r).toBeGreaterThanOrEqual(36)
+      expect(g.cy).toBeLessThanOrEqual(0.4 * h)
+      expect(g.r).toBeGreaterThanOrEqual(20)
     }
   })
 })
@@ -105,7 +105,7 @@ describe('SeatCard offer', () => {
     const card = new SeatCard(1, session, () => [])
     const ctx = fakeCtx(HW, H)
     card.render(ctx, 0, true) // learns the geometry
-    const g = seatOfferGeometry(HW, H)
+    const g = seatOfferGeometry(HW, H, 1)
     card.queueClick(5, 5)
     card.render(ctx, 50, true)
     expect(session.calls.open).toBe(0)
@@ -122,7 +122,7 @@ describe('SeatCard offer', () => {
     const card = new SeatCard(0, session, () => [])
     const ctx = fakeCtx(HW, H)
     card.render(ctx, 0, true) // draws the preview, learns its layout
-    const L = previewLayout(HW, H, false, true)
+    const L = previewLayout(HW, H, false, true, 0)
     const save = L.buttons.find((b) => b.id === 'save')!
     const close = L.buttons.find((b) => b.id === 'close')!
     card.queueClick(save.cx, save.cy)
@@ -139,7 +139,7 @@ describe('SeatCard offer', () => {
     const card = new SeatCard(0, session, () => ring(seatOfferGeometry(HW, H).cx, seatOfferGeometry(HW, H).cy, 40))
     const ctx = fakeCtx(HW, H)
     card.render(ctx, 0, true)
-    const close = previewLayout(HW, H, false, true).buttons.find((b) => b.id === 'close')!
+    const close = previewLayout(HW, H, false, true, 0).buttons.find((b) => b.id === 'close')!
     card.queueClick(close.cx, close.cy)
     card.render(ctx, 1000, true)
     expect(card.lockedUntil).toBe(1000 + PREVIEW_INPUT_DELAY_MS)
@@ -152,7 +152,7 @@ describe('SeatCard offer', () => {
     const card = new SeatCard(0, session, () => [])
     const ctx = fakeCtx(HW, H)
     card.render(ctx, 0, true)
-    const close = previewLayout(HW, H, false, true).buttons.find((b) => b.id === 'close')!
+    const close = previewLayout(HW, H, false, true, 0).buttons.find((b) => b.id === 'close')!
     card.queueClick(close.cx, close.cy)
     card.render(ctx, 1000, true)
     const g = seatOfferGeometry(HW, H)
@@ -188,7 +188,7 @@ describe('per-half routing (two-player-card R1.3) — property', () => {
     fc.assert(fc.property(fc.constantFrom<Seat>(0, 1), fc.boolean(), rawPoints, (seat, open, raw) => {
       const session = fakeSession({ open })
       // Even a hand held exactly where this half's buttons are, but in the OTHER half's coordinates.
-      const g = seatOfferGeometry(HW, H)
+      const g = seatOfferGeometry(HW, H, seat)
       const pts = ring(g.cx + (1 - seat) * HW, g.cy, g.r)
         .concat(raw.map((p) => ({ x: p.x + (1 - seat) * HW, y: p.y })))
       const card = new SeatCard(seat, session, () => displayPointsInHalf(pts, seat, W))
@@ -201,7 +201,7 @@ describe('per-half routing (two-player-card R1.3) — property', () => {
   it('the same hand inside the half does act (the filter is not just dead code)', () => {
     for (const seat of [0, 1] as const) {
       const session = fakeSession()
-      const g = seatOfferGeometry(HW, H)
+      const g = seatOfferGeometry(HW, H, seat)
       const pts = ring(g.cx + seat * HW, g.cy, g.r)
       const card = new SeatCard(seat, session, () => displayPointsInHalf(pts, seat, W))
       const ctx = fakeCtx(HW, H)
@@ -213,7 +213,7 @@ describe('per-half routing (two-player-card R1.3) — property', () => {
 
   it('two cards side by side: a wave in half 1 opens only seat 1', () => {
     const a = fakeSession(), b = fakeSession()
-    const g = seatOfferGeometry(HW, H)
+    const g = seatOfferGeometry(HW, H, 1)
     const pts = ring(g.cx + HW, g.cy, g.r)
     const ca = new SeatCard(0, a, () => displayPointsInHalf(pts, 0, W))
     const cb = new SeatCard(1, b, () => displayPointsInHalf(pts, 1, W))
@@ -225,20 +225,19 @@ describe('per-half routing (two-player-card R1.3) — property', () => {
   })
 })
 
-describe('shared end buttons vs offers and labels', () => {
-  it('fit between the "out of lives" line and the offers from 640x480 to 1920x1080', () => {
-    for (const [W, H] of [[640, 480], [800, 400], [1280, 720], [1366, 768], [1920, 1080]]) {
-      const hw = Math.floor(W / 2)
-      const { r, cy: by } = sharedButtonLayout(hw, H, Math.max(48, Math.min(76, Math.round(W / 9))))
-      const o = seatOfferGeometry(hw, H)
-      expect(r).toBeGreaterThanOrEqual(24)
-      expect(by - r).toBeGreaterThan(H * 0.6 + 8) // clear of the label (and the score above it)
-      for (const seat of [0, 1]) {
-        for (const bx of [W * 0.35, W * 0.65]) {
-          const ox = o.cx + seat * hw
-          expect(Math.hypot(bx - ox, by - o.cy)).toBeGreaterThan(r + o.r)
-        }
-      }
-    }
+describe('preview lease (motion-ui-ergonomics R4.3)', () => {
+  it('an open preview holds the other half only for PREVIEW_LOCK_MAX_MS', () => {
+    const session = fakeSession()
+    const card = new SeatCard(0, session, () => [])
+    const ctx = fakeCtx(HW, H)
+    card.render(ctx, 0, true)
+    expect(card.blocksOtherHalf(0)).toBe(false) // nothing open
+    const g = seatOfferGeometry(HW, H, 0)
+    card.queueClick(g.cx, g.cy)
+    card.render(ctx, 1000, true)
+    expect(session.isOpen).toBe(true)
+    expect(card.blocksOtherHalf(1000)).toBe(true)
+    expect(card.blocksOtherHalf(1000 + PREVIEW_LOCK_MAX_MS - 1)).toBe(true)
+    expect(card.blocksOtherHalf(1000 + PREVIEW_LOCK_MAX_MS)).toBe(false)
   })
 })

@@ -179,6 +179,8 @@ export async function startLoop(
   }))
   const seatCards = SEATS.map((seat) => new SeatCard<HTMLCanvasElement>(seat, seatSessions[seat], () => seatPoints[seat]))
   const cardCanvases: HTMLCanvasElement[] = []
+  /** Each half's motion points for its own copies of the shared buttons. */
+  const seatSources: [() => typeof seatPoints[0], () => typeof seatPoints[0]] = [() => seatPoints[0], () => seatPoints[1]]
   let finalAt = 0
   /** Per seat: a boss was on that seat's field at the previous tick (so its disappearance means it was defeated). */
   const seatHadBoss: [boolean, boolean] = [false, false]
@@ -337,7 +339,7 @@ export async function startLoop(
     for (const [hud, seat] of huds) gameCtx.drawImage(hud.canvas, halfOffset(seat, W), 0)
 
     if (t.phase === 'summary') {
-      renderTwoPlayerSummary(gameCtx, t, now, () => { twoAction = 'next' })
+      renderTwoPlayerSummary(gameCtx, t, now, () => { twoAction = 'next' }, seatSources)
     } else if (t.phase === 'final') {
       // Per-player cards (two-player-card): each half draws its own offer / preview layer first, so the
       // shared buttons can be gated by what the cards are doing; the layers are composited above the overlay.
@@ -352,11 +354,15 @@ export async function startLoop(
         cctx.clearRect(0, 0, hw, H)
         seatCards[seat].render(cctx, now, live)
       }
-      const buttonsLive = !seatCards.some((c) => c.isOpen) && now >= Math.max(...seatCards.map((c) => c.lockedUntil))
+      // A half's shared buttons wait for its own preview (open or just changed); the other half's open preview holds
+      // them for at most PREVIEW_LOCK_MAX_MS, so one player cannot lock the other out (motion-ui-ergonomics R4.3).
+      const buttonsLive: [boolean, boolean] = [0, 1].map((s) =>
+        !seatCards[s].isOpen && now >= seatCards[s].lockedUntil && !seatCards[1 - s].blocksOtherHalf(now)) as [boolean, boolean]
       renderTwoPlayerFinal(gameCtx, t, now,
         () => { twoAction = 'again' },
         () => { twoAction = 'menu' },
         buttonsLive,
+        seatSources,
       )
       for (const seat of SEATS) gameCtx.drawImage(cardCanvases[seat], halfOffset(seat, W), 0)
       if (seatCards.some((c) => c.isOpen)) drawDivider(gameCtx, hw)

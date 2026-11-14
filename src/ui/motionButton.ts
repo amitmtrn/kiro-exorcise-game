@@ -200,6 +200,8 @@ export class MotionButton {
 export class EntryLock {
   private enteredAt: number | null = null
   reset(): void { this.enteredAt = null }
+  /** Milliseconds since the screen was entered (0 before the first `touch`). */
+  since(now: number): number { return this.enteredAt === null ? 0 : now - this.enteredAt }
   /** Call every rendered frame; true when buttons may read motion. */
   touch(now: number): boolean {
     if (this.enteredAt === null) this.enteredAt = now

@@ -31,11 +31,11 @@ Files: `src/ui/screens.ts`, `src/ui/cardScreen.ts`, `src/game/loop.ts`, tests
 ## T4 — 2P screens and halves
 Files: `src/ui/splitscreen.ts`, `src/ui/seatCard.ts`, `src/ui/hud.ts`, `src/game/loop.ts`, tests
 
-- [ ] Per-half copies of NEXT / PLAY AGAIN / MAIN MENU reading only their half; either player fires; exclusive resolution.
-- [ ] Per-half card offer and preview from `areaButtons`; 20 s lease for the other half's shared buttons.
-- [ ] Banners below 47 %; mute 2P does not overlap any banner or button.
-- [ ] `npm test` and `npm run build` both clean.
-- [ ] Commit: `feat(motion-ui-ergonomics-T4): 2P per-half raised-hand buttons`
+- [x] Per-half copies of NEXT / PLAY AGAIN / MAIN MENU reading only their half; either player fires; exclusive resolution.
+- [x] Per-half card offer and preview from `areaButtons`; 20 s lease for the other half's shared buttons.
+- [x] Banners below 47 %; mute 2P does not overlap any banner or button.
+- [x] `npm test` and `npm run build` both clean.
+- [x] Commit: `feat(motion-ui-ergonomics-T4): 2P per-half raised-hand buttons`
 
 ## T5 — Sound hint and onboarding
 Files: `src/style.css`, `src/ui/onboarding.ts`, `src/ui/onboarding.test.ts`
