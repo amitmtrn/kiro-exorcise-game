@@ -143,3 +143,4 @@
 ## T17 — Review fixes (round 6)
 - [x] R5.3 / R1.9: stage-6 title card no longer overlaps the countdown and subtitle; layout test at 640x360 and 1280x720 for text scales 1, 1.25, 1.5.
 - [x] `grid.bench.test.ts`: timing check replaced by a deterministic sample-count bound plus an 8x median ratio, so `npm test` is stable under parallel load.
+- [x] R8.4: `saveHighScore` runs once on entering the game-over / victory screen, not every frame; loop test counts `localStorage` calls over several frames.

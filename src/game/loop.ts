@@ -749,8 +749,7 @@ export async function startLoop(
 
     // ── Game Over ─────────────────────────────────────────────────────────────
     if (state.phase === 'gameover') {
-      if (!gameOverVisible) { resetGameOverScreen(); gameOverVisible = true; onRunEnd(now) } // explicit entry: lock-out + fresh buttons
-      saveHighScore(state.highScore)
+      if (!gameOverVisible) { resetGameOverScreen(); gameOverVisible = true; onRunEnd(now); saveHighScore(state.highScore) } // explicit entry: lock-out + fresh buttons; best score stored once
       state = tickEffects(state, deltaMs)
       renderFrame(gameCtx, state, now)
       if (!runNameScreen(now, resetGameOverScreen) && !renderCardPreview(now)) {
@@ -768,8 +767,7 @@ export async function startLoop(
 
     // ── Victory (boss-phases R6.3) ────────────────────────────────────────────
     if (state.phase === 'victory') {
-      if (!victoryVisible) { victoryVisible = true; onRunEnd(now) } // a finished run is recorded once per visit
-      saveHighScore(state.highScore)
+      if (!victoryVisible) { victoryVisible = true; onRunEnd(now); saveHighScore(state.highScore) } // a finished run is recorded and the best score stored once per visit
       if (prevPhase !== 'victory') {
         // Entry hooks live here so every route into victory gets the lockout reset.
         resetVictoryScreen()

@@ -117,6 +117,22 @@ describe('card input on an end screen', () => {
   })
 })
 
+describe('high score storage on end screens (more-content R8.4)', () => {
+  for (const phase of ['gameover', 'victory']) {
+    it(`${phase}: the best score is stored once on entry, not every frame`, async () => {
+      h.phase = phase
+      const reads = { get: 0, set: 0 }
+      vi.stubGlobal('localStorage', { getItem: () => { reads.get++; return null }, setItem: () => { reads.set++ } })
+      const stop = await startLoop({} as HTMLVideoElement, ctx(), ctx())
+      frame(16)
+      const after1 = { ...reads }
+      for (let t = 32; t <= 160; t += 16) frame(t)
+      expect(reads).toEqual(after1)
+      stop()
+    })
+  }
+})
+
 describe('finale badge (more-content R5.6)', () => {
   for (const [phase, want] of [['victory', 'FINALE CLEARED'], ['gameover', undefined]] as const) {
     it(`${phase}: card badge ${want ?? 'none'}`, async () => {
