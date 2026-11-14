@@ -203,6 +203,7 @@ src/
     layout.ts           Pure raised-hand button layout for every screen / mode (also used by onboarding and tests)
     buttonSet.ts        Persistent motion buttons keyed by layout id
     motionButton.ts     Wave-to-press buttons: coverage + dwell + decay, release latch, entry lockout, exclusive groups
+    muteRect.ts         Mute button rectangle shared by the HUD and the layout
     seatCard.ts         2P per-half card offer / preview with half-only input routing
     screens.ts          Start (1 / 2 player buttons), stage title, summary (stars), victory, game over
     splitscreen.ts      Two-player divider, OUT / CLEARED overlays, shared summary, winner screen

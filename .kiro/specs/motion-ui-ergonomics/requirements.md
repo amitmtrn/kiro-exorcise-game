@@ -77,7 +77,7 @@ score / banner text rects, the card image or the mute button of the screen.
 
 ## R2 — Activation
 
-**R2.1** Dwell: a button fills after **650 ms** of accumulated hand motion, with
+**R2.1** Dwell: a button fills after **650 ms** of accumulated hand motion (the first camera frame after a gap only restarts the clock, so the real dwell is 650 ms plus one camera interval), with
 a visible progress ring around the circle (and the existing wedge fill).
 
 **R2.2** A frame counts as "hand on the button" only when the moved samples

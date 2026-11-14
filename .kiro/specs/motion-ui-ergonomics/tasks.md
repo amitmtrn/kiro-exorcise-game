@@ -73,6 +73,18 @@ Files: `src/ui/screens.ts`, `src/ui/onboarding.ts`, `src/ui/hud.ts`, `src/game/c
 - [x] Score / Best / stars lines fitted to the text band (R5.1).
 - [x] `GRID_STRIDE` exported and tested equal to `SAMPLE_STRIDE`; `hud.ts` import moved to the top.
 - [x] 2P summary latch test covers a wave continuing through the lockout.
-- [ ] Not changed: `MIN_COVERAGE` (spec-conformant; revisit after play-testing), harness re-run (needs the harness runtime), 1P summary set reset on entry (harmless, lockout zeroes it), sound-hint timer (starts when the hint is shown, per R6.2).
+- Note, not changed: `MIN_COVERAGE` (spec-conformant; revisit after play-testing), harness re-run (needs the harness runtime), 1P summary set reset on entry (harmless, lockout zeroes it), sound-hint timer (starts when the hint is shown, per R6.2).
 - [x] `npm test` and `npm run build` both clean.
 - [x] Commit: `fix(motion-ui-ergonomics): copy, spec drift, fitted text, tests`
+
+## T9 — Third review fixes (NITs)
+Files: `src/ui/motionButton.ts`, `src/ui/onboarding.ts`, `src/ui/soundHint.ts`, `src/main.ts`, tests, spec docs, `README.md`
+
+- [x] R5.1: button label font fitted to the circle width with `fitFontPx` (no overflow at small radii); test.
+- [x] R2.1 documents the one-camera-interval dependence of the dwell.
+- [x] Onboarding caption moved to 0.54 H, clear of the shoulder arcs.
+- [x] R6.2 hide timer extracted to `soundHint.ts` and tested with fake timers.
+- [x] README file tree lists `muteRect.ts`; T8 "Not changed" is a plain note.
+- Skipped: harness re-run (needs the harness runtime, no camera here); reopen lease reset (R4.3 met, griefing only); hint timer start (intended, T5); 1P `summarySet` clear and extra mute-rect drop (harmless, no gameplay effect).
+- [x] `npm test` and `npm run build` both clean.
+- [x] Commit: `fix(motion-ui-ergonomics): label fit, caption position, hint timer test, docs`

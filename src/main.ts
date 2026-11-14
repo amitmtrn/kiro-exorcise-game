@@ -2,6 +2,7 @@
  * main.ts — entry point.
  */
 
+import { createSoundHintController } from './ui/soundHint'
 import './style.css'
 import { initWebcam, stopWebcam } from './webcam/capture'
 import { startLoop, requestStart, handleCardKey, handleCardPointer, handleSeatCardPointer, isCardPreviewOpen, isTwoPlayerActive } from './game/loop'
@@ -44,17 +45,12 @@ soundHint.hidden = true
 const placeSoundHint = () => { soundHint.style.fontSize = `${soundHintFontPx(window.innerWidth)}px` }
 placeSoundHint()
 window.addEventListener('resize', placeSoundHint)
-let soundHintTimer: ReturnType<typeof setTimeout> | undefined
 document.getElementById('ui')!.appendChild(soundHint)
 installAudioUnlock({
   target: window,
   getCtx: getAudioContext,
-  onLocked: (locked) => {
-    soundHint.hidden = !locked
-    clearTimeout(soundHintTimer)
-    // a webcam-only player never clicks: the hint hides itself so it cannot sit over the stage label (R6.2)
-    if (locked) soundHintTimer = setTimeout(() => { soundHint.hidden = true }, SOUND_HINT_MS)
-  },
+  // a webcam-only player never clicks: the hint hides itself so it cannot sit over the stage label (R6.2)
+  onLocked: createSoundHintController((hidden) => { soundHint.hidden = hidden }, SOUND_HINT_MS),
 })
 
 document.addEventListener('keydown', (e) => {

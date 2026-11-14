@@ -160,7 +160,7 @@ export function drawGuide(ctx: CanvasRenderingContext2D, stable: boolean, timeMs
   ctx.fillStyle = '#ffd166'
   ctx.shadowColor = '#0d0014'
   ctx.shadowBlur = 8
-  ctx.fillText(GUIDE_HANDS_LINE, w / 2, h * 0.52)
+  ctx.fillText(GUIDE_HANDS_LINE, w / 2, h * 0.54)
   ctx.restore()
 }
 

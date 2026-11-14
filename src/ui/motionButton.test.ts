@@ -252,3 +252,17 @@ describe('point source (two-player-card R1.3)', () => {
     expect(farFired).toBe(false)
   })
 })
+
+describe('label fit (motion-ui-ergonomics R5.1)', () => {
+  it('shrinks the label to the circle width at small radii', () => {
+    let font = ''
+    const widths: number[] = []
+    const ctx = new Proxy({}, {
+      get: (t: any, k) => (k === 'fillText' ? (s: string) => widths.push(s.length) : typeof t[k] === 'undefined' ? () => {} : t[k]),
+      set: (t: any, k, v) => { if (k === 'font') font = v; t[k] = v; return true },
+    }) as unknown as CanvasRenderingContext2D
+    new MotionButton(38, 100, 28, '📸 EXORCIST').render(ctx, 0)
+    const px = Number(/(\d+)px/.exec(font)![1])
+    expect(px * 0.6 * 11).toBeLessThanOrEqual(2 * 28 + 6)
+  })
+})

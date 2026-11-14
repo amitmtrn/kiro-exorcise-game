@@ -4,7 +4,7 @@
  * display space, published every tick) to detect motion inside the circle.
  */
 
-import { RING_OUTSET } from './layout'
+import { RING_OUTSET, fitFontPx } from './layout'
 import { lastMotionPixels, motionFrameSeq, motionCell } from '../game/collision'
 
 /** Where a button reads its motion points (display space of its own canvas). */
@@ -179,13 +179,16 @@ export class MotionButton {
 
     // Label
     ctx.fillStyle = '#ffd166'
-    ctx.font = `bold ${Math.max(11, Math.round(this.radius * 0.28))}px sans-serif`
+    const lines = this.label.split('\n')
+    const longest = lines.reduce((a, b) => ([...b].length > [...a].length ? b : a), '')
+    // fit the widest line to the circle (R5.1); small radii shrink the text instead of overflowing
+    const fontPx = Math.round(fitFontPx(longest, Math.max(11, this.radius * 0.28), this.radius * 2))
+    ctx.font = `bold ${fontPx}px sans-serif`
     ctx.textAlign = 'center'
     ctx.textBaseline = 'middle'
     ctx.shadowColor = '#ffd166'
     ctx.shadowBlur = 8
-    const lines = this.label.split('\n')
-    const lh = Math.max(11, Math.round(this.radius * 0.28)) * 1.15
+    const lh = fontPx * 1.15
     lines.forEach((ln, i) => ctx.fillText(ln, this.cx, this.cy + (i - (lines.length - 1) / 2) * lh))
 
     ctx.restore()
