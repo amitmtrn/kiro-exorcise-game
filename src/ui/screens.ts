@@ -14,6 +14,7 @@ import { TITLE_FONT_FAMILY } from './fonts'
 import { getPlayerMode } from '../game/playerMode'
 import type { PlayerMode } from '../game/playerMode'
 import { offerButton, endButtonsLive, registerEndButtonReset } from './cardScreen'
+import { drawSettingsGear } from './settingsPanel'
 
 // ─── Motion buttons (persistent instances reused across frames) ───────────────
 // Geometry comes from layout.ts (raised-hand zones). Every screen has an entry lockout with a
@@ -61,6 +62,7 @@ export function renderStartScreen(
   state: GameState,
   now: number,
   onStart: (mode: PlayerMode) => void,
+  opts: { gear?: boolean } = {},
 ): void {
   const { width: W, height: H } = ctx.canvas
 
@@ -113,6 +115,7 @@ export function renderStartScreen(
   hintLines.forEach((l, i) => ctx.fillText(l, W / 2, H * 0.9 + i * hintPx * 1.3))
 
   ctx.restore()
+  if (opts.gear !== false) drawSettingsGear(ctx) // settings panel entry (key O); not drawn in demo mode
 
   if (won === 0) onStart(1)
   else if (won === 1) onStart(2)

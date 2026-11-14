@@ -48,6 +48,7 @@ import {
   retryStage,
   advanceToNextStage,
 } from './round'
+import { isPanelOpen, closePanel, renderSettingsPanel } from '../ui/settingsPanel'
 import { resolveStartRequest, setPlayerMode } from './playerMode'
 import type { PlayerMode, StartRequest } from './playerMode'
 import { CardSession } from '../card/session'
@@ -272,6 +273,8 @@ export async function startLoop(
   const hudCanvases: HTMLCanvasElement[] = [] // transparent per-seat HUD layers, drawn above the divider
   /** True while the start screen is the visible screen (entry detection for its lock-out). */
   let startVisible = false
+  /** The settings panel was open on the previous title tick (closing restarts the buttons' lock-out). */
+  let panelWasOpen = false
   /** True while the game-over screen is the visible screen (entry detection for its lock-out). */
   let gameOverVisible = false
   /** Action requested by a 2P screen button during a tick; applied after the tick returns (so it is not overwritten). */
@@ -536,10 +539,20 @@ export async function startLoop(
 
     // ── Start screen ──────────────────────────────────────────────────────────
     if (state.phase === 'start') {
-      if (!startVisible) { resetStartScreen(); startVisible = true } // explicit entry: lock-out + fresh buttons
+      if (!startVisible) { resetStartScreen(); startVisible = true; closePanel() } // explicit entry: lock-out + fresh buttons
       try { startTitleMusic() } catch { /* ignore */ }
       renderFrame(gameCtx, state, now)
-      renderStartScreen(gameCtx, state, now, (mode) => { begin(mode) })
+      if (isPanelOpen()) {
+        // Settings panel (playtest-polish R7.2): the motion buttons get no update, Space / 1 / 2 do nothing.
+        panelWasOpen = true
+        renderSettingsPanel(gameCtx)
+        startRequest = null
+        prevCtx.drawImage(currentCanvas, 0, 0)
+        rafId = requestAnimationFrame(tick)
+        return
+      }
+      if (panelWasOpen) { resetStartScreen(); panelWasOpen = false } // wave that closed nothing must not press a button
+      renderStartScreen(gameCtx, state, now, (mode) => { begin(mode) }, { gear: !demo })
       // Space / 1 / 2 fallback (only honoured while actually on the start screen)
       if (startRequest !== null && state.phase === 'start' && !twoStarted()) begin(resolveStartRequest(startRequest))
       startRequest = null
@@ -693,5 +706,6 @@ export function stopLoop(): void {
   twoPlayerActive = false
   titleVisible = false
   twoFinal = false
+  closePanel()
   if (rafId) { cancelAnimationFrame(rafId); rafId = 0 }
 }

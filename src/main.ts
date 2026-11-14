@@ -14,12 +14,17 @@ import { installAudioUnlock } from './audio/unlock'
 import { modeForKey } from './game/playerMode'
 import { loadTitleFont } from './ui/fonts'
 import { routePointer } from './ui/pointerRoute'
+import { isPanelOpen, openPanel, handlePanelKey, handlePanelPointer } from './ui/settingsPanel'
+import { initSettings } from './settings/runtime'
 import { SOUND_HINT, soundHintFontPx } from './ui/layout'
 import { hudFontSize, muteButtonRect, muteButtonRect2P } from './ui/hud'
 import { parseDemoParams, routeDemoKey } from './demo/params'
 import { configureQuality, parseQualityMode, resetQuality } from './game/quality'
 import type { DemoParams } from './demo/params'
 import { DemoRuntime } from './demo/runtime'
+
+// Settings (playtest-polish R7): stored values, then URL parameters (?cb=1 ?bigtext=1|2 ?reducedflash=1).
+initSettings({ storage: getLocalStorage(), search: location.search })
 
 const webcamCanvas = document.getElementById('webcam-canvas') as HTMLCanvasElement
 const gameCanvas   = document.getElementById('game-canvas') as HTMLCanvasElement
@@ -95,6 +100,11 @@ document.addEventListener('keydown', (e) => {
   if (consumedKeys.has(e)) return
   // In demo mode only a plain M (mute) reaches the game: the other passive keys (chords, F-keys) do nothing here.
   if ((demo !== null || demoBooting) && !((e.key === 'm' || e.key === 'M') && !e.ctrlKey && !e.metaKey && !e.altKey)) return
+  // Settings panel: O opens it on the title screen; while it is open it takes every key.
+  if (isPanelOpen()) { handlePanelKey(e.key); e.preventDefault(); return }
+  if ((e.key === 'o' || e.key === 'O') && !e.repeat && !e.ctrlKey && !e.metaKey && !e.altKey && isStartScreenVisible()) {
+    openPanel(); e.preventDefault(); return
+  }
   if (e.key === 'd' || e.key === 'D') toggleDebug()
   if (e.key === 'm' || e.key === 'M') toggleMute()
   const pickedMode = modeForKey(e.key)
@@ -114,6 +124,8 @@ document.addEventListener('keydown', (e) => {
 // Canvas pixel size equals its CSS size, so client coords map 1:1.
 gameCanvas.addEventListener('pointerdown', (e) => {
   // Two-player: one shared mute button at the top centre (the 1P one is top-right).
+  // Settings gear / panel (title screen only; not in demo mode)
+  if (!demo && !demoBooting && isStartScreenVisible() && handlePanelPointer(e.clientX, e.clientY, gameCanvas.width, gameCanvas.height)) return
   const fs = hudFontSize(gameCanvas.width)
   const twoPlayer = isTwoPlayerActive()
   routePointer(e.clientX, e.clientY, {

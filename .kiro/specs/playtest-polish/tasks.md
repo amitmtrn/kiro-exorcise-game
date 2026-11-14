@@ -46,11 +46,11 @@
 - [x] Commit: `feat(playtest-polish-T6): CVD simulation, deltaE2000 and Okabe-Ito palette`
 
 ## T7 — Settings store and panel
-- [ ] Create `src/settings/settings.ts` and `runtime.ts` (URL params, storage, prefers-reduced-motion, live settings).
-- [ ] Create `src/ui/settingsPanel.ts` (gear rect, rows, keys, pointer, drawing); loop start branch and `main.ts` wiring (`O`, ⚙ click, Esc).
-- [ ] Tests: storage holds only settings, invalid data ignored, URL > stored > default, panel key and pointer actions, gear rect clear of the start buttons, mute button, hint pill, text bands at 640 × 480 and 1280 × 720.
-- [ ] `npm test` and `npm run build` both clean.
-- [ ] Commit: `feat(playtest-polish-T7): settings store and panel`
+- [x] Create `src/settings/settings.ts` and `runtime.ts` (URL params, storage, prefers-reduced-motion, live settings).
+- [x] Create `src/ui/settingsPanel.ts` (gear rect, rows, keys, pointer, drawing); loop start branch and `main.ts` wiring (`O`, ⚙ click, Esc).
+- [x] Tests: storage holds only settings, invalid data ignored, URL > stored > default, panel key and pointer actions, gear rect clear of the start buttons, mute button, hint pill, text bands at 640 × 480 and 1280 × 720.
+- [x] `npm test` and `npm run build` both clean.
+- [x] Commit: `feat(playtest-polish-T7): settings store and panel`
 
 ## T8 — Colourblind rendering and bigger text
 - [ ] `render.ts`, `hud.ts`, `motionButton.ts`: use `getPalette()`; skull "!" marker and dashed ring, `●` / `■` player marks, ring dash patterns when `cb` is on.
