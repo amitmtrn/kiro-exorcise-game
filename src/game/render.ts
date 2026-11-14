@@ -20,6 +20,7 @@ import { overlayAlpha, shakeScale } from './flash'
 import { calloutPx, scaled } from '../ui/textScale'
 import { getQualityInfo, formatQualityLine } from './quality'
 import { getMotionGrid } from '../webcam/grid'
+import { drawWisp, drawMirror, drawBlink, drawWispLinks } from './renderVariants'
 
 /** Active palette (colourblind-safe variant when the setting is on). */
 const P = getPalette
@@ -73,6 +74,7 @@ export function renderFrame(
 
   // Enemies — any with hitFlashFrames > 0 render in solid white (spooky-skin R4.2)
   const whiteCtx = whiteFillProxy(ctx)
+  drawWispLinks(ctx, state.enemies, now)
   for (const enemy of state.enemies) {
     drawEnemy(enemy.hitFlashFrames > 0 && !reduced ? whiteCtx : ctx, enemy, now)
   }
@@ -159,6 +161,9 @@ function drawEnemy(ctx: CanvasRenderingContext2D, enemy: Enemy, now: number): vo
     case 'pumpkin': drawPumpkin(ctx, enemy); break
     case 'candy':   drawCandy(ctx, enemy, now); break
     case 'boss':    drawBoss(ctx, enemy, now); break
+    case 'wisp':    drawWisp(ctx, enemy, now); break
+    case 'mirror':  drawMirror(ctx, enemy, now); break
+    case 'blink':   drawBlink(ctx, enemy, now); break
   }
   ctx.restore()
 }

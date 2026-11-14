@@ -20,11 +20,11 @@
 - [x] Commit: `feat(more-content-T2): variant hit rules, pair threat and safe spawning`
 
 ## T3 — Rendering and palette
-- [ ] `render.ts`: `drawWisp`, `drawMirror`, `drawBlink` with state icons (∞, ▮ / cracks, ◆ / ◇), dashed outlines, link line, ring timer, absorb ring; telegraph pulses use `pulseRate()`; no strobe.
-- [ ] `palette.ts`: `wisp`, `mirror`, `blink` in both palettes; `palette.property.test.ts` includes them in the enemy pairs.
-- [ ] Tests: every state draws in both palettes without error, icon calls differ per state, pulse rate ≤ 3 Hz and ≤ 1 Hz reduced.
-- [ ] `npm test` and `npm run build` both clean.
-- [ ] Commit: `feat(more-content-T3): new ghost art and colourblind palette keys`
+- [x] `render.ts`: `drawWisp`, `drawMirror`, `drawBlink` with state icons (∞, ▮ / cracks, ◆ / ◇), dashed outlines, link line, ring timer, absorb ring; telegraph pulses use `pulseRate()`; no strobe.
+- [x] `palette.ts`: `wisp`, `mirror`, `blink` in both palettes; `palette.property.test.ts` includes them in the enemy pairs.
+- [x] Tests: every state draws in both palettes without error, icon calls differ per state, pulse rate ≤ 3 Hz and ≤ 1 Hz reduced.
+- [x] `npm test` and `npm run build` both clean.
+- [x] Commit: `feat(more-content-T3): new ghost art and colourblind palette keys`
 
 ## T4 — Stage 6 and the Hollow King
 - [ ] `stages.ts`: stage 6 config (`variantEvents`, `finale`), `tickSpawners` consumes the events and stops skulls before the boss; `variantIndex` reset on stage entry.
