@@ -65,8 +65,28 @@ import type { DemoRuntime } from '../demo/runtime'
 import type { DemoView } from '../demo/driver'
 import { handRadius } from '../demo/driver'
 import { drawDemoBackdrop, drawDemoBadge, drawGhostHand, grabDemoPortrait } from '../demo/overlay'
+import { loadTable, recordScore, renameStored } from './highScores'
+import type { ScoreEntry } from './highScores'
+import { newNameEntry, tickNameEntry, pickStep, confirm, nameKey, finalName } from './nameEntry'
+import type { NameEntry } from './nameEntry'
+import { NameScreen } from '../ui/nameScreen'
+import type { NameInfo } from '../ui/nameScreen'
 
 let rafId = 0
+
+// Name entry (more-content R9.3): while a name screen is open, keys are queued here by main.ts.
+let nameKeys: string[] = []
+let nameActive = false
+/** Forwards a key to an open name screen; true when it was taken (the caller then skips its other key handling). */
+export function handleNameKey(key: string, repeat = false): boolean {
+  if (!nameActive) return false
+  const relevant = key === 'Enter' || key === 'Backspace' || (key.length === 1 && /^[a-z0-9-]$/i.test(key))
+  if (!relevant) return false
+  if (!repeat || key === 'Backspace') nameKeys.push(key)
+  return true
+}
+/** True while a name screen is on screen (main.ts, tests). */
+export function isNameEntryOpen(): boolean { return nameActive }
 
 /** True while the title screen of a 1P game is showing (main.ts: the `G` demo toggle works only there). */
 let titleVisible = false
@@ -91,6 +111,7 @@ let cardOpen = false
 
 /** Forwards a key; returns true when the card flow wants it (caller may preventDefault). */
 export function handleCardKey(key: string, repeat = false): boolean {
+  if (nameActive) return false // the name screen takes the letters (more-content R9.3)
   if (repeat) return onEndScreen && cardKeyAction(key, cardOpen) !== null // held key: swallow, never re-trigger
   if (!onEndScreen || cardKeyAction(key, cardOpen) === null) return false
   cardInputs.push({ kind: 'key', key })
@@ -102,7 +123,7 @@ export function isCardPreviewOpen(): boolean { return cardOpen }
 
 /** Forwards a click / tap in canvas pixels; returns true when it was queued. */
 export function handleCardPointer(x: number, y: number): boolean {
-  if (!onEndScreen) return false
+  if (!onEndScreen || nameActive) return false
   cardInputs.push({ kind: 'click', x, y })
   return true
 }
@@ -178,6 +199,51 @@ export async function startLoop(
   startRequest = null // ...nor one pressed during the 1 s calibration above
 
   let state: GameState = createInitialState(initialStage)
+
+  // High scores (more-content R8–R10). The table is re-read on title entry and after every write; demo reads nothing.
+  let scoreTable: ScoreEntry[] = demo ? [] : loadTable()
+  let ownIds: string[] = []
+  let pendingName: { id: string; entry: NameEntry; info: NameInfo } | null = null
+  const nameScreen = new NameScreen()
+  nameKeys = []
+  nameActive = false
+
+  /** A 1P run ended (game over or victory): record it with a generated name and open the name screen. */
+  function onRunEnd(now: number): void {
+    pendingName = null
+    if (demo) return
+    const r = recordScore({ score: state.score, stage: state.stage, mode: '1P' })
+    scoreTable = loadTable()
+    if (!r) return
+    ownIds = [r.entry.id]
+    pendingName = { id: r.entry.id, entry: newNameEntry(r.entry.name, now), info: { score: r.entry.score, rank: r.rank } }
+    nameScreen.reset()
+    nameKeys = []
+  }
+
+  /** Runs the open name screen for this frame; true while it covers the end screen. */
+  function runNameScreen(now: number, onDone: () => void): boolean {
+    if (!pendingName) { nameActive = false; return false }
+    let e = pendingName.entry
+    for (const k of nameKeys) e = nameKey(e, k, now) ?? e
+    nameKeys = []
+    e = tickNameEntry(e, now)
+    if (!e.done) {
+      const a = nameScreen.render(gameCtx, e, now, pendingName.info)
+      if (a) e = a.kind === 'ok' ? confirm(e, now) : pickStep(e, a.dir, now)
+    }
+    if (e.done) {
+      renameStored(pendingName.id, finalName(e))
+      scoreTable = loadTable()
+      pendingName = null
+      nameActive = false
+      onDone() // fresh lock-out for the end screen: the wave that pressed OK presses nothing else
+      return false
+    }
+    pendingName = { ...pendingName, entry: e }
+    nameActive = true
+    return true
+  }
 
   // Exorcist Card: snapshot + run stats live in memory only and die with the screen.
   // Demo mode: a procedural placeholder portrait instead of a camera snapshot, a DEMO chip on the card,
@@ -282,6 +348,8 @@ export async function startLoop(
   let panelWasOpen = false
   /** True while the game-over screen is the visible screen (entry detection for its lock-out). */
   let gameOverVisible = false
+  /** True while the victory screen is the visible screen (records the run once per visit). */
+  let victoryVisible = false
   /** Action requested by a 2P screen button during a tick; applied after the tick returns (so it is not overwritten). */
   let twoAction: 'next' | 'again' | 'menu' | null = null
 
@@ -460,7 +528,7 @@ export async function startLoop(
       cardOpen = false
     } else {
       session.observe(state, displayW, displayH)
-      onEndScreen = state.phase === 'gameover' || state.phase === 'victory'
+      onEndScreen = (state.phase === 'gameover' || state.phase === 'victory') && !pendingName
       if (onEndScreen) drainCardInputs(now)
       else cardInputs = []
       cardOpen = session.isOpen
@@ -546,7 +614,7 @@ export async function startLoop(
 
     // ── Start screen ──────────────────────────────────────────────────────────
     if (state.phase === 'start') {
-      if (!startVisible) { resetStartScreen(); startVisible = true; closePanel() } // explicit entry: lock-out + fresh buttons
+      if (!startVisible) { resetStartScreen(); startVisible = true; closePanel(); scoreTable = demo ? [] : loadTable(); ownIds = []; pendingName = null; nameActive = false } // explicit entry: lock-out + fresh buttons
       try { startTitleMusic() } catch { /* ignore */ }
       renderFrame(gameCtx, state, now)
       if (isPanelOpen()) {
@@ -559,7 +627,7 @@ export async function startLoop(
         return
       }
       if (panelWasOpen) { resetStartScreen(); panelWasOpen = false } // wave that closed nothing must not press a button
-      renderStartScreen(gameCtx, state, now, (mode) => { begin(mode) }, { gear: !demo })
+      renderStartScreen(gameCtx, state, now, (mode) => { begin(mode) }, { gear: !demo, table: scoreTable })
       // Space / 1 / 2 fallback (only honoured while actually on the start screen)
       if (startRequest !== null && state.phase === 'start' && !twoStarted()) begin(resolveStartRequest(startRequest))
       startRequest = null
@@ -571,6 +639,7 @@ export async function startLoop(
     startVisible = false
     startRequest = null // a stray key outside the start screen is ignored
     if (state.phase !== 'gameover') gameOverVisible = false
+    if (state.phase !== 'victory') victoryVisible = false
 
     // ── Stage title card ──────────────────────────────────────────────────────
     if (state.phase === 'stageTitle') {
@@ -603,15 +672,16 @@ export async function startLoop(
 
     // ── Game Over ─────────────────────────────────────────────────────────────
     if (state.phase === 'gameover') {
-      if (!gameOverVisible) { resetGameOverScreen(); gameOverVisible = true } // explicit entry: lock-out + fresh buttons
+      if (!gameOverVisible) { resetGameOverScreen(); gameOverVisible = true; onRunEnd(now) } // explicit entry: lock-out + fresh buttons
       saveHighScore(state.highScore)
       state = tickEffects(state, deltaMs)
       renderFrame(gameCtx, state, now)
-      if (!renderCardPreview(now)) {
+      if (!runNameScreen(now, resetGameOverScreen) && !renderCardPreview(now)) {
         renderGameOver(gameCtx, state, now,
           () => { state = retryStage(state) },
           () => { state = createInitialState(1) },
           () => runCardAction('open', now),
+          { table: scoreTable, ownIds },
         )
       }
       prevCtx.drawImage(currentCanvas, 0, 0)
@@ -621,6 +691,7 @@ export async function startLoop(
 
     // ── Victory (boss-phases R6.3) ────────────────────────────────────────────
     if (state.phase === 'victory') {
+      if (!victoryVisible) { victoryVisible = true; onRunEnd(now) } // a finished run is recorded once per visit
       saveHighScore(state.highScore)
       if (prevPhase !== 'victory') {
         // Entry hooks live here so every route into victory gets the lockout reset.
@@ -630,7 +701,7 @@ export async function startLoop(
       }
       state = tickEffects(state, deltaMs)
       renderFrame(gameCtx, state, now)
-      if (!renderCardPreview(now)) {
+      if (!runNameScreen(now, resetVictoryScreen) && !renderCardPreview(now)) {
         renderVictory(gameCtx, state, now,
           () => {
             if (demo) { state = createInitialState(1); begin(1) } // seeded run at the demo stage, like any other start
@@ -638,6 +709,7 @@ export async function startLoop(
           },
           () => { state = createInitialState(1) },
           () => runCardAction('open', now),
+          { table: scoreTable, ownIds },
         )
       }
       prevCtx.drawImage(currentCanvas, 0, 0)
@@ -707,6 +779,8 @@ let activeDemo: DemoRuntime | null = null
 
 export function stopLoop(): void {
   resetSession?.(); resetSession = null // the snapshot must not outlive the loop
+  nameActive = false
+  nameKeys = []
   activeDemo?.dispose(); activeDemo = null
   onEndScreen = false
   cardOpen = false

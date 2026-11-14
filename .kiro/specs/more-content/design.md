@@ -251,10 +251,13 @@ the player's own row.
 
 ### Loop integration
 
-- At first entry to `gameover` / `victory` (1P, not demo): `recordScore` with a
-  generated name, remember the id, build a `NameEntry`. While it is not done
-  the end screen renders `renderNameScreen`; then the normal end screen with the
-  table. Keyboard: `main.ts` forwards keys through `handleNameKey`.
+- At first entry to `gameover` / `victory` (1P, not demo; tracked with
+  `gameOverVisible` / `victoryVisible`): `recordScore` with a generated name, remember
+  the id, build a `NameEntry`. While it is not done
+  the end screen renders the `NameScreen`; then the normal end screen with the
+  table and a fresh lock-out. Keyboard: `main.ts` forwards keys through
+  `handleNameKey` before its other key handling, so M / D / C type letters while the
+  name screen is open (the mute button still works); card keys and clicks wait.
 - 2P `final`: both seats recorded; each qualifying seat gets its own `NameEntry`;
   `renderTwoPlayerFinal` is drawn once both are done.
 - Retry / Play again / Menu clear the pending entry.

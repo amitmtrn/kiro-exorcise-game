@@ -16,6 +16,11 @@ import type { PlayerMode } from '../game/playerMode'
 import { offerButton, endButtonsLive, registerEndButtonReset } from './cardScreen'
 import { drawSettingsGear } from './settingsPanel'
 import { scaled } from './textScale'
+import type { ScoreEntry } from '../game/highScores'
+import { drawTable, endRows, pageAt, tableRows, TITLE_HEADING } from './scoreTable'
+
+/** High-score table shown on an end screen, with the ids of this run's own entries (more-content R10.2). */
+export interface EndScores { table: readonly ScoreEntry[]; ownIds: readonly string[] }
 
 // ─── Motion buttons (persistent instances reused across frames) ───────────────
 // Geometry comes from layout.ts (raised-hand zones). Every screen has an entry lockout with a
@@ -68,7 +73,7 @@ export function renderStartScreen(
   state: GameState,
   now: number,
   onStart: (mode: PlayerMode) => void,
-  opts: { gear?: boolean } = {},
+  opts: { gear?: boolean; table?: readonly ScoreEntry[] } = {},
 ): void {
   const { width: W, height: H } = ctx.canvas
 
@@ -95,6 +100,13 @@ export function renderStartScreen(
     ctx.font = `bold ${fit(`Best: ${state.highScore}`, clamp(W / 36, 16, 22), W, TEXT_BAND_LOW)}px sans-serif`
     ctx.fillStyle = '#ffd166'
     ctx.fillText(`Best: ${state.highScore}`, W / 2, H * 0.77)
+  }
+
+  // High scores (more-content R10.1): pages of 5 in the central band above the subtitle, switching every 4 s.
+  const table = opts.table ?? []
+  if (table.length > 0) {
+    const page = pageAt(table, now)
+    drawTable(ctx, tableRows(table, page), titleTableBox(W, H), TITLE_HEADING)
   }
 
   // Mode buttons in the raised-hand columns: 1 PLAYER at the left edge, 2 PLAYERS at the right
@@ -125,6 +137,16 @@ export function renderStartScreen(
 
   if (won === 0) onStart(1)
   else if (won === 1) onStart(2)
+}
+
+/** Title-screen table box: central text band, between the top bar and 46 % of the height. */
+export function titleTableBox(W: number, H: number): { x: number; y: number; w: number; h: number } {
+  return { x: TEXT_BAND_1P[0] * W, y: 0.09 * H, w: (TEXT_BAND_1P[1] - TEXT_BAND_1P[0]) * W, h: 0.37 * H }
+}
+
+/** End-screen table box: wide text band below the score lines (game over from 60 %, victory from 66 %). */
+export function endTableBox(W: number, H: number, top: number): { x: number; y: number; w: number; h: number } {
+  return { x: TEXT_BAND_LOW[0] * W, y: top * H, w: (TEXT_BAND_LOW[1] - TEXT_BAND_LOW[0]) * W, h: (0.97 - top) * H }
 }
 
 // ─── Stage title card ─────────────────────────────────────────────────────────
@@ -248,6 +270,7 @@ export function renderGameOver(
   onRetry: () => void,
   onMenu: () => void,
   onCard?: () => void,
+  scores?: EndScores,
 ): void {
   const { width: W, height: H } = ctx.canvas
 
@@ -279,6 +302,7 @@ export function renderGameOver(
     ctx.fillStyle = 'rgba(232,232,240,0.6)'
     ctx.fillText(`Best: ${state.highScore}`, W / 2, H * 0.51)
   }
+  if (scores && scores.table.length > 0) drawTable(ctx, endRows(scores.table, scores.ownIds), endTableBox(W, H, 0.58))
 
   // Buttons in the raised-hand columns: card offer and retry stacked on the left, MENU alone on the
   // right (it abandons the run: longer dwell). One action per frame, offer > retry > menu.
@@ -313,6 +337,7 @@ export function renderVictory(
   onPlayAgain: () => void,
   onMenu: () => void,
   onCard?: () => void,
+  scores?: EndScores,
 ): void {
   const { width: W, height: H } = ctx.canvas
   if (victoryShownAt === null) victoryShownAt = now
@@ -351,6 +376,7 @@ export function renderVictory(
     ctx.fillStyle = 'rgba(232,232,240,0.6)'
     ctx.fillText(`Best: ${state.highScore}`, W / 2, H * 0.6)
   }
+  if (scores && scores.table.length > 0) drawTable(ctx, endRows(scores.table, scores.ownIds), endTableBox(W, H, 0.65))
 
   // Same zones as game over: card offer and PLAY AGAIN stacked on the left, MAIN MENU alone on the right.
   // Buttons ignore motion (and must be left) until the entry lockout ends.

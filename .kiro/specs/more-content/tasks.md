@@ -55,12 +55,12 @@
 - [x] Commit: `feat(more-content-T6): name picker state and motion-button layout`
 
 ## T7 — Name screen, table drawing and 1P loop
-- [ ] Create `src/ui/scoreTable.ts` (`tableRows`, `endRows`, `drawTable`) and `src/ui/nameScreen.ts` (`renderNameScreen`).
-- [ ] Title screen: table pages every 4 s; game-over / victory: top 5 plus own row; text stays in the layout bands.
-- [ ] `loop.ts`: record the run at end-screen entry (not in demo), name screen before the end buttons, retry / menu clear it; `main.ts`: key forwarding.
-- [ ] Tests: row selection and highlight, pages, drawing with recording contexts, loop records once per run, demo records nothing, name screen shows and ends.
-- [ ] `npm test` and `npm run build` both clean.
-- [ ] Commit: `feat(more-content-T7): name screen and high-score table on title and end screens`
+- [x] Create `src/ui/scoreTable.ts` (`tableRows`, `endRows`, `drawTable`) and `src/ui/nameScreen.ts` (`renderNameScreen`).
+- [x] Title screen: table pages every 4 s; game-over / victory: top 5 plus own row; text stays in the layout bands.
+- [x] `loop.ts`: record the run at end-screen entry (not in demo), name screen before the end buttons (card keys and clicks wait), fresh end-screen lock-out after it; `main.ts`: key forwarding (`handleNameKey`).
+- [x] Tests: row selection and highlight, pages, drawing with recording contexts, loop records once per run, demo records nothing, name screen shows and ends.
+- [x] `npm test` and `npm run build` both clean.
+- [x] Commit: `feat(more-content-T7): name screen and high-score table on title and end screens`
 
 ## T8 — Two-player names
 - [ ] `loop.ts` 2P final: record both seats with `mode: "2P"`, per-seat `NameEntry`, per-half name screens with the half's motion points, final buttons after both are done; keyboard edits P1.

@@ -5,7 +5,7 @@
 import { createSoundHintController } from './ui/soundHint'
 import './style.css'
 import { initWebcam, stopWebcam } from './webcam/capture'
-import { startLoop, stopLoop, requestStart, handleCardKey, handleCardPointer, handleSeatCardPointer, isCardPreviewOpen, isTwoPlayerActive, isStartScreenVisible } from './game/loop'
+import { startLoop, stopLoop, requestStart, handleCardKey, handleCardPointer, handleSeatCardPointer, isCardPreviewOpen, isTwoPlayerActive, isStartScreenVisible, handleNameKey } from './game/loop'
 import { showCameraDenied, classifyCameraError, runOnboarding } from './ui/onboarding'
 import { createOnboarding, onboardingReducer, hasSeenOnboarding, getLocalStorage } from './game/onboarding'
 import { toggleDebug } from './game/render'
@@ -110,6 +110,8 @@ document.addEventListener('keydown', (e) => {
     if (!browserKey) { handlePanelKey(e.key, e.repeat); e.preventDefault() }
     return
   }
+  // Name screen (more-content R9.3): letters, digits, '-', Backspace and Enter type the name.
+  if (!e.ctrlKey && !e.metaKey && !e.altKey && handleNameKey(e.key, e.repeat)) { e.preventDefault(); return }
   if ((e.key === 'o' || e.key === 'O') && !e.repeat && !e.ctrlKey && !e.metaKey && !e.altKey && isStartScreenVisible()) {
     openPanel(); e.preventDefault(); return
   }
