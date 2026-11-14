@@ -45,7 +45,7 @@ export function telegraphLeftMs(e: Enemy): number                    // 0 outsid
 export function nextState(type, state): VariantState                 // the state a timer expiry moves to
 export function stateSchedule(type): Array<{ state, ms }>            // the cycle, used by tests
 export function onMirrorAbsorb(e: Enemy): { enemy: Enemy; absorbed: boolean; cracked: boolean }
-export function lightWisp(e: Enemy): Enemy                           // idle|merging→lit
+export function lightWisp(e: Enemy): Enemy                           // idle→lit (lit and merging unchanged)
 export function createWispPair / createMirror / createBlink(...)     // spawn helpers
 ```
 
