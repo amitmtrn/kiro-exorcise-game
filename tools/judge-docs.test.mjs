@@ -95,13 +95,20 @@ describe('docs structure', () => {
     expect(bullets).toBeLessThanOrEqual(8)
   })
   it('the TL;DR row and the history table agree on the test counts', () => {
-    expect(kiro).toMatch(/\| Unit and property tests \| 1120 passed, 0 failed, 0 skipped at PR #5; 1290 passed, 0 failed, 0 skipped on this branch after merging main/)
+    expect(kiro).toMatch(/\| Unit and property tests \| 1120 passed, 0 failed, 0 skipped at PR #5; \d+ passed, 0 failed, 0 skipped on this branch after merging main/)
     expect(kiro).toMatch(/\| #5 \| motion-ui-ergonomics \| 1120 \|/)
     expect(kiro).toMatch(/\| #6 \| demo-mode \| 1254 \|/)
-    expect(kiro).toMatch(/\| #7 \| judge-docs .* \| 1290 \|/)
-    expect(kiro).toContain('536.22')
+        expect(kiro).toContain('536.22')
     expect(kiro).not.toContain('534.' + '66')
     expect(kiro).not.toMatch(/open PR #6|not on main|#7 \(open\)/)
+  })
+  it('the suite totals in the docs match the README count synced by the readme-test-count hook', () => {
+    const m = readme.match(/\| `npm test` \| Run all (\d+) unit tests/)
+    expect(m).not.toBeNull()
+    const n = m[1]
+    expect(kiro).toContain(`${n} passed, 0 failed, 0 skipped on this branch`)
+    expect(kiro).toMatch(new RegExp(`\\| #7 \\| judge-docs .* \\| ${n} \\|`))
+    expect(readme).toContain(`this branch after merging main: ${n}.`)
   })
   it('the per-spec commit list reconciles with the headline 89', () => {
     expect(kiro).toContain('| 89 |')

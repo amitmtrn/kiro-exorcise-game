@@ -27,7 +27,7 @@ Files: `README.md`
 ## T4 — Facts check test
 Files: `tools/judge-docs.test.mjs`
 
-- [x] Banned words and token-like strings in `docs/KIRO.md` and the README section (R4.1, R4.2).
+- [x] Banned words in `docs/KIRO.md`, the whole `README.md`, `package.json` and `.kiro/steering/*.md`; token-like strings in `docs/KIRO.md` and the whole `README.md` (R4.1, R4.2).
 - [x] Required headings, line range, README links (R4.3).
 - [x] `npm test` and `npm run build` both clean; `node tools/sync-readme-tests.mjs --check` exits 0.
 - [x] Commit: `test(judge-docs-T4): facts check for judge docs`
@@ -79,6 +79,17 @@ Files: `README.md`, `docs/KIRO.md`, `.kiro/specs/judge-docs/design.md`, `.kiro/p
 - [x] Off-repo `ui-audit` log marked "(log)" in `docs/KIRO.md`; machine-local path removed from `design.md`.
 - [x] README credits headline matches `docs/KIRO.md` (536.22 after the `judge-docs` spec and its review fixes).
 - [x] Tasks excerpt in `docs/KIRO.md` marks skipped checkboxes with `…`.
-- [x] `demo` fallback described accurately (Space start over the wave-style video, unsupported).
+- [x] `demo` described accurately: shell-only (`run.sh`), not offered by the MCP `run_harness` tool (originally written as a PR #6 fallback caveat).
 - [x] `npm test` and `npm run build` both clean.
 - [x] Commit: `fix(judge-docs): correct judge-facing doc inaccuracies from review`
+
+## T10 — Merge with main, final counts, trademark-safe wording
+Files: `README.md`, `docs/KIRO.md`, `package.json`, `.kiro/steering/*`, `.kiro/specs/judge-docs/*`, `.kiro/powers/exorcise-motion-harness/skills/*`, `tools/judge-docs.test.mjs`
+
+- [x] Merge `origin/main` (PR #6, demo-mode, merge commit 46d9551); README conflict resolved keeping both sides.
+- [x] `dfeeb71` `docs(judge-docs): demo mode merged, final counts and credits` (PR count, test counts, 536.22 credits).
+- [x] `a129eb2` `docs(readme): trademark-safe wording`; the test scans the whole README.
+- [x] `58f36ff` `docs(judge-docs): review fixes for counts, wording and spec alignment`.
+- [x] `9cbb343` `docs(steering): trademark-safe wording`; the test also scans `package.json` and `.kiro/steering/*.md`.
+- [x] Count test compares the figures in `docs/KIRO.md` and the README with the synced `npm test` count in the README commands table.
+- [x] `npm test` and `npm run build` clean.

@@ -18,7 +18,7 @@ restricted to loopback. It needs `python3` + `numpy`, `google-chrome` and Node >
 
 ### Demo mode (shell only)
 
-`demo`: no camera, seeded deterministic playthrough (PR #6, merged). Only `run.sh` offers it; the MCP `run_harness` tool takes `sweep` or `wave`. Do not pick it from the table above.
+`demo`: no camera, seeded deterministic playthrough (PR #6, merged). Only `run.sh` offers it; the MCP `run_harness` tool takes `sweep` or `wave`. Do not pass it to `run_harness`.
 
 ## How to run
 

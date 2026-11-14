@@ -1,7 +1,7 @@
 # Exorcise — Product
 
 ## Overview
-Exorcise is a browser-based Halloween game a camera-motion Halloween brawler in the spirit of classic webcam motion games. Players use their laptop webcam and physical hand movements to swat away ghosts and bats that fly in from the dark edges of the screen. No installation required — just open a URL and play.
+Exorcise is a browser-based camera-motion Halloween brawler in the spirit of classic webcam motion games. Players use their laptop webcam and physical hand movements to swat away ghosts and bats that fly in from the dark edges of the screen. No installation required — just open a URL and play.
 
 ## Target Audience
 Kids and families. The tone is spooky but fun, never scary or violent. Suitable for Halloween parties and school events.
