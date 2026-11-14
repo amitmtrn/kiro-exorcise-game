@@ -28,10 +28,10 @@ Files: `src/ui/motionButton.ts`, `src/game/nameEntry.ts`, `src/ui/nameScreen.ts`
 
 ## T3 — Card preview geometry
 Files: `src/ui/layout.ts`
-- [ ] Failing test first: ring of NO PHOTO / CLOSE / SAVE clear of the card at 640×360 … 1920×1080, text scale 1 and 1.5, 1P and both 2P halves.
-- [ ] `previewCardRect` gap = `RING_OUTSET + CARD_GAP`; test that the preview draws no circle other than its buttons (the moon is card art).
-- [ ] `npm test` and `npm run build` both clean.
-- [ ] Commit: `fix(playtest1-fixes-T3): card preview keeps the button rings clear of the card`
+- [x] Failing test first: ring of NO PHOTO / CLOSE / SAVE clear of the card at 640×360 … 1920×1080, text scale 1 and 1.5, 1P and both 2P halves.
+- [x] `previewCardRect` gap = `RING_OUTSET + CARD_GAP`; test that the preview draws no circle other than its buttons (the moon is card art).
+- [x] `npm test` and `npm run build` both clean.
+- [x] Commit: `fix(playtest1-fixes-T3): card preview keeps the button rings clear of the card`
 
 ## T4 — Mirror and video verification
 Files: tests only (code only if a test fails)

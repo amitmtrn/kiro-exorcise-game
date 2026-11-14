@@ -1,4 +1,6 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, afterEach } from 'vitest'
+import { RING_OUTSET } from './layout'
+import { initSettings, resetSettings } from '../settings/runtime'
 import { cardKeyAction, previewLayout, buttonAt, CARD_ASPECT, lockEndButtons, endButtonsLive, PREVIEW_INPUT_DELAY_MS, CardPreview, offerButton, offerHit } from './cardScreen'
 
 describe('cardKeyAction', () => {
@@ -101,5 +103,61 @@ describe('offer geometry and preview reopen (review fixes)', () => {
     expect(p.hit(b.cx, b.cy)).not.toBeNull()
     p.open(0)
     expect(p.hit(b.cx, b.cy)).toBeNull()
+  })
+})
+
+describe('buttons and rings stay clear of the card (playtest1-fixes R4.2)', () => {
+  const sizes: Array<[number, number]> = [[640, 360], [800, 450], [1024, 576], [1280, 720], [1366, 768], [1600, 900], [1920, 1080]]
+  const MIN_GAP = 6 // px between a progress ring's outer edge and the card edge
+  const gap = (b: { cx: number; cy: number; r: number }, card: { x: number; y: number; w: number; h: number }) => {
+    const R = b.r + RING_OUTSET
+    const dx = Math.max(card.x - b.cx, 0, b.cx - (card.x + card.w))
+    const dy = Math.max(card.y - b.cy, 0, b.cy - (card.y + card.h))
+    return Math.hypot(dx, dy) - R
+  }
+  afterEach(() => resetSettings())
+  for (const scale of [0, 2]) { // ?bigtext=0 (1×) and ?bigtext=2 (1.5×)
+    it(`1P at text scale ${scale === 0 ? 1 : 1.5}: every ring is ${MIN_GAP}+ px from the card, the card is whole`, () => {
+      initSettings({ storage: null, search: `?bigtext=${scale}`, reducedMotion: false })
+      for (const [W, H] of sizes) for (const hasPhoto of [true, false]) {
+        const L = previewLayout(W, H, false, hasPhoto)
+        expect(L.card.x).toBeGreaterThan(0)
+        expect(L.card.x + L.card.w).toBeLessThan(W)
+        for (const b of L.buttons) expect(gap(b, L.card), `${W}x${H} ${b.id}`).toBeGreaterThanOrEqual(MIN_GAP)
+      }
+    })
+    it(`2P halves at text scale ${scale === 0 ? 1 : 1.5}: the same in each half`, () => {
+      initSettings({ storage: null, search: `?bigtext=${scale}`, reducedMotion: false })
+      for (const [W, H] of sizes) for (const seat of [0, 1] as const) {
+        const L = previewLayout(Math.floor(W / 2), H, false, true, seat)
+        for (const b of L.buttons) expect(gap(b, L.card), `${W}x${H} seat ${seat} ${b.id}`).toBeGreaterThanOrEqual(MIN_GAP)
+        expect(L.card.x).toBeGreaterThan(0)
+        expect(L.card.x + L.card.w).toBeLessThan(Math.floor(W / 2))
+      }
+    })
+  }
+})
+
+describe('the preview draws no motion circle other than its buttons (playtest1-fixes R4.1)', () => {
+  it('every circle the preview draws is a button body or its ring; the card moon is card art, never a zone', () => {
+    const W = 1280, H = 720
+    const L = previewLayout(W, H, false, true)
+    const circles: Array<{ x: number; y: number; r: number }> = []
+    const ctx = new Proxy({ canvas: { width: W, height: H } } as Record<string, unknown>, {
+      get(t, k: string) {
+        if (k === 'arc') return (x: number, y: number, r: number) => circles.push({ x, y, r })
+        if (k === 'drawImage') return () => {} // the card image is drawn, not its inner art, so no moon here
+        return k in t ? t[k] : () => ({ width: 10, addColorStop() {} })
+      },
+      set(t, k: string, v) { t[k] = v; return true },
+    }) as unknown as CanvasRenderingContext2D
+    const p = new CardPreview(); p.open(0)
+    p.render(ctx, 1, {} as CanvasImageSource, false, true)
+    for (const c of circles) {
+      const owner = L.buttons.find((b) => Math.hypot(c.x - b.cx, c.y - b.cy) < 0.5 && (Math.abs(c.r - b.r) < 0.5 || Math.abs(c.r - (b.r + RING_OUTSET - 3)) < 0.5))
+      expect(owner, `circle ${c.x.toFixed(0)},${c.y.toFixed(0)} r${c.r.toFixed(0)} is a button`).toBeDefined()
+    }
+    // the top-right corner of the card has no button zone
+    expect(L.buttons.some((b) => Math.hypot(b.cx - (L.card.x + L.card.w), b.cy - L.card.y) < b.r)).toBe(false)
   })
 })
