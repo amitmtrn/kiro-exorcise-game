@@ -1,6 +1,6 @@
 # 👻 Exorcise
 
-A Halloween browser game inspired by the PS2 EyeToy title **Kung Foo**.
+A camera-motion Halloween brawler that runs in the browser.
 Ghosts and bats fly in from the dark edges of the screen toward your webcam image.
 **Swat them away with your hands.** Hit a cursed skull and lose a life. Zero install — just open the URL and play.
 
@@ -44,7 +44,7 @@ npm run dev
 
 On your first visit a short onboarding shows a head-and-hands silhouette over your live camera (with a quick framing check), three how-to-play cards and a privacy note. It is skippable (Skip / `Esc`) and remembered in `localStorage`. **Your video stays on your device. Nothing is uploaded.** If the camera is blocked you get step-by-step instructions to allow it.
 
-Five Kung Foo-style stages, each 60 seconds, each with its own enemy mix and music.
+Five stages, each 60 seconds, each with its own enemy mix and music.
 
 - **Ghosts** float toward the center of the screen. Swat them before they arrive — each one that gets through costs a life.
 - **Bats** zigzag in fast. Quick swipe to send them packing.
@@ -56,7 +56,7 @@ Five Kung Foo-style stages, each 60 seconds, each with its own enemy mix and mus
 
 **Exorcist Card.** On the game-over and victory screens you can choose "📸 EXORCIST CARD" (wave, click or `C`) to make a trading card with a snapshot from your best moment (best combo or the boss defeat), a rank title from *Apprentice Exorcist* to *Grand Exorcist*, your score, best combo, stage and banish count. It is only made when you ask for it, drawn on a canvas on your device and saved with a normal download. The snapshot is kept in memory only, never stored or uploaded (no network request is made), and is dropped when you leave the screen or retry. A *no photo* silhouette variant is one button away.
 
-Hit detection uses **frame differencing**: fast motion inside an enemy's hitbox registers as a hit — the same technique as the original EyeToy, no ML required.
+Hit detection uses **frame differencing**: fast motion inside an enemy's hitbox registers as a hit — the same technique as classic webcam motion games, no ML required.
 
 ### Two players (split screen)
 
@@ -251,7 +251,7 @@ src/
     hit-detection-fix/  P0 swatting fix spec
     feel-fix/           Game-feel fixes spec
     boss-combo/         Boss ghost + combo spec (superseded by stages/)
-    stages/             5-stage Kung Foo-style progression spec
+    stages/             5-stage progression spec
     audio/              Procedural music + SFX spec
     spooky-skin/        Visual polish spec
     hooks/              Kiro hooks spec

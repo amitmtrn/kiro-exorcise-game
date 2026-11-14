@@ -24,7 +24,7 @@ const NAME_A = 'Eye' + 'Toy'
 const NAME_B = 'Ku' + 'ng' + ' ' + 'F' + 'oo'
 const BANNED = new RegExp(`${NAME_A.replace('Toy', '[\\s_-]*Toy')}|${NAME_B.replace(' ', '[\\s_-]*')}`, 'i')
 const TOKEN = /ghp_|github_pat_|\bsk-/i
-const texts = { 'docs/KIRO.md': kiro, 'README judge section': section }
+const texts = { 'docs/KIRO.md': kiro, 'README.md (whole file)': readme }
 
 describe('judgeSection', () => {
   it('extracts only the section', () => {
