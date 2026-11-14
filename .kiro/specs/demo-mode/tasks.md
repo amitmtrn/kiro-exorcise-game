@@ -67,3 +67,5 @@ Files: `README.md`, `tools/motion-harness/README.md`, `tools/motion-harness/run.
 ## T8 — Manual smoke test (browser)
 - [ ] `?demo=1&seed=7`: no camera prompt; DEMO badge in every screen; the ghost hand fills the START ring and the game starts; stages play through; combo x4 call-out; boss telegraph visible; YOU WIN; the card opens with the DEMO chip and a silhouette portrait; the loop returns to the title and starts again.
 - [ ] Any key or click leaves demo and shows the normal title (camera prompt appears); `G` on the title screen goes back to demo.
+
+Pre-check (automated, headless Chrome 1280×720, `?demo=1&seed=7`, not a substitute for the manual pass): title, playing HUD with the DEMO badge clear of score and timer, ghost-hand cursor, NEXT ring filling on the summary, YOU WIN (98,025), card preview with the DEMO chip and the placeholder portrait (via `&stage=5`), SAVE never approached, return to the title; Space left demo, removed the demo parameters from the URL and the normal flow requested the camera (no camera in headless: the camera-help screen). Still manual: the real permission prompt and `G` back into demo on a real title screen.
