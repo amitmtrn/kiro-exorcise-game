@@ -142,11 +142,11 @@ function urlWithoutDemo(): string {
 
 /** Starts demo mode: no getUserMedia, no onboarding, no video element (demo-mode R2). */
 async function bootDemo(params: DemoParams): Promise<void> {
+  soundHint.hidden = true
+  // The font first: the runtime patches the clock and Math.random, which must not happen while no loop (and no DEMO badge) runs.
+  await loadTitleFont().catch(() => undefined)
   const rt = new DemoRuntime({ seed: params.seed, stage: params.stage, speed: params.speed, w: gameCanvas.width, h: gameCanvas.height })
   demo = rt
-  soundHint.hidden = true
-  await loadTitleFont().catch(() => undefined)
-  if (demo !== rt) return // left demo while the font was loading
   await startLoop(null, webcamCtx, gameCtx, 1, { demo: rt })
 }
 

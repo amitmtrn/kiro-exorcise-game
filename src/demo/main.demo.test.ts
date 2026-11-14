@@ -151,6 +151,21 @@ describe('?demo=1 (demo-mode R1.1, R2)', () => {
     expect(Math.random).not.toBe(origRandom) // the seeded stream is installed
   })
 
+  it('patches the clock and Math.random only once the font is ready, when the loop (and the badge) can run (R6.1)', async () => {
+    const env = setup('?demo=1&seed=7')
+    let fontDone!: () => void
+    ;(document as unknown as { fonts: unknown }).fonts = { load: () => new Promise<void>((r) => { fontDone = r }) }
+    await import('../main')
+    await flush()
+    expect(Math.random).toBe(origRandom)
+    expect(performance.now()).toBe(5000)
+    fontDone()
+    await flush()
+    expect(Math.random).not.toBe(origRandom)
+    env.frames(5)
+    expect(env.drawn).toContain('DEMO')
+  })
+
   it('M (mute) does not leave demo mode', async () => {
     const env = setup('?demo=1')
     await import('../main')
