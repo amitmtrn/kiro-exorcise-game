@@ -140,6 +140,9 @@ export interface GameState {
   knocks: Knock[]         // juice R2 — banished enemies flying off along the swipe
   hitStopMs: number       // juice R3 — game-time freeze left after a banish
   callouts: Callout[]     // juice R4 — combo call-out texts
+  invulnMs: number        // playtest1-fixes R1.2 — life-loss grace left (game time)
+  lifeFxMs: number        // playtest1-fixes R1.3 — HUD shake / flash left after a heart is lost
+  deathMs: number         // playtest1-fixes R1.5 — death transition left once phase is 'gameover'
 }
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -148,6 +151,15 @@ export const ROUND_DURATION_MS = 60_000
 export const STARTING_LIVES = 3
 export const STAGE_TITLE_DURATION_MS = 3_000
 export const SUMMARY_AUTO_ADVANCE_MS = 5_000
+
+/** playtest1-fixes R1.2: after a heart is lost, further life losses are ignored this long (game time). */
+export const LIFE_GRACE_MS = 1_000
+/** playtest1-fixes R1.3: the hearts shake / flash this long after a loss. */
+export const LIFE_FX_MS = 700
+/** playtest1-fixes R1.5: the freeze between the last heart (or the boss timeout) and the GAME OVER screen. */
+export const DEATH_MS = 1_000
+/** playtest1-fixes R1.6: the name screen opens this long after the GAME OVER / YOU WIN screen appeared. */
+export const NAME_DELAY_MS = 1_500
 
 // Spooky-skin R4.1 — screen shake fires on a scoring hit at streak ≥ 3, ±4 px for 3 frames
 /** One 60 Hz frame in ms — the unit of the frame-counted effects (shake, flash, particles). */
@@ -248,23 +260,51 @@ export function createInitialState(stage = 1): GameState {
     knocks: [],
     hitStopMs: 0,
     callouts: [],
+    invulnMs: 0,
+    lifeFxMs: 0,
+    deathMs: 0,
   }
 }
 
 // ─── Reducers ─────────────────────────────────────────────────────────────────
 
+/**
+ * Loses one heart. Ignored during the grace window after a loss and after the game is over, so one
+ * event (or several arriving together) costs at most one heart per `LIFE_GRACE_MS` (playtest1-fixes R1).
+ * The last heart ends the game with a death transition (`deathMs`) before any screen.
+ */
 export function decrementLife(state: GameState): GameState {
+  if (state.invulnMs > 0 || state.phase === 'gameover') return state
   const lives = Math.max(0, state.lives - 1)
   const dead = lives === 0
   return {
     ...state,
     lives,
+    invulnMs: LIFE_GRACE_MS,
+    lifeFxMs: LIFE_FX_MS,
     phase: dead ? 'gameover' : state.phase,
+    deathMs: dead ? DEATH_MS : state.deathMs,
     // Hit flashes never outlive the game (nothing decays them after death).
     enemies: dead && state.enemies.some((e) => e.hitFlashFrames > 0)
       ? state.enemies.map((e) => (e.hitFlashFrames > 0 ? { ...e, hitFlashFrames: 0 } : e))
       : state.enemies,
   }
+}
+
+/** Counts the grace window and the HUD loss effect down by `deltaMs` of game time. */
+export function tickLifeTimers(state: GameState, deltaMs: number): GameState {
+  if (state.invulnMs === 0 && state.lifeFxMs === 0) return state
+  return {
+    ...state,
+    invulnMs: Math.max(0, state.invulnMs - deltaMs),
+    lifeFxMs: Math.max(0, state.lifeFxMs - deltaMs),
+  }
+}
+
+/** Counts the death transition down (game over only). */
+export function tickDeath(state: GameState, deltaMs: number): GameState {
+  if (state.deathMs === 0) return state
+  return { ...state, deathMs: Math.max(0, state.deathMs - deltaMs) }
 }
 
 export function addScore(state: GameState, points: number): GameState {
@@ -278,7 +318,7 @@ export function tickTimer(state: GameState, deltaMs: number): GameState {
   if (roundTimeMs === 0 && state.phase === 'playing') {
     // Time ran out with the boss still alive: the stage is failed (boss-phases R6.5).
     if (state.enemies.some((e) => e.type === 'boss')) {
-      return { ...state, roundTimeMs, phase: 'gameover' }
+      return { ...state, roundTimeMs, phase: 'gameover', deathMs: DEATH_MS }
     }
     return { ...state, roundTimeMs, phase: 'summary', enemies: [] }
   }

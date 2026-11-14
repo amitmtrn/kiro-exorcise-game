@@ -31,6 +31,7 @@ import { startLoop, stopLoop, handleNameKey, isNameEntryOpen, handleCardKey, han
 import { areaButtons } from '../ui/layout'
 import { renderGameOver, renderVictory, renderStartScreen, resetGameOverScreen } from '../ui/screens'
 import { IDLE_ACCEPT_MS } from './nameEntry'
+import { NAME_DELAY_MS } from './state'
 import { STORAGE_KEY } from './highScores'
 import type { ScoreEntry } from './highScores'
 
@@ -65,9 +66,15 @@ beforeEach(() => {
 afterEach(() => { stopLoop(); vi.unstubAllGlobals() })
 
 describe('1P run end', () => {
-  it('records the run with a generated name at once and shows the name screen instead of the end screen', async () => {
+  it('records the run at once, shows GAME OVER first and opens the name screen NAME_DELAY_MS later', async () => {
     await startLoop({} as HTMLVideoElement, ctx(), ctx())
     frame(16)
+    expect(isNameEntryOpen()).toBe(false)
+    expect(renderGameOver).toHaveBeenCalled() // the GAME OVER screen comes first (playtest1-fixes R1.6)
+    frame(16 + NAME_DELAY_MS - 20)
+    expect(isNameEntryOpen()).toBe(false)
+    vi.mocked(renderGameOver).mockClear()
+    frame(16 + NAME_DELAY_MS + 20)
     expect(table()).toHaveLength(1)
     expect(table()[0]).toMatchObject({ score: 4200, stage: 3, mode: '1P' })
     expect(table()[0].name).toMatch(/^[A-Z]+-[0-9A-F]{2}$/)
@@ -78,14 +85,14 @@ describe('1P run end', () => {
   })
   it('typed name + Enter renames the entry; the end screen then shows the table with the own entry', async () => {
     await startLoop({} as HTMLVideoElement, ctx(), ctx())
-    frame(16)
+    frame(16); frame(2016)
     for (const k of ['z', 'o', 'e']) expect(handleNameKey(k)).toBe(true)
     expect(handleNameKey('Shift')).toBe(false)
     expect(handleNameKey('Enter')).toBe(true)
-    frame(32)
+    frame(2032)
     expect(isNameEntryOpen()).toBe(false)
     expect(table()[0].name).toBe('ZOE')
-    frame(48)
+    frame(2048)
     expect(renderGameOver).toHaveBeenCalled()
     const scores = vi.mocked(renderGameOver).mock.calls[vi.mocked(renderGameOver).mock.calls.length - 1][6] as { table: ScoreEntry[]; ownIds: string[] }
     expect(scores.table[0].name).toBe('ZOE')
@@ -94,18 +101,18 @@ describe('1P run end', () => {
   })
   it('a tap on ▶ edits the name and a tap on OK confirms it (no motion needed)', async () => {
     await startLoop({} as HTMLVideoElement, ctx(), ctx())
-    frame(16)
+    frame(16); frame(2016)
     const name = table()[0].name
     const specs = areaButtons('name', 1280, 720, null)
     const tap = (label: string) => { const b = specs.find((x) => x.label.includes(label))!; expect(handleCardPointer(b.cx, b.cy)).toBe(true) }
-    tap('▶'); frame(32)
+    tap('▶'); frame(2032)
     expect(isNameEntryOpen()).toBe(true) // a step does not finish the screen
-    tap('OK'); frame(48) // first letter confirmed, the rest of the picker follows
-    for (let i = 0; i < 8 && isNameEntryOpen(); i++) { tap('OK'); frame(64 + i * 16) }
+    tap('OK'); frame(2048) // first letter confirmed, the rest of the picker follows
+    for (let i = 0; i < 8 && isNameEntryOpen(); i++) { tap('OK'); frame(2064 + i * 16) }
     expect(isNameEntryOpen()).toBe(false)
     expect(table()[0].name).not.toBe(name) // the picked letters replaced the generated name
     expect(handleCardPointer(5, 5)).toBe(false) // not on the end screen yet: nothing queued
-    frame(400)
+    frame(2400)
     expect(renderGameOver).toHaveBeenCalled()
   })
   it('an untouched name screen accepts the default after 10 s; the run is recorded once', async () => {
@@ -121,9 +128,13 @@ describe('1P run end', () => {
     h.phase = 'victory'; h.stage = 6
     await startLoop({} as HTMLVideoElement, ctx(), ctx())
     frame(16)
+    expect(renderVictory).toHaveBeenCalled() // YOU WIN first, the name screen after NAME_DELAY_MS
+    expect(isNameEntryOpen()).toBe(false)
+    vi.mocked(renderVictory).mockClear()
+    frame(2016)
     expect(table()[0]).toMatchObject({ stage: 6, mode: '1P' })
     expect(renderVictory).not.toHaveBeenCalled()
-    handleNameKey('Enter'); frame(32); frame(48)
+    handleNameKey('Enter'); frame(2032); frame(2048)
     expect(renderVictory).toHaveBeenCalled()
   })
   it('a zero score records nothing and shows the end screen directly', async () => {

@@ -12,6 +12,7 @@ import {
 import {
   createInitialState,
   tickTimer,
+  NAME_DELAY_MS,
   setParticles,
   setScoreLabels,
   saveHighScore,
@@ -378,6 +379,13 @@ export async function startLoop(
     resetFinalScreen()
     return false
   }
+  /** 2P: when the end screen first showed after the death transition (-1 = not yet); names wait NAME_DELAY_MS after it. */
+  let finalShownAt = -1
+  /** True once the 2P name screens may open: the end screen has been visible for NAME_DELAY_MS and no card preview is open. */
+  function finalNamesDue(now: number): boolean {
+    if (finalShownAt < 0) { finalShownAt = now; finalAt = now; resetFinalScreen() }
+    return now - finalShownAt >= NAME_DELAY_MS && (nameActive || !seatCards.some((c) => c.isOpen))
+  }
   /** Per seat: a boss was on that seat's field at the previous tick (so its disappearance means it was defeated). */
   const seatHadBoss: [boolean, boolean] = [false, false]
   let hadBoss1P = false
@@ -444,6 +452,12 @@ export async function startLoop(
   let panelWasOpen = false
   /** True while the game-over screen is the visible screen (entry detection for its lock-out). */
   let gameOverVisible = false
+  /** When the GAME OVER / YOU WIN screen appeared; the name screen opens NAME_DELAY_MS later (playtest1-fixes R1.6). */
+  let endShownAt = 0
+  /** The name screen may take over: the delay has passed and no card preview is open (an open name screen stays). */
+  function nameDue(now: number): boolean {
+    return now - endShownAt >= NAME_DELAY_MS && (nameActive || !session.isOpen)
+  }
   /** True while the victory screen is the visible screen (records the run once per visit). */
   let victoryVisible = false
   /** Action requested by a 2P screen button during a tick; applied after the tick returns (so it is not overwritten). */
@@ -509,7 +523,7 @@ export async function startLoop(
 
     // Phase hooks (music / sfx), once per transition
     if (prevTwoPhase !== t.phase) {
-      if (t.phase === 'final') { finalAt = now; onTwoPlayerEnd(t, now) } // before any audio call, so a throwing one cannot leave the lock-out stale
+      if (t.phase === 'final') { finalAt = now; finalShownAt = -1; onTwoPlayerEnd(t, now) } // before any audio call, so a throwing one cannot leave the lock-out stale
       try {
         if (t.phase === 'playing') startMusic(t.stage)
         else if (t.phase === 'summary') { resetSummaryScreen(); sfxStageClear(); stopMusic() }
@@ -536,14 +550,14 @@ export async function startLoop(
         flashGroup: gameCtx.canvas, // one reduced-flash budget for the whole screen (R10.2)
       })
       const pulse = (pulses[seat] ??= createHudPulse())
-      if (s.phase === 'playing') {
+      if (s.phase === 'playing' || (s.phase === 'gameover' && s.deathMs > 0)) {
         const hud = hudCtx(seat, hw, H)
         renderHUD(hud, s, now, { pulse, showMute: false, label: `P${seat + 1}` })
         huds.push([hud, seat])
       } else pulse.lastCombo = 1
       if (t.phase === 'stageTitle' && s.phase === 'stageTitle') renderStageTitle(hctx, s)
       const status = seatStatus(t, seat)
-      if (t.phase !== 'final' && (status === 'out' || status === 'cleared')) drawSeatOverlay(hctx, status, s.score, now)
+      if (t.phase !== 'final' && (status === 'out' || status === 'cleared') && s.deathMs <= 0) drawSeatOverlay(hctx, status, s.score, now)
       gameCtx.drawImage(hctx.canvas, halfOffset(seat, W), 0)
     }
     drawDivider(gameCtx, hw) // below the HUD text (R1.5)
@@ -551,7 +565,10 @@ export async function startLoop(
 
     if (t.phase === 'summary') {
       renderTwoPlayerSummary(gameCtx, t, now, () => { twoAction = 'next' }, seatSources)
-    } else if (t.phase === 'final' && runSeatNames(now, W, H)) {
+    } else if (t.phase === 'final' && t.seats.some((s) => s.deathMs > 0)) {
+      // Death transition (playtest1-fixes R1.5): the halves stay frozen with their hearts, no end screen yet.
+      twoFinal = false
+    } else if (t.phase === 'final' && finalNamesDue(now) && runSeatNames(now, W, H)) {
       // Name entry first (more-content R11.2): the cards and the shared buttons wait until both halves are done.
       twoFinal = false
     } else if (t.phase === 'final') {
@@ -632,7 +649,7 @@ export async function startLoop(
       const bossDefeated = bossDefeatedSince(hadBoss1P, state.phase)
       hadBoss1P = state.enemies.some((e) => e.type === 'boss')
       session.observe(bossDefeated ? { ...state, bossDefeated } : state, displayW, displayH)
-      onEndScreen = (state.phase === 'gameover' || state.phase === 'victory') && !pendingName
+      onEndScreen = (state.phase === 'gameover' || state.phase === 'victory') && !(state.phase === 'gameover' && state.deathMs > 0) && !nameActive
       if (onEndScreen) drainCardInputs(now)
       else cardInputs = []
       cardOpen = session.isOpen
@@ -775,10 +792,21 @@ export async function startLoop(
 
     // ── Game Over ─────────────────────────────────────────────────────────────
     if (state.phase === 'gameover') {
-      if (!gameOverVisible) { resetGameOverScreen(); gameOverVisible = true; onRunEnd(now); saveHighScore(state.highScore) } // explicit entry: lock-out + fresh buttons; best score stored once
+      // Death transition (playtest1-fixes R1.5): the scene freezes and the hearts show the loss for DEATH_MS,
+      // with no buttons, no score recording and no name screen. The transition has its own entry hook.
+      if (state.deathMs > 0) {
+        state = tickEffects(state, deltaMs)
+        renderFrame(gameCtx, state, now)
+        renderHUD(gameCtx, state, now)
+        prevCtx.drawImage(currentCanvas, 0, 0)
+        rafId = requestAnimationFrame(tick)
+        return
+      }
+      if (!gameOverVisible) { resetGameOverScreen(); gameOverVisible = true; endShownAt = now; onRunEnd(now); saveHighScore(state.highScore) } // explicit entry: lock-out + fresh buttons; best score stored once
       state = tickEffects(state, deltaMs)
       renderFrame(gameCtx, state, now)
-      if (!runNameScreen(now, resetGameOverScreen) && !renderCardPreview(now)) {
+      // The GAME OVER screen comes first; the name screen opens NAME_DELAY_MS later (R1.6), never over an open card.
+      if (!(nameDue(now) && runNameScreen(now, resetGameOverScreen)) && !renderCardPreview(now)) {
         renderGameOver(gameCtx, state, now,
           () => { state = retryStage(state) },
           () => { state = createInitialState(1) },
@@ -793,7 +821,7 @@ export async function startLoop(
 
     // ── Victory (boss-phases R6.3) ────────────────────────────────────────────
     if (state.phase === 'victory') {
-      if (!victoryVisible) { victoryVisible = true; onRunEnd(now); saveHighScore(state.highScore) } // a finished run is recorded and the best score stored once per visit
+      if (!victoryVisible) { victoryVisible = true; endShownAt = now; onRunEnd(now); saveHighScore(state.highScore) } // a finished run is recorded and the best score stored once per visit
       if (prevPhase !== 'victory') {
         // Entry hooks live here so every route into victory gets the lockout reset.
         resetVictoryScreen()
@@ -802,7 +830,7 @@ export async function startLoop(
       }
       state = tickEffects(state, deltaMs)
       renderFrame(gameCtx, state, now)
-      if (!runNameScreen(now, resetVictoryScreen) && !renderCardPreview(now)) {
+      if (!(nameDue(now) && runNameScreen(now, resetVictoryScreen)) && !renderCardPreview(now)) {
         renderVictory(gameCtx, state, now,
           () => {
             if (demo) { state = createInitialState(1); begin(1) } // seeded run at the demo stage, like any other start

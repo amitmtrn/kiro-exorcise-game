@@ -77,6 +77,7 @@ import { areaButtons } from '../ui/layout'
 import { STORAGE_KEY } from './highScores'
 import type { ScoreEntry } from './highScores'
 import { ENTRY_LOCK_MS, DWELL_MS } from '../ui/motionButton'
+import { NAME_DELAY_MS } from './state'
 
 const W = 800, H = 600, HW = 400
 
@@ -118,9 +119,24 @@ afterEach(() => { stopLoop(); vi.unstubAllGlobals() })
 async function startFinal(): Promise<void> {
   await startLoop({} as HTMLVideoElement, ctx(), ctx())
   step(); requestStart(2); step(); step()
+  // The end screen shows first; the name screens open NAME_DELAY_MS later (playtest1-fixes R1.6).
+  stepFor(NAME_DELAY_MS + 100)
+  h.finalCalls = 0
+  step()
 }
 
 describe('two-player names (more-content R11)', () => {
+  it('shows the end screen first and opens no name screen before NAME_DELAY_MS', async () => {
+    h.scores = [3000, 5000]; h.stages = [4, 6]
+    await startLoop({} as HTMLVideoElement, ctx(), ctx())
+    step(); requestStart(2); step(); step()
+    expect(h.finalCalls).toBeGreaterThan(0)
+    expect(isNameEntryOpen()).toBe(false)
+    stepFor(NAME_DELAY_MS - 300)
+    expect(isNameEntryOpen()).toBe(false)
+    stepFor(500)
+    expect(isNameEntryOpen()).toBe(true)
+  })
   it('records both seats with mode 2P and their own stage, and holds the end buttons back', async () => {
     h.scores = [3000, 5000]; h.stages = [4, 6]
     await startFinal()

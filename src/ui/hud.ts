@@ -5,6 +5,8 @@
  */
 
 import type { GameState } from '../game/state'
+import { LIFE_FX_MS } from '../game/state'
+import { shakeScale } from '../game/flash'
 import { stageLabel } from '../game/stages'
 import { isMuted } from '../audio/index'
 import { hudFontSize, muteButtonRect, muteButtonRect2P } from './muteRect'
@@ -40,6 +42,18 @@ export function createHudPulse(): HudPulse {
   return { lastCombo: 1, start: -Infinity }
 }
 const defaultPulse = createHudPulse()
+
+/** Heart-loss effect (playtest1-fixes R1.3), a pure function of the time left: horizontal shake, glow, white blink. */
+export function lifeFx(lifeFxMs: number, reduced: boolean): { dx: number; glow: number; blink: boolean } {
+  if (lifeFxMs <= 0) return { dx: 0, glow: 12, blink: false }
+  const elapsed = LIFE_FX_MS - lifeFxMs
+  const decay = Math.min(1, lifeFxMs / LIFE_FX_MS)
+  const dx = Math.sin(elapsed / 35) * 7 * decay * shakeScale(reduced)
+  // Reduced flashing: a steady glow, never a blink (WCAG 2.3.1). Otherwise two white blinks of 120 ms
+  // in the first 360 ms (2 flashes per second, within the limit of 3).
+  const blink = !reduced && elapsed < 360 && Math.floor(elapsed / 120) % 2 === 0
+  return { dx, glow: reduced ? 20 : 26, blink }
+}
 
 export interface HudOpts {
   /** Combo-pulse record for this HUD (default: the single-player one). */
@@ -97,7 +111,8 @@ export function labelX(W: number, showMute: boolean, label: string, scale: numbe
 
 export function renderHUD(ctx: CanvasRenderingContext2D, state: GameState, now: number, opts: HudOpts = {}): void {
   const pulseState = opts.pulse ?? defaultPulse
-  if (state.phase !== 'playing') {
+  const dying = state.phase === 'gameover' && state.deathMs > 0 // the HUD stays up through the death transition
+  if (state.phase !== 'playing' && !dying) {
     pulseState.lastCombo = 1
     return
   }
@@ -121,7 +136,8 @@ export function renderHUD(ctx: CanvasRenderingContext2D, state: GameState, now: 
   // ── Lives (top-left) ───────────────────────────────────────────────────────
   let hearts = ''
   for (let i = 0; i < 3; i++) hearts += i < state.lives ? '♥' : '♡'
-  drawHudText(ctx, hearts, pad, pad, pal.life, { font: font(fontSize) })
+  const fx = lifeFx(state.lifeFxMs, getSettings().reducedFlash)
+  drawHudText(ctx, hearts, pad + fx.dx, pad, fx.blink ? pal.ghost : pal.life, { font: font(fontSize), glow: fx.glow })
 
   // ── Timer (top-right) ──────────────────────────────────────────────────────
   const secsRemaining = Math.ceil(state.roundTimeMs / 1000)

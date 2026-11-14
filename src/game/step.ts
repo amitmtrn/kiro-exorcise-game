@@ -8,6 +8,7 @@
 
 import {
   setEnemies, setParticles, setScoreLabels, decrementLife, resetCombo, incrementMissed, tickShake,
+  tickLifeTimers, tickDeath,
 } from './state'
 import type { GameState } from './state'
 import { tickBoss } from './enemies/bossPhases'
@@ -25,6 +26,7 @@ import { sfxLifeLost } from '../audio/index'
 export function stepSimulation(state: GameState, simMs: number, displayW: number, displayH: number): GameState {
   // Screen shake counts down with elapsed time (set by resolveHits)
   state = tickShake(state, simMs)
+  state = tickLifeTimers(state, simMs)
 
   // Boss stages: spawn the boss once (stage 5 at once, the stage-6 Hollow King at its entrance time)
   state = withKingWarning(state, displayW, displayH)
@@ -44,12 +46,14 @@ export function stepSimulation(state: GameState, simMs: number, displayW: number
   // Enemies reaching their target cost a life (never in the bonus round, never flybys)
   const { survivors, missed: missedCount } = splitReached(state.enemies, state.bonus, displayW, displayH)
   state = setEnemies(state, survivors)
-  for (let i = 0; i < missedCount; i++) {
-    if (state.phase === 'gameover') break // nothing else happens after the last life
+  // Every missed enemy counts as missed, but they cost one heart together, and none while the grace runs
+  // (playtest1-fixes R1.1, R1.2: three ghosts arriving in one tick used to take all three hearts).
+  if (missedCount > 0 && state.phase !== 'gameover') {
+    const livesBefore = state.lives
     state = decrementLife(state)
     state = resetCombo(state)
-    state = incrementMissed(state)
-    try { sfxLifeLost() } catch { /* audio not ready */ }
+    for (let i = 0; i < missedCount; i++) state = incrementMissed(state)
+    if (state.lives < livesBefore) { try { sfxLifeLost() } catch { /* audio not ready */ } }
   }
 
   // Boss attacks: a lunge that lands costs a life (tickBoss resets the combo)
@@ -64,6 +68,8 @@ export function stepSimulation(state: GameState, simMs: number, displayW: number
 /** Keeps shake, particles, knocks, call-outs and labels expiring on screens where the simulation is not running. */
 export function tickEffects(s: GameState, ms: number): GameState {
   s = tickShake(s, ms)
+  s = tickLifeTimers(s, ms)
+  s = tickDeath(s, ms)
   s = setParticles(s, tickParticles(s.particles, ms))
   s = { ...s, knocks: tickKnocks(s.knocks, ms), callouts: tickCallouts(s.callouts, ms) }
   return setScoreLabels(s, tickScoreLabels(s.scoreLabels, ms))
