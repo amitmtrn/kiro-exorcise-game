@@ -27,10 +27,10 @@
 - [x] Commit: `feat(playtest-polish-T3): wire adaptive quality into loop, atmosphere and overlay`
 
 ## T4 — SFX recipes and level normalisation
-- [ ] Create `src/audio/recipes.ts` (voice data, `renderRecipe`, `SFX_GAIN`, `MUSIC_GAIN`, `gainFor`); `sfx.ts` plays recipes through a per-sound gain.
-- [ ] Tests: gain table covers every SFX id, peak ≤ −3 dBFS, RMS target, boss hit + combo + ghost + music stack under 0 dBFS at offsets 0–100 ms, music 6 dB under SFX.
-- [ ] `npm test` and `npm run build` both clean.
-- [ ] Commit: `feat(playtest-polish-T4): procedural SFX recipes and loudness table`
+- [x] Create `src/audio/recipes.ts` (voice data, `renderRecipe`, `SFX_GAIN`, `MUSIC_GAIN`, `gainFor`); `sfx.ts` plays recipes through a per-sound gain.
+- [x] Tests: gain table covers every SFX id, peak ≤ −3 dBFS, RMS target, boss hit + combo + ghost + music stack under 0 dBFS at offsets 0–100 ms, music 6 dB under SFX.
+- [x] `npm test` and `npm run build` both clean.
+- [x] Commit: `feat(playtest-polish-T4): procedural SFX recipes and loudness table`
 
 ## T5 — Master bus
 - [ ] Create `src/audio/bus.ts` (constants, `buildMasterBus`); `context.ts` builds it; `music.ts` routes through the music gain.

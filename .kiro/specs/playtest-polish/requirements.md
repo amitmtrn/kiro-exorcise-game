@@ -147,7 +147,7 @@ music has `MUSIC_GAIN`. Each SFX is described as data (voices), played by one
 interpreter and rendered by a pure offline renderer for measurement.
 
 **R6.2** Targets, before the limiter: every SFX has a sample peak of at most
-**−3 dBFS** and an active RMS within ±1.5 dB of **−20 dBFS** (peak-limited sounds
+**−3 dBFS** and an active RMS within ±1.5 dB of **−22 dBFS** (peak-limited sounds
 may be quieter); the music's estimated RMS is about **6 dB below** that of the
 SFX; the boss hit stacked with a combo chime, a ghost hit and music never
 exceeds **0 dBFS** in a sample-wise mixing model (all start offsets 0–100 ms).

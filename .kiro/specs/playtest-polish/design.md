@@ -141,11 +141,11 @@ the master gain, then the same envelope / oscillator / noise nodes as before.
 release to 0.001), an oscillator and a deterministic noise generator, and an RBJ
 band-pass for noise. Combo sounds are rendered for combo 2, 3 and 4.
 
-Normalisation rule (`gainFor`): `min(10^(−20/20) / rms, 10^(−3/20) / peak)`,
+Normalisation rule (`gainFor`): `min(10^(−22/20) / rms, 10^(−3/20) / peak)`,
 `rms` over the active span (samples ≥ 1 % of peak). The table in the source was
 produced with this function and rounded to 2 decimals; a test recomputes it and
 checks every entry is within 1.5 dB of the rule, and that the post-gain peak is
-≤ −3 dBFS and RMS ≈ −20 dBFS (or peak-limited).
+≤ −3 dBFS and RMS ≈ −22 dBFS (or peak-limited).
 
 Music is a graph of scheduled voices, not a buffer, so its level is an analytic
 estimate: per voice, `rms² ≈ peak² · duty / 2` (sine-equivalent), summed
