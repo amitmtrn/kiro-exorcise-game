@@ -104,3 +104,15 @@ describe('emptied name', () => {
     expect(e.text.length).toBeGreaterThanOrEqual(e.cursor + 1)
   })
 })
+
+describe('cursor after long typed names', () => {
+  it('follows the last typed letter and ◀ / ▶ change it', () => {
+    let e = newNameEntry('AAA', 0)
+    for (const c of 'ABCDEF') e = typeChar(e, c, 0)
+    expect(e.cursor).toBe(5)
+    e = pickStep(e, 1, 0)
+    expect(e.text).toBe('ABCDEG')
+    e = backspace(e, 0)
+    expect(e.cursor).toBe(4)
+  })
+})

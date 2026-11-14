@@ -21,7 +21,7 @@ export interface NameEntry {
   text: string
   /** True once a button or key changed the name. */
   touched: boolean
-  /** Picker position 0…PICK_LEN-1 (the letter ◀ / ▶ change). */
+  /** Picker position (the letter ◀ / ▶ change): 0…PICK_LEN-1 when picking, the last typed letter when typing. */
   cursor: number
   done: boolean
   startedAt: number
@@ -68,14 +68,14 @@ export function typeChar(e: NameEntry, key: string, now: number): NameEntry {
   const base = e.touched ? e.text : ''
   if (base.length >= NAME_MAX) return { ...e, lastInputAt: now }
   const text = base + ch
-  return { ...e, text, touched: true, cursor: Math.min(PICK_LEN - 1, text.length - 1), lastInputAt: now }
+  return { ...e, text, touched: true, cursor: text.length - 1, lastInputAt: now }
 }
 
 export function backspace(e: NameEntry, now: number): NameEntry {
   if (e.done) return e
   const base = e.touched ? e.text : ''
   const text = base.slice(0, -1)
-  return { ...e, text, touched: true, cursor: Math.max(0, Math.min(PICK_LEN - 1, text.length - 1)), lastInputAt: now }
+  return { ...e, text, touched: true, cursor: Math.max(0, text.length - 1), lastInputAt: now }
 }
 
 /** Enter: accept. */
