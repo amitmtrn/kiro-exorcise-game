@@ -75,7 +75,7 @@ describe('motion grid', () => {
   })
 
   it('resetHitGates clears gates and swipe centroids, leaves other fields', () => {
-    const e = makeEnemy({ id: 'a', type: 'ghost', hitCount: 1, motionX: 5, motionY: 6, x: 10, y: 20 })
+    const e = makeEnemy({ id: 'a', type: 'ghost', hitCount: 1, motionX: 5, motionY: 6, x: 10, y: 20, speed: 1, targetX: 0, targetY: 0, hitbox: { x: 0, y: 0, w: 10, h: 10 } })
     const st = { ...createInitialState(1), enemies: [e] }
     const out = resetHitGates(st)
     expect(out.enemies[0]).toMatchObject({ hitCount: 0, motionX: undefined, motionY: undefined, x: 10, y: 20 })
