@@ -15,7 +15,7 @@ export const DEMO = {
   defaultSeed: 7,
   defaultStage: 1,
   minSpeed: 1,
-  maxSpeed: 4,
+  maxSpeed: 3,
   /** Hand disc radius as a fraction of the canvas height, clamped to [handMinPx, handMaxPx]. */
   handRadiusH: 0.055,
   handMinPx: 36,

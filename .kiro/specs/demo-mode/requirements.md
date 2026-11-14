@@ -25,7 +25,7 @@ demo toggle is **`G`** ("ghost hand").
 **R1.1** `?demo=1` in the page URL starts demo mode at page load. `?demo=0` (or
 no `demo` parameter) starts the normal game. Optional parameters: `seed=N`
 (non-negative integer, default `7`, a seed that plays a clean run at common window
-sizes), `stage=N` (1–5, default `1`: the stage the run starts at) and `speed=N` (1–4, default `DEMO.timeScale`). A missing or invalid
+sizes), `stage=N` (1–5, default `1`: the stage the run starts at) and `speed=N` (1–3, default `DEMO.timeScale` = 2; above 3 the 66 ms game step is too coarse for the scripted hand). A missing or invalid
 value falls back to its default; nothing throws.
 
 **R1.2** On the title screen of a normal game, `G` (no Ctrl / Meta / Alt) switches

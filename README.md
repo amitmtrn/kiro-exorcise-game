@@ -61,11 +61,25 @@ Pick **1 PLAYER** or **2 PLAYERS** on the title screen (wave over a button, or p
 | `M` or the 🔊 button (top-right; top centre in 2 PLAYERS) | Mute / unmute |
 | Click / tap a circle | Same as the hand press for the exorcist card buttons (unchanged) |
 | `D` | Toggle the hitbox + motion-mask debug overlay |
+| `G` (title screen) | Start the camera-free demo / attract mode; in demo mode any key (except `M`) or click returns to the normal game |
 | `C` (game over / victory, 1 PLAYER only) | Open the Exorcist Card preview; then `S` / `Enter` save, `N` photo ↔ silhouette, `Esc` close |
+
+### Demo / attract mode (no camera)
+
+Open the game with `?demo=1` (for example `http://localhost:5173/kiro-exorcise-game/?demo=1&seed=7`) or press `G` on the title screen. The webcam is never requested (no permission prompt) and onboarding is skipped. A scripted, translucent **ghost hand** plays a full run through the real game code: its motion is fed into the same frame-differencing hit detection as a camera, so combos up to x4, hit-stop, knock-back, call-outs, the waves, the bonus round and the three boss phases all happen as they would for a player. It presses the motion buttons with the normal dwell, never touches the Cursed Skull, wins, opens the Exorcist Card (a drawn placeholder portrait and a **DEMO** chip, never downloaded), returns to the title and plays again. A **DEMO** badge is on screen the whole time, and demo scores are never written to your saved high score. Any key (except `M`) or click returns to the normal game.
+
+| Parameter | Meaning |
+|---|---|
+| `demo=1` | Start in demo mode (`demo=0` or no parameter: normal game) |
+| `seed=N` | Run to play (default `7`). Same seed + same window size = the identical run every time |
+| `stage=N` | Start at stage N (1–5) |
+| `speed=N` | Game speed, 1–3 (default 2: a full run takes about 2.5 minutes) |
+
+**Recording the submission video.** Set the browser window to the size you will record (the run depends on the canvas size; `seed=7` plays a clean run without a game over at 960×540, 1280×720, 1366×768, 1440×900 and 1920×1080), open `?demo=1&seed=7`, press `M` twice (mute, unmute: this key press also unlocks audio) and start the screen recorder. Reload the page for a re-take: it plays the same run again. Use `speed=1` for real-time gameplay. See `tools/motion-harness/README.md` for a headless check. Spec: `.kiro/specs/demo-mode/`.
 
 ### Testing hit detection without a webcam
 
-`tools/motion-harness/run.sh sweep` feeds a synthetic 30 fps camera feed to headless Chrome and counts real hits; `run.sh wave` checks that waving over the 1 PLAYER button starts the game with no keypress. See `tools/motion-harness/README.md`.
+`tools/motion-harness/run.sh sweep` feeds a synthetic 30 fps camera feed to headless Chrome and counts real hits; `run.sh wave` checks that waving over the 1 PLAYER button starts the game with no keypress; `run.sh demo` runs the demo mode in headless Chrome and reports camera / network calls and when the card opened. See `tools/motion-harness/README.md`.
 
 ## How we used Kiro
 
@@ -104,10 +118,11 @@ Every feature was planned as a Kiro spec before implementation:
 | `exorcist-card/` | Optional shareable trading card (mirrored snapshot, spooky frame, rank title, stats) composed and downloaded locally on game over / victory |
 | `motion-ui-ergonomics/` | Raised-hand button zones (an arm's length from the body, within reach at 2.5 m, never torso or legs) from one pure layout module, coverage + dwell + decay activation with a progress ring, entry lockout and release latch on every screen, one action per frame, per-half 2P copies, sound hint moved to the top, onboarding hand targets from the layout |
 | `two-player-card/` | Per-player Exorcist Card on the 2P end screen: own half of the camera, own highlight moment and stats, P1 / P2 label, WINNER / TIE badge, per-half wave / click controls |
+| `demo-mode/` | Camera-free attract mode for filming: `?demo=1&seed=N` or `G`, a deterministic scripted ghost hand that feeds synthetic motion frames into the real hit detection, fixed time step and seeded run, DEMO badge, placeholder card portrait, scores never saved |
 
 Each spec has `requirements.md`, `design.md`, and `tasks.md`. Writing requirements and design before tasks surfaced design gaps (e.g. skull penalty rules, hitbox coordinate system, mirror parity bug) that would have been painful to fix mid-implementation.
 
-All twenty specs are implemented. Every task in `tasks.md` is ticked except the manual smoke tests (a webcam playthrough, a two-person split-screen playthrough, the music-v2 listening test, enabling GitHub Pages in the repo settings), and `boss-combo/` carries a status note explaining it was superseded by `stages/`.
+All twenty-one specs are implemented. Every task in `tasks.md` is ticked except the manual smoke tests (a webcam playthrough, a two-person split-screen playthrough, the music-v2 listening test, a demo-mode browser check, enabling GitHub Pages in the repo settings), and `boss-combo/` carries a status note explaining it was superseded by `stages/`.
 
 ### Kiro hooks (`.kiro/hooks/`)
 Standalone `v1` hook files, loaded by Kiro IDE and Kiro CLI V3. Spec: `.kiro/specs/hooks/`.

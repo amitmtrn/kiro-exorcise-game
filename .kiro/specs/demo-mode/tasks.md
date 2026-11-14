@@ -56,12 +56,13 @@ Files: `src/demo/demo.sim.test.ts`, `src/demo/main.demo.test.ts`, `src/demo/driv
 - [x] Commit: `test(demo-mode-T6): headless full demo run`
 
 ## T7 — Docs and harness
-Files: `README.md`, `tools/motion-harness/README.md`
+Files: `README.md`, `tools/motion-harness/README.md`, `tools/motion-harness/run.sh`, `tools/motion-harness/drive.mjs`
 
-- [ ] README: Demo mode section (URL parameters, `G`, how to record, sound tip), spec table row, spec count and test count.
-- [ ] Motion harness README: "Recording the demo" (`?demo=1&seed=7`, headless Chrome without a fake camera, screen recorder tips).
-- [ ] `npm test` and `npm run build` both clean.
-- [ ] Commit: `docs(demo-mode-T7): README and harness notes for recording the demo`
+- [x] README: Demo mode section (URL parameters, `G`, how to record, sound tip), spec table row, spec count and test count.
+- [x] Motion harness README: "Recording the demo" (`?demo=1&seed=7`, window size, screen recorder tips, re-takes).
+- [x] `run.sh demo` (`SEED=`): headless Chrome without fake-camera flags on `?demo=1&seed=N`; `drive.mjs` counts `getUserMedia` / fetch / XHR / `sendBeacon` from the first script and reports `cardAtMs`. Ran once: 0 calls, card after ~137 s. The MCP `run_harness` tool keeps its two modes.
+- [x] `npm test` and `npm run build` both clean.
+- [x] Commit: `docs(demo-mode-T7): README and harness notes for recording the demo`
 
 ## T8 — Manual smoke test (browser)
 - [ ] `?demo=1&seed=7`: no camera prompt; DEMO badge in every screen; the ghost hand fills the START ring and the game starts; stages play through; combo x4 call-out; boss telegraph visible; YOU WIN; the card opens with the DEMO chip and a silhouette portrait; the loop returns to the title and starts again.

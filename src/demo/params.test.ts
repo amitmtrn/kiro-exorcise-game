@@ -23,9 +23,9 @@ describe('parseDemoParams (demo-mode R1.1)', () => {
     expect(parseDemoParams('?demo=1&seed=7').seed).toBe(7)
     expect(parseDemoParams('?demo=1&speed=').speed).toBe(DEMO.timeScale)
   })
-  it('clamps speed to 1..4', () => {
+  it('clamps speed to 1..3', () => {
     expect(parseDemoParams('?demo=1&speed=0.2').speed).toBe(1)
-    expect(parseDemoParams('?demo=1&speed=99').speed).toBe(4)
+    expect(parseDemoParams('?demo=1&speed=99').speed).toBe(3)
   })
 })
 
