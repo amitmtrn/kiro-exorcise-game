@@ -138,7 +138,7 @@
 - [x] R12.1: stale seed 6 docs fixed to 5 (`tools/motion-harness/README.md`, `.kiro/specs/demo-mode/design.md`).
 - [x] R1.10: king-summoned wisp pair clamps so the bodies (not only centres) stay inside the area or half; property test extended.
 - [x] R2.3: pair banish keeps the partner in the enemy list if the phase is `gameover` after the first banish (defensive; no reachable path, so no test).
-- [x] Credits row filled: After more-content 777.68 (also the TL;DR row and README headline); test counts 1727 (README / KIRO.md).
+- [x] Credits row filled: After more-content 777.68 (also the TL;DR row and README headline); test counts 1728 (README / KIRO.md).
 
 ## T17 — Review fixes (round 6)
 - [x] R5.3 / R1.9: stage-6 title card no longer overlaps the countdown and subtitle; layout test at 640x360 and 1280x720 for text scales 1, 1.25, 1.5.

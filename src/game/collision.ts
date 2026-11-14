@@ -239,8 +239,8 @@ export function resolveHits(
 
     } else if (enemy.type === 'wisp') {
       // The partner lives either in updatedEnemies (already processed) or later in the raw list.
-      const inDone = updatedEnemies.find((e) => e.type === 'wisp' && e.pairId === enemy.pairId && e.id !== enemy.id)
-      const partner = inDone ?? state.enemies.find((e) => e.type === 'wisp' && e.pairId === enemy.pairId && e.id !== enemy.id && !consumed.has(e.id))
+      const inDone = updatedEnemies.find((e) => e.type === 'wisp' && enemy.pairId !== undefined && e.pairId === enemy.pairId && e.id !== enemy.id)
+      const partner = inDone ?? state.enemies.find((e) => e.type === 'wisp' && enemy.pairId !== undefined && e.pairId === enemy.pairId && e.id !== enemy.id && !consumed.has(e.id))
       if (partner && isLinked(partner) && !isLinked(enemy)) {
         // Both hit inside the window: banish the pair.
         if (inDone) updatedEnemies.splice(updatedEnemies.indexOf(inDone), 1)

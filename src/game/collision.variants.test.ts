@@ -112,6 +112,11 @@ describe('twin wisps', () => {
     const r = hit(state(pair({ hitCount: 1 }, { hitCount: 1 })))
     expect(r.enemies).toHaveLength(0)
   })
+  it('wisps without a pairId never pair with each other', () => {
+    const r = hit(state(pair({ pairId: undefined, hitCount: 0, vState: 'lit' }, { pairId: undefined, hitCount: 1 })))
+    expect(r.enemies).toHaveLength(2)
+    expect(r.score).toBe(0)
+  })
   it('after the window the wisp is idle again and a hit only re-links', () => {
     let lit = enemy('wisp', 'w1', { pairId: 'p', vState: 'lit' })
     lit = stepVariant(lit, 2100)
