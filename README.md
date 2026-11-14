@@ -58,7 +58,7 @@ Pick **1 PLAYER** or **2 PLAYERS** on the title screen (wave over a button, or p
 | Wave over a glowing button | Start / Next / Retry / Menu (hands-only play) |
 | `Space` | Start from the title screen (in the last chosen mode) |
 | `1` / `2` | Start a 1 PLAYER / 2 PLAYERS game from the title screen |
-| `M` or the 🔊 button (top-right) | Mute / unmute |
+| `M` or the 🔊 button (top-right; top centre in 2 PLAYERS) | Mute / unmute |
 | `D` | Toggle the hitbox + motion-mask debug overlay |
 | `C` (game over / victory) | Open the Exorcist Card preview; then `S` / `Enter` save, `N` photo ↔ silhouette, `Esc` close |
 

@@ -36,17 +36,18 @@ Files: `src/game/loop.ts`, `src/ui/splitscreen.ts`, `src/main.ts`, `src/card/pri
 - [x] Commit: `feat(two-player-card-T3): per-player Exorcist Cards on the 2P end screen`
 
 ## T4 — Review notes (NITs)
+The small code edits of NITs 1, 4, 5, 6 and 7 landed together with T3 in `loop.ts` / `main.ts`; their tests and the docs are here.
 Files: `src/main.ts`, `src/game/loop.ts`, `src/game/loop.card.test.ts`, `README.md`, `exorcist-card/design.md`
 
-- [ ] NIT 1: card key path gated by `!isTwoPlayerActive()`; design sentence matches.
-- [ ] NIT 2: the 2P card test drives to `final` and spies on `observe`.
-- [ ] NIT 3: README says the 🔊 button is top centre in 2 PLAYERS.
-- [ ] NIT 4: one import from `./game/loop` in `main.ts`.
-- [ ] NIT 5: doc comments on the right variables in `loop.ts`.
-- [ ] NIT 6: `stopLoop()` resets `twoPlayerActive`; test.
-- [ ] NIT 7: no 1P `begin` when a 2P game starts in the same tick; test.
-- [ ] `npm test` and `npm run build` both clean.
-- [ ] Commit: `fix(two-player-card-T4): review nits`
+- [x] NIT 1: card key path gated by `!isTwoPlayerActive()`; design sentence matches.
+- [x] NIT 2: the 2P card test drives to `final` and spies on `observe`.
+- [x] NIT 3: README says the 🔊 button is top centre in 2 PLAYERS.
+- [x] NIT 4: one import from `./game/loop` in `main.ts`.
+- [x] NIT 5: doc comments on the right variables in `loop.ts`.
+- [x] NIT 6: `stopLoop()` resets `twoPlayerActive`; test.
+- [x] NIT 7: no 1P `begin` when a 2P game starts in the same tick; test.
+- [x] `npm test` and `npm run build` both clean.
+- [x] Commit: `fix(two-player-card-T4): review nits`
 
 ## T5 — Docs
 - [ ] README: spec row and count, 2P card paragraph, controls, file layout, test count.
