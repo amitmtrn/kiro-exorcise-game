@@ -7,34 +7,25 @@
  * in the other half cannot reach them. Clicks are routed to a half by `routeSeatClick`.
  */
 
-import { MotionButton } from './motionButton'
 import type { PointSource } from './motionButton'
+import { ButtonSet } from './buttonSet'
+import { areaButtons } from './layout'
 import { CardPreview, PREVIEW_INPUT_DELAY_MS } from './cardScreen'
 import type { CardAction } from './cardScreen'
 import { halfOffset, halfWidth } from '../game/halves'
 import type { Seat } from '../game/halves'
 
-function clamp(v: number, min: number, max: number): number {
-  return Math.max(min, Math.min(max, Math.round(v)))
-}
-
-/** Offer button geometry for a half `hw` × `H`: bottom centre of the half, inside it. */
-export function seatOfferGeometry(hw: number, H: number): { cx: number; cy: number; r: number } {
-  const r = Math.max(1, Math.min(clamp(Math.min(hw / 7, H * 0.06), 36, 52), Math.floor(hw / 2)))
-  return { cx: hw / 2, cy: Math.max(r, H - r - 12), r }
+/** Offer button geometry (half-local) from the layout: stacked column of the half, row B. */
+export function seatOfferGeometry(hw: number, H: number, seat: Seat = 0): { cx: number; cy: number; r: number } {
+  const o = areaButtons('final2p', hw, H, seat).find((b) => b.id === 'offer')!
+  return { cx: o.cx, cy: o.cy, r: o.r }
 }
 
 /**
- * Radius and centre y of the shared PLAY AGAIN / MAIN MENU buttons: in the band between the
- * "out of lives" line (0.6 H, plus its descent) and the per-player offers, shrunk to fit.
+ * How long an open preview keeps the OTHER half's shared buttons (NEXT / PLAY AGAIN / MAIN MENU) inactive.
+ * After this the other player can leave even if the first never closes their card (R4.3).
  */
-export function sharedButtonLayout(hw: number, H: number, wantR: number): { r: number; cy: number } {
-  const o = seatOfferGeometry(hw, H)
-  const top = H * 0.6 + 12
-  const bottom = o.cy - o.r - 8
-  const r = Math.max(1, Math.min(wantR, Math.floor((bottom - top) / 2)))
-  return { r, cy: (top + bottom) / 2 }
-}
+export const PREVIEW_LOCK_MAX_MS = 20_000
 
 /** Which half a click on the full canvas belongs to, and its half-local position. */
 export function routeSeatClick(x: number, y: number, W: number): { seat: Seat; x: number; y: number } {
@@ -55,22 +46,38 @@ export interface SeatSession<C extends CanvasImageSource> {
   takeStatus(): 'saved' | 'failed' | null
 }
 
+/**
+ * Which halves' shared buttons (PLAY AGAIN / MAIN MENU) may read motion, per half. Must be computed after
+ * both cards rendered this frame: an offer that just opened makes `isOpen` true, so it wins the frame over
+ * the shared buttons (motion-ui-ergonomics R2.7).
+ */
+export function sharedButtonsLive(
+  cards: readonly [{ isOpen: boolean; lockedUntil: number; blocksOtherHalf(now: number): boolean },
+    { isOpen: boolean; lockedUntil: number; blocksOtherHalf(now: number): boolean }],
+  now: number,
+): [boolean, boolean] {
+  return [0, 1].map((s) =>
+    !cards[s].isOpen && now >= cards[s].lockedUntil && !cards[1 - s].blocksOtherHalf(now)) as [boolean, boolean]
+}
+
 export class SeatCard<C extends CanvasImageSource> {
   private readonly preview: CardPreview
-  private offer: MotionButton | null = null
-  private readonly source: PointSource
+  private offer: ButtonSet
   private clicks: Array<{ x: number; y: number }> = []
   private liveAt = 0
-  private lastOffer = seatOfferGeometry(1, 1)
+  private lastOffer = { cx: -1, cy: -1, r: 0 }
+  private openedAt = Number.NEGATIVE_INFINITY
 
   constructor(readonly seat: Seat, private session: SeatSession<C>, source: PointSource) {
-    this.source = source
-    this.preview = new CardPreview(source)
+    this.offer = new ButtonSet(source)
+    this.preview = new CardPreview(source, seat)
   }
 
   get isOpen(): boolean { return this.session.isOpen }
   /** Time before which the shared end buttons must ignore motion (after this card opened / closed). */
   get lockedUntil(): number { return this.liveAt }
+  /** True while this half's open preview still holds the other half's shared buttons (at most PREVIEW_LOCK_MAX_MS). */
+  blocksOtherHalf(now: number): boolean { return this.session.isOpen && now - this.openedAt < PREVIEW_LOCK_MAX_MS }
 
   /** Queues a click in half-local coordinates (applied on the next `render`). */
   queueClick(x: number, y: number): void { this.clicks.push({ x, y }) }
@@ -78,17 +85,18 @@ export class SeatCard<C extends CanvasImageSource> {
   /** Forgets queued clicks and the partial fill (screen changed). */
   reset(): void {
     this.clicks = []
-    this.offer?.reset()
+    this.offer.reset()
     this.liveAt = 0
+    this.openedAt = Number.NEGATIVE_INFINITY
   }
 
   private lock(now: number): void {
     this.liveAt = now + PREVIEW_INPUT_DELAY_MS
-    this.offer?.reset()
+    this.offer.reset()
   }
 
   private run(a: CardAction | 'open', now: number): void {
-    if (a === 'open') { if (this.session.open()) { this.preview.open(now); this.lock(now) } }
+    if (a === 'open') { if (this.session.open()) { this.preview.open(now); if (this.openedAt === Number.NEGATIVE_INFINITY) this.openedAt = now; this.lock(now) } }
     else if (a === 'close') { this.session.close(); this.lock(now) }
     else if (a === 'toggle') this.session.togglePhoto()
     else void this.session.save()
@@ -123,12 +131,11 @@ export class SeatCard<C extends CanvasImageSource> {
       return
     }
 
-    const g = seatOfferGeometry(hw, H)
-    this.lastOffer = g
-    if (!this.offer) this.offer = new MotionButton(g.cx, g.cy, g.r, '📸 EXORCIST\nCARD', this.source)
-    else { this.offer.cx = g.cx; this.offer.cy = g.cy; this.offer.radius = g.r }
-    const res = this.offer.updateGated(now, live && now >= this.liveAt)
-    this.offer.render(ctx, now)
+    const spec = areaButtons('final2p', hw, H, this.seat).find((b) => b.id === 'offer')!
+    this.lastOffer = { cx: spec.cx, cy: spec.cy, r: spec.r }
+    const [btn] = this.offer.sync([spec])
+    const res = btn.updateGated(now, live && now >= this.liveAt)
+    btn.render(ctx, now)
     if (res === 'triggered') this.run('open', now)
   }
 

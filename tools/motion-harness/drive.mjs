@@ -28,6 +28,9 @@ const ev = async (expression) => {
 await send('Runtime.enable')
 console.log('page:', page.url)
 await sleep(4000) // webcam start + 1 s calibration
+// First run shows the onboarding panel; skip it so the start screen is live.
+console.log('onboarding:', await ev(`(() => { const b = [...document.querySelectorAll('button')].find((e) => e.textContent === 'Skip'); b?.click(); return b ? 'skipped' : 'none' })()`))
+await sleep(1500)
 
 const base = '/kiro-exorcise-game/src/'
 console.log('monitor:', await ev(`(async () => {

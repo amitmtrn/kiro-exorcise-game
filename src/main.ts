@@ -2,6 +2,7 @@
  * main.ts — entry point.
  */
 
+import { createSoundHintController } from './ui/soundHint'
 import './style.css'
 import { initWebcam, stopWebcam } from './webcam/capture'
 import { startLoop, requestStart, handleCardKey, handleCardPointer, handleSeatCardPointer, isCardPreviewOpen, isTwoPlayerActive } from './game/loop'
@@ -13,6 +14,7 @@ import { installAudioUnlock } from './audio/unlock'
 import { modeForKey } from './game/playerMode'
 import { loadTitleFont } from './ui/fonts'
 import { routePointer } from './ui/pointerRoute'
+import { SOUND_HINT, soundHintFontPx } from './ui/layout'
 import { hudFontSize, muteButtonRect, muteButtonRect2P } from './ui/hud'
 
 const webcamCanvas = document.getElementById('webcam-canvas') as HTMLCanvasElement
@@ -32,16 +34,23 @@ const gameCtx   = gameCanvas.getContext('2d')!
 
 // Unlock the AudioContext on ANY user gesture (browser autoplay policy). A
 // webcam-only player sees a hint until the first click, tap or key press.
+const SOUND_HINT_MS = 8000
 const soundHint = document.createElement('div')
 soundHint.className = 'sound-hint'
 soundHint.setAttribute('role', 'status')
 soundHint.textContent = '🔊 Click or press any key to enable sound'
+soundHint.style.top = `${SOUND_HINT.topFrac * 100}%`
+soundHint.style.maxWidth = `${SOUND_HINT.maxWidthFrac * 100}%`
 soundHint.hidden = true
+const placeSoundHint = () => { soundHint.style.fontSize = `${soundHintFontPx(gameCanvas.width)}px` }
+placeSoundHint()
+window.addEventListener('resize', placeSoundHint)
 document.getElementById('ui')!.appendChild(soundHint)
 installAudioUnlock({
   target: window,
   getCtx: getAudioContext,
-  onLocked: (locked) => { soundHint.hidden = !locked },
+  // a webcam-only player never clicks: the hint hides itself so it cannot sit over the stage label (R6.2)
+  onLocked: createSoundHintController((hidden) => { soundHint.hidden = hidden }, SOUND_HINT_MS),
 })
 
 document.addEventListener('keydown', (e) => {

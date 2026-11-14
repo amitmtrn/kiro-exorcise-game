@@ -7,37 +7,52 @@ import type { GameState } from '../game/state'
 import { stageLabel } from '../game/stages'
 import { STAGE_TITLE_DURATION_MS } from '../game/state'
 import { introPose, outroPose, outroRowAlpha } from '../game/transitions'
-import { MotionButton } from './motionButton'
+import { EntryLock, ENTRY_LOCK_MS, updateExclusive } from './motionButton'
+import { ButtonSet } from './buttonSet'
+import { buttonLayout, fitFontPx, TEXT_BAND_1P, TEXT_BAND_LOW } from './layout'
 import { TITLE_FONT_FAMILY } from './fonts'
 import { getPlayerMode } from '../game/playerMode'
 import type { PlayerMode } from '../game/playerMode'
-import { renderCardOffer, endButtonsLive, registerEndButtonReset } from './cardScreen'
+import { offerButton, endButtonsLive, registerEndButtonReset } from './cardScreen'
 
 // ─── Motion buttons (persistent instances reused across frames) ───────────────
+// Geometry comes from layout.ts (raised-hand zones). Every screen has an entry lockout with a
+// release latch (updateGated), and resolves at most one action per frame (updateExclusive).
 
-let startBtn: MotionButton | null = null
-let twoBtn: MotionButton | null = null
-/** Start-screen input lock-out: coming back from MENU must not auto-start a game while the player is still waving. */
-export const START_INPUT_DELAY_MS = 1000
-let startShownAt: number | null = null
+const startSet = new ButtonSet()
+const summarySet = new ButtonSet()
+let lastSummaryMs = Number.POSITIVE_INFINITY // summaryShownMs only grows within a visit; a drop means re-entry
+const gameOverSet = new ButtonSet()
+const victorySet = new ButtonSet()
+
+/** Every screen ignores motion this long after entry (motion-ui-ergonomics R2.5). */
+export const START_INPUT_DELAY_MS = ENTRY_LOCK_MS
+const startLock = new EntryLock()
+const gameOverLock = new EntryLock()
 
 /** Call when the start screen is (re)entered: restarts the input lock-out and drops stale button fill. */
 export function resetStartScreen(): void {
-  startShownAt = null; startBtn = null; twoBtn = null
+  startLock.reset(); startSet.clear()
 }
-let retryBtn: MotionButton | null = null
-let menuBtn: MotionButton | null = null
-let nextBtn: MotionButton | null = null
-let winBtn: MotionButton | null = null
-let winMenuBtn: MotionButton | null = null
 
-registerEndButtonReset(() => {
-  for (const b of [retryBtn, menuBtn, winBtn, winMenuBtn]) b?.reset()
-})
+/** Call when the game enters `gameover`: restarts the lock-out so the flail at death presses nothing. */
+export function resetGameOverScreen(): void {
+  gameOverLock.reset(); gameOverSet.clear()
+}
+
+registerEndButtonReset(() => { gameOverSet.reset(); victorySet.reset() })
 // Victory: ignore the buttons briefly so the wave that beat the boss can't trigger them.
 let victoryShownAt: number | null = null
-const VICTORY_INPUT_DELAY_MS = 1500
+const VICTORY_INPUT_DELAY_MS = ENTRY_LOCK_MS
 const VICTORY_FADE_MS = 400
+
+/** Font px that keeps `text` inside the central text band (menu text never reaches the button columns). */
+/** Readable floor for fitted menu text (R5.1): at 640 px wide nothing is drawn smaller than this. */
+export const MIN_TEXT_PX = 12
+
+function fit(text: string, px: number, W: number, band: readonly [number, number] = TEXT_BAND_1P): number {
+  return Math.round(fitFontPx(text, px, (band[1] - band[0]) * W, MIN_TEXT_PX))
+}
 
 // ─── Start screen ─────────────────────────────────────────────────────────────
 
@@ -56,61 +71,51 @@ export function renderStartScreen(
 
   // Title
   ctx.textAlign = 'center'
-  ctx.font = `${clamp(W / 8, 56, 120)}px ${TITLE_FONT_FAMILY}`
+  ctx.font = `${fit('👻 EXORCISE', clamp(W / 8, 56, 120), W, TEXT_BAND_LOW)}px ${TITLE_FONT_FAMILY}`
   ctx.fillStyle = '#ff6b1a'
   ctx.shadowColor = '#ff6b1a'; ctx.shadowBlur = 24
-  ctx.fillText('👻 EXORCISE', W / 2, H * 0.28)
+  ctx.fillText('👻 EXORCISE', W / 2, H * 0.58)
 
   // Subtitle
-  ctx.font = `${clamp(W / 28, 18, 28)}px sans-serif`
+  const sub = 'Swat the ghosts with your hands!'
+  ctx.font = `${fit(sub, clamp(W / 28, 18, 28), W, TEXT_BAND_LOW)}px sans-serif`
   ctx.fillStyle = '#e8e8f0'; ctx.shadowBlur = 0
-  ctx.fillText('Swat the ghosts with your hands!', W / 2, H * 0.42)
+  ctx.fillText(sub, W / 2, H * 0.68)
 
   // High score
   if (state.highScore > 0) {
-    ctx.font = `bold ${clamp(W / 36, 16, 22)}px sans-serif`
+    ctx.font = `bold ${fit(`Best: ${state.highScore}`, clamp(W / 36, 16, 22), W, TEXT_BAND_LOW)}px sans-serif`
     ctx.fillStyle = '#ffd166'
-    ctx.fillText(`Best: ${state.highScore}`, W / 2, H * 0.52)
+    ctx.fillText(`Best: ${state.highScore}`, W / 2, H * 0.77)
   }
 
-  // Mode buttons: 1 PLAYER stays at the old START position (the motion harness
-  // waves over it); 2 PLAYERS sits to its right. The remembered mode is ringed.
-  // Shrink the buttons on very narrow canvases so the pair never overlaps (centres ≥ 2r+gap apart).
-  const r = Math.min(clamp(W / 8, 56, 90), Math.max(24, (W - 16) / 5.2))
-  const by = H * 0.72
-  // Entry is signalled by resetStartScreen(); the first render after it starts the lock-out.
-  if (startShownAt === null) startShownAt = now
-  const live = now - startShownAt >= START_INPUT_DELAY_MS
-  const gap = r * 2.6
-  const shift = Math.max(0, W / 2 + gap + r + 4 - W) // slide the pair left only as far as needed
-  const oneX = W / 2 - shift
-  const twoX = oneX + gap
-  if (!startBtn || startBtn.cx !== oneX || startBtn.radius !== r) {
-    startBtn = new MotionButton(oneX, by, r, '1 PLAYER')
-  }
-  if (!twoBtn || twoBtn.cx !== twoX || twoBtn.radius !== r) {
-    twoBtn = new MotionButton(twoX, by, r, '2 PLAYERS')
-  }
-  const result = live ? startBtn.update(now) : null
-  const result2 = live ? twoBtn.update(now) : null
+  // Mode buttons in the raised-hand columns: 1 PLAYER at the left edge, 2 PLAYERS at the right
+  // edge (layout.ts). The remembered mode is ringed. Entry is signalled by resetStartScreen();
+  // the first render after it starts the lock-out, with the release latch.
+  const specs = buttonLayout('start', W, H)
+  const [startBtn, twoBtn] = startSet.sync(specs)
+  const live = startLock.touch(now)
+  const won = updateExclusive([startBtn, twoBtn], now, live)
   startBtn.render(ctx, now)
   twoBtn.render(ctx, now)
   const last = getPlayerMode()
   const ring = last === 1 ? startBtn : twoBtn
   ctx.beginPath()
-  ctx.arc(ring.cx, ring.cy, r + 8, 0, Math.PI * 2)
+  ctx.arc(ring.cx, ring.cy, ring.radius + 12, 0, Math.PI * 2)
   ctx.strokeStyle = '#ff6b1a'; ctx.lineWidth = 3; ctx.shadowColor = '#ff6b1a'; ctx.shadowBlur = 10
   ctx.stroke()
 
   // Instruction
-  ctx.font = `${clamp(W / 40, 13, 18)}px sans-serif`
+  const hintLines = ['Wave a hand over a glowing circle', 'or press 1 / 2  •  Space = last mode']
+  const hintPx = Math.min(...hintLines.map((l) => fit(l, clamp(W / 40, 13, 18), W, TEXT_BAND_LOW)))
+  ctx.font = `${hintPx}px sans-serif`
   ctx.fillStyle = 'rgba(232,232,240,0.6)'; ctx.shadowBlur = 0
-  ctx.fillText('Wave over a button  •  or press 1 / 2  •  Space = last mode', W / 2, H * 0.9)
+  hintLines.forEach((l, i) => ctx.fillText(l, W / 2, H * 0.9 + i * hintPx * 1.3))
 
   ctx.restore()
 
-  if (result === 'triggered') onStart(1)
-  else if (result2 === 'triggered') onStart(2)
+  if (won === 0) onStart(1)
+  else if (won === 1) onStart(2)
 }
 
 // ─── Stage title card ─────────────────────────────────────────────────────────
@@ -167,15 +172,16 @@ export function renderSummary(
   ctx.rotate(outro.bannerAngle)
   ctx.scale(outro.bannerScale, outro.bannerScale)
   ctx.textAlign = 'center'
-  ctx.font = `${clamp(W / 11, 38, 68)}px ${TITLE_FONT_FAMILY}`
+  const banner = state.bonus ? 'BONUS CLEAR!' : 'STAGE CLEAR!'
+  ctx.font = `${fit(banner, clamp(W / 11, 38, 68) * 0.9, W)}px ${TITLE_FONT_FAMILY}`
   ctx.fillStyle = '#ffd166'; ctx.shadowColor = '#ffd166'; ctx.shadowBlur = 14
-  ctx.fillText(state.bonus ? 'BONUS CLEAR!' : 'STAGE CLEAR!', 0, 0)
+  ctx.fillText(banner, 0, 0)
   ctx.restore()
 
   ctx.textAlign = 'center'
   ctx.fillStyle = '#ffd166'
   ctx.shadowBlur = 0
-  ctx.font = `${clamp(W / 12, 36, 60)}px sans-serif`
+  ctx.font = `${fit('⭐'.repeat(stars) + '☆'.repeat(3 - stars), clamp(W / 12, 36, 60), W)}px sans-serif`
   ctx.globalAlpha = outroRowAlpha(state.summaryShownMs, 0)
   ctx.fillText('⭐'.repeat(stars) + '☆'.repeat(3 - stars), W / 2, H * 0.3)
 
@@ -185,8 +191,8 @@ export function renderSummary(
     [`Best combo`, `x${state.bestCombo}`],
     [`Score`,    `${state.score}`],
   ]
-  const rowH = H * 0.09
-  let ry = H * 0.42
+  const rowH = H * 0.08
+  let ry = H * 0.5
   ctx.font = `${clamp(W / 30, 16, 24)}px sans-serif`
   rows.forEach(([label, val], i) => {
     ctx.globalAlpha = outroRowAlpha(state.summaryShownMs, i + 1)
@@ -196,17 +202,17 @@ export function renderSummary(
     ctx.fillText(val, W * 0.72, ry)
     ry += rowH
   })
-  ctx.globalAlpha = 1 // the NEXT button is never faded or delayed (R5.3)
+  ctx.globalAlpha = 1 // the NEXT button is never faded (it ignores motion for the entry lockout only)
 
-  // Next button
-  if (!nextBtn || nextBtn.cx !== W / 2) {
-    nextBtn = new MotionButton(W / 2, H * 0.84, clamp(W / 8, 50, 80), '▶ NEXT')
-  }
-  const res = nextBtn.update(now)
+  // Next button: raised-hand zone, entry lockout with release latch (summaryShownMs is deltaMs-based)
+  if (state.summaryShownMs < lastSummaryMs) summarySet.clear() // fresh buttons on entry, like the other screens
+  lastSummaryMs = state.summaryShownMs
+  const [nextBtn] = summarySet.sync(buttonLayout('summary', W, H))
+  const won = updateExclusive([nextBtn], now, state.summaryShownMs >= ENTRY_LOCK_MS)
   nextBtn.render(ctx, now)
   ctx.restore()
 
-  if (res === 'triggered') onNext()
+  if (won === 0) onNext()
 }
 
 // ─── Game Over ────────────────────────────────────────────────────────────────
@@ -226,50 +232,46 @@ export function renderGameOver(
   ctx.fillRect(0, 0, W, H)
 
   ctx.textAlign = 'center'
-  ctx.font = `${clamp(W / 8, 56, 100)}px ${TITLE_FONT_FAMILY}`
+  const goPx = fit('GAME OVER', clamp(W / 8, 56, 100), W)
+  ctx.font = `${goPx}px ${TITLE_FONT_FAMILY}`
   ctx.fillStyle = '#c0392b'; ctx.shadowColor = '#c0392b'; ctx.shadowBlur = 24
   ctx.fillText('GAME OVER', W / 2, H * 0.28)
   if (state.lives > 0) {
     // Lives remain, so the stage timer ran out with the boss alive (boss-phases R6.5).
     ctx.shadowBlur = 0
-    ctx.font = `bold ${clamp(W / 28, 18, 30)}px sans-serif`
+    ctx.font = `bold ${fit("TIME'S UP", clamp(W / 28, 18, 30), W)}px sans-serif`
     ctx.fillStyle = '#ff6b1a'
     ctx.fillText("TIME'S UP", W / 2, H * 0.35)
-    ctx.font = `${clamp(W / 8, 56, 100)}px ${TITLE_FONT_FAMILY}`
+    ctx.font = `${goPx}px ${TITLE_FONT_FAMILY}`
     ctx.fillStyle = '#c0392b'
   }
 
   ctx.shadowBlur = 0
-  ctx.font = `bold ${clamp(W / 22, 22, 36)}px sans-serif`
+  ctx.font = `bold ${fit(`Score: ${state.score}`, clamp(W / 22, 22, 36), W)}px sans-serif`
   ctx.fillStyle = '#ffd166'
   ctx.fillText(`Score: ${state.score}`, W / 2, H * 0.42)
   if (state.highScore > state.score) {
-    ctx.font = `${clamp(W / 34, 14, 20)}px sans-serif`
+    ctx.font = `${fit(`Best: ${state.highScore}`, clamp(W / 34, 14, 20), W)}px sans-serif`
     ctx.fillStyle = 'rgba(232,232,240,0.6)'
     ctx.fillText(`Best: ${state.highScore}`, W / 2, H * 0.51)
   }
 
-  // Retry button
-  if (!retryBtn) retryBtn = new MotionButton(W * 0.35, H * 0.72, clamp(W / 9, 48, 76), '↩ RETRY')
-  else { retryBtn.cx = W * 0.35; retryBtn.cy = H * 0.72 }
-  const live = endButtonsLive(now)
-  const r1 = retryBtn.updateGated(now, live)
+  // Buttons in the raised-hand columns: card offer and retry stacked on the left, MENU alone on the
+  // right (it abandons the run: longer dwell). One action per frame, offer > retry > menu.
+  const specs = buttonLayout('gameover', W, H)
+  const cardBtn = offerButton(specs[0])
+  const [retryBtn, menuBtn] = gameOverSet.sync(specs.slice(1))
+  const live = gameOverLock.touch(now) && endButtonsLive(now)
+  const won = updateExclusive([cardBtn, retryBtn, menuBtn], now, live)
+  cardBtn.render(ctx, now)
   retryBtn.render(ctx, now)
-
-  // Menu button
-  if (!menuBtn) menuBtn = new MotionButton(W * 0.65, H * 0.72, clamp(W / 9, 48, 76), '⌂ MENU')
-  else { menuBtn.cx = W * 0.65; menuBtn.cy = H * 0.72 }
-  const r2 = menuBtn.updateGated(now, live)
   menuBtn.render(ctx, now)
-
-  // Exorcist Card offer (exorcist-card R1.1): only an explicit choice makes a card.
-  const cardChosen = renderCardOffer(ctx, now, H * 0.72, clamp(W / 9, 48, 76))
 
   ctx.restore()
 
-  if (cardChosen) { onCard?.(); return }
-  if (r1 === 'triggered') onRetry()
-  if (r2 === 'triggered') onMenu()
+  if (won === 0) onCard?.()
+  else if (won === 1) onRetry()
+  else if (won === 2) onMenu()
 }
 
 // ─── Victory (boss-phases R6.3) ──────────────────────────────────────────────
@@ -277,6 +279,7 @@ export function renderGameOver(
 /** Call once when the game enters `victory`: restarts the banner and input lockout. */
 export function resetVictoryScreen(): void {
   victoryShownAt = null
+  victorySet.clear()
 }
 
 export function renderVictory(
@@ -304,45 +307,42 @@ export function renderVictory(
   ctx.rotate(wobble)
   ctx.scale(0.4 + 0.6 * k, 0.4 + 0.6 * k)
   ctx.textAlign = 'center'
-  ctx.font = `${clamp(W / 7, 56, 120)}px ${TITLE_FONT_FAMILY}`
+  ctx.font = `${fit('YOU WIN!', clamp(W / 7, 56, 120), W)}px ${TITLE_FONT_FAMILY}`
   ctx.fillStyle = '#ffd166'; ctx.shadowColor = '#ff6b1a'; ctx.shadowBlur = 28
   ctx.fillText('YOU WIN!', 0, 0)
   ctx.restore()
 
   ctx.textAlign = 'center'
   ctx.shadowBlur = 0
-  ctx.font = `${clamp(W / 26, 18, 30)}px sans-serif`
+  const tag = 'The ghosts have been exorcised 🎃'
+  ctx.font = `${fit(tag, clamp(W / 26, 18, 30), W, TEXT_BAND_LOW)}px sans-serif`
   ctx.fillStyle = '#e8e8f0'
-  ctx.fillText('The ghosts have been exorcised 🎃', W / 2, H * 0.36)
-  ctx.font = `bold ${clamp(W / 18, 26, 44)}px sans-serif`
+  ctx.fillText(tag, W / 2, H * 0.53)
+  ctx.font = `bold ${fit(`Total score: ${state.score}`, clamp(W / 18, 26, 44), W)}px sans-serif`
   ctx.fillStyle = '#ffd166'; ctx.shadowColor = '#ffd166'; ctx.shadowBlur = 12
-  ctx.fillText(`Total score: ${state.score}`, W / 2, H * 0.48)
+  ctx.fillText(`Total score: ${state.score}`, W / 2, H * 0.38)
   ctx.shadowBlur = 0
   if (state.highScore > state.score) {
-    ctx.font = `${clamp(W / 34, 14, 20)}px sans-serif`
+    ctx.font = `${fit(`Best: ${state.highScore}`, clamp(W / 34, 14, 20), W)}px sans-serif`
     ctx.fillStyle = 'rgba(232,232,240,0.6)'
-    ctx.fillText(`Best: ${state.highScore}`, W / 2, H * 0.56)
+    ctx.fillText(`Best: ${state.highScore}`, W / 2, H * 0.6)
   }
 
-  const r = clamp(W / 9, 48, 76)
-  if (!winBtn) winBtn = new MotionButton(W * 0.35, H * 0.74, r, 'PLAY AGAIN')
-  else { winBtn.cx = W * 0.35; winBtn.cy = H * 0.74 }
-  if (!winMenuBtn) winMenuBtn = new MotionButton(W * 0.65, H * 0.74, r, 'MAIN MENU')
-  else { winMenuBtn.cx = W * 0.65; winMenuBtn.cy = H * 0.74 }
-  // Buttons ignore motion (no filling) until the input lockout ends.
+  // Same zones as game over: card offer and PLAY AGAIN stacked on the left, MAIN MENU alone on the right.
+  // Buttons ignore motion (and must be left) until the entry lockout ends.
+  const specs = buttonLayout('victory', W, H)
+  const cardBtn = offerButton(specs[0])
+  const [againBtn, menuBtn] = victorySet.sync(specs.slice(1))
   const live = t >= VICTORY_INPUT_DELAY_MS
-  const live2 = live && endButtonsLive(now)
-  const r1 = winBtn.updateGated(now, live2)
-  winBtn.render(ctx, now)
-  const r2 = winMenuBtn.updateGated(now, live2)
-  winMenuBtn.render(ctx, now)
-  const cardChosen = renderCardOffer(ctx, now, H * 0.74, r, live)
+  const won = updateExclusive([cardBtn, againBtn, menuBtn], now, live && endButtonsLive(now))
+  cardBtn.render(ctx, now)
+  againBtn.render(ctx, now)
+  menuBtn.render(ctx, now)
   ctx.restore()
 
-  if (!live) return
-  if (cardChosen) { onCard?.(); return }
-  if (r1 === 'triggered') onPlayAgain()
-  else if (r2 === 'triggered') onMenu()
+  if (won === 0) onCard?.()
+  else if (won === 1) onPlayAgain()
+  else if (won === 2) onMenu()
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────

@@ -44,17 +44,32 @@ const HIT_FRAMES_REQUIRED = 2
  */
 export let lastMotionPixels: Array<{ x: number; y: number }> = []
 
+/** Sampling stride of the motion mask (same value as diff.ts SAMPLE_STRIDE; kept local so mocks of diff stay valid). */
+export const GRID_STRIDE = 4
+
 /**
  * Publish the whole-frame motion mask in display space. On a duplicate camera
- * frame (mask.changed === false) the previous pixels are kept, so a held wave
- * over a motion button is not interrupted by the camera's lower frame rate.
+ * frame (mask.changed === false) the previous pixels are kept for readers that
+ * want the last mask; motion buttons ignore them via `motionFrameSeq`.
  */
 export function updateMotionPixels(mask: MotionMask, displayW: number, displayH: number): void {
   if (!mask.changed) return
   const sx = displayW / MOTION_W
   const sy = displayH / MOTION_H
   lastMotionPixels = mask.points.map((p) => ({ x: p.x * sx, y: p.y * sy }))
+  motionFrameSeq++
+  motionCell = { w: GRID_STRIDE * sx, h: GRID_STRIDE * sy }
 }
+
+/**
+ * Counts new camera frames published by updateMotionPixels (motion-ui-ergonomics R2.4).
+ * A motion button evaluates only when this changed, so the stale points kept on a
+ * duplicate frame never keep it filling.
+ */
+export let motionFrameSeq = 0
+
+/** Size of one motion-grid cell in display pixels: one sampled point stands for this area. */
+export let motionCell: { w: number; h: number } = { w: 4, h: 4 }
 
 /**
  * Enemies banished during the most recent resolveHits call, each with

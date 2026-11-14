@@ -630,3 +630,11 @@ describe('resolveHits — motion width (two-player R1.3, R7.2)', () => {
     expect(resolveHits(s, FAKE, FAKE, DW, DH, 1000, true, 16, 160).score).toBe(100)
   })
 })
+
+import { GRID_STRIDE } from './collision'
+import { SAMPLE_STRIDE } from '../webcam/diff'
+describe('motion grid stride', () => {
+  it('matches the frame-diff sample stride', () => {
+    expect(GRID_STRIDE).toBe(SAMPLE_STRIDE)
+  })
+})

@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 
 const h = vi.hoisted(() => ({
   now: 0,
+  seq: 0,
   points: [] as Array<{ x: number; y: number }>,
   winner: null as null | 0 | 1 | 'tie',
   finalCalls: 0,
@@ -23,6 +24,8 @@ vi.mock('../webcam/diff', () => ({
 vi.mock('./collision', () => ({
   updateMotionPixels: vi.fn(), resolveHits: (st: unknown) => st, lastBanished: [],
   get lastMotionPixels() { return h.points },
+  get motionFrameSeq() { return h.seq },
+  motionCell: { w: 4, h: 4 },
 }))
 vi.mock('./render', () => ({ renderFrame: (_c: unknown, s: { phase: string }) => { h.phases.push(s.phase) } }))
 vi.mock('../ui/hud', () => ({
@@ -39,7 +42,7 @@ vi.mock('./twoPlayer', async (orig) => {
 })
 vi.mock('../ui/screens', () => ({
   renderStartScreen: vi.fn(), renderStageTitle: vi.fn(), renderSummary: vi.fn(),
-  renderGameOver: vi.fn(), renderVictory: vi.fn(), resetVictoryScreen: vi.fn(), resetStartScreen: vi.fn(),
+  renderGameOver: vi.fn(), renderVictory: vi.fn(), resetVictoryScreen: vi.fn(), resetStartScreen: vi.fn(), resetGameOverScreen: vi.fn(),
 }))
 vi.mock('../audio/index', () => ({
   sfxLifeLost: vi.fn(), sfxStageClear: vi.fn(), startMusic: vi.fn(), startTitleMusic: vi.fn(),
@@ -61,7 +64,8 @@ vi.mock('../card/download', () => ({
 
 import { startLoop, requestStart, isTwoPlayerActive, handleCardKey, handleCardPointer, handleSeatCardPointer, stopLoop } from './loop'
 import { previewLayout } from '../ui/cardScreen'
-import { seatOfferGeometry } from '../ui/seatCard'
+import { seatOfferGeometry, PREVIEW_LOCK_MAX_MS } from '../ui/seatCard'
+import { areaButtons } from '../ui/layout'
 
 const W = 800, H = 600, HW = 400
 
@@ -80,10 +84,17 @@ const ctx = () => makeCanvas(W, H).getContext() as CanvasRenderingContext2D
 
 let rafQueue: Array<(ts: number) => void> = []
 let ts = 0
-function step(ms = 100): void { ts += ms; h.now = ts; const q = rafQueue; rafQueue = []; q.forEach((f) => f(ts)) }
+function step(ms = 100): void { ts += ms; h.seq++; h.now = ts; const q = rafQueue; rafQueue = []; q.forEach((f) => f(ts)) }
 function stepFor(ms: number, every = 50): void { for (let t = 0; t < ms; t += every) step(every) }
 const flush = async () => { for (let i = 0; i < 5; i++) await Promise.resolve() }
-const ring = (cx: number, cy: number, r = 14) => Array.from({ length: 8 }, (_, i) => ({ x: cx + Math.cos(i) * r, y: cy + Math.sin(i) * r }))
+/** A hand-sized blob of grid points (4 px cells) over the button. */
+const ring = (cx: number, cy: number, r = 30) => {
+  const out: Array<{ x: number; y: number }> = []
+  for (let y = cy - r; y <= cy + r; y += 4) for (let x = cx - r; x <= cx + r; x += 4) {
+    if ((x - cx) ** 2 + (y - cy) ** 2 <= r * r) out.push({ x, y })
+  }
+  return out
+}
 
 const spies = {
   fetch: vi.fn(), xhr: vi.fn(), beacon: vi.fn(), ws: vi.fn(), setItem: vi.fn(), idb: vi.fn(),
@@ -117,9 +128,14 @@ async function toFinal(): Promise<() => void> {
   return stop
 }
 
-const offer = seatOfferGeometry(HW, H)
-const waveOffer = (seat: 0 | 1) => { h.points = ring(offer.cx + seat * HW, offer.cy) }
-const layout = () => previewLayout(HW, H, false, true)
+const offers = [seatOfferGeometry(HW, H, 0), seatOfferGeometry(HW, H, 1)]
+const waveOffer = (seat: 0 | 1) => { h.points = ring(offers[seat].cx + seat * HW, offers[seat].cy, offers[seat].r * 0.9) }
+const layouts = [previewLayout(HW, H, false, true, 0), previewLayout(HW, H, false, true, 1)]
+/** A preview button of `seat` in full-canvas coordinates. */
+const pbtn = (seat: 0 | 1, id: string) => { const b = layouts[seat].buttons.find((x) => x.id === id)!; return { x: b.cx + seat * HW, y: b.cy, r: b.r } }
+/** A shared end-screen button of `seat` in full-canvas coordinates. */
+const sbtn = (seat: 0 | 1, id: string) => { const b = areaButtons('final2p', HW, H, seat).find((x) => x.id === id)!; return { x: b.cx + seat * HW, y: b.cy, r: b.r } }
+const clickOffer = (seat: 0 | 1) => handleSeatCardPointer(offers[seat].cx + seat * HW, offers[seat].cy)
 
 describe('2P end screen cards (two-player-card)', () => {
   it('takes one fallback snapshot per player, each from its own half, and no 1P grab', async () => {
@@ -146,8 +162,8 @@ describe('2P end screen cards (two-player-card)', () => {
     await toFinal()
     waveOffer(0); stepFor(1500); h.points = []; stepFor(1000)
     expect(h.composed.map((d) => d.playerLabel)).toEqual(['P1'])
-    const save = layout().buttons.find((b) => b.id === 'save')!
-    h.points = ring(save.cx + HW, save.cy) // same local spot, but in P2's half (not P2's offer button)
+    const save = pbtn(0, 'save')
+    h.points = ring(save.x + HW, save.y, save.r * 0.9) // same local spot, but in P2's half (not P2's offer button)
     stepFor(2500)
     h.points = []
     step()
@@ -160,75 +176,100 @@ describe('2P end screen cards (two-player-card)', () => {
     waveOffer(0); stepFor(1500); h.points = []; stepFor(1000)
     waveOffer(1); stepFor(1500); h.points = []; stepFor(1000)
     expect(h.composed.map((d) => d.playerLabel)).toEqual(['P1', 'P2'])
-    const L = layout()
-    const save = L.buttons.find((b) => b.id === 'save')!
-    const close = L.buttons.find((b) => b.id === 'close')!
-    expect(handleSeatCardPointer(save.cx + HW, save.cy)).toBe(true) // P2's SAVE
+    const save1 = pbtn(0, 'save'), save2 = pbtn(1, 'save'), close1 = pbtn(0, 'close')
+    expect(handleSeatCardPointer(save2.x, save2.y)).toBe(true) // P2's SAVE
     step()
     expect(h.saved).toEqual(['exorcist-card-p2.png'])
     await flush()
-    expect(handleSeatCardPointer(save.cx, save.cy)).toBe(true) // P1's SAVE
+    expect(handleSeatCardPointer(save1.x, save1.y)).toBe(true) // P1's SAVE
     step()
     expect(h.saved).toEqual(['exorcist-card-p2.png', 'exorcist-card-p1.png'])
     // CLOSE in P1's half closes P1 only: P2's SAVE still works afterwards.
-    handleSeatCardPointer(close.cx, close.cy); step()
+    handleSeatCardPointer(close1.x, close1.y); step()
     await flush()
-    handleSeatCardPointer(save.cx + HW, save.cy); step()
+    handleSeatCardPointer(save2.x, save2.y); step()
     expect(h.saved).toHaveLength(3)
     expect(h.saved[2]).toBe('exorcist-card-p2.png')
-    handleSeatCardPointer(save.cx, save.cy); step() // P1 is closed: this click is on its offer region, not SAVE
+    handleSeatCardPointer(save1.x, save1.y); step() // P1 is closed: this click is not on its offer, so nothing happens
     expect(h.saved).toHaveLength(3)
   })
 
   it('puts WINNER on the winner and nothing on the loser, TIE on both for a tie', async () => {
     h.winner = 1
     await toFinal()
-    handleSeatCardPointer(offer.cx, offer.cy); step()
-    handleSeatCardPointer(offer.cx + HW, offer.cy); step()
+    clickOffer(0); step()
+    clickOffer(1); step()
     expect(h.composed[0]).toMatchObject({ playerLabel: 'P1', badge: undefined })
     expect(h.composed[1]).toMatchObject({ playerLabel: 'P2', badge: 'WINNER' })
   })
 
   it('both cards say TIE when the scores are equal', async () => {
     await toFinal() // nobody scored: 0 : 0
-    handleSeatCardPointer(offer.cx, offer.cy); step()
-    handleSeatCardPointer(offer.cx + HW, offer.cy); step()
+    clickOffer(0); step()
+    clickOffer(1); step()
     expect(h.composed.map((d) => d.badge)).toEqual(['TIE', 'TIE'])
     expect(h.composed[0]).toMatchObject({ rank: 'Apprentice Exorcist', score: 0 })
   })
 
-  it('PLAY AGAIN is inactive while a card is open, then discards the snapshots when used', async () => {
+  it('PLAY AGAIN of the same half is inactive while its card is open; then works and discards the snapshots', async () => {
     await toFinal()
-    handleSeatCardPointer(offer.cx, offer.cy); step()
+    clickOffer(0); step()
     stepFor(1000)
     const calls = h.finalCalls
-    h.points = ring(0.35 * W, 0.7 * H, 20) // wave on PLAY AGAIN (in P1's covered half)
-    stepFor(2500)
+    const again = sbtn(0, 'again')
+    h.points = ring(again.x, again.y, again.r * 0.9) // P1's own PLAY AGAIN is under P1's open preview
+    stepFor(3000)
     expect(h.finalCalls).toBeGreaterThan(calls) // still on the end screen
     expect(h.phases[h.phases.length - 1]).not.toBe('stageTitle')
-    // close the card, then PLAY AGAIN works
+    // close the card, then PLAY AGAIN works (after the hand left)
     h.points = []
-    const close = layout().buttons.find((b) => b.id === 'close')!
-    handleSeatCardPointer(close.cx, close.cy); step()
+    const close = pbtn(0, 'close')
+    handleSeatCardPointer(close.x, close.y); step()
     stepFor(1500)
     const before = h.released
-    h.points = ring(0.35 * W, 0.7 * H, 20)
-    stepFor(2500)
+    h.points = ring(again.x, again.y, again.r * 0.9)
+    stepFor(3000)
     h.points = []
     expect(h.phases.slice(-2)).toEqual(['stageTitle', 'stageTitle'])
     expect(h.released - before).toBeGreaterThanOrEqual(2) // both players' snapshots are released
     expect(handleSeatCardPointer(1, 1)).toBe(false) // not on the end screen any more
   })
 
-  it('MAIN MENU discards the snapshots and a new 2P game starts without old cards', async () => {
+  it("P1's open preview does not lock P2 out for ever: after the lease P2 can PLAY AGAIN", async () => {
+    await toFinal()
+    clickOffer(0); step()
+    stepFor(1500)
+    const again2 = sbtn(1, 'again')
+    h.points = ring(again2.x, again2.y, again2.r * 0.9)
+    stepFor(3000) // while the lease holds, P2's PLAY AGAIN is dead
+    h.points = []
+    expect(h.phases[h.phases.length - 1]).not.toBe('stageTitle')
+    stepFor(PREVIEW_LOCK_MAX_MS, 100)
+    h.points = ring(again2.x, again2.y, again2.r * 0.9)
+    stepFor(3000)
+    h.points = []
+    expect(h.phases.slice(-2)).toEqual(['stageTitle', 'stageTitle'])
+  })
+
+  it('MAIN MENU of either half discards the snapshots and a new 2P game starts without old cards', async () => {
     await toFinal()
     const before = h.released
-    h.points = ring(0.65 * W, 0.7 * H, 20)
-    stepFor(2500)
+    const menu = sbtn(1, 'menu')
+    h.points = ring(menu.x, menu.y, menu.r * 0.9)
+    stepFor(4000)
     h.points = []
     expect(h.released - before).toBeGreaterThanOrEqual(2)
     expect(h.phases.slice(-1)).toEqual(['start'])
     expect(isTwoPlayerActive()).toBe(false)
+  })
+
+  it("one player's motion in their own half can never press the other half's buttons", async () => {
+    await toFinal()
+    const menu1 = sbtn(1, 'menu')
+    h.points = ring(menu1.x - HW, menu1.y, menu1.r * 0.9) // the same local spot, but in P1's half
+    stepFor(4000)
+    h.points = []
+    expect(h.phases[h.phases.length - 1]).not.toBe('start')
   })
 
   it('stopLoop releases the snapshots and clears the 2P flag (review NIT 6)', async () => {
@@ -242,10 +283,10 @@ describe('2P end screen cards (two-player-card)', () => {
 
   it('never touches the network or storage while cards are made and saved', async () => {
     await toFinal()
-    handleSeatCardPointer(offer.cx, offer.cy); step()
-    handleSeatCardPointer(offer.cx + HW, offer.cy); step()
-    const save = layout().buttons.find((b) => b.id === 'save')!
-    handleSeatCardPointer(save.cx, save.cy); handleSeatCardPointer(save.cx + HW, save.cy); step(); step()
+    clickOffer(0); step()
+    clickOffer(1); step()
+    const s1 = pbtn(0, 'save'), s2 = pbtn(1, 'save')
+    handleSeatCardPointer(s1.x, s1.y); handleSeatCardPointer(s2.x, s2.y); step(); step()
     expect(h.saved).toHaveLength(2)
     for (const [name, s] of Object.entries(spies)) expect(s, name).not.toHaveBeenCalled()
   })

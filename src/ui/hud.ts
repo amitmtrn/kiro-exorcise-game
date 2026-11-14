@@ -7,6 +7,8 @@
 import type { GameState } from '../game/state'
 import { stageLabel } from '../game/stages'
 import { isMuted } from '../audio/index'
+import { hudFontSize, muteButtonRect, muteButtonRect2P } from './muteRect'
+export { hudFontSize, muteButtonRect, muteButtonRect2P }
 
 // ─── Palette (see .kiro/steering/design.md) ──────────────────────────────────
 const C_LIFE   = '#c0392b'   // Blood Red
@@ -24,29 +26,10 @@ export const COMBO_PULSE_MS = 200
 
 // ─── Pure helpers (unit-tested) ───────────────────────────────────────────────
 
-/** R5.1 — responsive font size: clamp(canvasW / 20, 24, 48). */
-export function hudFontSize(canvasW: number): number {
-  return Math.max(24, Math.min(48, Math.round(canvasW / 20)))
-}
-
 /** Scale factor for the combo pulse, given ms since the last increment. */
 export function comboPulseScale(elapsedMs: number): number {
   if (elapsedMs < 0 || elapsedMs >= COMBO_PULSE_MS) return 1
   return 1 + 0.5 * (1 - elapsedMs / COMBO_PULSE_MS)
-}
-
-/** Hit rectangle for the mute button (top-right, under the timer). */
-export function muteButtonRect(canvasW: number, fontSize: number) {
-  const pad = 20
-  const size = Math.round(fontSize * 1.1)
-  return { x: canvasW - pad - size, y: pad + fontSize + 8, w: size, h: size }
-}
-
-/** Hit rectangle for the single shared mute button in two-player mode (top centre, below the HUD row so it overlaps no timer / hearts). */
-export function muteButtonRect2P(canvasW: number, fontSize: number) {
-  const pad = 20
-  const size = Math.round(fontSize * 1.1)
-  return { x: Math.round(canvasW / 2 - size / 2), y: pad + fontSize + 8, w: size, h: size }
 }
 
 // ─── Combo-pulse animation state (one per HUD: each two-player seat has its own) ──

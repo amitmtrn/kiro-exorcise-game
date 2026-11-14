@@ -8,7 +8,7 @@ for weeks (see `.kiro/specs/hit-detection-fix/design.md`, "camera frame rate").
 | Mode | Video | Expectation |
 |---|---|---|
 | `sweep` | textured background with sensor noise; a hand-sized blob sweeps through the vertical centre band | Space starts the game; `hits` climbs; a score is saved at the stage summary |
-| `wave` | same background; a textured hand waves over the START button | **no keypress**; `firstPlayAtMs` becomes ≥ 0 within a few seconds |
+| `wave` | same background; a textured hand waves over the 1 PLAYER button (30 % from the left, raised-hand zone) in 2 s bursts with 1 s gaps (the start screen's release latch needs the hand to leave once); the driver clicks the onboarding Skip | **no keypress**; `firstPlayAtMs` becomes ≥ 0 within a few seconds |
 
 ```bash
 tools/motion-harness/run.sh sweep 55

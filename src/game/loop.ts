@@ -35,6 +35,7 @@ import {
   renderVictory,
   resetVictoryScreen,
   resetStartScreen,
+  resetGameOverScreen,
 } from '../ui/screens'
 import {
   tickRound,
@@ -51,7 +52,7 @@ import { badgeFor, cardFileName, seatLabel } from '../card/twoPlayerCard'
 import { composeCard } from '../card/draw'
 import { downloadCanvasPng } from '../card/download'
 import { CardPreview, cardKeyAction, offerHit, lockEndButtons } from '../ui/cardScreen'
-import { SeatCard, routeSeatClick } from '../ui/seatCard'
+import { SeatCard, routeSeatClick, sharedButtonsLive } from '../ui/seatCard'
 import type { CardAction } from '../ui/cardScreen'
 import { sfxStageClear, startMusic, startTitleMusic, stopMusic, setMusicCombo } from '../audio/index'
 
@@ -178,6 +179,8 @@ export async function startLoop(
   }))
   const seatCards = SEATS.map((seat) => new SeatCard<HTMLCanvasElement>(seat, seatSessions[seat], () => seatPoints[seat]))
   const cardCanvases: HTMLCanvasElement[] = []
+  /** Each half's motion points for its own copies of the shared buttons. */
+  const seatSources: [() => typeof seatPoints[0], () => typeof seatPoints[0]] = [() => seatPoints[0], () => seatPoints[1]]
   let finalAt = 0
   /** Per seat: a boss was on that seat's field at the previous tick (so its disappearance means it was defeated). */
   const seatHadBoss: [boolean, boolean] = [false, false]
@@ -239,12 +242,15 @@ export async function startLoop(
   const hudCanvases: HTMLCanvasElement[] = [] // transparent per-seat HUD layers, drawn above the divider
   /** True while the start screen is the visible screen (entry detection for its lock-out). */
   let startVisible = false
+  /** True while the game-over screen is the visible screen (entry detection for its lock-out). */
+  let gameOverVisible = false
   /** Action requested by a 2P screen button during a tick; applied after the tick returns (so it is not overwritten). */
   let twoAction: 'next' | 'again' | 'menu' | null = null
 
   /** Start a game in `mode` (remembered for the session). */
   function begin(mode: PlayerMode): void {
     setPlayerMode(mode)
+    gameOverVisible = false
     if (mode === 2) {
       two = createTwoPlayer()
       prevTwoPhase = null
@@ -260,6 +266,7 @@ export async function startLoop(
   /** Back to the title screen from the two-player end screen. */
   function toMenu(): void {
     resetSeatCards()
+    gameOverVisible = false
     two = null
     prevTwoPhase = null
     state = createInitialState(1)
@@ -334,7 +341,7 @@ export async function startLoop(
     for (const [hud, seat] of huds) gameCtx.drawImage(hud.canvas, halfOffset(seat, W), 0)
 
     if (t.phase === 'summary') {
-      renderTwoPlayerSummary(gameCtx, t, now, () => { twoAction = 'next' })
+      renderTwoPlayerSummary(gameCtx, t, now, () => { twoAction = 'next' }, seatSources)
     } else if (t.phase === 'final') {
       // Per-player cards (two-player-card): each half draws its own offer / preview layer first, so the
       // shared buttons can be gated by what the cards are doing; the layers are composited above the overlay.
@@ -349,11 +356,14 @@ export async function startLoop(
         cctx.clearRect(0, 0, hw, H)
         seatCards[seat].render(cctx, now, live)
       }
-      const buttonsLive = !seatCards.some((c) => c.isOpen) && now >= Math.max(...seatCards.map((c) => c.lockedUntil))
+      // A half's shared buttons wait for its own preview (open or just changed); the other half's open preview holds
+      // them for at most PREVIEW_LOCK_MAX_MS, so one player cannot lock the other out (motion-ui-ergonomics R4.3).
+      const buttonsLive = sharedButtonsLive([seatCards[0], seatCards[1]], now)
       renderTwoPlayerFinal(gameCtx, t, now,
         () => { twoAction = 'again' },
         () => { twoAction = 'menu' },
         buttonsLive,
+        seatSources,
       )
       for (const seat of SEATS) gameCtx.drawImage(cardCanvases[seat], halfOffset(seat, W), 0)
       if (seatCards.some((c) => c.isOpen)) drawDivider(gameCtx, hw)
@@ -447,6 +457,7 @@ export async function startLoop(
 
     startVisible = false
     startRequest = null // a stray key outside the start screen is ignored
+    if (state.phase !== 'gameover') gameOverVisible = false
 
     // ── Stage title card ──────────────────────────────────────────────────────
     if (state.phase === 'stageTitle') {
@@ -479,6 +490,7 @@ export async function startLoop(
 
     // ── Game Over ─────────────────────────────────────────────────────────────
     if (state.phase === 'gameover') {
+      if (!gameOverVisible) { resetGameOverScreen(); gameOverVisible = true } // explicit entry: lock-out + fresh buttons
       saveHighScore(state.highScore)
       state = tickEffects(state, deltaMs)
       renderFrame(gameCtx, state, now)

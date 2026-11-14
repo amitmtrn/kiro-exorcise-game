@@ -5,8 +5,12 @@
  * that only after an explicit choice.
  */
 
-import { MotionButton } from './motionButton'
+import { MotionButton, updateExclusive } from './motionButton'
 import type { PointSource } from './motionButton'
+import { ButtonSet } from './buttonSet'
+import { areaButtons, previewCardRect, CARD_ASPECT as LAYOUT_CARD_ASPECT } from './layout'
+import type { ButtonSpec } from './layout'
+import type { Seat } from '../game/halves'
 
 export type CardAction = 'save' | 'toggle' | 'close'
 export type CardKeyAction = 'open' | CardAction
@@ -15,7 +19,7 @@ export type CardKeyAction = 'open' | CardAction
 export const PREVIEW_INPUT_DELAY_MS = 800
 export const STATUS_MS = 2500
 /** Card aspect ratio (w / h), matches the 600 × 840 card. */
-export const CARD_ASPECT = 600 / 840
+export const CARD_ASPECT = LAYOUT_CARD_ASPECT
 
 function clamp(v: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, Math.round(v)))
@@ -31,34 +35,31 @@ export function cardKeyAction(key: string, open: boolean): CardKeyAction | null 
   return null
 }
 
-export interface ButtonSpec { id: CardAction; cx: number; cy: number; r: number; label: string }
+export type { ButtonSpec }
 
 export interface PreviewLayout {
   card: { x: number; y: number; w: number; h: number }
   buttons: ButtonSpec[]
 }
 
-/** Pure layout of the preview for a W × H canvas. */
-export function previewLayout(W: number, H: number, noPhoto: boolean, hasPhoto: boolean): PreviewLayout {
-  const maxH = H * 0.72
-  const ch = Math.min(maxH, (W * 0.9) / CARD_ASPECT)
-  const cw = ch * CARD_ASPECT
-  const card = { x: (W - cw) / 2, y: H * 0.03, w: cw, h: ch }
-  const r = clamp(Math.min(W / 12, H * 0.075), 36, 64)
-  const cy = Math.min(H - r - 8, card.y + card.h + r + 14)
-  const specs: Array<Pick<ButtonSpec, 'id' | 'label'>> = [{ id: 'save', label: '💾\nSAVE' }]
-  if (hasPhoto) specs.push({ id: 'toggle', label: noPhoto ? '📷\nPHOTO' : '👻 NO\nPHOTO' })
-  specs.push({ id: 'close', label: '✖\nCLOSE' })
-  const step = Math.min(W / (specs.length + 1), r * 2.8)
-  const x0 = W / 2 - (step * (specs.length - 1)) / 2
-  return { card, buttons: specs.map((s, i) => ({ ...s, cx: x0 + i * step, cy, r })) }
+/**
+ * Pure layout of the preview for a W × H area (the canvas in 1P, one half in 2P with its `seat`).
+ * Buttons come from `layout.ts`: raised-hand columns, SAVE alone in its own column.
+ */
+export function previewLayout(
+  W: number, H: number, noPhoto: boolean, hasPhoto: boolean, seat: Seat | null = null,
+): PreviewLayout {
+  return {
+    card: previewCardRect(W, H, seat),
+    buttons: areaButtons(seat === null ? 'preview' : 'preview2p', W, H, seat, { noPhoto, hasPhoto }),
+  }
 }
 
 /** Which preview button (if any) contains the point. */
 export function buttonAt(buttons: readonly ButtonSpec[], x: number, y: number): CardAction | null {
   for (const b of buttons) {
     const dx = x - b.cx, dy = y - b.cy
-    if (dx * dx + dy * dy <= b.r * b.r) return b.id
+    if (dx * dx + dy * dy <= b.r * b.r) return b.id as CardAction
   }
   return null
 }
@@ -86,30 +87,14 @@ export function lockEndButtons(now: number): void {
 
 export function endButtonsLive(now: number): boolean { return now >= endButtonsLiveAt }
 
-export function offerGeometry(W: number, H: number, baseY: number, mainR: number) {
-  const r = clamp(Math.min(W / 14, H * 0.065), 36, 52)
-  const cy = Math.min(baseY + mainR + r + 10, H - r - 6)
-  return { cx: W / 2, cy, r }
-}
-
 /**
- * Draws the "EXORCIST CARD" button under the main buttons. Returns true when
- * the motion fill completed. `live === false` draws it without reading motion.
+ * The persistent "EXORCIST CARD" button of the game-over / victory screen, positioned from its
+ * layout spec. The screen updates it inside its exclusive group (offer, retry, menu).
  */
-export function renderCardOffer(
-  ctx: CanvasRenderingContext2D,
-  now: number,
-  baseY: number,
-  mainR: number,
-  live = true,
-): boolean {
-  const { width: W, height: H } = ctx.canvas
-  const g = offerGeometry(W, H, baseY, mainR)
-  if (!offerBtn) offerBtn = new MotionButton(g.cx, g.cy, g.r, '📸 EXORCIST\nCARD')
-  else { offerBtn.cx = g.cx; offerBtn.cy = g.cy; offerBtn.radius = g.r }
-  const res = offerBtn.updateGated(now, live && endButtonsLive(now))
-  offerBtn.render(ctx, now)
-  return res === 'triggered'
+export function offerButton(spec: ButtonSpec): MotionButton {
+  if (!offerBtn) offerBtn = new MotionButton(spec.cx, spec.cy, spec.r, spec.label)
+  else { offerBtn.cx = spec.cx; offerBtn.cy = spec.cy; offerBtn.radius = spec.r; offerBtn.label = spec.label }
+  return offerBtn
 }
 
 /** True when (x, y) lies on the last drawn offer button (a click / tap). */
@@ -122,14 +107,16 @@ export function offerHit(x: number, y: number): boolean {
 // ─── Preview overlay ─────────────────────────────────────────────────────────
 
 export class CardPreview {
-  private buttons = new Map<CardAction, MotionButton>()
+  private buttons: ButtonSet
   private openedAt = 0
   private statusText = ''
   private statusAt = Number.NEGATIVE_INFINITY
   private lastLayout: PreviewLayout | null = null
 
   /** `source`: motion points the buttons read (two-player: the half's own points). Default: whole frame. */
-  constructor(private source: PointSource | null = null) {}
+  constructor(source: PointSource | null = null, private seat: Seat | null = null) {
+    this.buttons = new ButtonSet(source)
+  }
 
   open(now: number): void {
     this.openedAt = now
@@ -158,7 +145,7 @@ export class CardPreview {
     hasPhoto: boolean,
   ): CardAction | null {
     const { width: W, height: H } = ctx.canvas
-    const L = previewLayout(W, H, noPhoto, hasPhoto)
+    const L = previewLayout(W, H, noPhoto, hasPhoto, this.seat)
     this.lastLayout = L
 
     ctx.save()
@@ -170,15 +157,12 @@ export class CardPreview {
     ctx.shadowBlur = 0
 
     const live = now - this.openedAt >= PREVIEW_INPUT_DELAY_MS
-    let triggered: CardAction | null = null
-    for (const spec of L.buttons) {
-      let btn = this.buttons.get(spec.id)
-      if (!btn) { btn = new MotionButton(spec.cx, spec.cy, spec.r, spec.label, this.source); this.buttons.set(spec.id, btn) }
-      btn.cx = spec.cx; btn.cy = spec.cy; btn.radius = spec.r; btn.label = spec.label
-      // Until live, motion must also leave the button before it can fill (the opening wave lingers).
-      if (btn.updateGated(now, live) === 'triggered' && !triggered) triggered = spec.id
-      btn.render(ctx, now)
-    }
+    // Until live, motion must also leave the buttons before they can fill (the opening wave lingers).
+    // One action per frame: toggle / close before the destructive SAVE (R2.7).
+    const btns = this.buttons.sync(L.buttons)
+    const won = updateExclusive(btns, now, live)
+    const triggered: CardAction | null = won >= 0 ? (L.buttons[won].id as CardAction) : null
+    for (const b of btns) b.render(ctx, now)
 
     if (now - this.statusAt < STATUS_MS && this.statusText) {
       ctx.font = `bold ${clamp(W / 40, 16, 26)}px sans-serif`

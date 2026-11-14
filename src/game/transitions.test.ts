@@ -170,17 +170,24 @@ describe('renderSummary animation', () => {
     expect(rec.alphas.slice(1, 10).every((a) => a === 1)).toBe(true)
   })
 
-  it('the NEXT button still triggers during the animation (R5.3)', async () => {
-    const { lastMotionPixels, updateMotionPixels } = await import('../game/collision')
-    void lastMotionPixels
-    // a dense blob of motion over the NEXT button position (W/2, 0.84 H)
-    const points = Array.from({ length: 40 }, (_, i) => ({ x: 160 + (i % 8), y: 150 + Math.floor(i / 8) }))
-    updateMotionPixels({ points, sampled: 40, moved: 40, changed: true }, 1000, 600)
-    let triggered = false
-    for (let t = 0; t <= 1000 && !triggered; t += 100) {
-      const { ctx } = recordingCtx()
-      renderSummary(ctx, summaryState(100), t, () => { triggered = true })
+  it('the NEXT button is drawn during the animation and presses after the entry lockout (R5.3, motion-ui-ergonomics R2.5)', async () => {
+    const { updateMotionPixels } = await import('../game/collision')
+    const { buttonLayout } = await import('../ui/layout')
+    const next = buttonLayout('summary', 1000, 600)[0]
+    // a dense blob of motion over the NEXT button
+    const points = Array.from({ length: 4000 }, (_, i) => ({
+      x: (next.cx - 40) / 1000 * 320 + (i % 60) * 0.5, y: (next.cy - 40) / 600 * 180 + Math.floor(i / 60) * 0.5,
+    }))
+    const run = (shown: number, t0: number): boolean => {
+      let triggered = false
+      for (let t = t0; t < t0 + 3000 && !triggered; t += 33) {
+        updateMotionPixels({ points: t < t0 + 400 ? [] : points, sampled: 4000, moved: 4000, changed: true }, 1000, 600)
+        const { ctx } = recordingCtx()
+        renderSummary(ctx, summaryState(shown), t, () => { triggered = true })
+      }
+      return triggered
     }
-    expect(triggered).toBe(true)
+    expect(run(100, 1_000_000)).toBe(false) // inside the 1.2 s lockout the animation plays but NEXT is dead
+    expect(run(2000, 2_000_000)).toBe(true)
   })
 })
