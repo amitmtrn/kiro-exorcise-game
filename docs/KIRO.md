@@ -20,7 +20,7 @@ reproducible: `git checkout df26f4d` and run the same command.
 | Commits | 175 | `git rev-list --count df26f4d` |
 | Commits named after a spec task, `<type>(<spec>-T<n>)` (67 `feat`, 14 `docs`, 6 `test`, 2 `fix`) | 89 | `git log df26f4d --oneline -E --grep='\([a-z0-9-]+-T[0-9]+\)' \| wc -l` |
 | `fix(...)` commits, mostly review fixes | 57 | `git log df26f4d --oneline -E --grep='^fix' \| wc -l` |
-| Unit and property tests | 1120 passed, 0 failed, 0 skipped at PR #5; 1503 passed, 0 failed, 0 skipped on this branch after merging main (demo mode, `judge-docs` and `playtest-polish`) | `npm test` |
+| Unit and property tests | 1120 passed, 0 failed, 0 skipped at PR #5; 1515 passed, 0 failed, 0 skipped on this branch after merging main (demo mode, `judge-docs` and `playtest-polish`) | `npm test` |
 | Test files | 96 at PR #5; 129 on this branch after merging main | `npm test` ("Test Files") |
 | Property tests: `fc.assert` calls (at df26f4d) | 119 in 31 files | `grep -rh 'fc\.assert' src tools \| wc -l` |
 | Hooks | 5 hook entries in 3 files | `ls .kiro/hooks` |
@@ -409,7 +409,7 @@ hip-to-shin height (72 to 92 % of the frame) to raised-hand zones (19 to 39 %) (
 | #5 | motion-ui-ergonomics | 1120 |
 | #6 | demo-mode | 1254 |
 | #7 | judge-docs (this write-up, after merging main) | 1291 |
-| playtest-polish (open PR) | playtest-polish (after merging main) | 1503 |
+| playtest-polish (open PR) | playtest-polish (after merging main) | 1515 |
 
 0 failed and 0 skipped at each point (log).
 
