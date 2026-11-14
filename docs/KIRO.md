@@ -20,15 +20,15 @@ reproducible: `git checkout df26f4d` and run the same command.
 | Commits | 175 | `git rev-list --count df26f4d` |
 | Commits named after a spec task, `<type>(<spec>-T<n>)` (67 `feat`, 14 `docs`, 6 `test`, 2 `fix`) | 89 | `git log df26f4d --oneline -E --grep='\([a-z0-9-]+-T[0-9]+\)' \| wc -l` |
 | `fix(...)` commits, mostly review fixes | 57 | `git log df26f4d --oneline -E --grep='^fix' \| wc -l` |
-| Unit and property tests | 1120 passed, 0 failed, 0 skipped (1152 in 98 files with this spec) | `npm test` |
-| Test files | 96 (98 with this spec) | `npm test` ("Test Files") |
+| Unit and property tests | 1120 passed, 0 failed, 0 skipped at PR #5; 1286 passed, 0 failed, 0 skipped on this branch after merging main (demo mode and `judge-docs`) | `npm test` |
+| Test files | 96 at PR #5; 108 on this branch after merging main | `npm test` ("Test Files") |
 | Property tests: `fc.assert` calls | 119 in 31 files | `grep -rh 'fc\.assert' src tools \| wc -l` |
 | Hooks | 5 hook entries in 3 files | `ls .kiro/hooks` |
 | Steering files | 3, 233 lines | `wc -l .kiro/steering/*.md` |
 | Custom agents | 1 (`balancer`) | `ls .kiro/agents` |
 | MCP servers | 1 (`motion-harness`, local stdio, 2 tools) | `.kiro/settings/mcp.json` |
-| Pull requests | 5 merged (#1 to #5), 1 open (#6) | (log) |
-| Kiro credits | 534.66 of a 4000 bonus pool, after `judge-docs` | (log) |
+| Pull requests | 6 merged (#1 to #6), 1 open (#7, this one) | (log) |
+| Kiro credits | 536.22 of a 4000 bonus pool, after the `judge-docs` spec and its review fixes | (log) |
 | Kiro app | Kiro CLI 3.3.0 only | (log) |
 
 Test counts per PR are in "Test count history" below.
@@ -62,7 +62,7 @@ The reviewer never edited code. Kiro made every fix. One pull request per featur
 from PR #2 on (PR #1 bundled the P0/P1 specs). A human (Amit) merged the PRs.
 
 Review files per spec (rounds plus final re-reviews) (log): balancer 5, boss-phases 3,
-demo-mode 6 (PR #6), exorcist-card 3, feel-fix 1, hooks 4, juice 2,
+demo-mode 6, exorcist-card 3, feel-fix 1, hooks 4, juice 2,
 motion-ui-ergonomics 6, music-v2 5, onboarding 4, pbt 3, two-player 4,
 two-player-card 3, waves 4. Merging PR #3 had one more review.
 
@@ -359,7 +359,7 @@ paths, equal to the settings entry).
 **Honest status.** Before this spec no powers were installed (log). The power was
 written in Kiro CLI, for installation in Kiro IDE (Powers panel → Import power
 from a folder). It was **not exercised in the IDE**. The `demo` mode it mentions
-exists only in PR #6. The server path is relative, so the power works inside this
+is on main (PR #6, merge commit 46d9551), but the MCP tool offers only `sweep` and `wave`; `demo` runs through `run.sh`. The server path is relative, so the power works inside this
 repo checkout only.
 
 ## Before → after examples
@@ -411,7 +411,8 @@ hip-to-shin height (72 to 92 % of the frame) to raised-hand zones (19 to 39 %) (
 | #3 | two-player | 994 |
 | #4 | two-player-card | 1045 |
 | #5 | motion-ui-ergonomics | 1120 |
-| #6 (open) | demo-mode | 1254 |
+| #6 | demo-mode | 1254 |
+| #7 (open) | judge-docs (this PR, after merging main) | 1286 |
 
 0 failed and 0 skipped at each point (log).
 
@@ -430,16 +431,15 @@ Cumulative Kiro `/usage`, from a bonus pool of 4000 (log):
 | After two-player (PR #3) | 230.59 |
 | After two-player-card (PR #4) | 254.37 |
 | After motion-ui-ergonomics (PR #5) | 324.89, then 333.24 after its final fixes |
-| After demo-mode (PR #6, open) | 522.26 |
-| After judge-docs (this spec, 12.40 credits) | 534.66 |
+| After demo-mode (PR #6) | 522.26 |
+| After judge-docs review fixes (13.96 credits for the spec and its fixes) | 536.22 |
 
 Largest steps: demo-mode (about 189) and motion-ui-ergonomics (about 70, plus 8).
 
 ## Demo mode
 
-Demo mode is in open PR #6 and is **not on main yet**. Open the game with
-`?demo=1&seed=5`: no camera is used, the run is deterministic for a given seed,
-and it is meant for filming.
+Demo mode is merged (PR #6, merge commit 46d9551). Open the game with `?demo=1&seed=5`:
+no camera is used, the run is deterministic for a given seed, and it is meant for filming.
 
 ## What we didn't use
 

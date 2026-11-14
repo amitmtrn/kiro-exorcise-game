@@ -47,7 +47,7 @@ quoted property names, and the issues PBT found or the flaky-property story.
 **R1.9** Powers says the power was written in Kiro CLI for installation in Kiro
 IDE (Powers panel → Import power from a folder) and was **not** exercised in the IDE.
 
-**R1.10** Demo mode is described only as "PR #6" (open, not on main):
+**R1.10** Demo mode is described as "PR #6" (merged, merge commit 46d9551):
 `?demo=1&seed=5`, no camera, deterministic, for filming.
 
 **R1.11** What we didn't use: Kiro IDE, Web and Crew.

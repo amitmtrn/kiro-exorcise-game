@@ -50,7 +50,7 @@ Files: `docs/KIRO.md`, `README.md`, `tools/judge-docs.test.mjs`, `.kiro/specs/ju
 - [x] NIT: reconciliation test parses the per-spec counts and asserts they sum to 89.
 - [x] NIT: banned-name regex tolerates a space in the first name too.
 - [x] NIT: `demo` command moved out of the copy-paste block in the run-harness skill.
-- [x] `npm test` (1152 passed, 0 failed, 0 skipped) and `npm run build` clean.
+- [x] `npm test` (1152 passed, 0 failed, 0 skipped, before merging main) and `npm run build` clean.
 - [x] Commit: `fix(judge-docs): second review fixes`
 
 ## T7 — Third review fixes
@@ -66,10 +66,10 @@ Files: `docs/KIRO.md`, `README.md`, `tools/judge-docs.test.mjs`, `.kiro/specs/ju
 
 - [x] NIT: TL;DR states the branch counts (1152 tests, 98 files) inside the existing rows.
 - [x] NIT: `docs/KIRO.md` stays under the 450-line cap by trimming the credits note.
-- [x] NIT: run-harness skill moves `demo` under a "needs PR #6 (open)" sub-heading.
+- [x] NIT: run-harness skill moves `demo` under a "Demo mode" sub-heading (later: PR #6 merged).
 - [x] NIT: `judgeSection` no longer exported from the test file.
 - [x] Off-repo source is called "off-repo orchestration logs" without a file name.
-- [x] Credits: judge-docs took the pool from 522.26 to 534.66 (12.40); TL;DR and credits table updated.
+- [x] Credits: judge-docs took the pool from 522.26 to 536.22 (13.96, including all review fixes); TL;DR and credits table updated.
 - [x] `npm test` and `npm run build` clean.
 - [x] Commit: `fix(judge-docs): fourth review fixes`
 
@@ -77,7 +77,7 @@ Files: `docs/KIRO.md`, `README.md`, `tools/judge-docs.test.mjs`, `.kiro/specs/ju
 Files: `README.md`, `docs/KIRO.md`, `.kiro/specs/judge-docs/design.md`, `.kiro/powers/exorcise-motion-harness/skills/run-harness/SKILL.md`
 
 - [x] Off-repo `ui-audit` log marked "(log)" in `docs/KIRO.md`; machine-local path removed from `design.md`.
-- [x] README credits headline matches `docs/KIRO.md` (534.66 after `judge-docs`).
+- [x] README credits headline matches `docs/KIRO.md` (536.22 after the `judge-docs` spec and its review fixes).
 - [x] Tasks excerpt in `docs/KIRO.md` marks skipped checkboxes with `…`.
 - [x] `demo` fallback described accurately (Space start over the wave-style video, unsupported).
 - [x] `npm test` and `npm run build` both clean.

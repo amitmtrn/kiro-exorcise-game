@@ -68,7 +68,7 @@ describe('docs structure', () => {
     expect(n).toBeGreaterThanOrEqual(250)
     expect(n).toBeLessThanOrEqual(450)
   })
-  it('states the power was not exercised in the IDE and that demo mode is PR #6', () => {
+  it('states the power was not exercised in the IDE and that demo mode is merged (PR #6)', () => {
     expect(kiro).toMatch(/not exercised in the IDE/)
     expect(kiro).toMatch(/PR #6/)
     expect(kiro).toContain('?demo=1&seed=5')
@@ -83,9 +83,13 @@ describe('docs structure', () => {
     expect(bullets).toBeLessThanOrEqual(8)
   })
   it('the TL;DR row and the history table agree on the test counts', () => {
-    expect(kiro).toMatch(/\| Unit and property tests \| 1120 passed, 0 failed, 0 skipped \(1152 in 98 files with this spec\) \|/)
+    expect(kiro).toMatch(/\| Unit and property tests \| 1120 passed, 0 failed, 0 skipped at PR #5; 1286 passed, 0 failed, 0 skipped on this branch after merging main/)
     expect(kiro).toMatch(/\| #5 \| motion-ui-ergonomics \| 1120 \|/)
-    expect(kiro).toMatch(/\| #6 \(open\) \| demo-mode \| 1254 \|/)
+    expect(kiro).toMatch(/\| #6 \| demo-mode \| 1254 \|/)
+    expect(kiro).toMatch(/\| #7 \(open\) \| judge-docs .* \| 1286 \|/)
+    expect(kiro).toContain('536.22')
+    expect(kiro).not.toContain('534.' + '66')
+    expect(kiro).not.toMatch(/open PR #6|not on main/)
   })
   it('the per-spec commit list reconciles with the headline 89', () => {
     expect(kiro).toContain('| 89 |')

@@ -16,11 +16,9 @@ restricted to loopback. It needs `python3` + `numpy`, `google-chrome` and Node >
 | `sweep` | A hand-sized blob sweeps through the enemy path. Space starts the game. | Frame-diff hit detection: `hits` must be > 0. |
 | `wave` | The hand waves over the 1 PLAYER button in 2 s bursts. No keypress. | Wave-to-press buttons: `firstPlayAtMs` must be >= 0 within a few seconds. |
 
-### Demo mode (needs PR #6, open)
+### Demo mode (shell only)
 
-`demo`: no camera, seeded deterministic playthrough. It exists only on branches with
-PR #6 (open) until it merges. Without it, `run.sh` does a Space start over the wave-style video (`make_y4m.py` generates it for any mode other than `sweep`), so `demo` is unsupported here.
-Do not pick it from the table above.
+`demo`: no camera, seeded deterministic playthrough (PR #6, merged). Only `run.sh` offers it; the MCP `run_harness` tool takes `sweep` or `wave`. Do not pick it from the table above.
 
 ## How to run
 
@@ -35,7 +33,7 @@ tools/motion-harness/run.sh sweep 55
 tools/motion-harness/run.sh wave 30
 ```
 
-Only on branches with demo mode (PR #6): `SEED=5 tools/motion-harness/run.sh demo 170`.
+Demo mode: `SEED=5 tools/motion-harness/run.sh demo 170`.
 
 ## Reading the output
 
