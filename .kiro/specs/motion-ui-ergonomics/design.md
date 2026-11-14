@@ -119,3 +119,14 @@ the head/shoulders (inside the text band).
 | `motionButton.test.ts`, `motionButton.property.test.ts` | R2 |
 | `screens.*.test.ts`, `splitscreen.test.ts`, `seatCard.test.ts`, `cardScreen.test.ts`, `loop.*.test.ts` | per-screen lockout/latch, exclusivity, 2P halves, lease |
 | `onboarding.test.ts` | hand targets equal layout zones |
+
+## Notes
+
+* Supersedes juice R5.3 only for input: the 1P and 2P summary NEXT stays drawn and unfaded, but ignores
+  motion for the entry lockout (1.2 s), because the stage-end flail must not press it.
+* 2P mute: it stays top centre. The overlap came from the banners, which now sit below 47 % of the height;
+  the layout keeps every button clear of the mute rect (the inner column's single button is pushed below it).
+* 2P shared decisions: either player's deliberate dwell fires the action (not both). Rationale: a player who
+  walked away cannot hold the other hostage, and sway cannot reach a raised edge button with 12 % coverage and
+  a 650 ms dwell. MAIN MENU needs 1000 ms.
+* Motion harness `wave` mode now hovers over the 1 PLAYER zone (mirrored raw x = 88 %, y = 17 %).

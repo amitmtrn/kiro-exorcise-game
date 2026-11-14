@@ -25,7 +25,7 @@ npm run dev
 
 | Command | What it does |
 |---|---|
-| `npm test` | Run all 1045 unit tests (Vitest) |
+| `npm test` | Run all 1103 unit tests (Vitest) |
 | `npm run build` | Production build → `dist/` |
 | `npm run preview` | Preview the production build locally |
 
@@ -55,16 +55,17 @@ Pick **1 PLAYER** or **2 PLAYERS** on the title screen (wave over a button, or p
 
 | Input | Action |
 |---|---|
-| Wave over a glowing button | Start / Next / Retry / Menu (hands-only play) |
+| Raise a hand to a glowing circle and keep it there for about half a second | Start / Next / Retry / Menu / card buttons (hands-only play). Buttons sit at the left and right edges of the upper part of the view, at shoulder-to-overhead height, never at your body or legs. A ring fills while your hand covers the circle; MENU and SAVE take about a second. In 2 PLAYERS each player has their own buttons in their half, and either player can press NEXT / PLAY AGAIN / MAIN MENU |
 | `Space` | Start from the title screen (in the last chosen mode) |
 | `1` / `2` | Start a 1 PLAYER / 2 PLAYERS game from the title screen |
 | `M` or the 🔊 button (top-right; top centre in 2 PLAYERS) | Mute / unmute |
+| Click / tap a circle | Same as the hand press for the exorcist card buttons (unchanged) |
 | `D` | Toggle the hitbox + motion-mask debug overlay |
 | `C` (game over / victory, 1 PLAYER only) | Open the Exorcist Card preview; then `S` / `Enter` save, `N` photo ↔ silhouette, `Esc` close |
 
 ### Testing hit detection without a webcam
 
-`tools/motion-harness/run.sh sweep` feeds a synthetic 30 fps camera feed to headless Chrome and counts real hits; `run.sh wave` checks that waving over the START button starts the game with no keypress. See `tools/motion-harness/README.md`.
+`tools/motion-harness/run.sh sweep` feeds a synthetic 30 fps camera feed to headless Chrome and counts real hits; `run.sh wave` checks that waving over the 1 PLAYER button starts the game with no keypress. See `tools/motion-harness/README.md`.
 
 ## How we used Kiro
 
@@ -101,11 +102,12 @@ Every feature was planned as a Kiro spec before implementation:
 | `two-player/` | Local split-screen mode on one webcam: left / right halves with mirror-correct ownership, per-player state, shared stage clock, OUT / CLEARED, winner or tie |
 | `balancer/` | Local stdio MCP server for the motion harness and a report-only `balancer` playtest-tuner agent |
 | `exorcist-card/` | Optional shareable trading card (mirrored snapshot, spooky frame, rank title, stats) composed and downloaded locally on game over / victory |
+| `motion-ui-ergonomics/` | Raised-hand button zones (upper edges, never torso or legs) from one pure layout module, coverage + dwell + decay activation with a progress ring, entry lockout and release latch on every screen, one action per frame, per-half 2P copies, sound hint moved to the top, onboarding hand targets from the layout |
 | `two-player-card/` | Per-player Exorcist Card on the 2P end screen: own half of the camera, own highlight moment and stats, P1 / P2 label, WINNER / TIE badge, per-half wave / click controls |
 
 Each spec has `requirements.md`, `design.md`, and `tasks.md`. Writing requirements and design before tasks surfaced design gaps (e.g. skull penalty rules, hitbox coordinate system, mirror parity bug) that would have been painful to fix mid-implementation.
 
-All nineteen specs are implemented. Every task in `tasks.md` is ticked except the manual smoke tests (a webcam playthrough, a two-person split-screen playthrough, the music-v2 listening test, enabling GitHub Pages in the repo settings), and `boss-combo/` carries a status note explaining it was superseded by `stages/`.
+All twenty specs are implemented. Every task in `tasks.md` is ticked except the manual smoke tests (a webcam playthrough, a two-person split-screen playthrough, the music-v2 listening test, enabling GitHub Pages in the repo settings), and `boss-combo/` carries a status note explaining it was superseded by `stages/`.
 
 ### Kiro hooks (`.kiro/hooks/`)
 Standalone `v1` hook files, loaded by Kiro IDE and Kiro CLI V3. Spec: `.kiro/specs/hooks/`.
@@ -198,7 +200,9 @@ src/
   ui/
     hud.ts              Hearts, timer, stage, score, combo (pulse), mute button —
                         outlined glow text, clamp(W/20, 24, 48) font
-    motionButton.ts     Wave-to-press buttons driven by frame differencing
+    layout.ts           Pure raised-hand button layout for every screen / mode (also used by onboarding and tests)
+    buttonSet.ts        Persistent motion buttons keyed by layout id
+    motionButton.ts     Wave-to-press buttons: coverage + dwell + decay, release latch, entry lockout, exclusive groups
     seatCard.ts         2P per-half card offer / preview with half-only input routing
     screens.ts          Start (1 / 2 player buttons), stage title, summary (stars), victory, game over
     splitscreen.ts      Two-player divider, OUT / CLEARED overlays, shared summary, winner screen

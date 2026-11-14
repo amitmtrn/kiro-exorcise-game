@@ -2,7 +2,7 @@
 
 sweep: a hand-sized blob sweeps left<->right through the vertical centre band
        (crosses the enemies' path toward the screen centre).
-wave:  a hand-sized blob hovers over the START motion button and wiggles.
+wave:  a hand-sized blob hovers over the 1 PLAYER motion button (raised-hand zone, screen left = raw right) and wiggles.
 Background has static texture + per-frame sensor noise (sigma 2) so the
 auto-calibration sees realistic noise. Hand luminance 170 vs bg 128 (diff 42):
 detectable at the calibrated threshold (15-30) but not at the 60 clamp.
@@ -28,9 +28,9 @@ with open(out, 'wb') as f:
                 ph = ((t - 4.0) % period) / period
                 frac = ph * 2 if ph < 0.5 else 2 - ph * 2
                 cx, cy = int(-HW + frac * (W + 2 * HW)), H // 2
-            else:  # wave side-to-side over the START button at (W/2, 0.72*H), ~2 Hz
-                cx = int(W / 2 + 20 * np.sin(2 * np.pi * 2 * t))
-                cy = int(0.72 * H + 5 * np.sin(2 * np.pi * 1 * t))
+            else:  # wave side-to-side over the 1 PLAYER button, ~2 Hz. Display (12 %, 17 %) is mirrored: raw x = 88 %
+                cx = int(0.88 * W + 8 * np.sin(2 * np.pi * 2 * t))
+                cy = int(0.17 * H + 4 * np.sin(2 * np.pi * 1 * t))
             x0, x1 = max(0, cx - HW // 2), min(W, cx + HW // 2)
             y0, y1 = max(0, cy - HH // 2), min(H, cy + HH // 2)
             if x1 > x0 and y1 > y0:

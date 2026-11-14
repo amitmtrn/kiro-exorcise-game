@@ -48,6 +48,6 @@ Files: `src/style.css`, `src/main.ts`, `src/ui/layout.ts`, `src/ui/onboarding.ts
 ## T6 — Docs and harness
 Files: `README.md`, `tools/motion-harness/make_y4m.py`, `tools/motion-harness/README.md`
 
-- [ ] README controls section and spec table; wave harness hovers over the new 1 PLAYER zone.
-- [ ] `npm test` and `npm run build` both clean.
-- [ ] Commit: `docs(motion-ui-ergonomics-T6): controls, harness and spec index`
+- [x] README controls section and spec table; wave harness hovers over the new 1 PLAYER zone.
+- [x] `npm test` and `npm run build` both clean.
+- [x] Commit: `docs(motion-ui-ergonomics-T6): controls, harness and spec index`
