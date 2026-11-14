@@ -26,7 +26,6 @@ export const COMBO_PULSE_MS = 200
 
 // ─── Pure helpers (unit-tested) ───────────────────────────────────────────────
 
-
 /** Scale factor for the combo pulse, given ms since the last increment. */
 export function comboPulseScale(elapsedMs: number): number {
   if (elapsedMs < 0 || elapsedMs >= COMBO_PULSE_MS) return 1

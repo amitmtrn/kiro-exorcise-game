@@ -240,6 +240,29 @@ describe('preview lease (motion-ui-ergonomics R4.3)', () => {
     expect(card.blocksOtherHalf(1000 + PREVIEW_LOCK_MAX_MS - 1)).toBe(true)
     expect(card.blocksOtherHalf(1000 + PREVIEW_LOCK_MAX_MS)).toBe(false)
   })
+
+  it('closing and reopening does not renew the lease within one end-screen visit', () => {
+    const session = fakeSession()
+    const card = new SeatCard(0, session, () => [])
+    const ctx = fakeCtx(HW, H)
+    const g = seatOfferGeometry(HW, H, 0)
+    card.render(ctx, 0, true)
+    card.queueClick(g.cx, g.cy)
+    card.render(ctx, 1000, true)
+    session.close()
+    const later = 1000 + PREVIEW_LOCK_MAX_MS + 500
+    card.render(ctx, later, true)
+    card.queueClick(g.cx, g.cy)
+    card.render(ctx, later + 100, true)
+    expect(session.calls.open).toBe(2)
+    expect(card.blocksOtherHalf(later + 100)).toBe(false)
+    card.reset() // a new visit starts a new lease
+    card.render(ctx, later + 200, true)
+    session.close()
+    card.queueClick(g.cx, g.cy)
+    card.render(ctx, later + 300, true)
+    expect(card.blocksOtherHalf(later + 300)).toBe(true)
+  })
 })
 
 describe('offer vs shared buttons in one frame (motion-ui-ergonomics R2.7)', () => {

@@ -19,3 +19,25 @@ describe('sound hint auto-hide (motion-ui-ergonomics R6.2)', () => {
     vi.useRealTimers()
   })
 })
+
+describe('sound hint default timers (motion-ui-ergonomics R6.2)', () => {
+  it('call the globals unbound (browsers throw Illegal invocation otherwise)', () => {
+    const realSet = globalThis.setTimeout, realClear = globalThis.clearTimeout
+    const thisSeen: unknown[] = []
+    const strict = (fn: (...a: never[]) => unknown) =>
+      function (this: unknown, ...a: never[]) {
+        thisSeen.push(this)
+        if (this !== undefined && this !== globalThis) throw new TypeError('Illegal invocation')
+        return fn(...a)
+      }
+    globalThis.setTimeout = strict(realSet as never) as never
+    globalThis.clearTimeout = strict(realClear as never) as never
+    try {
+      const on = createSoundHintController(() => {}, 10)
+      expect(() => { on(true); on(false) }).not.toThrow()
+      expect(thisSeen.length).toBeGreaterThan(0)
+    } finally {
+      globalThis.setTimeout = realSet; globalThis.clearTimeout = realClear
+    }
+  })
+})

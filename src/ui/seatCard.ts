@@ -96,7 +96,7 @@ export class SeatCard<C extends CanvasImageSource> {
   }
 
   private run(a: CardAction | 'open', now: number): void {
-    if (a === 'open') { if (this.session.open()) { this.preview.open(now); this.openedAt = now; this.lock(now) } }
+    if (a === 'open') { if (this.session.open()) { this.preview.open(now); if (this.openedAt === Number.NEGATIVE_INFINITY) this.openedAt = now; this.lock(now) } }
     else if (a === 'close') { this.session.close(); this.lock(now) }
     else if (a === 'toggle') this.session.togglePhoto()
     else void this.session.save()

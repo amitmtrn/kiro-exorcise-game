@@ -2,7 +2,8 @@
 
 sweep: a hand-sized blob sweeps left<->right through the vertical centre band
        (crosses the enemies' path toward the screen centre).
-wave:  a hand-sized blob hovers over the 1 PLAYER motion button (raised-hand zone, screen left = raw right) and wiggles.
+wave:  a hand-sized blob hovers over the 1 PLAYER motion button (raised-hand zone, screen left = raw right) and wiggles
+       in 2 s bursts with 1 s gaps: the start screen's release latch (R2.5) needs the hand to leave once.
 Background has static texture + per-frame sensor noise (sigma 2) so the
 auto-calibration sees realistic noise. Hand luminance 170 vs bg 128 (diff 42):
 detectable at the calibrated threshold (15-30) but not at the 60 clamp.
@@ -22,7 +23,8 @@ with open(out, 'wb') as f:
     for i in range(FPS * SECS):
         t = i / FPS
         y = 128 + tex + rng.normal(0, 2, (H, W)).astype(np.int16)
-        if t >= 4.0:
+        present = t >= 4.0 and (mode == 'sweep' or (t - 4.0) % 3.0 < 2.0)
+        if present:
             if mode == 'sweep':
                 period = 1.5
                 ph = ((t - 4.0) % period) / period

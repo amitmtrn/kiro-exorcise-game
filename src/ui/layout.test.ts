@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { soundHintFontPx, buttonLayout, areaButtons, fitFontPx, previewCardRect, soundHintRect, SCREENS_2P } from './layout'
+import { soundHintFontPx, buttonLayout, areaButtons, fitFontPx, previewCardRect, soundHintRect, SCREENS_2P, muteRectOf, muteRectFor } from './layout'
+import { muteButtonRect2P, hudFontSize } from './muteRect'
 
 const ids = (s: Parameters<typeof buttonLayout>[0], W = 1280, H = 720) => buttonLayout(s, W, H).map((b) => b.id)
 
@@ -65,5 +66,13 @@ describe('helpers', () => {
     const h = soundHintRect(1280, 720)
     expect(h.y).toBeLessThan(20)
     expect(h.x + h.w / 2).toBeCloseTo(640)
+  })
+})
+
+describe('muteRectFor on odd widths (motion-ui-ergonomics R3)', () => {
+  it('2P rect equals the drawn full-width rect when W is odd', () => {
+    const W = 1281
+    expect(muteRectOf('summary2p', W)).toEqual(muteButtonRect2P(W, hudFontSize(W)))
+    expect(muteRectFor(Math.floor(W / 2), true, W)).toEqual(muteButtonRect2P(W, hudFontSize(W)))
   })
 })

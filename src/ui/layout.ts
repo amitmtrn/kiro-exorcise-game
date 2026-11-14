@@ -73,9 +73,10 @@ export function buttonRadius(aw: number, H: number, half: boolean): number {
 }
 
 /** The mute button rect that applies to an area (1P: top-right; 2P: top centre of the full canvas). */
-export function muteRectFor(aw: number, half: boolean): Rect {
+export function muteRectFor(aw: number, half: boolean, W: number = aw * 2): Rect {
+  // `W` is the full canvas width: on odd widths 2·floor(W/2) is one pixel off the drawn button
   return half
-    ? muteButtonRect2P(aw * 2, hudFontSize(aw * 2))
+    ? muteButtonRect2P(W, hudFontSize(W))
     : muteButtonRect(aw, hudFontSize(aw))
 }
 
@@ -182,7 +183,7 @@ export function textRects(screen: ScreenId, W: number, H: number): Rect[] {
 
 /** Mute button rect that is on screen for `screen` (full-canvas coordinates). */
 export function muteRectOf(screen: ScreenId, W: number): Rect {
-  return SCREENS_2P.includes(screen) ? muteRectFor(halfWidth(W), true) : muteRectFor(W, false)
+  return SCREENS_2P.includes(screen) ? muteRectFor(halfWidth(W), true, W) : muteRectFor(W, false)
 }
 
 /** Placement of the sound-unlock hint pill: top centre, ≤ 56 % wide (main.ts applies it as inline style). */

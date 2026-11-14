@@ -130,7 +130,8 @@ each half**. The action fires when **either** player completes it deliberately
 hostage; sway alone cannot press a raised edge button.
 
 **R4.3** An open card preview does not lock the other player out indefinitely: it
-blocks the other half's shared buttons for at most **20 s** after it opened; its
+blocks the other half's shared buttons for at most **20 s** after it first opened
+during one end-screen visit (closing and reopening does not renew the lease); its
 own half's shared buttons are inactive while that half's preview is open.
 
 **R4.4** At 640×480 the circles of a half are ≥ one radius apart and the
@@ -152,9 +153,11 @@ ratios in that range). Text of the menu screens is fitted to the central 60 %.
 **R6.1** The sound hint is at the top centre (1.5 % from the top, at most 56 % of
 the width) and does not intersect any motion button, the mute button or the
 2P mute button. The hint's font size comes from the same model (`soundHintFontPx`
-of the viewport width).
+of the game canvas width; the canvas and the `#ui` overlay both fill the viewport,
+so the % placement and the canvas-pixel model agree).
 
-**R6.2** The hint hides itself 8 s after it is shown, so a webcam-only player
+**R6.2** The hint controller calls the browser timer globals unbound (no
+`Illegal invocation`), so showing the hint can never abort start-up. The hint hides itself 8 s after it is shown, so a webcam-only player
 (who never clicks) does not keep it over the stage label during play.
 
 ## R7 — Onboarding

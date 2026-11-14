@@ -99,7 +99,8 @@ last), calls `suppress()` (progress 0, latch) on every other button (R2.7).
   coordinates (drawn translated by the half offset). Order for resolution: PLAY AGAIN
   (P1, P2) before MAIN MENU (P1, P2). A half's shared buttons are live when its own
   preview is closed and not recently changed, and the other half's preview has not
-  been open longer than `PREVIEW_LOCK_MAX_MS` (20 s). **Chosen rule: either player's
+  been open longer than `PREVIEW_LOCK_MAX_MS` (20 s), counted from its first opening in this
+  end-screen visit (`reset()` on entry starts a new lease; reopening does not). **Chosen rule: either player's
   deliberate dwell fires the shared action** (documented in README).
 * **Loop** (`loop.ts`): calls `resetGameOverScreen()` on entering game over;
   passes per-half motion sources and live flags to the 2P end screen.
@@ -129,10 +130,21 @@ the head/shoulders (inside the text band).
 * 2P shared decisions: either player's deliberate dwell fires the action (not both). Rationale: a player who
   walked away cannot hold the other hostage, and sway cannot reach a raised edge button with 12 % coverage and
   a 650 ms dwell. MAIN MENU needs 1000 ms.
-* Motion harness `wave` mode now hovers over the 1 PLAYER zone (mirrored raw x = 88 %, y = 17 %).
+* Motion harness `wave` mode now hovers over the 1 PLAYER zone (mirrored raw x = 88 %, y = 17 %), in 2 s bursts
+  with 1 s gaps so the start screen's release latch (R2.5) sees the hand leave; `drive.mjs` clicks the onboarding Skip.
 
 ## Review fixes (T7)
 
 - `sharedButtonsLive(cards, now)` (`seatCard.ts`) is computed after both cards rendered, so an offer
   that opens this frame holds its half's PLAY AGAIN / MAIN MENU (R2.7); `loop.ts` uses it.
-- `main.ts` sets the hint font from `soundHintFontPx(window.innerWidth)` and hides the hint after `SOUND_HINT_MS` (8 s).
+- `main.ts` sets the hint font from `soundHintFontPx(gameCanvas.width)` and hides the hint after `SOUND_HINT_MS` (8 s).
+
+## Review fixes (T10)
+
+- `createSoundHintController` defaults to arrow wrappers around `setTimeout` / `clearTimeout`; a test
+  replaces the globals with `this`-checking versions that throw like a browser does.
+- `SeatCard.openedAt` is set only on the first open after `reset()`, so the R4.3 lease is per end-screen visit.
+- `muteRectFor(aw, half, W = 2·aw)` takes the full canvas width; `muteRectOf` passes `W`, so the 2P rect equals
+  the drawn `muteButtonRect2P(W, …)` on odd widths.
+- `renderSummary` clears `summarySet` when `summaryShownMs` drops (a new summary visit), like the other screens.
+- The hint font uses the canvas width, the same input as `soundHintRect`.

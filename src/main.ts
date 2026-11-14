@@ -42,7 +42,7 @@ soundHint.textContent = '🔊 Click or press any key to enable sound'
 soundHint.style.top = `${SOUND_HINT.topFrac * 100}%`
 soundHint.style.maxWidth = `${SOUND_HINT.maxWidthFrac * 100}%`
 soundHint.hidden = true
-const placeSoundHint = () => { soundHint.style.fontSize = `${soundHintFontPx(window.innerWidth)}px` }
+const placeSoundHint = () => { soundHint.style.fontSize = `${soundHintFontPx(gameCanvas.width)}px` }
 placeSoundHint()
 window.addEventListener('resize', placeSoundHint)
 document.getElementById('ui')!.appendChild(soundHint)

@@ -2,7 +2,11 @@
 export function createSoundHintController(
   setHidden: (hidden: boolean) => void,
   ms: number,
-  timers: { set: typeof setTimeout; clear: typeof clearTimeout } = { set: setTimeout, clear: clearTimeout },
+  timers: { set: typeof setTimeout; clear: typeof clearTimeout } = {
+    // arrow wrappers: browsers throw 'Illegal invocation' when a global is called with another `this`
+    set: (f, ms) => setTimeout(f, ms),
+    clear: (t) => clearTimeout(t),
+  },
 ): (locked: boolean) => void {
   let timer: ReturnType<typeof setTimeout> | undefined
   return (locked) => {

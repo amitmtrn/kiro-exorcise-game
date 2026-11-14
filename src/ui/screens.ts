@@ -21,6 +21,7 @@ import { offerButton, endButtonsLive, registerEndButtonReset } from './cardScree
 
 const startSet = new ButtonSet()
 const summarySet = new ButtonSet()
+let lastSummaryMs = Number.POSITIVE_INFINITY // summaryShownMs only grows within a visit; a drop means re-entry
 const gameOverSet = new ButtonSet()
 const victorySet = new ButtonSet()
 
@@ -201,6 +202,8 @@ export function renderSummary(
   ctx.globalAlpha = 1 // the NEXT button is never faded (it ignores motion for the entry lockout only)
 
   // Next button: raised-hand zone, entry lockout with release latch (summaryShownMs is deltaMs-based)
+  if (state.summaryShownMs < lastSummaryMs) summarySet.clear() // fresh buttons on entry, like the other screens
+  lastSummaryMs = state.summaryShownMs
   const [nextBtn] = summarySet.sync(buttonLayout('summary', W, H))
   const won = updateExclusive([nextBtn], now, state.summaryShownMs >= ENTRY_LOCK_MS)
   nextBtn.render(ctx, now)

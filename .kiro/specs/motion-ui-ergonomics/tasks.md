@@ -88,3 +88,15 @@ Files: `src/ui/motionButton.ts`, `src/ui/onboarding.ts`, `src/ui/soundHint.ts`, 
 - Skipped: harness re-run (needs the harness runtime, no camera here); reopen lease reset (R4.3 met, griefing only); hint timer start (intended, T5); 1P `summarySet` clear and extra mute-rect drop (harmless, no gameplay effect).
 - [x] `npm test` and `npm run build` both clean.
 - [x] Commit: `fix(motion-ui-ergonomics): label fit, caption position, hint timer test, docs`
+
+## T10 — Fourth review fixes
+Files: `src/ui/soundHint.ts`, `src/ui/seatCard.ts`, `src/ui/layout.ts`, `src/ui/screens.ts`, `src/ui/hud.ts`, `src/main.ts`, `tools/motion-harness/drive.mjs`, `tools/motion-harness/make_y4m.py`, tests, spec docs, `README.md`
+
+- [x] BLOCKER: sound-hint default timers called unbound (browser `Illegal invocation` aborted `main.ts`); test with `this`-checking timer globals (R6.2).
+- [x] Harness re-run: `wave` starts the game with no keypress (`firstPlayAtMs` ≈ 5.2 s); `sweep` has 16 hits and saves a score of 4500. The wave video now has gaps for the R2.5 release latch, and the driver skips onboarding.
+- [x] R4.3 lease per end-screen visit (reopening does not renew it); test.
+- [x] Hint font from the canvas width (R6.1 model and placement agree).
+- [x] `muteRectFor` uses the full canvas width (no odd-width off-by-one); test.
+- [x] 1P summary buttons cleared on entry; stray blank line in `hud.ts`; README test count.
+- [x] `npm test` and `npm run build` both clean.
+- [x] Commit: `fix(motion-ui-ergonomics): unbound hint timers, harness re-run, lease per visit, layout NITs`
