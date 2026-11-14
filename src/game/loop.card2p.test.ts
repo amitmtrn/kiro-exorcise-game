@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 
 const h = vi.hoisted(() => ({
   now: 0,
+  seq: 0,
   points: [] as Array<{ x: number; y: number }>,
   winner: null as null | 0 | 1 | 'tie',
   finalCalls: 0,
@@ -23,6 +24,8 @@ vi.mock('../webcam/diff', () => ({
 vi.mock('./collision', () => ({
   updateMotionPixels: vi.fn(), resolveHits: (st: unknown) => st, lastBanished: [],
   get lastMotionPixels() { return h.points },
+  get motionFrameSeq() { return h.seq },
+  motionCell: { w: 4, h: 4 },
 }))
 vi.mock('./render', () => ({ renderFrame: (_c: unknown, s: { phase: string }) => { h.phases.push(s.phase) } }))
 vi.mock('../ui/hud', () => ({
@@ -80,10 +83,17 @@ const ctx = () => makeCanvas(W, H).getContext() as CanvasRenderingContext2D
 
 let rafQueue: Array<(ts: number) => void> = []
 let ts = 0
-function step(ms = 100): void { ts += ms; h.now = ts; const q = rafQueue; rafQueue = []; q.forEach((f) => f(ts)) }
+function step(ms = 100): void { ts += ms; h.seq++; h.now = ts; const q = rafQueue; rafQueue = []; q.forEach((f) => f(ts)) }
 function stepFor(ms: number, every = 50): void { for (let t = 0; t < ms; t += every) step(every) }
 const flush = async () => { for (let i = 0; i < 5; i++) await Promise.resolve() }
-const ring = (cx: number, cy: number, r = 14) => Array.from({ length: 8 }, (_, i) => ({ x: cx + Math.cos(i) * r, y: cy + Math.sin(i) * r }))
+/** A hand-sized blob of grid points (4 px cells) over the button. */
+const ring = (cx: number, cy: number, r = 30) => {
+  const out: Array<{ x: number; y: number }> = []
+  for (let y = cy - r; y <= cy + r; y += 4) for (let x = cx - r; x <= cx + r; x += 4) {
+    if ((x - cx) ** 2 + (y - cy) ** 2 <= r * r) out.push({ x, y })
+  }
+  return out
+}
 
 const spies = {
   fetch: vi.fn(), xhr: vi.fn(), beacon: vi.fn(), ws: vi.fn(), setItem: vi.fn(), idb: vi.fn(),
@@ -202,7 +212,7 @@ describe('2P end screen cards (two-player-card)', () => {
     handleSeatCardPointer(offer.cx, offer.cy); step()
     stepFor(1000)
     const calls = h.finalCalls
-    h.points = ring(0.35 * W, 0.7 * H, 20) // wave on PLAY AGAIN (in P1's covered half)
+    h.points = ring(0.35 * W, 0.7 * H, 66) // wave on PLAY AGAIN (in P1's covered half)
     stepFor(2500)
     expect(h.finalCalls).toBeGreaterThan(calls) // still on the end screen
     expect(h.phases[h.phases.length - 1]).not.toBe('stageTitle')
@@ -212,7 +222,7 @@ describe('2P end screen cards (two-player-card)', () => {
     handleSeatCardPointer(close.cx, close.cy); step()
     stepFor(1500)
     const before = h.released
-    h.points = ring(0.35 * W, 0.7 * H, 20)
+    h.points = ring(0.35 * W, 0.7 * H, 66)
     stepFor(2500)
     h.points = []
     expect(h.phases.slice(-2)).toEqual(['stageTitle', 'stageTitle'])
@@ -223,7 +233,7 @@ describe('2P end screen cards (two-player-card)', () => {
   it('MAIN MENU discards the snapshots and a new 2P game starts without old cards', async () => {
     await toFinal()
     const before = h.released
-    h.points = ring(0.65 * W, 0.7 * H, 20)
+    h.points = ring(0.65 * W, 0.7 * H, 66)
     stepFor(2500)
     h.points = []
     expect(h.released - before).toBeGreaterThanOrEqual(2)

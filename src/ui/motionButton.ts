@@ -4,104 +4,143 @@
  * display space, published every tick) to detect motion inside the circle.
  */
 
-import { lastMotionPixels } from '../game/collision'
+import { lastMotionPixels, motionFrameSeq, motionCell } from '../game/collision'
 
 /** Where a button reads its motion points (display space of its own canvas). */
 export type PointSource = () => ReadonlyArray<{ x: number; y: number }>
 
-export const FILL_DURATION_MS = 800 // time to hold motion before triggering
-/** Sampled motion pixels that must fall inside the circle; filters sensor noise. */
+/** Accumulated on-target time that presses a normal button (motion-ui-ergonomics R2.1). */
+export const DWELL_MS = 650
+/** Longer dwell for destructive / side-effect buttons: SAVE, MENU (R3.1). */
+export const DESTRUCTIVE_DWELL_MS = 1000
+/** Kept for older callers: the normal dwell. */
+export const FILL_DURATION_MS = DWELL_MS
+/** Fraction of the circle's area the moved samples must cover for a frame to count (R2.2). */
+export const MIN_COVERAGE = 0.12
+/** Absolute floor of moved samples inside the circle, whatever the circle size. */
 export const MIN_MOTION_PIXELS = 3
-/**
- * A waving hand reverses direction a few times a second and is momentarily
- * still at each turn, so frame differencing sees a frame or two of no motion.
- * Keep filling through gaps shorter than this instead of resetting.
- */
-export const IDLE_GRACE_MS = 150
+/** A waving hand is still for a moment at each reversal: no drain for this long (R2.3). */
+export const REVERSAL_GRACE_MS = 100
+/** Off-target drain speed relative to the fill speed (> 1: sway never accumulates). */
+export const DECAY_RATE = 1.5
+/** Time credited between two real camera frames is capped (a stalled camera cannot fill a button). */
+export const MAX_FRAME_GAP_MS = 120
+/** After a trigger the circle must be still this long before it can fill again (one wave = one action). */
+export const RELEASE_STILL_MS = 150
+/** Every screen ignores motion this long after it is entered (R2.5). */
+export const ENTRY_LOCK_MS = 1200
+
+export type ButtonStatus = 'idle' | 'filling' | 'triggered'
 
 export class MotionButton {
   cx: number
   cy: number
   radius: number
   label: string
-  private fillStartTime = 0
-  private filling = false
-  private lastMotionAt = Number.NEGATIVE_INFINITY
-  /** After a trigger (or `hold`) the button ignores motion until it has left the circle. */
+  /** On-target time accumulated so far, 0 … dwellMs. */
+  private progress = 0
+  private lastEvalAt = Number.NEGATIVE_INFINITY
+  private lastActiveAt = Number.NEGATIVE_INFINITY
+  private wasActive = false
+  private lastSeq = motionFrameSeq
+  /** After a trigger (or while not live) the button ignores motion until it has left the circle. */
   private awaitRelease = false
+  readonly dwellMs: number
 
   /**
-   * Optional point source. Default: the whole-frame mask. A two-player card button reads
+   * Optional point source. Default: the whole-frame mask. A two-player button reads
    * only the points of its own half (two-player-card R1.3).
    */
   private source: PointSource | null
 
-  constructor(cx: number, cy: number, radius: number, label: string, source: PointSource | null = null) {
+  constructor(
+    cx: number, cy: number, radius: number, label: string,
+    source: PointSource | null = null, dwellMs: number = DWELL_MS,
+  ) {
     this.source = source
     this.cx = cx
     this.cy = cy
     this.radius = radius
     this.label = label
+    this.dwellMs = dwellMs
   }
 
-  /** Call each frame. Returns 'triggered' when fully filled. */
-  update(now: number): 'idle' | 'filling' | 'triggered' {
+  /** True when the moved samples cover enough of the circle (R2.2). */
+  private covered(): boolean {
+    const cellArea = Math.max(1e-6, motionCell.w * motionCell.h)
+    const need = Math.max(MIN_MOTION_PIXELS, Math.ceil((MIN_COVERAGE * Math.PI * this.radius * this.radius) / cellArea))
     let inside = 0
     const r2 = this.radius * this.radius
     for (const mp of this.source ? this.source() : lastMotionPixels) {
       const dx = mp.x - this.cx
       const dy = mp.y - this.cy
-      if (dx * dx + dy * dy < r2 && ++inside >= MIN_MOTION_PIXELS) break
+      if (dx * dx + dy * dy < r2 && ++inside >= need) return true
     }
-    const motionInside = inside >= MIN_MOTION_PIXELS
-    if (motionInside) this.lastMotionAt = now
+    return false
+  }
+
+  /**
+   * Call each tick. Only a real new camera frame changes anything; a duplicate frame
+   * returns the previous status (R2.4). 'triggered' is returned once per wave.
+   */
+  update(now: number): ButtonStatus {
+    const seq = motionFrameSeq
+    if (seq === this.lastSeq) return this.progress > 0 && !this.awaitRelease ? 'filling' : 'idle'
+    this.lastSeq = seq
+    const dt = Number.isFinite(this.lastEvalAt) ? Math.max(0, Math.min(MAX_FRAME_GAP_MS, now - this.lastEvalAt)) : 0
+    this.lastEvalAt = now
+    const active = this.covered()
+    const wasActive = this.wasActive
+    this.wasActive = active
+    if (active) this.lastActiveAt = now
+
     if (this.awaitRelease) {
-      if (motionInside || now - this.lastMotionAt <= IDLE_GRACE_MS) {
-        this.filling = false
-        return 'idle'
-      }
+      if (active || now - this.lastActiveAt <= RELEASE_STILL_MS) { this.progress = 0; return 'idle' }
       this.awaitRelease = false
     }
-    const active = motionInside || (this.filling && now - this.lastMotionAt <= IDLE_GRACE_MS)
 
     if (active) {
-      if (!this.filling) {
-        this.filling = true
-        this.fillStartTime = now
-      }
-      const elapsed = now - this.fillStartTime
-      if (elapsed >= FILL_DURATION_MS) {
-        this.filling = false
+      if (wasActive || this.progress > 0) this.progress += dt // the first active frame only starts the clock
+      if (this.progress >= this.dwellMs) {
+        this.progress = 0
         this.awaitRelease = true // one wave = one trigger (exorcist-card R1.2)
         return 'triggered'
       }
-      return 'filling'
-    } else {
-      this.filling = false
-      return 'idle'
+    } else if (now - this.lastActiveAt > REVERSAL_GRACE_MS) {
+      this.progress = Math.max(0, this.progress - dt * DECAY_RATE)
     }
+    return this.progress > 0 ? 'filling' : 'idle'
   }
 
   /** Like `update`, but while `live` is false motion is ignored and must leave the circle first. */
-  updateGated(now: number, live: boolean): 'idle' | 'filling' | 'triggered' {
-    if (!live) this.awaitRelease = true
+  updateGated(now: number, live: boolean): ButtonStatus {
+    if (!live) { this.awaitRelease = true; this.progress = 0 }
     return this.update(now)
+  }
+
+  /** Drops the fill and requires the hand to leave (another button won this frame). */
+  suppress(): void {
+    this.progress = 0
+    this.awaitRelease = true
   }
 
   /** Forgets any partial fill (screen changed under the button). */
   reset(): void {
-    this.filling = false
+    this.progress = 0
     this.awaitRelease = false
-    this.lastMotionAt = Number.NEGATIVE_INFINITY
+    this.wasActive = false
+    this.lastEvalAt = Number.NEGATIVE_INFINITY
+    this.lastActiveAt = Number.NEGATIVE_INFINITY
+    this.lastSeq = motionFrameSeq
   }
 
-  fillProgress(now: number): number {
-    if (!this.filling) return 0
-    return Math.min(1, (now - this.fillStartTime) / FILL_DURATION_MS)
+  fillProgress(_now?: number): number {
+    return Math.min(1, this.progress / this.dwellMs)
   }
 
   render(ctx: CanvasRenderingContext2D, now: number): void {
     const progress = this.fillProgress(now)
+    const destructive = this.dwellMs > DWELL_MS
 
     ctx.save()
 
@@ -124,6 +163,20 @@ export class MotionButton {
       ctx.fill()
     }
 
+    // Progress ring: always visible as a faint track, bright while filling
+    ctx.beginPath()
+    ctx.arc(this.cx, this.cy, this.radius + 6, 0, Math.PI * 2)
+    ctx.strokeStyle = 'rgba(255, 209, 102, 0.25)'
+    ctx.lineWidth = 4
+    ctx.stroke()
+    if (progress > 0) {
+      ctx.beginPath()
+      ctx.arc(this.cx, this.cy, this.radius + 6, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * progress)
+      ctx.strokeStyle = destructive ? '#c0392b' : '#39ff14'
+      ctx.lineWidth = 6
+      ctx.stroke()
+    }
+
     // Label
     ctx.fillStyle = '#ffd166'
     ctx.font = `bold ${Math.max(11, Math.round(this.radius * 0.28))}px sans-serif`
@@ -137,4 +190,37 @@ export class MotionButton {
 
     ctx.restore()
   }
+}
+
+/**
+ * Entry lockout shared by every screen (R2.5): not live until ENTRY_LOCK_MS after the
+ * first `touch` since `reset()`. Screens pass the result to `updateGated`, which also arms the
+ * release latch, so a wave that continues past the lockout must leave the circle first.
+ */
+export class EntryLock {
+  private enteredAt: number | null = null
+  reset(): void { this.enteredAt = null }
+  /** Call every rendered frame; true when buttons may read motion. */
+  touch(now: number): boolean {
+    if (this.enteredAt === null) this.enteredAt = now
+    return now - this.enteredAt >= ENTRY_LOCK_MS
+  }
+}
+
+/**
+ * Updates a group of buttons and resolves at most one action per frame (R2.7). Order = priority:
+ * safe actions first, destructive last. The winner is the index of the first button that
+ * triggered; every other button is suppressed (progress dropped, latch armed).
+ * `lives` is one flag for all buttons or one per button. Returns -1 when none triggered.
+ */
+export function updateExclusive(
+  buttons: readonly MotionButton[], now: number, lives: boolean | readonly boolean[],
+): number {
+  let winner = -1
+  buttons.forEach((b, i) => {
+    const live = typeof lives === 'boolean' ? lives : lives[i]
+    if (b.updateGated(now, live) === 'triggered' && winner < 0) winner = i
+  })
+  if (winner >= 0) buttons.forEach((b, i) => { if (i !== winner) b.suppress() })
+  return winner
 }

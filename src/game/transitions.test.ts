@@ -174,10 +174,10 @@ describe('renderSummary animation', () => {
     const { lastMotionPixels, updateMotionPixels } = await import('../game/collision')
     void lastMotionPixels
     // a dense blob of motion over the NEXT button position (W/2, 0.84 H)
-    const points = Array.from({ length: 40 }, (_, i) => ({ x: 160 + (i % 8), y: 150 + Math.floor(i / 8) }))
-    updateMotionPixels({ points, sampled: 40, moved: 40, changed: true }, 1000, 600)
+    const points = Array.from({ length: 4000 }, (_, i) => ({ x: 130 + (i % 60) * 2, y: 120 + Math.floor(i / 60) * 2 }))
     let triggered = false
-    for (let t = 0; t <= 1000 && !triggered; t += 100) {
+    for (let t = 0; t <= 6000 && !triggered; t += 33) {
+      updateMotionPixels({ points, sampled: 4000, moved: 4000, changed: true }, 1000, 600)
       const { ctx } = recordingCtx()
       renderSummary(ctx, summaryState(100), t, () => { triggered = true })
     }

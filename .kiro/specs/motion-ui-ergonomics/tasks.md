@@ -12,12 +12,12 @@ Files: `src/ui/layout.ts`, `src/ui/layout.test.ts`, `src/ui/layout.property.test
 ## T2 — Activation model
 Files: `src/game/collision.ts`, `src/ui/motionButton.ts`, `src/ui/motionButton.test.ts`, `src/ui/motionButton.property.test.ts`
 
-- [ ] `collision.ts`: `motionFrameSeq` (bumped on a new camera frame) and `motionCell` (grid cell size in canvas px).
-- [ ] `MotionButton`: coverage threshold, 650 ms dwell (1000 ms destructive), ring, decay with reversal grace, stale-frame hold, release latch, `suppress()`.
-- [ ] `EntryLock` (1200 ms) and `updateExclusive` (one action per frame).
-- [ ] Unit + property tests: single frame / sub-dwell burst / sway never fires, noise below coverage never fires, stale frames never fill, latch after trigger and lockout, exclusive resolution.
-- [ ] `npm test` and `npm run build` both clean.
-- [ ] Commit: `feat(motion-ui-ergonomics-T2): coverage-based dwell activation with decay, latch and exclusive resolution`
+- [x] `collision.ts`: `motionFrameSeq` (bumped on a new camera frame) and `motionCell` (grid cell size in canvas px).
+- [x] `MotionButton`: coverage threshold, 650 ms dwell (1000 ms destructive), ring, decay with reversal grace, stale-frame hold, release latch, `suppress()`.
+- [x] `EntryLock` (1200 ms) and `updateExclusive` (one action per frame).
+- [x] Unit + property tests: single frame / sub-dwell burst / sway never fires, noise below coverage never fires, stale frames never fill, latch after trigger and lockout, exclusive resolution.
+- [x] `npm test` and `npm run build` both clean.
+- [x] Commit: `feat(motion-ui-ergonomics-T2): coverage-based dwell activation with decay, latch and exclusive resolution`
 
 ## T3 — 1P screens use the layout
 Files: `src/ui/screens.ts`, `src/ui/cardScreen.ts`, `src/game/loop.ts`, tests

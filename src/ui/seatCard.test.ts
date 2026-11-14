@@ -6,6 +6,7 @@ import { previewLayout, PREVIEW_INPUT_DELAY_MS } from './cardScreen'
 import { displayPointsInHalf, halfWidth } from '../game/halves'
 import type { Seat } from '../game/halves'
 import { FILL_DURATION_MS } from './motionButton'
+import { updateMotionPixels } from '../game/collision'
 
 type Pt = { x: number; y: number }
 
@@ -35,13 +36,21 @@ function fakeSession(opts: { open?: boolean } = {}) {
 }
 
 const HW = 640, H = 720, W = 1280
-const ring = (cx: number, cy: number, r: number): Pt[] =>
-  Array.from({ length: 8 }, (_, i) => ({ x: cx + Math.cos(i) * r * 0.3, y: cy + Math.sin(i) * r * 0.3 }))
+/** A hand-sized blob: grid points (4 px cells) covering most of the circle. */
+const ring = (cx: number, cy: number, r: number): Pt[] => {
+  const out: Pt[] = []
+  for (let y = cy - r * 0.9; y <= cy + r * 0.9; y += 4) for (let x = cx - r * 0.9; x <= cx + r * 0.9; x += 4) {
+    if ((x - cx) ** 2 + (y - cy) ** 2 <= (r * 0.9) ** 2) out.push({ x, y })
+  }
+  return out
+}
+/** Publishes a new camera frame (buttons only evaluate on new frames). */
+const newFrame = () => updateMotionPixels({ points: [], sampled: 1, moved: 0, changed: true }, 320, 180)
 
 /** Runs `frames` frames of 50 ms from `t0`, returns the last `now`. */
 function run(card: SeatCard<CanvasImageSource>, ctx: CanvasRenderingContext2D, t0: number, ms: number): number {
   let now = t0
-  for (; now <= t0 + ms; now += 50) card.render(ctx, now, true)
+  for (; now <= t0 + ms; now += 33) { newFrame(); card.render(ctx, now, true) }
   return now
 }
 
@@ -209,7 +218,7 @@ describe('per-half routing (two-player-card R1.3) — property', () => {
     const ca = new SeatCard(0, a, () => displayPointsInHalf(pts, 0, W))
     const cb = new SeatCard(1, b, () => displayPointsInHalf(pts, 1, W))
     const ctx = fakeCtx(HW, H)
-    for (let now = 0; now < FILL_DURATION_MS + 400; now += 50) { ca.render(ctx, now, true); cb.render(ctx, now, true) }
+    for (let now = 0; now < FILL_DURATION_MS + 400; now += 33) { newFrame(); ca.render(ctx, now, true); cb.render(ctx, now, true) }
     expect(a.calls.open).toBe(0)
     expect(b.calls.open).toBe(1)
     expect(cb.isOpen && !ca.isOpen).toBe(true) // independent state

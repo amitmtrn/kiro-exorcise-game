@@ -25,7 +25,7 @@ vi.mock('../webcam/diff', () => ({
   calibrateDiffThreshold: () => h.calibrate(),
   computeMotionMask: () => ({ changed: false }),
 }))
-vi.mock('./collision', () => ({ updateMotionPixels: vi.fn(), resolveHits: (st: unknown) => st, lastBanished: [], lastMotionPixels: [] }))
+vi.mock('./collision', () => ({ updateMotionPixels: vi.fn(), resolveHits: (st: unknown) => st, lastBanished: [], lastMotionPixels: [], motionFrameSeq: 0, motionCell: { w: 4, h: 4 } }))
 vi.mock('./render', () => ({ renderFrame: (_c: unknown, s: { phase: string }) => { h.phases.push(s.phase) } }))
 vi.mock('../ui/hud', () => ({
   renderHUD: vi.fn(), hudFontSize: () => 16, HUD_FONT_FAMILY: 'x',
