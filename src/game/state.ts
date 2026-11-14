@@ -121,7 +121,7 @@ export interface GameState {
   spawnTimers: SpawnTimers
   flashEndTime: number
   // Stage tracking
-  stage: number           // 1–5
+  stage: number           // 1–6
   stageTitleMs: number    // countdown for title card (3 s)
   streak: number          // consecutive banishes since the last reset
   combo: number           // score multiplier derived from streak (x1–x4)
