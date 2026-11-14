@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import fc from 'fast-check'
-import { spawnVariant, skullClearancePx } from './variantSpawn'
+import { spawnVariant, spawnVariantAt, skullClearancePx } from './variantSpawn'
 import { mulberry32 } from '../../test/prng'
 import { travelMs, MIN_TRAVEL_MS, MAX_WAIT_MS, MIN_WINDOW_MS } from './variants'
 import { halfWidth } from '../halves'
@@ -29,5 +29,21 @@ describe('spawn rules', () => {
       }
       if (k === 'wisp') expect(made[0].pairId).toBe(made[1].pairId)
     }), { numRuns: 300 })
+  })
+})
+
+describe('king-summoned wisp pairs (R1.10)', () => {
+  it('both wisps stay inside the area or half for any boss x', () => {
+    fc.assert(fc.property(size, fc.boolean(), fc.double({ min: -0.2, max: 1.2, noNaN: true }), fc.double({ min: 0, max: 1, noNaN: true }), fc.integer({ min: 1, max: 2 ** 30 }), ({ W, H }, half, fx, fy, seed) => {
+      const aw = half ? halfWidth(W) : W
+      const made = spawnVariantAt('wisp', fx * aw, fy * H, aw, H, mulberry32(seed))
+      expect(made).toHaveLength(2)
+      for (const e of made) { expect(e.x).toBeGreaterThanOrEqual(0); expect(e.x).toBeLessThanOrEqual(aw) }
+    }), { numRuns: 300 })
+  })
+  it('stacks vertically when the area is narrower than a pair', () => {
+    const made = spawnVariantAt('wisp', 20, 100, 60, 360, mulberry32(1))
+    expect(made[0].x).toBe(made[1].x)
+    expect(made[0].y).not.toBe(made[1].y)
   })
 })

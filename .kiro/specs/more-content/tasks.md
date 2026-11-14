@@ -124,3 +124,11 @@
 - [x] `GameState.bossActive` comment corrected.
 - [x] Demo seed 5 re-checked at the five window sizes and speeds 1–3; sim tests pass.
 - [x] `npm test` and `npm run build` both clean after each fix.
+
+## T15 — Review fixes (round 4)
+- [x] R1.10: king-summoned wisp pairs stay inside the area or half (midpoint clamped, vertical stack when too narrow); property test at full and half widths.
+- [ ] Tasks T3 names `variantPulseHz()`.
+- [ ] `endTableBox` comment matches the callers (0.58 / 0.65).
+- [ ] Name picker cursor follows the last typed letter beyond 3 characters; test added.
+- [ ] R8.4: legacy score migration accepts digits only; test added.
+- [ ] `npm test` and `npm run build` both clean after each fix; demo seed 5 sims pass.

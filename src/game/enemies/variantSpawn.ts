@@ -83,6 +83,15 @@ export function spawnVariant(kind: VariantType, W: number, H: number, skulls: re
   return [kind === 'mirror' ? createMirror(p, W, H, rand) : createBlink(p, W, H, rand)]
 }
 
+/** Keep a king-summoned wisp pair inside [0, W] (R1.10): clamp the midpoint, or stack the pair when it cannot fit. */
+function createKingWispPair(p: Pt, W: number, H: number, rand: Rand): Enemy[] {
+  const half = PAIR_GAP_PX / 2
+  if (W >= 2 * half) return createWispPair({ x: Math.min(Math.max(p.x, half), W - half), y: p.y }, W, H, rand)
+  const pairId = tail(rand)
+  const x = Math.min(Math.max(p.x, 0), W)
+  return [make('wisp', { x, y: p.y - half }, W, H, rand, pairId), make('wisp', { x, y: p.y + half }, W, H, rand, pairId)]
+}
+
 /** A minion starts this far beside the boss centre, so it clears the boss sprite even on a small canvas. */
 export const KING_MINION_OFFSET_PX = BOSS_SIZE * 1.1
 
@@ -104,6 +113,6 @@ export function kingSpawnPoint(bx: number, by: number, W: number): Pt {
  */
 export function spawnVariantAt(kind: VariantType, bx: number, by: number, W: number, H: number, rand: Rand = Math.random): Enemy[] {
   const p = kingSpawnPoint(bx, by, W)
-  if (kind === 'wisp') return createWispPair(p, W, H, rand)
+  if (kind === 'wisp') return createKingWispPair(p, W, H, rand)
   return [kind === 'mirror' ? createMirror(p, W, H, rand) : createBlink(p, W, H, rand)]
 }

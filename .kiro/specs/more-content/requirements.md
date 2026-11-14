@@ -84,7 +84,9 @@ table and the name screens).
 
 **R1.10** **1P and 2P.** New ghosts live in a seat's `GameState.enemies`. They
 are spawned, moved, hit and removed by the same code in 1P and in each half; a
-wisp pair never spans the divider (both wisps spawn inside one half).
+wisp pair never spans the divider (both wisps spawn inside one half). This holds
+for king-summoned pairs too: the pair midpoint is clamped so both wisps stay inside
+the area, and the pair stacks vertically when the area is narrower than a pair.
 
 ---
 
