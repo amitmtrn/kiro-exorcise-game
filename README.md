@@ -14,8 +14,8 @@ Ghosts and bats fly in from the dark edges of the screen toward your webcam imag
 - **20 specs** at PR #5 in [`.kiro/specs`](.kiro/specs) (requirements, design, tasks): 805 ticked task checkboxes, 89 commits named after a task (`<type>(<spec>-T<n>)`).
 - **3 steering files** in [`.kiro/steering`](.kiro/steering), **5 hooks** in [`.kiro/hooks`](.kiro/hooks), **1 custom agent** (`balancer`) and **1 local MCP server** (`motion-harness`, stdio only, no network).
 - **1120 tests** at PR #5, 0 failed, 0 skipped; **119 property tests** (`fc.assert`) in 31 files, both at PR #5 (df26f4d). A property found a spawner-cap bug that unit tests had missed (BUG-1), and four more bugs got regression properties.
-- **One PR per feature from #2 on** (#1 bundled the P0/P1 specs): #1 to #7 merged (#6 is demo mode, merge commit 46d9551; #7 is the judge write-up, merge commit 7575a07). Test count by PR: 806, 912, 994, 1045, 1120, 1254, 1291; #8 playtest-polish: 1515; more-content (this branch): 1741.
-- **777.68 Kiro credits** used after the more-content spec and its review fixes (bonus pool of 4000).
+- **One PR per feature from #2 on** (#1 bundled the P0/P1 specs): #1 to #9 merged (#6 is demo mode, merge commit 46d9551; #7 is the judge write-up, merge commit 7575a07; #8 is playtest-polish, merge commit 1156313; #9 is more-content, merge commit f0e1d20). Test count by PR: 806, 912, 994, 1045, 1120, 1254, 1291; #8 playtest-polish: 1515; #9 more-content: 1728; ci-timeout (this branch): 1741.
+- **802.22 Kiro credits** used after the ci-timeout spec (bonus pool of 4000).
 - **Read the full write-up: [docs/KIRO.md](docs/KIRO.md).** Local power: [`.kiro/powers/exorcise-motion-harness`](.kiro/powers/exorcise-motion-harness).
 - **Live demo:** <https://amitmtrn.github.io/kiro-exorcise-game/>
 
