@@ -266,3 +266,31 @@ describe('label fit (motion-ui-ergonomics R5.1)', () => {
     expect(px * 0.6 * 11).toBeLessThanOrEqual(2 * 28 + 6)
   })
 })
+
+describe('updateExclusive: the larger coverage wins (playtest1-fixes R2.2)', () => {
+  const mk = () => [new MotionButton(100, 60, 20, 'A'), new MotionButton(100, 120, 20, 'B')] // 3 radii apart
+  /** A hand centred between them but nearer `near`, big enough to cover 12 %+ of both circles. */
+  const handNear = (near: number) => disc(100, near === 0 ? 76 : 104, 38)
+  function run2(pts: Array<{ x: number; y: number }>) {
+    const [a, b] = mk()
+    const won: number[] = []
+    for (let t = 0; t < 3000; t += FRAME_MS) { frame(pts); won.push(updateExclusive([a, b], t + 1000, true)) }
+    return { won: won.filter((w) => w >= 0), a, b }
+  }
+  it('the clipped neighbour never fires, even when it is first in the list', () => {
+    const [a, b] = mk()
+    expect(a.coverageScore()).toBe(0)
+    frame(handNear(1))
+    expect(a.coverageScore()).toBeGreaterThanOrEqual(1) // both are covered ...
+    expect(b.coverageScore()).toBeGreaterThan(a.coverageScore()) // ... B more
+    expect(run2(handNear(1)).won).toEqual([1])
+    expect(run2(handNear(0)).won).toEqual([0])
+  })
+  it('buttons far apart do not compete (two halves, two hands)', () => {
+    const a = new MotionButton(40, 60, 20, 'A'), b = new MotionButton(280, 60, 20, 'B')
+    const won: number[] = []
+    for (let t = 0; t < 3000; t += FRAME_MS) { frame([...disc(40, 60, 20, 1), ...disc(280, 60, 8, 1)]); won.push(updateExclusive([a, b], t + 1000, true)) }
+    expect(won.filter((w) => w >= 0)).toEqual([0]) // A completes first; B filled alongside it, then was suppressed
+    expect(b.fillProgress()).toBe(0)
+  })
+})

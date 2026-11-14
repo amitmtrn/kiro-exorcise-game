@@ -17,14 +17,14 @@ Files: `src/game/state.ts`, `step.ts`, `collision.ts`, `enemies/bossPhases.ts`, 
 - [x] Commit: `feat(playtest1-fixes-T1): one heart per event, grace, death transition, GAME OVER before the name screen`
 
 ## T2 — Motion buttons: the largest coverage wins; name flow
-Files: `src/ui/motionButton.ts`, `src/game/nameEntry.ts`, `src/ui/nameScreen.ts`, `src/game/loop.ts`
-- [ ] Failing tests first: CLOSE covered with NO PHOTO clipped fires CLOSE; OK covered with ◄ clipped finishes the name; OK after ◄ finishes at once.
-- [ ] `coverageScore`, `update(now, allow)`, `updateExclusive` dominance.
-- [ ] `nameEntry`: in-place `pickStep`, `confirm` = accept, cursor auto-advance; update its unit and property tests.
-- [ ] `nameScreen`: always-visible cursor box, new hint texts (1P and 2P), fits at all sizes.
-- [ ] Regression suite `endButtons.zones.test.ts`: every end-screen button (game over, victory, name, preview; 1P and each 2P half): drawn circle equals the layout zone, a hand arriving from the camera's mirrored side fires exactly once on a full ring.
-- [ ] `npm test` and `npm run build` both clean.
-- [ ] Commit: `fix(playtest1-fixes-T2): strongest coverage wins, OK saves the name, visible letter cursor`
+Files: `src/ui/motionButton.ts`, `src/game/nameEntry.ts`, `src/ui/nameScreen.ts`
+- [x] Failing tests first: CLOSE covered with NO PHOTO clipped fires CLOSE; OK covered with ◄ clipped finishes the name; OK after ◄ finishes at once.
+- [x] `coverageScore`, `update(now, allow)`, `updateExclusive` dominance.
+- [x] `nameEntry`: in-place `pickStep`, `confirm` = accept, cursor auto-advance; update its unit and property tests.
+- [x] `nameScreen`: always-visible cursor box, new hint texts (1P and 2P), fits at all sizes.
+- [x] Regression suite `endButtons.zones.test.ts`: every end-screen button (game over, victory, name, preview; 1P and each 2P half): drawn circle equals the layout zone, a hand arriving from the camera's mirrored side fires exactly once on a full ring.
+- [x] `npm test` and `npm run build` both clean.
+- [x] Commit: `fix(playtest1-fixes-T2): strongest coverage wins, OK saves the name, visible letter cursor`
 
 ## T3 — Card preview geometry
 Files: `src/ui/layout.ts`

@@ -49,13 +49,21 @@ describe('name entry properties', () => {
       expect(tickNameEntry(e, end).done).toBe(true)
     }))
   })
-  it('five OK presses or fewer always finish a picker session (closure)', () => {
-    fc.assert(fc.property(fc.array(fc.constantFrom<-1 | 1>(-1, 1), { minLength: 1, maxLength: 10 }), (steps) => {
+  it('one OK press always finishes naming with a valid name, after any steps', () => {
+    fc.assert(fc.property(fc.array(fc.constantFrom<-1 | 1>(-1, 1), { maxLength: 10 }), fc.array(fc.integer({ min: 0, max: 3000 }), { maxLength: 4 }), (steps, waits) => {
       let e = newNameEntry('BOO-01', 0)
-      for (const d of steps) e = pickStep(e, d, 0)
-      for (let i = 0; i < PICK_LEN; i++) e = confirm(e, 0)
+      let t = 0
+      steps.forEach((d, i) => { e = tickNameEntry(pickStep(e, d, (t += waits[i % Math.max(1, waits.length)] ?? 0)), t) })
+      e = confirm(e, t + 1)
       expect(e.done).toBe(true)
-      expect(finalName(e)).toMatch(/^[A-Z]{1,3}$/)
+      expect(isValidName(finalName(e))).toBe(true)
+    }))
+  })
+  it('stepping never changes the length of the name and the cursor stays inside it', () => {
+    fc.assert(fc.property(fc.array(fc.constantFrom<-1 | 1>(-1, 1), { minLength: 1, maxLength: 30 }), (steps) => {
+      let e = newNameEntry('GHOST-7F', 0)
+      let t = 0
+      for (const d of steps) { e = tickNameEntry(pickStep(e, d, (t += 1700)), t) ; expect(e.text).toHaveLength(8); expect(e.cursor).toBeLessThan(PICK_LEN) }
     }))
   })
 })

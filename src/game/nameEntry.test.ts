@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import {
   newNameEntry, pickStep, confirm, typeChar, backspace, accept, tickNameEntry, finalName, nameKey,
-  IDLE_ACCEPT_MS, ACTIVE_ACCEPT_MS,
+  IDLE_ACCEPT_MS, ACTIVE_ACCEPT_MS, CURSOR_ADVANCE_MS,
 } from './nameEntry'
 import { buttonLayout, areaButtons, nameStepOf, NAME_PREV, NAME_NEXT } from '../ui/layout'
 import { halfWidth } from './halves'
@@ -13,23 +13,46 @@ describe('name picker', () => {
     expect(e.done).toBe(true)
     expect(finalName(e)).toBe('BOO-3A')
   })
-  it('first ◀ / ▶ replaces the default with A; steps cycle with wrap-around', () => {
+  it('◀ / ▶ change the letter under the cursor in place and keep the rest of the default', () => {
     let e = pickStep(newNameEntry('BOO-3A', 0), 1, 1)
-    expect(e.text).toBe('A')
-    e = pickStep(e, -1, 2); expect(e.text).toBe('Z')
-    e = pickStep(e, 1, 3); expect(e.text).toBe('A')
-    e = pickStep(e, 1, 4); expect(e.text).toBe('B')
+    expect(e.text).toBe('COO-3A')
+    expect(e.touched).toBe(true)
+    e = pickStep(e, -1, 2); e = pickStep(e, -1, 3)
+    expect(e.text).toBe('AOO-3A')
+    e = pickStep(e, -1, 4); expect(e.text).toBe('ZOO-3A') // wraps
+    e = pickStep(e, 1, 5); expect(e.text).toBe('AOO-3A')
   })
-  it('OK moves through three letters and accepts on the last', () => {
-    let e = pickStep(newNameEntry('X-00', 0), 1, 0) // A
-    e = pickStep(e, 1, 0) // B
-    e = confirm(e, 0); expect([e.text, e.cursor, e.done]).toEqual(['BA', 1, false])
-    e = pickStep(e, -1, 0); expect(e.text).toBe('BZ')
-    e = confirm(e, 0); expect([e.text, e.cursor]).toEqual(['BZA', 2])
-    e = confirm(e, 0)
+  it('a non-letter under the cursor becomes A first', () => {
+    const e = { ...newNameEntry('7-X', 0), cursor: 1 }
+    expect(pickStep(e, 1, 0).text).toBe('7AX')
+  })
+  it('OK finishes naming at once: untouched, after steps, and after the cursor moved on', () => {
+    expect(confirm(newNameEntry('BOO-3A', 0), 5).done).toBe(true)
+    let e = pickStep(pickStep(newNameEntry('BOO-3A', 0), 1, 1), 1, 2)
+    e = confirm(e, 3)
     expect(e.done).toBe(true)
-    expect(finalName(e)).toBe('BZA')
-    expect(pickStep(e, 1, 0)).toBe(e) // done: nothing changes
+    expect(finalName(e)).toBe('DOO-3A')
+    let m = pickStep(newNameEntry('BOO-3A', 0), 1, 0)
+    m = tickNameEntry(m, CURSOR_ADVANCE_MS)
+    expect(m.cursor).toBe(1)
+    expect(confirm(m, CURSOR_ADVANCE_MS + 1).done).toBe(true)
+    expect(pickStep(confirm(m, 9), 1, 10).text).toBe(m.text) // done: nothing changes
+  })
+  it('the cursor advances CURSOR_ADVANCE_MS after the last step, only up to PICK_LEN letters', () => {
+    let e = pickStep(newNameEntry('BOO-3A', 0), 1, 1000)
+    expect(tickNameEntry(e, 1000 + CURSOR_ADVANCE_MS - 1).cursor).toBe(0)
+    e = tickNameEntry(e, 1000 + CURSOR_ADVANCE_MS)
+    expect(e.cursor).toBe(1)
+    e = pickStep(e, 1, 4000); e = tickNameEntry(e, 4000 + CURSOR_ADVANCE_MS)
+    expect(e.cursor).toBe(2)
+    e = pickStep(e, 1, 8000); e = tickNameEntry(e, 8000 + CURSOR_ADVANCE_MS)
+    expect(e.cursor).toBe(2) // PICK_LEN − 1
+    expect(e.text).toBe('CPP-3A')
+  })
+  it('a step before the delay restarts it', () => {
+    let e = pickStep(newNameEntry('BOO-3A', 0), 1, 0)
+    e = pickStep(e, 1, 1000)
+    expect(tickNameEntry(e, 1000 + CURSOR_ADVANCE_MS - 1).cursor).toBe(0)
   })
   it('keyboard: types, upper-cases, backspaces, Enter accepts, ignores other keys', () => {
     let e = newNameEntry('BAT-01', 0)
@@ -90,18 +113,18 @@ describe('name-screen layout', () => {
 })
 
 describe('emptied name', () => {
-  it('first ◀ / ▶ after Backspace to empty gives A, like an untouched name', () => {
+  it('first ◀ / ▶ after Backspace to empty gives A, like a fresh start', () => {
     let e = typeChar(newNameEntry('BOO-3A', 0), 'b', 1)
     e = backspace(e, 2)
     expect(e.text).toBe('')
     expect(pickStep(e, 1, 3).text).toBe('A')
     expect(pickStep(e, -1, 3).text).toBe('A')
   })
-  it('OK on an emptied name accepts A and keeps cursor and text consistent', () => {
+  it('OK on an emptied name keeps the generated default', () => {
     let e = backspace(typeChar(newNameEntry('BOO-3A', 0), 'b', 1), 2)
     e = confirm(e, 3)
-    expect(e.cursor).toBe(1)
-    expect(e.text.length).toBeGreaterThanOrEqual(e.cursor + 1)
+    expect(e.done).toBe(true)
+    expect(finalName(e)).toBe('BOO-3A')
   })
 })
 

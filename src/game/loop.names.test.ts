@@ -99,7 +99,7 @@ describe('1P run end', () => {
     expect(scores.ownIds).toEqual([scores.table[0].id])
     expect(resetGameOverScreen).toHaveBeenCalledTimes(2) // entry, and again after the name screen
   })
-  it('a tap on ▶ edits the name and a tap on OK confirms it (no motion needed)', async () => {
+  it('a tap on ▶ changes the first letter in place and a tap on OK saves at once (no motion needed)', async () => {
     await startLoop({} as HTMLVideoElement, ctx(), ctx())
     frame(16); frame(2016)
     const name = table()[0].name
@@ -107,10 +107,10 @@ describe('1P run end', () => {
     const tap = (label: string) => { const b = specs.find((x) => x.label.includes(label))!; expect(handleCardPointer(b.cx, b.cy)).toBe(true) }
     tap('▶'); frame(2032)
     expect(isNameEntryOpen()).toBe(true) // a step does not finish the screen
-    tap('OK'); frame(2048) // first letter confirmed, the rest of the picker follows
-    for (let i = 0; i < 8 && isNameEntryOpen(); i++) { tap('OK'); frame(2064 + i * 16) }
+    tap('OK'); frame(2048) // OK finishes naming straight away (playtest1-fixes R3.1)
     expect(isNameEntryOpen()).toBe(false)
-    expect(table()[0].name).not.toBe(name) // the picked letters replaced the generated name
+    expect(table()[0].name).not.toBe(name)
+    expect(table()[0].name.slice(1)).toBe(name.slice(1)) // only the stepped letter changed
     expect(handleCardPointer(5, 5)).toBe(false) // not on the end screen yet: nothing queued
     frame(2400)
     expect(renderGameOver).toHaveBeenCalled()
