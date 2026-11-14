@@ -42,3 +42,13 @@ Files: `docs/KIRO.md`, `README.md`, `tools/judge-docs.test.mjs`, `.kiro/specs/ju
 - [x] Banned names built by concatenation in the test and removed from the spec text (R4.1 reworded).
 - [x] `npm test` and `npm run build` both clean.
 - [x] Commit: `fix(judge-docs): review fixes for write-up, README and facts check`
+
+## T6 — Second review fixes
+
+- [x] SHOULD-FIX: PBT headline says "once directly (BUG-1), and four more from review" (R1.13); file stays at 450 lines.
+- [x] NIT: "one PR per feature" qualified in `docs/KIRO.md` and README (PR #1 bundled the P0/P1 specs).
+- [x] NIT: reconciliation test parses the per-spec counts and asserts they sum to 89.
+- [x] NIT: banned-name regex tolerates a space in the first name too.
+- [x] NIT: `demo` command moved out of the copy-paste block in the run-harness skill.
+- [x] `npm test` (1152 passed, 0 failed, 0 skipped) and `npm run build` clean.
+- [x] Commit: `fix(judge-docs): second review fixes`

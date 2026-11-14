@@ -58,8 +58,8 @@ Every spec followed the same loop (log):
  5. Repeat 3 and 4 until READY (optional nit pass, then re-review)
 ```
 
-The reviewer never edited code. Kiro made every fix. Each feature had its own
-branch and one pull request (#1 to #6). A human (Amit) merged the PRs.
+The reviewer never edited code. Kiro made every fix. One pull request per feature
+from PR #2 on (PR #1 bundled the P0/P1 specs). A human (Amit) merged the PRs.
 
 Review files per spec (rounds plus final re-reviews) (log): balancer 5, boss-phases 3,
 demo-mode 6 (PR #6), exorcist-card 3, feel-fix 1, hooks 4, juice 2,
@@ -318,7 +318,7 @@ identity`; `a hitbox entirely outside the frame never registers a hit`
 (`diff.property.test.ts`); `never throws and never invents metrics from arbitrary
 text` (`mcp-server.property.test.mjs`).
 
-**Did it catch what unit tests missed? Yes, five times.** From the
+**Did it catch what unit tests missed? Yes: once directly (BUG-1), and four more from review.** From the
 "Bugs found by properties" section of `.kiro/specs/pbt/tasks.md`:
 
 | Bug | Found by | What was wrong | Commit |

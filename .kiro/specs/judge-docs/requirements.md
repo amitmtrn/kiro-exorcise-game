@@ -54,6 +54,11 @@ IDE (Powers panel → Import power from a folder) and was **not** exercised in t
 
 **R1.12** About 250–450 lines, with tables and short excerpts.
 
+**R1.13** Claims about the PBT bugs and about PR granularity must match the
+tables in the same document: BUG-1 was found directly by a property, BUG-2 to
+BUG-5 came from review; "one PR per feature" holds from PR #2 on, PR #1
+bundled the P0/P1 specs.
+
 ## R2 — README section
 
 **R2.1** Near the top of `README.md`, a "Built with Kiro (for judges)" section

@@ -22,7 +22,7 @@ const section = judgeSection(readme)
 // Built by concatenation so this file does not itself contain the names.
 const NAME_A = 'Eye' + 'Toy'
 const NAME_B = 'Ku' + 'ng' + ' ' + 'F' + 'oo'
-const BANNED = new RegExp(`${NAME_A}|${NAME_B.replace(' ', '\\s*')}`, 'i')
+const BANNED = new RegExp(`${NAME_A.replace('Toy', '\\s*Toy')}|${NAME_B.replace(' ', '\\s*')}`, 'i')
 const TOKEN = /ghp_|github_pat_|\bsk-/i
 const texts = { 'docs/KIRO.md': kiro, 'README judge section': section }
 
@@ -89,6 +89,17 @@ describe('docs structure', () => {
   })
   it('the per-spec commit list reconciles with the headline 89', () => {
     expect(kiro).toContain('| 89 |')
+    const block = kiro.slice(kiro.indexOf('Task commits per spec'), kiro.indexOf('The older specs'))
+      .replace(/\(8 under[\s\S]*?tasks\)/, '').replace(/stages 9/, 'stages 8')
+      .replace(/`skin` \(spec `spooky-skin`, `feat\(skin-T1\)` to\s+`feat\(skin-T5\)`\)/, 'skin')
+    const tokens = block.split('\n').slice(1).join(' ').split(/[\s,;.]+/).filter(Boolean)
+    let names = 0
+    let total = 0
+    for (const t of tokens) {
+      if (/^\d+$/.test(t)) { total += names * Number(t); names = 0 }
+      else if (/^[a-z][a-z0-9-]*$/.test(t) && t !== 'and') names++
+    }
+    expect(total).toBe(89)
     expect(kiro).toMatch(/`skin` \(spec `spooky-skin`/)
     expect(kiro).not.toMatch(/`spooky-skin` and `boss-combo` predate/)
   })

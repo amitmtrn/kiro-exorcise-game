@@ -28,8 +28,9 @@ Shell fallback (from the repo root):
 ```bash
 tools/motion-harness/run.sh sweep 55
 tools/motion-harness/run.sh wave 30
-SEED=5 tools/motion-harness/run.sh demo 170   # only where demo mode exists (PR #6)
 ```
+
+Only on branches with demo mode (PR #6): `SEED=5 tools/motion-harness/run.sh demo 170`.
 
 ## Reading the output
 
