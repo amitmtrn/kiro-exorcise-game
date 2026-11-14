@@ -188,8 +188,8 @@ class DemoRuntime {
 `startLoop(video, webcamCtx, gameCtx, initialStage = 1, opts?: { demo?: DemoRuntime })`.
 
 - `video` may be `null` when `opts.demo` is set; no calibration, no `captureFrame`,
-  no `drawWebcamFrame`. `currentCtx` / `prevCtx` are no-op stubs in demo mode so the
-  eight `prevCtx.drawImage(currentCanvas, 0, 0)` calls stay as they are.
+  no `drawWebcamFrame`. The motion canvases stay blank in demo mode, so the eight
+  `prevCtx.drawImage(currentCanvas, 0, 0)` calls stay as they are (a harmless copy).
 - `tick` becomes a thin wrapper around the old body (`tickBody`):
 
   ```ts

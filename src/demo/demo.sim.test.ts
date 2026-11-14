@@ -108,8 +108,8 @@ interface Run {
   trace: string
 }
 
-async function simulate(seed: number, victories = 1, maxTicks = MAX_TICKS * victories): Promise<Run> {
-  const rt = new DemoRuntime({ seed, stage: 1, speed: DEMO.timeScale, w: W, h: H })
+async function simulate(seed: number, victories = 1, maxTicks = MAX_TICKS * victories, stage = 1): Promise<Run> {
+  const rt = new DemoRuntime({ seed, stage, speed: DEMO.timeScale, w: W, h: H })
   await startLoop(null, ctx(), ctx(true), 1, { demo: rt })
   const run: Run = {
     ticks: 0, phases: new Set(), at: {}, maxCombo: 1, bossPhases: new Set(), stages: new Set(), bonus: false,
@@ -132,7 +132,7 @@ async function simulate(seed: number, victories = 1, maxTicks = MAX_TICKS * vict
       else run.missingBadge.push(s.phase)
       run.phases.add(s.phase)
       run.maxCombo = Math.max(run.maxCombo, s.combo)
-      run.stages.add(s.stage)
+      if (s.phase !== 'start') run.stages.add(s.stage)
       if (s.bonus) run.bonus = true
       run.highScoresShown.push(s.highScore)
       for (const e of s.enemies) {
@@ -239,6 +239,23 @@ describe('full demo run, headless (demo-mode R4, R5, R6)', () => {
       expect(run.missingBadge).toEqual([])
       expect(net.gum).not.toHaveBeenCalled()
       expect(net.setItem).not.toHaveBeenCalled()
+      // A run that loses a stage shows the game-over screen with the badge too, and RETRY carries on.
+      if (run.gameOvers > 0) expect(run.badgePhases.has('gameover')).toBe(true)
     }, 60_000)
   }
+
+  it('stage=5 starts at the boss: phases 1–3, victory, card', async () => {
+    const run = await simulate(DEMO.defaultSeed, 1, MAX_TICKS, 5)
+    expect(run.stages).toEqual(new Set([5]))
+    expect(run.bossPhases).toEqual(new Set([1, 2, 3]))
+    expect(run.at.card).toBeDefined()
+    expect(run.ticks).toBeLessThan(3000)
+  }, 60_000)
+
+  it('some seed in 1–6 loses a stage, so the game-over screen and RETRY are covered', async () => {
+    const run = await simulate(3)
+    expect(run.gameOvers).toBeGreaterThan(0)
+    expect(run.badgePhases.has('gameover')).toBe(true)
+    expect(run.at.victory).toBeDefined()
+  }, 60_000)
 })
