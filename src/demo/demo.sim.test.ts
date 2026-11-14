@@ -191,6 +191,7 @@ async function simulate(seed: number, victories = 1, maxTicks = MAX_TICKS * vict
   return run
 }
 
+// Each test plays whole 6-stage runs (up to 15 000 ticks, 0.7-2.8 s locally), so every test has an explicit 60-240 s budget.
 describe('full demo run, headless (demo-mode R4, R5, R6)', () => {
   it(`default seed ${DEMO.defaultSeed}: title → 6 stages → victory → DEMO card → title, cleanly, within the bound`, async () => {
     const run = await simulate(DEMO.defaultSeed)

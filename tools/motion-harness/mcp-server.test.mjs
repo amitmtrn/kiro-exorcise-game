@@ -102,7 +102,7 @@ describe('evalSandboxed (R2.3)', () => {
   })
   it('times out a runaway script', () => {
     expect(() => evalSandboxed('while (true) {}')).toThrow(/timed out/)
-  })
+  }, 20_000) // the sandbox timeout is a real 2 s wall-clock wait (mcp-server.mjs), ~2.0 s locally
 })
 
 describe('acquireLock (R3.5)', () => {
@@ -237,7 +237,9 @@ async function startHang(tag) {
   return { pid, c }
 }
 
-describe('spawned MCP server', () => {
+// These tests spawn real child processes and wait on real timers (harness timeout, SIGTERM-to-SIGKILL grace period,
+// process-group teardown), 0.5-3.4 s each locally. They get a 30 s budget instead of the 5 s default, which a slow runner would hit.
+describe('spawned MCP server', { timeout: 30_000 }, () => {
   it('handshake, tools/list, ping', async () => {
     const c = client()
     const init = await c.request('initialize', { protocolVersion: '2025-06-18', capabilities: {}, clientInfo: { name: 't', version: '0' } })
@@ -372,7 +374,7 @@ describe('spawned MCP server', () => {
     await new Promise((r) => c.child.once('exit', r))
     await new Promise((r) => setTimeout(r, 300))
     expect(() => process.kill(pid, 0)).toThrow()
-  }, 15_000)
+  }, 15_000) // waits out the real SIGKILL grace period (~3.4 s locally)
 
   it('run.sh refuses to start when the DevTools port already answers (R4.1a)', async () => {
     const srv = createServer((_q, res) => res.end('[]'))

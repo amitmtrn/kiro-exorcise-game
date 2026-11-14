@@ -213,7 +213,7 @@ describe('spawn rate independent of frame rate (BUG-5)', () => {
         expect(Math.abs(resets(stage, stepA, total) - resets(stage, stepB, total))).toBeLessThanOrEqual(1)
       },
     ), { numRuns: 25 })
-  })
+  }, 30_000) // 50 simulations of 600 s at 8-100 ms ticks (up to 75 000 steps each): long on purpose, ~0.9 s locally
 
   it('carries the overshoot into the next interval', () => {
     vi.spyOn(Math, 'random').mockReturnValue(0.5)

@@ -59,7 +59,7 @@ describe('bonus round — never costs a life (R5.3)', () => {
         })
       },
     ), { numRuns: 20 })
-  })
+  }, 30_000) // 20 whole bonus rounds (up to 20 000 ticks each) with an assertion per tick: long on purpose, ~0.7 s locally
 
   it('even with threats sitting on their targets, the reach check ignores the bonus round', () => {
     fc.assert(fc.property(fc.integer({ min: 0, max: 6 }), fc.integer({ min: 1, max: 1e6 }), (n, seed) => {

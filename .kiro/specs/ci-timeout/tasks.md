@@ -15,10 +15,10 @@ Files: `src/game/quality.property.test.ts`
 ## T2 — Explicit timeouts for legitimately long tests
 Files: `src/game/enemies/spawn.property.test.ts`, `src/game/enemies/spawn.waves.property.test.ts`, `src/game/bonus.property.test.ts`, `src/demo/demo.sim.test.ts`, `tools/motion-harness/mcp-server.test.mjs`
 
-- [ ] Per-test or per-describe timeout with a reason comment on each test in the design table (R2.1, R2.2).
-- [ ] `vite.config.ts` untouched (R2.3).
-- [ ] Run `npm test` and `npm run build`; both clean.
-- [ ] Commit: `test(ci-timeout-T2): explicit timeouts for long tests`
+- [x] Per-test or per-describe timeout with a reason comment on each test in the design table (R2.1, R2.2).
+- [x] `vite.config.ts` untouched (R2.3).
+- [x] Run `npm test` and `npm run build`; both clean.
+- [x] Commit: `test(ci-timeout-T2): explicit timeouts for long tests`
 
 ## T3 — Node 22 in the deploy workflow
 Files: `.github/workflows/deploy.yml`

@@ -46,9 +46,10 @@ Measured with `vitest run --reporter=verbose` before the change:
 
 | Test | Local | Action |
 |---|---|---|
-| `demo.sim.test.ts` full runs | 0.7–2.8 s | Already have 60–240 s per-test timeouts with the reason in the file header; keep. Added a comment at the first one. |
+| `demo.sim.test.ts` full runs | 0.7–2.8 s | Every test already has a 60–240 s timeout; a comment on the `describe` gives the reason. |
 | `mcp-server.test.mjs` SIGKILL grace | 3.4 s | Has 15 s. Comment added: the grace period is real wall-clock time. |
-| `mcp-server.test.mjs` sandbox timeout, concurrent run, hung-run kill, signal tests | 0.6–2.0 s | No explicit timeout (5 s default). `describe` timeout 30 s with a comment: they wait on real timers and child processes. |
+| `mcp-server.test.mjs` sandbox timeout (2.0 s) | 2.0 s | 20 s on the test, comment: a real 2 s wall-clock wait. |
+| `mcp-server.test.mjs` concurrent run, hung-run kill, signal tests | 0.5–1.0 s | `describe` timeout 30 s on `spawned MCP server`, comment: real child processes and timers. |
 | `spawn.property.test.ts` BUG-5 | 0.9 s | 600 s of 8–100 ms ticks, 25 runs × 2. Keep the property, add a 30 s timeout with a comment. |
 | `bonus.property.test.ts` whole round | 0.7 s | A whole 20 000-tick round per run. 30 s timeout with a comment. |
 | `spawn.waves.property.test.ts` intensity-scaled time | 0.4 s | 30 s timeout with a comment. |
