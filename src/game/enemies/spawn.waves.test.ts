@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { tickSpawners } from './spawn'
+import { skullClearancePx } from './variantSpawn'
 import { STAGES } from '../stages'
 import { createInitialState, makeEnemy } from '../state'
 import type { GameState, Enemy } from '../state'
@@ -178,5 +179,21 @@ describe('wave-driven spawner', () => {
       expect(skulls).toHaveLength(1)
       expect(skulls[0].path).toBeUndefined()
     })
+  })
+})
+
+describe('skull spawn keeps clear of new ghosts (more-content R1.6)', () => {
+  it('a random skull spawn never lands inside the clearance of a fresh mirror ghost', () => {
+    for (let seed = 1; seed <= 60; seed++) {
+      const mirror = makeEnemy({
+        id: 'm', type: 'mirror', x: -40, y: 270, targetX: 480, targetY: 270, speed: 0.1,
+        hitbox: { x: -60, y: 250, w: 40, h: 40 },
+      })
+      const s = at(6, 8000, { enemies: [mirror], spawnTimers: { ghost: NEVER, bat: NEVER, skull: 0, lunger: NEVER, pumpkin: NEVER } })
+      const out = withSeededRandom(seed, () => tickSpawners(s, 16, W, H))
+      for (const e of out.enemies.filter((x) => x.type === 'skull')) {
+        expect(Math.hypot(e.x - mirror.x, e.y - mirror.y)).toBeGreaterThanOrEqual(skullClearancePx())
+      }
+    }
   })
 })

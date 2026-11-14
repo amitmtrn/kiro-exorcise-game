@@ -9,7 +9,7 @@ import { STAGES } from '../stages'
 import { createSkull } from './skull'
 import { createLunger } from './lunger'
 import { spawnWave } from './waveSpawn'
-import { spawnVariant } from './variantSpawn'
+import { spawnVariant, skullClearancePx } from './variantSpawn'
 import { withTip, VARIANT_DEFER_MAX_MS } from '../finale'
 import { intensityAt, spawnRateFor, speedFactorFor, pickPath, BONUS_ROUND } from '../waves'
 import type { WaveKind } from '../waves'
@@ -152,11 +152,19 @@ export function tickSpawners(
   // Skull (max 1 non-exiting at a time; a leaving skull does not block)
   timers.skull -= deltaMs * rate
   if (timers.skull <= 0) {
+    let skullWaits = false
     if (mix.skull && !skullQuiet && nonBossCount < max && !skullActive) {
-      enemies = [...enemies, createSkull(canvasW, canvasH, mult)]
-      nonBossCount++
+      // Keep clear of new ghosts still near their spawn edge (R1.6, both directions); retry next tick if no safe point.
+      const newGhosts = enemies.filter((e) => e.type === 'blink' || e.type === 'wisp' || e.type === 'mirror')
+      const clear = skullClearancePx()
+      let skull: Enemy | null = null
+      for (let i = 0; i < 6 && !skull; i++) {
+        const c = createSkull(canvasW, canvasH, mult)
+        if (newGhosts.every((g) => Math.hypot(g.x - c.x, g.y - c.y) >= clear)) skull = c
+      }
+      if (skull) { enemies = [...enemies, skull]; nonBossCount++ } else skullWaits = true
     }
-    timers.skull = resetTimer(timers.skull, cfg.spawnIntervalMs.skull)
+    if (!skullWaits) timers.skull = resetTimer(timers.skull, cfg.spawnIntervalMs.skull)
   }
 
   // Lunger
