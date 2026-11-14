@@ -16,7 +16,7 @@ import { scaled } from './textScale'
 import { getPalette } from './palette'
 
 export const NAME_TITLE = 'NAME YOUR HUNTER'
-export const NAME_HINT = '◀ ▶ pick a letter • OK next • or type, Enter'
+export const NAME_HINT = '◀ ▶ pick a letter • OK next • or type, Enter • M is a letter here'
 export const NAME_HINT_2P = '◀ ▶ letter • OK next'
 export const WAITING_TEXT = 'Waiting for the other player…'
 

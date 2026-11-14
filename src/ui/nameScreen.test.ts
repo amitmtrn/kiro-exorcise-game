@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { NameScreen, NAME_TITLE, WAITING_TEXT } from './nameScreen'
+import { NameScreen, NAME_TITLE, WAITING_TEXT, NAME_HINT } from './nameScreen'
 import { newNameEntry, pickStep } from '../game/nameEntry'
 import { areaButtons, buttonLayout, NAME_PREV, NAME_NEXT } from './layout'
 import { blobPoints, publish } from '../test/motionFixtures'
@@ -61,5 +61,11 @@ describe('name screen', () => {
     const done = recorder(hw, H)
     s.render(done.ctx, { ...newNameEntry('BAT-01', 0), done: true }, 0, { score: 1, rank: 1 })
     expect(done.texts).toEqual([WAITING_TEXT])
+  })
+})
+
+describe('name hint (R11.3)', () => {
+  it('tells the player that M is a letter while typing a name', () => {
+    expect(NAME_HINT).toContain('M is a letter')
   })
 })

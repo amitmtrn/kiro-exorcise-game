@@ -330,6 +330,8 @@ both halves are done (accepted, timed out or nothing to name).
 
 **R11.3** Keyboard typing in 2P edits the name of P1 only (P2 uses the buttons);
 Enter accepts P1's. When only P2 has a name screen open, keys are not taken (mute `M` keeps working).
+While a name screen takes keys (1P, or 2P with P1's screen open) every letter, `M` included, goes to the
+name; the 1P hint says so and the mute button stays tappable (`NAME_HINT`: "M is a letter here").
 Ranks are read from the final table after both seats are recorded; a seat whose entry
 was pushed out by the other seat gets no name screen.
 
