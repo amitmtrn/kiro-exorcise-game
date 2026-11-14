@@ -77,3 +77,16 @@
 - [ ] Listen: boss hit, combo chimes and music stay clean, mute works.
 - [ ] Settings: `O` and ⚙ open the panel, choices persist after a reload, `?cb=1` shows the alternative palette and the skull "!" marker.
 - [ ] Reduced flashing: skull hit and boss defeat do not flash harshly.
+
+## T12 — Review fixes
+- [x] RF1 (blocker): the frame-budget thresholds follow a display-refresh estimate (R1.3), so quality steps back up at 60 Hz and on a 30 fps cap. Sim tests recover at 16.7 ms and 33.3 ms; property test for the 30 Hz band.
+- [x] RF2: the reduced-flash slot resets when the clock goes backwards (demo → real clock). Test with the clock going backwards.
+- [x] RF3: the open settings panel lets Ctrl / Meta / Alt chords, F-keys and Tab through.
+- [x] RF4: auto-repeat never activates a row or closes the panel. Test.
+- [x] RF5: `G` does not start demo mode while the panel is open.
+- [x] RF6: the average frame time is tracked with a pinned `?quality=` too (debug overlay).
+- [x] RF7: panel row labels shrink to fit narrow canvases (`fitFontPx`). Test.
+- [x] RF8: the two-player right-half label clears the shared mute button (`labelX`). Layout test at 640 × 480 and 1280 × 720, all scales.
+- [x] RF9: `MUSIC_VOICES` peaks come from `VOICE_PEAKS` in `music/voices.ts`. Equality test.
+- [x] `npm test` and `npm run build` both clean.
+- [x] Commit: `fix(playtest-polish): review fixes`

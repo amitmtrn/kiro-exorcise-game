@@ -51,7 +51,13 @@ gives the same decisions.
 
 **R1.3** Step down one level when the average stays above **20 ms** for
 **2000 ms** of accumulated time. Step up one level when the average stays below
-**14 ms** for **6000 ms**. Between 14 and 20 ms nothing happens.
+**14 ms** for **6000 ms**. Between 14 and 20 ms nothing happens. Both
+thresholds are relative to the display: the monitor keeps an estimate of the
+refresh interval (the fastest recent frame interval, snapped to 120 / 60 / 30 Hz;
+it starts at 60 Hz) and uses `max(20, 1.3 × refresh)` for the step down and
+`max(14, 1.1 × refresh)` for the step up. A 60 Hz display (16.7 ms intervals) and
+a 30 fps-capped browser can therefore step back up; on a 120 Hz display the
+values are the plain 20 / 14 ms. (Review fix RF1.)
 
 **R1.4** Hysteresis: after any change no further change happens for
 **3000 ms** (settle time); the average is re-seeded to the middle of the band so
@@ -106,7 +112,9 @@ minimum size of 12 % of the canvas width, `computeFrameDiff` reports a hit at
 (320 × 180) so seeded runs stay deterministic.
 
 **R3.3** The debug overlay (`D`) shows the quality level and mode (`auto` or
-pinned), the average frame time in ms and the diff resolution.
+pinned), the average frame time in ms and the diff resolution. The average is
+tracked in every mode, also with a pinned `?quality=`; only auto mode applies a
+level change.
 
 **R3.4** Level 1+ thins newly spawned particles (every 2nd kept) and caps
 call-outs at 1; level 3 stops drawing fog and draws candle glow without
@@ -167,7 +175,10 @@ reduced flashing (`reducedFlash`).
 a small **⚙** button (bottom-left, clear of the motion buttons, the sound hint and
 the mute button), and closes with `Esc`, `O` or its Close row. Inside it: Up/Down
 select, Enter/Space/click toggle or cycle. While it is open the title's motion
-buttons and Space / 1 / 2 do nothing.
+buttons and Space / 1 / 2 / G (demo) do nothing. The panel consumes plain keys
+only: Ctrl / Meta / Alt chords, F-keys and Tab keep their browser meaning (reload,
+zoom, devtools, fullscreen, focus). Auto-repeat of a held key never toggles a row
+or closes the panel. Row labels shrink to fit the panel on narrow canvases.
 
 **R7.3** The panel has **no motion button**: the title screen's raised-hand zones
 are already used by 1 PLAYER and 2 PLAYERS and a third target would break the
@@ -221,14 +232,18 @@ smaller than the **minimum font sizes** (HUD 16 px, menu text 12 px, call-outs
 caption and the CSS text (onboarding, camera help). With a scale above 1 the stage label shrinks (never below
 16 px) to stay between the hearts and the timer, and the score / combo pulse is reduced where the two would
 collide. The two-player split-screen end screens keep their size: they are laid out around per-half buttons and
-are not rescaled by this spec. Button labels are fitted to their circle and are not scaled.
+are not rescaled by this spec. Button labels are fitted to their circle and are not scaled. The two-player
+in-game half HUDs are scaled; the right half's player label starts right of the shared mute button, which
+straddles the seam, and a layout test checks both labels against it at 640 × 480 and 1280 × 720.
 
 ### R10 — Reduced flashing
 
 **R10.1** With reduced flashing on: the full-screen red/orange flash is capped at
 **alpha 0.15** (from 0.4) with soft fade in/out (≥ 120 ms ramps); screen shake
 amplitude is cut to 25 %; the one-frame white hit silhouette is not drawn.
-Random numbers are still consumed the same way (demo determinism).
+Random numbers are still consumed the same way (demo determinism). The per-canvas
+scheduler resets when the clock goes backwards (leaving demo mode, whose clock
+starts at 2^40), so no tint stays on screen and later flashes still show.
 
 **R10.2** No more than **3 flashes in any 1000 ms window** (WCAG 2.3.1): a pure
 flash scheduler accepts flash requests (time, amplitude) and drops the ones that

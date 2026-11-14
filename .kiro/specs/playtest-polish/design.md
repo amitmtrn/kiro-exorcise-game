@@ -22,7 +22,12 @@ export const AVG_TAU_MS = 1000        // time constant of the rolling average
 export const IGNORE_ABOVE_MS = 250    // pauses are not slow frames
 export const FLIP_WINDOW_MS = 30_000  // down soon after up => longer up wait
 
-export interface FrameBudgetState { level; avgMs; overMs; underMs; settleMs; sinceUpMs; upPenalty }
+export const REF_START_MS = 16.67     // refresh estimate starts at 60 Hz
+export const REF_FOLLOW = 0.05        // a faster interval closes 5 % of the gap
+export const REF_CREEP = 0.0005       // otherwise the estimate rises 1 ms per 2 s, never above the interval
+export const VSYNC_MS = [8.33, 16.67, 33.33]
+
+export interface FrameBudgetState { level; avgMs; overMs; underMs; settleMs; sinceUpMs; upPenalty; refMs }
 export function createFrameBudget(level = 0): FrameBudgetState
 export function stepFrameBudget(s, deltaMs): FrameBudgetState   // pure reducer
 export function parseQualityMode(search: string): QualityMode
@@ -30,7 +35,17 @@ export function levelForMode(mode): QualityLevel | null          // null = auto
 ```
 
 `stepFrameBudget`: `avg += (delta − avg)·(1 − e^(−delta/τ))`; `overMs += delta`
-while `avg > 20` else reset to 0 (same for `underMs` with `avg < 14`). All counters
+while `avg > down` else reset to 0 (same for `underMs` with `avg < up`), where
+`down = max(20, 1.3 · snap(refMs))`, `up = max(14, 1.1 · snap(refMs))` and `snap`
+picks the largest of 8.33 / 16.67 / 33.33 ms that is ≤ `1.1 · refMs`. The
+refresh estimate is what makes step-up reachable: the loop feeds the rAF
+interval, which never goes below the display's refresh interval (16.7 ms at
+60 Hz), so a fixed 14 ms up threshold could only be met at ≥ 72 Hz. A steady
+28 ms stream never lets `refMs` exceed 28, so a slow machine on any display
+still steps down. A steady 30–37 ms stream is ambiguous (slow machine or 30 Hz
+cap): it may step down first and step back up once the estimate reaches 30 Hz,
+at most one change of direction (property test). The loop also tracks the
+average with a pinned mode, for the debug overlay. All counters
 are in ms, so 60 and 30 fps loops decide identically. After a change: `settleMs =
 3000`, `avg` re-seeded to 17 ms (the middle of the band), counters 0. A step up
 sets `sinceUpMs = 0`; a step down while `sinceUpMs < 30 s` doubles `upPenalty`
@@ -150,7 +165,9 @@ checks every entry is within 1.5 dB of the rule, and that the post-gain peak is
 Music is a graph of scheduled voices, not a buffer, so its level is an analytic
 estimate: per voice, `rms² ≈ peak² · duty / 2` (sine-equivalent), summed
 incoherently over the layers active at the highest tier, and the worst-case peak
-as the plain sum of voice peaks. `MUSIC_GAIN` is chosen so the estimated RMS is
+as the plain sum of voice peaks. The peaks come from `VOICE_PEAKS` in
+`music/voices.ts`, which the voice functions also use, so the estimate cannot
+drift from the voices. `MUSIC_GAIN` is chosen so the estimated RMS is
 6 dB under the SFX target and the worst-case peak plus the stacked SFX stays
 below 0 dBFS. `music.ts` creates a gain node (`MUSIC_GAIN`) in front of the
 master gain and gives it to the engine as `destination`.
@@ -190,6 +207,11 @@ the start request. `main.ts`: `O` (title screen only) opens; the pointer handler
 sends clicks to the panel when open or on the gear. The gear sits bottom-left
 (`0.03 W`, `0.93 H`); a test checks it overlaps none of the start motion buttons,
 the mute button, the sound-hint pill or the text bands. No motion button (R7.3).
+`main.ts` lets Ctrl / Meta / Alt chords, F-keys and Tab through while the panel
+is open, passes `e.repeat` to `handlePanelKey` (repeats never activate or
+close), and gives the demo router `onTitle: isStartScreenVisible() && !isPanelOpen()`.
+Row labels use `fitFontPx(font, measured, rowWidth − padding)` so the widest
+label fits on narrow canvases at 1.5×.
 
 ### Palette: `src/ui/palette.ts`, `src/ui/cvd.ts`
 
@@ -240,7 +262,9 @@ after its onset, so any four visible flashes are more than 1000 ms apart.
 `render.ts` keeps its `state.flashEndTime` input. It derives a flash *request* per
 distinct `flashEndTime`, feeds it to a module scheduler and draws
 `flashAlphaAt`. With reduced off the scheduler is bypassed and the code path is
-the old constant `0.4`. Shake amplitude multiplies `SHAKE_AMPLITUDE_PX` by
+the old constant `0.4`. If `now` is earlier than the slot's last time (the demo
+clock starts at 2^40, the real one far below), the slot is replaced by a fresh
+scheduler. Shake amplitude multiplies `SHAKE_AMPLITUDE_PX` by
 `shakeScale`; `Math.random` is still called twice. The white silhouette
 (`hitFlashFrames`) is skipped when reduced.
 
