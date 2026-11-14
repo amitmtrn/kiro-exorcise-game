@@ -1,12 +1,23 @@
 # 👻 Exorcise
 
-A Halloween browser game inspired by the PS2 EyeToy title **Kung Foo**.
+A camera-motion Halloween brawler that runs in the browser.
 Ghosts and bats fly in from the dark edges of the screen toward your webcam image.
 **Swat them away with your hands.** Hit a cursed skull and lose a life. Zero install — just open the URL and play.
 
 ## Play now
 
 🎃 **[Live demo →](https://amitmtrn.github.io/kiro-exorcise-game/)**
+
+## Built with Kiro (for judges)
+
+- **Kiro CLI 3.3.0 only**, run non-interactively: spec, implement, independent read-only review, Kiro fixes.
+- **20 specs** at PR #5 in [`.kiro/specs`](.kiro/specs) (requirements, design, tasks): 805 ticked task checkboxes, 89 commits named after a task (`<type>(<spec>-T<n>)`).
+- **3 steering files** in [`.kiro/steering`](.kiro/steering), **5 hooks** in [`.kiro/hooks`](.kiro/hooks), **1 custom agent** (`balancer`) and **1 local MCP server** (`motion-harness`, stdio only, no network).
+- **1120 tests** at PR #5, 0 failed, 0 skipped; **119 property tests** (`fc.assert`) in 31 files, both at PR #5 (df26f4d). A property found a spawner-cap bug that unit tests had missed (BUG-1), and four more bugs got regression properties.
+- **One PR per feature from #2 on** (#1 bundled the P0/P1 specs): #1 to #6 merged (#6 is demo mode, merge commit 46d9551); #7 adds the judge write-up. Test count by PR: 806, 912, 994, 1045, 1120, 1254; this branch after merging main: 1291.
+- **536.22 Kiro credits** used after the `judge-docs` spec and its review fixes (bonus pool of 4000).
+- **Read the full write-up: [docs/KIRO.md](docs/KIRO.md).** Local power: [`.kiro/powers/exorcise-motion-harness`](.kiro/powers/exorcise-motion-harness).
+- **Live demo:** <https://amitmtrn.github.io/kiro-exorcise-game/>
 
 ## How to run locally
 
@@ -33,7 +44,7 @@ npm run dev
 
 On your first visit a short onboarding shows a head-and-hands silhouette over your live camera (with a quick framing check), three how-to-play cards and a privacy note. It is skippable (Skip / `Esc`) and remembered in `localStorage`. **Your video stays on your device. Nothing is uploaded.** If the camera is blocked you get step-by-step instructions to allow it.
 
-Five Kung Foo-style stages, each 60 seconds, each with its own enemy mix and music.
+Five stages of 45 to 60 seconds, each with its own enemy mix and music.
 
 - **Ghosts** float toward the center of the screen. Swat them before they arrive — each one that gets through costs a life.
 - **Bats** zigzag in fast. Quick swipe to send them packing.
@@ -45,7 +56,7 @@ Five Kung Foo-style stages, each 60 seconds, each with its own enemy mix and mus
 
 **Exorcist Card.** On the game-over and victory screens you can choose "📸 EXORCIST CARD" (wave, click or `C`) to make a trading card with a snapshot from your best moment (best combo or the boss defeat), a rank title from *Apprentice Exorcist* to *Grand Exorcist*, your score, best combo, stage and banish count. It is only made when you ask for it, drawn on a canvas on your device and saved with a normal download. The snapshot is kept in memory only, never stored or uploaded (no network request is made), and is dropped when you leave the screen or retry. A *no photo* silhouette variant is one button away.
 
-Hit detection uses **frame differencing**: fast motion inside an enemy's hitbox registers as a hit — the same technique as the original EyeToy, no ML required.
+Hit detection uses **frame differencing**: fast motion inside an enemy's hitbox registers as a hit — the same technique as classic webcam motion games, no ML required.
 
 ### Two players (split screen)
 
@@ -155,6 +166,7 @@ Every feature was planned as a Kiro spec before implementation:
 | `two-player-card/` | Per-player Exorcist Card on the 2P end screen: own half of the camera, own highlight moment and stats, P1 / P2 label, WINNER / TIE badge, per-half wave / click controls |
 | `playtest-polish/` | Adaptive quality (frame-budget monitor, 320 → 160 → 96 wide motion grid, `?quality=`), master compressor / limiter and per-sound loudness table, settings panel (`O`), colourblind palette with shape cues and CIEDE2000 tests, bigger text, reduced flashing (≤ 3 per second) |
 | `demo-mode/` | Camera-free attract mode for filming: `?demo=1&seed=N` or `G`, a deterministic scripted ghost hand that feeds synthetic motion frames into the real hit detection, fixed time step and seeded run, DEMO badge, placeholder card portrait, scores never saved |
+| `judge-docs/` | Judge-facing Kiro write-up (`docs/KIRO.md`), README section, local `exorcise-motion-harness` power, facts-check test |
 
 Each spec has `requirements.md`, `design.md`, and `tasks.md`. Writing requirements and design before tasks surfaced design gaps (e.g. skull penalty rules, hitbox coordinate system, mirror parity bug) that would have been painful to fix mid-implementation.
 
@@ -288,7 +300,7 @@ src/
     hit-detection-fix/  P0 swatting fix spec
     feel-fix/           Game-feel fixes spec
     boss-combo/         Boss ghost + combo spec (superseded by stages/)
-    stages/             5-stage Kung Foo-style progression spec
+    stages/             5-stage progression spec
     audio/              Procedural music + SFX spec
     spooky-skin/        Visual polish spec
     hooks/              Kiro hooks spec
@@ -301,13 +313,19 @@ src/
     balancer/           Harness MCP server + balancer agent spec
     exorcist-card/      Shareable local-only Exorcist Card spec
     playtest-polish/    Adaptive quality, audio levels, accessibility options spec
+    judge-docs/         Judge-facing write-up and README spec
+  powers/               exorcise-motion-harness Kiro power
   settings/mcp.json     Workspace MCP registration (motion-harness, stdio, relative path)
   agents/balancer.json  Report-only playtest-tuner agent
   hooks/                test-on-save.json, spec-drift-check.json, readme-test-count.json (save/create/delete)
+docs/
+  KIRO.md               Judge-facing write-up of how Kiro was used
 tools/
   sync-readme-tests.mjs Run tests and sync the README test count (used by a hook)
   sync-readme-tests.test.mjs Unit tests for the sync script's pure functions
   hooks.test.mjs        Structural + matcher tests for .kiro/hooks/*.json
+  judge-docs.test.mjs   Checks docs/KIRO.md and the README judge section
+  power-manifest.test.mjs  Kiro power manifest checks
   balancer-config.test.mjs  MCP / agent config checks (no secrets, local only, restricted tools)
   motion-harness/
     mcp-server.mjs      stdio MCP server: run_harness, read_stage_config (+ unit and property tests)

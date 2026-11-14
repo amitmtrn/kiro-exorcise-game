@@ -1,0 +1,10 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "exorcise-motion-harness",
+  "version": "1.0.0",
+  "description": "Run Exorcise's synthetic-webcam motion harness through a local stdio MCP server and use it to propose stage and wave balance changes. Works inside this repo checkout only.",
+  "author": {
+    "name": "Amit Mtrn"
+  },
+  "keywords": ["harness", "motion", "balance", "webcam", "exorcise", "mcp"]
+}
