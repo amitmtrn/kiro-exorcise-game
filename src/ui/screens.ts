@@ -37,9 +37,12 @@ export const START_INPUT_DELAY_MS = ENTRY_LOCK_MS
 const startLock = new EntryLock()
 const gameOverLock = new EntryLock()
 
+/** Screen clock at the first render after entering the title (the table's page timer starts there). */
+let titleEnteredAt: number | null = null
+
 /** Call when the start screen is (re)entered: restarts the input lock-out and drops stale button fill. */
 export function resetStartScreen(): void {
-  startLock.reset(); startSet.clear()
+  startLock.reset(); startSet.clear(); titleEnteredAt = null
 }
 
 /** Call when the game enters `gameover`: restarts the lock-out so the flail at death presses nothing. */
@@ -105,7 +108,8 @@ export function renderStartScreen(
   // High scores (more-content R10.1): pages of 5 in the central band above the subtitle, switching every 4 s.
   const table = opts.table ?? []
   if (table.length > 0) {
-    const page = pageAt(table, now)
+    titleEnteredAt ??= now
+    const page = pageAt(table, now - titleEnteredAt)
     drawTable(ctx, tableRows(table, page), titleTableBox(W, H), TITLE_HEADING)
   }
 

@@ -42,6 +42,8 @@ function cycle(ch: string, dir: -1 | 1): string {
 export function pickStep(e: NameEntry, dir: -1 | 1, now: number): NameEntry {
   if (e.done) return e
   if (!e.touched) return { ...e, text: 'A', touched: true, cursor: 0, lastInputAt: now }
+  // An emptied name restarts at 'A' (like an untouched one) instead of cycling away from it.
+  if (e.text.length === 0) return { ...e, text: 'A', cursor: 0, lastInputAt: now }
   const chars = [...e.text]
   while (chars.length <= e.cursor) chars.push('A')
   chars[e.cursor] = cycle(chars[e.cursor], dir)
@@ -52,8 +54,9 @@ export function pickStep(e: NameEntry, dir: -1 | 1, now: number): NameEntry {
 export function confirm(e: NameEntry, now: number): NameEntry {
   if (e.done) return e
   if (!e.touched || e.cursor >= PICK_LEN - 1) return { ...e, done: true, lastInputAt: now }
-  const cursor = e.cursor + 1
-  const text = e.text.length <= cursor ? (e.text + 'A').slice(0, NAME_MAX) : e.text
+  const cur = e.text.length === 0 ? e.text + 'A' : e.text // OK on an emptied name accepts 'A' first
+  const cursor = Math.min(PICK_LEN - 1, (e.text.length === 0 ? 0 : e.cursor) + 1)
+  const text = cur.length <= cursor ? (cur + 'A').slice(0, NAME_MAX) : cur
   return { ...e, cursor, text, lastInputAt: now }
 }
 

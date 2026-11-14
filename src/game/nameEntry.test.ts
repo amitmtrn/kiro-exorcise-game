@@ -88,3 +88,19 @@ describe('name-screen layout', () => {
     for (const s of ['name', 'name2p'] as const) for (const b of buttonLayout(s, 1280, 720)) expect(b.destructive).toBe(false)
   })
 })
+
+describe('emptied name', () => {
+  it('first ◀ / ▶ after Backspace to empty gives A, like an untouched name', () => {
+    let e = typeChar(newNameEntry('BOO-3A', 0), 'b', 1)
+    e = backspace(e, 2)
+    expect(e.text).toBe('')
+    expect(pickStep(e, 1, 3).text).toBe('A')
+    expect(pickStep(e, -1, 3).text).toBe('A')
+  })
+  it('OK on an emptied name accepts A and keeps cursor and text consistent', () => {
+    let e = backspace(typeChar(newNameEntry('BOO-3A', 0), 'b', 1), 2)
+    e = confirm(e, 3)
+    expect(e.cursor).toBe(1)
+    expect(e.text.length).toBeGreaterThanOrEqual(e.cursor + 1)
+  })
+})

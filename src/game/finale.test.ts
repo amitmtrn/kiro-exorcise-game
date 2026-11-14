@@ -140,6 +140,14 @@ describe('the Hollow King (R6)', () => {
     const away = tickBoss(play({ ...boss(1), y: hoverY(H) + 100 }), W, H)
     expect(away.enemies).toHaveLength(1)
   })
+  it('a king summon shows the first-sighting tip of each summoned type once (R5.4)', () => {
+    const b: Enemy = { ...createBoss(W, H, true), x: W / 2, y: hoverY(H), bossPhase: 3, summonTimerMs: 0 }
+    const s = tickBoss({ ...createInitialState(6), phase: 'playing', enemies: [b] }, W, H)
+    expect(s.seenVariants).toEqual(expect.arrayContaining(['mirror']))
+    expect(s.callouts.some((c) => c.text === TIPS.mirror)).toBe(true)
+    const again = tickBoss({ ...s, enemies: s.enemies.map((e) => (e.type === 'boss' ? { ...e, summonTimerMs: 0 } : e)) }, W, H)
+    expect(again.callouts.filter((c) => c.text === TIPS.mirror)).toHaveLength(s.callouts.filter((c) => c.text === TIPS.mirror).length)
+  })
   it('minions spawn inside their grace, in their safe state', () => {
     const b: Enemy = { ...createBoss(W, H, true), x: W / 2, y: hoverY(H), bossPhase: 3, summonTimerMs: 0 }
     const s = tickBoss({ ...createInitialState(6), phase: 'playing', enemies: [b] }, W, H)

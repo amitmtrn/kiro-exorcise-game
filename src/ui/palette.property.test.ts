@@ -32,6 +32,14 @@ describe('Okabe-Ito palette keeps its pairs apart under every deficiency (R8.4)'
     }
   }
 
+  it('boss crown stays apart from the boss body and the yellow enemies under every deficiency (R6.5)', () => {
+    for (const d of DEFICIENCIES) {
+      for (const k of ['boss', 'pumpkin', 'batEye'] as const) {
+        expect(hexDeltaE(hex(OKABE_ITO, 'bossCrown'), hex(OKABE_ITO, k), d), `crown/${k} ${d}`).toBeGreaterThanOrEqual(MIN_PAIR_DE)
+      }
+    }
+  })
+
   it('skull and danger cues stand out from the background (>= 20) under every deficiency', () => {
     for (const d of DEFICIENCIES) {
       for (const k of ['skull', 'danger'] as const) {

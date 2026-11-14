@@ -5,6 +5,7 @@
  */
 
 import { highScorePersistence } from './persistence'
+import { STAGES } from './stages'
 
 export type PlayMode = '1P' | '2P'
 
@@ -21,7 +22,7 @@ export interface ScoreEntry {
 
 export const TABLE_SIZE = 10
 export const NAME_MAX = 8
-export const MAX_STAGE = 6
+export const MAX_STAGE = STAGES.length
 export const STORAGE_KEY = 'exorcise-highscores'
 export const LEGACY_KEY = 'exorcise-highscore'
 export const MIGRATED_NAME = 'OLD-BEST'

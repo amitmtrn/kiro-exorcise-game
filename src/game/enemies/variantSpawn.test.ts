@@ -17,6 +17,14 @@ describe('variant spawn', () => {
     const p = pickSpawn(640, 360, skulls, seeded(2))
     if (p) for (const s of skulls) expect(Math.hypot(s.x - p.x, s.y - p.y)).toBeGreaterThanOrEqual(skullClearancePx())
   })
+  it('a wisp pair keeps both members clear of the skulls, not just its midpoint (R1.6)', () => {
+    for (let seed = 1; seed <= 60; seed++) {
+      const skulls = [{ x: 200 + (seed % 7) * 40, y: -60 }, { x: 700, y: 100 + (seed % 5) * 40 }]
+      const pair = spawnVariant('wisp', 640, 360, skulls, seeded(seed))
+      if (!pair) continue
+      for (const w of pair) for (const k of skulls) expect(Math.hypot(k.x - w.x, k.y - w.y)).toBeGreaterThanOrEqual(skullClearancePx())
+    }
+  })
   it('starts every new ghost in its safe state, aimed at the exact centre', () => {
     const w = createWispPair({ x: -80, y: 100 }, 640, 360, seeded(3))
     expect(w).toHaveLength(2)

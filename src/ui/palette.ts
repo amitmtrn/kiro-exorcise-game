@@ -59,7 +59,7 @@ export const OKABE = {
 
 export const OKABE_ITO: Palette = {
   ghost: '#E8E8F0', bat: OKABE.blue, batEye: OKABE.yellow, skull: OKABE.vermillion, skullEye: '#0d0014',
-  lunger: OKABE.skyBlue, pumpkin: OKABE.yellow, wisp: '#999988', mirror: '#bbeebb', blink: '#ccaa66', boss: '#E8E8F0', bossWindup: OKABE.orange, bossEnraged: OKABE.vermillion, bossCrown: OKABE.yellow,
+  lunger: OKABE.skyBlue, pumpkin: OKABE.yellow, wisp: '#999988', mirror: '#bbeebb', blink: '#ccaa66', boss: '#E8E8F0', bossWindup: OKABE.orange, bossEnraged: OKABE.vermillion, bossCrown: OKABE.purple,
   candy: [OKABE.orange, OKABE.skyBlue, OKABE.purple, OKABE.yellow],
   life: OKABE.vermillion, score: OKABE.yellow, combo: OKABE.skyBlue, danger: OKABE.vermillion,
   p1: OKABE.skyBlue, p2: OKABE.orange,

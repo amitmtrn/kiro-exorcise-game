@@ -24,7 +24,7 @@ export interface Pt { x: number; y: number }
 function tail(rand: Rand): string { return Math.floor(rand() * 0xffffffff).toString(36).padStart(7, '0').slice(0, 8) }
 
 /** An edge point (offset outside by the ghost size) at least the skull clearance from every skull, or null. */
-export function pickSpawn(W: number, H: number, skulls: readonly Pick<Enemy, 'x' | 'y'>[], rand: Rand = Math.random): Pt | null {
+export function pickSpawn(W: number, H: number, skulls: readonly Pick<Enemy, 'x' | 'y'>[], rand: Rand = Math.random, span = 0): Pt | null {
   const order = [0, 1, 2, 3]
   for (let i = order.length - 1; i > 0; i--) { const j = Math.floor(rand() * (i + 1)); [order[i], order[j]] = [order[j], order[i]] }
   const m = GHOST_SIZE
@@ -34,7 +34,12 @@ export function pickSpawn(W: number, H: number, skulls: readonly Pick<Enemy, 'x'
       // keep wisp pairs (±gap) and bodies inside the area along the edge
       const f = 0.15 + 0.7 * rand()
       const p: Pt = edge === 0 ? { x: f * W, y: -m } : edge === 1 ? { x: W + m, y: f * H } : edge === 2 ? { x: f * W, y: H + m } : { x: -m, y: f * H }
-      if (skulls.every((s) => Math.hypot(s.x - p.x, s.y - p.y) >= clear)) return p
+      // `span`: a wisp pair sits ±span along the edge; every member must clear the skulls, not just the midpoint
+      const alongY = edge === 1 || edge === 3
+      const pts: Pt[] = span > 0
+        ? [p, alongY ? { x: p.x, y: p.y - span } : { x: p.x - span, y: p.y }, alongY ? { x: p.x, y: p.y + span } : { x: p.x + span, y: p.y }]
+        : [p]
+      if (skulls.every((s) => pts.every((q) => Math.hypot(s.x - q.x, s.y - q.y) >= clear))) return p
     }
   }
   return null
@@ -71,7 +76,7 @@ export function createBlink(p: Pt, W: number, H: number, rand: Rand = Math.rando
 
 /** The enemies of one spawn of `kind` at the area `W` × `H`, or null when no safe edge point exists (retry next tick). */
 export function spawnVariant(kind: VariantType, W: number, H: number, skulls: readonly Pick<Enemy, 'x' | 'y'>[], rand: Rand = Math.random): Enemy[] | null {
-  const p = pickSpawn(W, H, skulls, rand)
+  const p = pickSpawn(W, H, skulls, rand, kind === 'wisp' ? PAIR_GAP_PX / 2 : 0)
   if (!p) return null
   if (kind === 'wisp') return createWispPair(p, W, H, rand)
   return [kind === 'mirror' ? createMirror(p, W, H, rand) : createBlink(p, W, H, rand)]

@@ -74,7 +74,7 @@ under normal vision, protanopia, deuteranopia and tritanopia.
 
 **R1.8** **Reduced flashing.** No new telegraph strobes. Telegraphs are slow
 amplitude ramps; the fastest pulse of any new telegraph runs at ≤ 3 Hz, and at
-≤ 1 Hz when the reduced-flash setting is on (the existing `pulseRate()`). The new
+≤ 1 Hz when the reduced-flash setting is on (`variantPulseHz()`: 1.5 Hz, a quarter of that when reduced). The new
 content requests no full-screen flash outside the flash scheduler (the finale
 defeat uses the existing flash, which already goes through it).
 
@@ -99,7 +99,7 @@ becomes **lit** for `TWIN_WINDOW_MS` = 2000 ms: drawn with a bright ring and a
 link line to its partner, and a ring timer that shrinks.
 
 **R2.3** *Both hit.* A confirmed hit on the partner while the first is lit banishes
-**both** (2 × 150 × combo, one streak step each). The partner can be hit at any
+**both** (2 × 150 × combo, one streak step each; both score at the combo in force when the pair was hit, even if the first banish crosses a tier). The partner can be hit at any
 time after its own spawn grace, also before the first is hit.
 
 **R2.4** *Re-merge.* The last `TELEGRAPH_MS` (500 ms) of the lit window is the
@@ -175,7 +175,7 @@ stage cap is 5 enemies.
 ("TWIN WISPS: hit both", "MIRROR: wave twice, then swat", "BLINK: swat while
 solid"), each with the ghost's icon shape. The hint text uses the text scale.
 
-**R5.4** *Call-outs.* The first time each new type appears in a run, a tip
+**R5.4** *Call-outs.* The first time each new type appears in a stage (also when the Hollow King summons it), a tip
 call-out ("HIT BOTH!", "WAVE TWICE!", "WAIT FOR SOLID!") shows next to it for
 1.8 s. The finale boss arrival shows "THE HOLLOW KING!" for 2.5 s, 3 s before
 the boss enters.
@@ -215,7 +215,7 @@ competent player needs about 20 s. Timeout with the boss alive is game over (as
 `boss-phases` R6.5).
 
 **R6.5** *Look.* The finale boss wears a gold crown instead of the witch hat, has
-violet-gold aura colours that pass the `cb` palette distance rule, and the
+violet-gold aura colours; in the `cb` palette the crown (purple) keeps the distance rule against the boss body, pumpkin and bat eyes, and the
 health bar label reads "HOLLOW KING".
 
 **R6.6** *Victory.* Defeating it awards 1000 × combo plus a finale bonus of 2000,
@@ -304,12 +304,12 @@ lock-out and release latch, and one action per frame.
 4 s of the screen clock, in the central text band above 47 % of the height
 (`HIGH SCORES`, rank, name, score). With an empty table it shows nothing new.
 
-**R10.2** The game-over and victory screens show the top 5 rows below 47 % of the
+**R10.2** (Only the run just finished is highlighted; a run that does not qualify highlights nothing.) The game-over and victory screens show the top 5 rows below 47 % of the
 height, within the wide text band, with the player's own entry highlighted (in
 the top 5 or added as a 6th row with its rank).
 
 **R10.3** The table never overlaps button columns or the mute button (covered by
-the layout rects), and uses the text-scale setting and the palette.
+the layout rects), and uses the text-scale setting (up to the size its box allows; the title table's font floor is 8 px so rows stay inside the central band) and the palette.
 
 ---
 
@@ -323,7 +323,9 @@ time, driven only by that half's motion points. The 2P end buttons appear when
 both halves are done (accepted, timed out or nothing to name).
 
 **R11.3** Keyboard typing in 2P edits the name of P1 only (P2 uses the buttons);
-Enter accepts P1's.
+Enter accepts P1's. When only P2 has a name screen open, keys are not taken (mute `M` keeps working).
+Ranks are read from the final table after both seats are recorded; a seat whose entry
+was pushed out by the other seat gets no name screen.
 
 ---
 

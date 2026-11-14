@@ -42,7 +42,7 @@ Constants (all balance numbers in one table):
 export function stepVariant(e: Enemy, deltaMs: number): Enemy        // timers + transitions, carries overshoot
 export function isVariantHittable(e: Enemy): boolean                 // blink: solid|warnOut; mirror: open|closing; wisp: true
 export function telegraphLeftMs(e: Enemy): number                    // 0 outside a telegraph state
-export function nextState(e: Enemy): VariantState                    // the state a timer expiry moves to
+export function nextState(type, state): VariantState                 // the state a timer expiry moves to
 export function stateSchedule(type): Array<{ state, ms }>            // the cycle, used by tests
 export function onMirrorAbsorb(e: Enemy): { enemy: Enemy; absorbed: boolean; cracked: boolean }
 export function lightWisp(e: Enemy): Enemy                           // idle|merging→lit
@@ -103,8 +103,8 @@ wisp of a pair to arrive costs one life and removes its partner).
 
 ## Spawning (`variantSpawn.ts`)
 
-Pure functions taking a `rand` (default `Math.random`): `pickSpawn(edge, W, H,
-skulls, rand)` returns an edge point at least `SKULL_CLEARANCE` from every live skull,
+Pure functions taking a `rand` (default `Math.random`): `pickSpawn(W, H,
+skulls, rand, span = 0)` returns an edge point at least `SKULL_CLEARANCE` from every live skull (for a wisp pair, `span` = half the pair gap: both members must clear it, not only the midpoint),
 trying the four edges in a random order, else `null` (the event is deferred and
 retried the next tick). Spawned ghosts head for the exact centre. `tickSpawners`
 consumes `stageCfg.variantEvents` (`{ atMs, kind }`) like `waveEvents` (clock =
@@ -182,7 +182,7 @@ original bass / lead: a pedal bass climbing A–C–D–E and a bell-like lead).
 
 - **Wisp**: two small ghosts; link line between partners (dashed when idle, solid
   when lit); lit wisp: ring that shrinks with `1 − vTimerMs / lit`, in `merging` the
-  ring blinks at `pulseRate()` × 1.5 Hz (≤ 1 Hz reduced). Icon: ∞ drawn above.
+  ring blinks at `variantPulseHz()` (1.5 Hz, 0.375 Hz with reduced flashing). Icon: ∞ drawn above.
 - **Mirror**: ghost body with a hexagonal shield; closed = filled bar "▮" icon;
   `cracking` = crack lines growing, glow rising; `open` = broken outline; absorb =
   white ring that expands for `absorbMs`.
@@ -190,7 +190,7 @@ original bass / lead: a pedal bass climbing A–C–D–E and a bell-like lead).
   warn states interpolate alpha with a smooth ramp (no strobe).
 - Colours come from the palette (`wisp`, `blink`, `mirror` keys). The `cb`
   palette values are the brute-force result of `palette.property.test.ts`.
-- Telegraph pulses all go through `pulseRate()`.
+- Telegraph pulses all go through `variantPulseHz()` in `renderVariants.ts` (1.5 Hz; a quarter of that with reduced flashing).
 
 ## Audio
 
@@ -239,7 +239,7 @@ them; one test per new id asserts the three labels and order.
 
 ### Screens (`ui/nameScreen.ts`)
 
-`renderNameScreen(ctx, entry, now, handlers, opts)` draws the title "NAME YOUR GHOST
+`renderNameScreen(ctx, entry, now, handlers, opts)` draws the title "NAME YOUR
 HUNTER" (fit to the text band), the current name large (cursor underline on the
 active letter), a hint line, and the three buttons. 2P: `renderNameScreen2P`
 draws the same in a half (each half with its own `ButtonSet` and motion points),
@@ -249,7 +249,7 @@ or "Waiting for the other player" once done. Entry lock-out via `EntryLock`.
 
 `tableRows(table, page, perPage)` and `endRows(table, highlightId)` are pure;
 `drawTable(ctx, rows, box, opts)` draws with the text scale and palette. The title
-screen alternates pages with `Math.floor(now / 4000) % 2`; end screens draw the top 5 plus
+screen alternates pages with `Math.floor((now - enteredAt) / 4000) % pages` (the timer starts when the title is entered); the box is fitted with a 8 px font floor so the rows stay inside the text band, and the text-scale setting applies up to the size the box allows; end screens draw the top 5 plus
 the player's own row.
 
 ### Loop integration
@@ -309,13 +309,12 @@ plays stage 1 only.
 | `enemies/variants.property.test.ts` | telegraph precedes protection changes, hit possible in window, frame-rate independence, travel time ≥ 4500 ms |
 | `enemies/variantSpawn.test.ts` + property | clearance, 2P half bounds, pair never spans the divider, grace |
 | `collision.variants.test.ts` | absorb, link, both-hit, blink gate, scoring, 2P seat |
-| `stages.test` / `round.test` | stage 6, victory only after stage 6 |
-| `bossPhases.finale.test.ts` | finale params, minion kinds, telegraph ≥ 400 ms, vulnerable fraction |
+| `round.test.ts` / `finale.test.ts` | stage 6, victory only after stage 6, finale params, minion kinds, king tips, telegraph ≥ 400 ms, vulnerable fraction |
 | `audio/music/patterns.test.ts` | `finale` track valid and distinct |
-| `ui/palette.property.test.ts` | new keys keep ΔE ≥ 12 |
+| `ui/palette.property.test.ts` | new keys keep ΔE ≥ 12; the cb crown (`bossCrown`, purple) stays apart from the boss body, pumpkin and bat eyes |
 | `render.variants.test.ts` | drawing runs for every state in default and cb palettes, reduced flash rate |
 | `game/highScores.test.ts` + property | storage, migration, validation, ordering, demo off |
 | `game/nameEntry.test.ts` + property | picker closure, keyboard, timeouts |
-| `ui/layout*.test.ts` | name buttons in 1P and per half |
-| `ui/scoreTable.test.ts`, `ui/nameScreen.test.ts` | rows, highlight, drawing |
+| `game/nameEntry.test.ts`, `ui/layout*.test.ts` | name buttons in 1P and per half |
+| `ui/scoreTable.test.ts`, `ui/nameScreen.test.ts`, `game/loop.names*.test.ts` | rows, highlight, drawing |
 | `demo/demo.sim.test.ts` | full run through stage 6, nothing saved |

@@ -61,7 +61,7 @@ export function drawTable(ctx: CanvasRenderingContext2D, rows: readonly TableRow
   const lines = rows.length + (heading ? 1 : 0)
   const lineH = box.h / lines
   const longest = Math.max(...rows.map((r) => rowText(r).length + 2), heading ? heading.length : 0)
-  const px = Math.round(fitFontPx('x'.repeat(longest), Math.min(lineH * 0.8, scaled(22)), box.w, 10))
+  const px = Math.round(fitFontPx('x'.repeat(longest), Math.min(lineH * 0.8, scaled(22)), box.w, 8))
   const P = getPalette()
   ctx.save()
   ctx.textAlign = 'center'

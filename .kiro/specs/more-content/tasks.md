@@ -82,6 +82,21 @@
 - [x] `npm test` and `npm run build` both clean.
 - [x] Commit: `docs(more-content-T10): README and KIRO.md`
 
+## T12 — Review fixes
+- [x] End screens: `ownIds` cleared at the start of every run end, so a non-qualifying run highlights nothing (R10.2).
+- [x] 2P: both seats recorded first; ranks come from the final table; a pushed-out entry gets no name screen (R11.1, R11.2).
+- [x] 2P keys are taken only while seat 0 has an open name screen (R11.3).
+- [x] Wisp pair score uses the combo at hit time for both wisps (R2.3); test added.
+- [x] Pair spawn checks skull clearance for each wisp, not the midpoint (R1.6); test added.
+- [x] King summons show the first-sighting tip (R5.4); tip scope documented as once per stage; test added.
+- [x] `bossCrown` in the cb palette is purple, with a distance test against boss body, pumpkin and bat eyes (R6.5).
+- [x] Name picker: ◀/▶ and OK on an emptied name behave like an untouched one; tests added.
+- [x] Title table: page timer starts at title entry; 8 px font floor keeps rows in the central band (R10.1, R10.3 text-scale wording).
+- [x] `MAX_STAGE = STAGES.length`.
+- [x] Spec drift fixed in design.md (pulse helper, signatures, title text, test table) and requirements.md.
+- [x] `npm test` and `npm run build` both clean.
+- [x] Commits: `fix(more-content): ...`
+
 ## T11 — Manual smoke test (webcam)
 - [ ] Wisp pair: hit one, ring shows, hit the other inside 2 s to banish both; miss and watch the merge.
 - [ ] Mirror ghost: two waves crack the shield, swat while open.

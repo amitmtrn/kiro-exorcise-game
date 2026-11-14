@@ -118,8 +118,8 @@ function comboFx(s: GameState, enemy: Enemy, prevCombo: number, displayW: number
 }
 
 /** Banish of a ghost-like enemy worth `base` points × combo (ghost, lunger, blink, mirror, wisp). */
-function banishGhostLike(s: GameState, enemy: Enemy, base: number, displayW: number, displayH: number): GameState {
-  s = scoreWithPop(s, enemy, base * s.combo)
+function banishGhostLike(s: GameState, enemy: Enemy, base: number, displayW: number, displayH: number, scoreCombo?: number): GameState {
+  s = scoreWithPop(s, enemy, base * (scoreCombo ?? s.combo))
   const prevCombo = s.combo
   s = incrementCombo(s)
   s = comboFx(s, enemy, prevCombo, displayW, displayH)
@@ -245,8 +245,9 @@ export function resolveHits(
         // Both hit inside the window: banish the pair.
         if (inDone) updatedEnemies.splice(updatedEnemies.indexOf(inDone), 1)
         else consumed.add(partner.id)
-        s = banishGhostLike(s, enemy, 150, displayW, displayH)
-        if (s.phase !== 'gameover') s = banishGhostLike(s, partner, 150, displayW, displayH)
+        const pairCombo = s.combo // both wisps score at the combo the pair was hit at (R2.3)
+        s = banishGhostLike(s, enemy, 150, displayW, displayH, pairCombo)
+        if (s.phase !== 'gameover') s = banishGhostLike(s, partner, 150, displayW, displayH, pairCombo)
       } else {
         const lit = lightWisp(enemy)
         if (lit.vState !== enemy.vState) { try { sfxWispLink() } catch { /* audio not ready */ } }

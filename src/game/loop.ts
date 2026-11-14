@@ -77,9 +77,11 @@ let rafId = 0
 // Name entry (more-content R9.3): while a name screen is open, keys are queued here by main.ts.
 let nameKeys: string[] = []
 let nameActive = false
+/** 2P: only seat 0 (the keyboard player) takes keys; blocked while just the other half has an open name screen. */
+let nameKeysBlocked = false
 /** Forwards a key to an open name screen; true when it was taken (the caller then skips its other key handling). */
 export function handleNameKey(key: string, repeat = false): boolean {
-  if (!nameActive) return false
+  if (!nameActive || nameKeysBlocked) return false
   const relevant = key === 'Enter' || key === 'Backspace' || (key.length === 1 && /^[a-z0-9-]$/i.test(key))
   if (!relevant) return false
   if (!repeat || key === 'Backspace') nameKeys.push(key)
@@ -212,6 +214,7 @@ export async function startLoop(
   /** A 1P run ended (game over or victory): record it with a generated name and open the name screen. */
   function onRunEnd(now: number): void {
     pendingName = null
+    ownIds = [] // a run that does not qualify must not highlight the previous run's row
     if (demo) return
     const r = recordScore({ score: state.score, stage: state.stage, mode: '1P' })
     scoreTable = loadTable()
@@ -292,12 +295,20 @@ export async function startLoop(
 
   /** The 2P game ended: record every seat that scored (mode 2P, its own stage) and open its name screen. */
   function onTwoPlayerEnd(t: TwoPlayerState, now: number): void {
+    const recorded: Array<{ entry: ScoreEntry } | null> = [null, null]
     for (const seat of SEATS) {
       seatNames[seat] = null
       const s = t.seats[seat]
-      const r = recordScore({ score: s.score, stage: s.stage, mode: '2P' })
+      recorded[seat] = recordScore({ score: s.score, stage: s.stage, mode: '2P' })
+    }
+    // Ranks come from the final table, after both inserts; an entry pushed out by the other seat gets no name screen.
+    const table = loadTable()
+    for (const seat of SEATS) {
+      const r = recorded[seat]
       if (!r) continue
-      seatNames[seat] = { id: r.entry.id, entry: newNameEntry(r.entry.name, now), info: { score: r.entry.score, rank: r.rank } }
+      const rank = table.findIndex((e) => e.id === r.entry.id) + 1
+      if (rank === 0) continue
+      seatNames[seat] = { id: r.entry.id, entry: newNameEntry(r.entry.name, now), info: { score: r.entry.score, rank } }
       seatNameScreens[seat].reset()
     }
     nameKeys = []
@@ -306,7 +317,8 @@ export async function startLoop(
 
   /** Runs both halves' name screens for this frame (keyboard edits P1); true while the end buttons must wait. */
   function runSeatNames(now: number, W: number, H: number): boolean {
-    if (!namesOpen2P()) { nameActive = false; return false }
+    if (!namesOpen2P()) { nameActive = false; nameKeysBlocked = false; return false }
+    nameKeysBlocked = !(seatNames[0] && !seatNames[0].entry.done)
     const hw = halfWidth(W)
     for (const seat of SEATS) {
       const n = seatNames[seat]
@@ -329,6 +341,7 @@ export async function startLoop(
     }
     nameKeys = []
     if (namesOpen2P()) { nameActive = true; return true }
+    nameKeysBlocked = false
     // Both halves done: fresh lock-out for the shared end buttons and the cards.
     nameActive = false
     scoreTable = loadTable()

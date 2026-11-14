@@ -99,6 +99,11 @@ describe('twin wisps', () => {
     expect(r.score).toBe(300) // 150 x combo 1 for each wisp (the streak is only 1 after the first)
     expect(lastBanished).toHaveLength(2)
   })
+  it('both wisps score at the combo the pair was hit at, even across a combo tier (R2.3)', () => {
+    const r = hit({ ...state(pair({ hitCount: 0, vState: 'lit' }, { hitCount: 1 })), streak: 2, combo: 1 })
+    expect(r.score).toBe(300) // 2 x 150 x 1, not 150 x 1 + 150 x 2
+    expect(r.combo).toBe(2)
+  })
   it('works when the lit partner comes later in the list', () => {
     const r = hit(state(pair({ hitCount: 1 }, { hitCount: 0, vState: 'merging' })))
     expect(r.enemies).toHaveLength(0)
