@@ -179,6 +179,8 @@ export async function startLoop(
   const seatCards = SEATS.map((seat) => new SeatCard<HTMLCanvasElement>(seat, seatSessions[seat], () => seatPoints[seat]))
   const cardCanvases: HTMLCanvasElement[] = []
   let finalAt = 0
+  /** Per seat: a boss was on that seat's field at the previous tick (so its disappearance means it was defeated). */
+  const seatHadBoss: [boolean, boolean] = [false, false]
   seatCardsRef = seatCards
   twoFinal = false
 
@@ -186,6 +188,7 @@ export async function startLoop(
   function resetSeatCards(): void {
     for (const c of seatCards) c.reset()
     for (const s of seatSessions) s.reset()
+    seatHadBoss[0] = seatHadBoss[1] = false
     twoFinal = false
   }
   cardInputs = []
@@ -408,7 +411,11 @@ export async function startLoop(
       // Per-player highlights: each seat's own state feeds only that seat's card session.
       for (const seat of SEATS) {
         seatPoints[seat] = displayPointsInHalf(lastMotionPixels, seat, displayW)
-        seatSessions[seat].observe(two.seats[seat], displayW, displayH)
+        const ss = two.seats[seat]
+        // Boss defeated in this half on the previous tick: snapshot now, while the player is still in front of the camera.
+        const bossDefeated = seatHadBoss[seat] && (ss.phase === 'summary' || ss.phase === 'victory')
+        seatHadBoss[seat] = ss.enemies.some((e) => e.type === 'boss')
+        seatSessions[seat].observe(bossDefeated ? { ...ss, bossDefeated } : ss, displayW, displayH)
       }
       two = tickTwo(two, deltaMs, now, displayW, displayH, currentData, prevData, frameIsNew)
       // Apply a button pressed during this tick *after* the tick result is stored.

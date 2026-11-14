@@ -78,7 +78,7 @@ function drawText(ctx: CanvasRenderingContext2D, t: TextBox, font: string): void
 /** A rounded chip behind a text box (label / badge on the photo). */
 function drawChip(ctx: CanvasRenderingContext2D, t: TextBox, fill: string, stroke: string, text: string): void {
   if (!t.text) return
-  const wText = estimateWidth(t.text, t.px)
+  const wText = Math.min(estimateWidth(t.text, t.px), t.maxW)
   const padX = t.px * 0.5
   const x = t.align === 'left' ? t.x - padX : t.x - wText - padX
   const r: Rect = { x, y: t.y - t.px * 0.7, w: wText + padX * 2, h: t.px * 1.4 }
@@ -181,7 +181,10 @@ export function drawCard(
 
   // Two-player chips: player label (dark pill) and winner / tie ribbon
   if (L.playerLabel) drawChip(ctx, L.playerLabel, 'rgba(13,0,20,0.75)', COLORS.yellow, COLORS.ghost)
-  if (L.badge) drawChip(ctx, L.badge, COLORS.orange, COLORS.yellow, COLORS.midnight)
+  if (L.badge) {
+    const winner = L.badge.text === 'WINNER' // gold for the winner, plain orange for a tie
+    drawChip(ctx, L.badge, winner ? COLORS.yellow : COLORS.orange, winner ? COLORS.orange : COLORS.yellow, COLORS.midnight)
+  }
 
   // Cobwebs in the corners, bats on the title band
   ctx.strokeStyle = 'rgba(232,232,240,0.35)'

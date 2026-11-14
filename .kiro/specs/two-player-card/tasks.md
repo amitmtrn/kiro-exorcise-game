@@ -54,6 +54,12 @@ Files: `src/main.ts`, `src/game/loop.ts`, `src/game/loop.card.test.ts`, `README.
 - [x] `npm test` and `npm run build` both clean.
 - [x] Commit: `docs(two-player-card-T5): README`
 
+## T6 — Manual smoke test (two people, webcam)
+- [ ] Finish a 2P game: each half shows an EXORCIST CARD button; waving in one half never moves the other half's buttons.
+- [ ] Each card shows its own half, mirrored like the game, P1 / P2 label, WINNER (or TIE on both), own numbers.
+- [ ] Both previews open at once; SAVE downloads `exorcist-card-p1.png` / `-p2.png`; CLOSE does not trigger PLAY AGAIN / MAIN MENU.
+- [ ] DevTools Network stays empty; Application → Storage holds no image.
+
 ## T7 — Review fixes
 - [x] NIT 1: `finalAt = now` set before the audio calls in `tickTwo`.
 - [x] NIT 2: `sharedButtonMaxCy` keeps PLAY AGAIN / MAIN MENU clear of both offers; property test.
@@ -64,8 +70,16 @@ Files: `src/main.ts`, `src/game/loop.ts`, `src/game/loop.card.test.ts`, `README.
 - [x] `npm test` and `npm run build` both clean.
 - [x] Commit: `fix(two-player-card): review nits`
 
-## T6 — Manual smoke test (two people, webcam)
-- [ ] Finish a 2P game: each half shows an EXORCIST CARD button; waving in one half never moves the other half's buttons.
-- [ ] Each card shows its own half, mirrored like the game, P1 / P2 label, WINNER (or TIE on both), own numbers.
-- [ ] Both previews open at once; SAVE downloads `exorcist-card-p1.png` / `-p2.png`; CLOSE does not trigger PLAY AGAIN / MAIN MENU.
-- [ ] DevTools Network stays empty; Application → Storage holds no image.
+## T8 — Review fixes (round 2)
+- [x] NIT 1: `sharedButtonLayout` fits PLAY AGAIN / MAIN MENU between the "out of lives" line and the offers (radius shrinks); test 640 × 480 to 1920 × 1080.
+- [x] NIT 2: discriminating loop test (wave inside P1's half at P2's offer position while only P1 is open does nothing to P2).
+- [x] NIT 3: `main.ts` pointer routing extracted to `routePointer` and tested (mute wins over a card button, 2P click routing).
+- [x] NIT 4, 5: design names and `!twoStarted()` wording match the code.
+- [x] NIT 6: WINNER badge is gold, TIE stays orange (`draw.ts`); doc and test.
+- [x] NIT 7: boss snapshot taken when that seat's boss is defeated (`bossDefeated` in `observeRun`, `bossTaken`); requirements R2.2 and design say so; tests.
+- [x] NIT 8: README row says "1 PLAYER only".
+- [x] NIT 9: chip width capped by `maxW`.
+- [x] NIT 10: T6 listed before T7 / T8.
+- [x] `npm test` and `npm run build` both clean.
+- [x] Commit: `fix(two-player-card): review round 2`
+

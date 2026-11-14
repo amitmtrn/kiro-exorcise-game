@@ -18,6 +18,19 @@ function recorder() {
 
 const data = { score: 4200, bestCombo: 3, stage: 4, stageCount: 5, banished: 61, rank: rankForScore(4200) }
 
+describe('drawCard badge', () => {
+  const fillOf = (badge: string) => {
+    const { ctx, calls } = recorder()
+    drawCard(ctx, 600, 840, { ...data, playerLabel: 'P1', badge }, null)
+    const fills = calls.filter(([n]) => n === 'set:fillStyle').map(([, a]) => a[0])
+    return fills
+  }
+  it('WINNER is gold, TIE is orange', () => {
+    expect(fillOf('WINNER')).toContain('#ffd166')
+    expect(fillOf('TIE')).toContain('#ff6b1a')
+  })
+})
+
 describe('drawCard', () => {
   it('paints the camera photo, cover-cropped, when one is given', () => {
     const { ctx, calls } = recorder()

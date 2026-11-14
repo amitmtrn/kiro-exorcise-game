@@ -51,7 +51,10 @@ The card paints the photo cover-fitted (a centred crop of the half) into the pho
 
 `CardSession.observe(seatState, W, H)` runs every 2P tick for both seats (the same
 `observeRun` as 1P). `end` fires when a seat's phase becomes `gameover` (it went out, at that
-moment) and `boss` when it becomes `victory`. Because each session sees one seat only, a
+moment). `boss` fires on the tick after that seat's boss is defeated: the loop remembers whether the seat
+had a boss on the previous tick and passes `bossDefeated` (seat phase now `summary` / `victory`) to
+`observe`, so the photo is taken in front of the live camera, not on the end screen. `RunStats.bossTaken`
+stops a later `victory` from offering a second boss moment. 1P is unchanged (boss on entering `victory`). Because each session sees one seat only, a
 combo of P1 can never offer a moment to P2. `grab` is bound to the seat, so it crops that half.
 
 ## Card content, label and badge (R3)
@@ -61,7 +64,7 @@ combo of P1 can never offer a moment to P2. `grab` is bound to the seat, so it c
 top-right, `fitText` with `maxW = 40 %` of the photo width) and returns them as optional
 `TextBox`es, so the property test (everything inside the card) covers them. Without them the layout is
 byte-for-byte the 1P layout. `drawCard` paints a dark pill with the label and a pumpkin-orange
-ribbon with the badge (candlelight text, gold for WINNER).
+ribbon with the badge (midnight text); a WINNER badge is gold (candlelight fill), a TIE badge stays orange.
 
 `badgeFor(winner, seat)`: `tie → 'TIE'`, `winner === seat → 'WINNER'`, else `undefined`.
 `cardFileName(seat)`: `exorcist-card-p1.png` / `-p2.png`. The session is built with
@@ -89,11 +92,12 @@ final ─ offer visible in each half (after the 1.5 s final lock-out)
 ```
 `SeatCard.render(ctx, now, live)` draws, on its own transparent half canvas, the offer
 button (gated: `live && now ≥ liveAt`) or the preview. After open / close of a preview it resets and
-gates the seat's offer button for 0.8 s and records `cardLockedUntil = now + 0.8 s`. The loop passes
-`buttonsLive = !anyOpen && now ≥ max(lockUntil of both seats)` to `renderTwoPlayerFinal`, which gates
+gates the seat's offer button for 0.8 s and records `lockedUntil = now + 0.8 s`. The loop passes
+`buttonsLive = !anyOpen && now ≥ max(lockedUntil of both seats)` to `renderTwoPlayerFinal`, which gates
 PLAY AGAIN / MAIN MENU with it and draws them at 35 % alpha while locked. On the final screen the
-PLAY AGAIN / MAIN MENU buttons sit at `min(0.70 H, sharedButtonMaxCy)` (was `0.78 H`), where
-`sharedButtonMaxCy` keeps an 8 px gap above both offers, so the circles never overlap (property-tested).
+PLAY AGAIN / MAIN MENU buttons are placed by `sharedButtonLayout`: centred in the band between the
+"out of lives" line (`0.6 H + 12 px`) and an 8 px gap above both offers, with the radius shrunk if the band is
+short. They overlap neither label, score nor offers from 640 × 480 to 1920 × 1080 (tested).
 Offer clicks obey the same 0.8 s gate as offer motion. `finalAt` is set before any audio call. The seat card layers are composited over the final overlay, and the divider is redrawn above them.
 
 ## Lifecycle (R2.5)
@@ -114,8 +118,8 @@ helper is exercised with injected deps (URL revoked).
 
 NIT 1 (`main.ts` key path gated by `!isTwoPlayerActive()`, sentence in exorcist-card design now true),
 2 (discriminating 2P test drives to `final`, spies on `observe` / grab), 3 (README), 4 (single import),
-5 (comment placement), 6 (`stopLoop` resets `twoPlayerActive`), 7 (key path `&& !two`, and
-`begin` ignores a start request while a 2P game exists).
+5 (comment placement), 6 (`stopLoop` resets `twoPlayerActive`), 7 (a `!twoStarted()` guard at the
+call site in `loop.ts` stops the 1P `begin` when a 2P game starts in the same tick; `begin` itself is unchanged).
 
 ## Tests
 

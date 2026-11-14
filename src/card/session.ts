@@ -23,6 +23,8 @@ export interface SessionState {
   stageBanished: number
   combo: number
   score: number
+  /** Two-player: this seat's boss was defeated on the previous tick. */
+  bossDefeated?: boolean
 }
 
 export interface SessionDeps<P, C> {

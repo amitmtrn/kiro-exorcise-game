@@ -25,7 +25,7 @@ npm run dev
 
 | Command | What it does |
 |---|---|
-| `npm test` | Run all 1040 unit tests (Vitest) |
+| `npm test` | Run all 1045 unit tests (Vitest) |
 | `npm run build` | Production build → `dist/` |
 | `npm run preview` | Preview the production build locally |
 
@@ -60,7 +60,7 @@ Pick **1 PLAYER** or **2 PLAYERS** on the title screen (wave over a button, or p
 | `1` / `2` | Start a 1 PLAYER / 2 PLAYERS game from the title screen |
 | `M` or the 🔊 button (top-right; top centre in 2 PLAYERS) | Mute / unmute |
 | `D` | Toggle the hitbox + motion-mask debug overlay |
-| `C` (game over / victory) | Open the Exorcist Card preview; then `S` / `Enter` save, `N` photo ↔ silhouette, `Esc` close |
+| `C` (game over / victory, 1 PLAYER only) | Open the Exorcist Card preview; then `S` / `Enter` save, `N` photo ↔ silhouette, `Esc` close |
 
 ### Testing hit detection without a webcam
 

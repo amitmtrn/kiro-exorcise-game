@@ -142,15 +142,17 @@ describe('2P end screen cards (two-player-card)', () => {
     expect(h.composed[0]).toMatchObject({ playerLabel: 'P2' })
   })
 
-  it('a wave in the other half never opens a player\'s card', async () => {
+  it('a wave over P1\'s preview buttons, made in P2\'s half, changes nothing', async () => {
     await toFinal()
-    // P1's offer circle position, but waved inside P2's half coordinates: x + HW is P2's offer, not P1's.
-    waveOffer(1)
+    waveOffer(0); stepFor(1500); h.points = []; stepFor(1000)
+    expect(h.composed.map((d) => d.playerLabel)).toEqual(['P1'])
+    const save = layout().buttons.find((b) => b.id === 'save')!
+    h.points = ring(save.cx + HW, save.cy) // same local spot, but in P2's half (not P2's offer button)
     stepFor(2500)
     h.points = []
     step()
-    expect(h.composed).toHaveLength(1)
-    expect(h.composed.every((d) => d.playerLabel === 'P2')).toBe(true)
+    expect(h.saved).toEqual([]) // P1's SAVE was not triggered
+    expect(h.composed.map((d) => d.playerLabel)).toEqual(['P1']) // P2's card never opened
   })
 
   it('both cards can be open together; each SAVE writes its own file name; clicks stay in their half', async () => {

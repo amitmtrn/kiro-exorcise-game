@@ -58,7 +58,7 @@ managed by the same rules as exorcist-card R2 (strictly-better replacement, lazy
 camera read, fallback at the end).
 
 **R2.2** Highlight moments are tracked per seat from that seat's own state:
-`boss` (that seat's boss defeated) > `combo` (that seat's new best tier ≥ x2) >
+`boss` (that seat's boss defeated; the snapshot is taken on the tick after the defeat, in that player's half, not on the end screen) > `combo` (that seat's new best tier ≥ x2) >
 `end` (that seat went out, or finished the game). One player's combo never
 creates or replaces the other player's snapshot.
 

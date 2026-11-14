@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest'
 import fc from 'fast-check'
-import { SeatCard, seatOfferGeometry, routeSeatClick, sharedButtonMaxCy } from './seatCard'
+import { SeatCard, seatOfferGeometry, routeSeatClick, sharedButtonLayout } from './seatCard'
 import type { SeatSession } from './seatCard'
 import { previewLayout, PREVIEW_INPUT_DELAY_MS } from './cardScreen'
 import { displayPointsInHalf, halfWidth } from '../game/halves'
@@ -216,13 +216,14 @@ describe('per-half routing (two-player-card R1.3) — property', () => {
   })
 })
 
-describe('shared end buttons vs offers', () => {
-  it('never overlap for common sizes', () => {
-    for (const [W, H] of [[800, 400], [640, 480], [1280, 720], [1920, 1080], [480, 360]]) {
+describe('shared end buttons vs offers and labels', () => {
+  it('fit between the "out of lives" line and the offers from 640x480 to 1920x1080', () => {
+    for (const [W, H] of [[640, 480], [800, 400], [1280, 720], [1366, 768], [1920, 1080]]) {
       const hw = Math.floor(W / 2)
-      const r = Math.max(48, Math.min(76, Math.round(W / 9)))
-      const by = Math.min(H * 0.7, sharedButtonMaxCy(hw, H, r))
+      const { r, cy: by } = sharedButtonLayout(hw, H, Math.max(48, Math.min(76, Math.round(W / 9))))
       const o = seatOfferGeometry(hw, H)
+      expect(r).toBeGreaterThanOrEqual(24)
+      expect(by - r).toBeGreaterThan(H * 0.6 + 8) // clear of the label (and the score above it)
       for (const seat of [0, 1]) {
         for (const bx of [W * 0.35, W * 0.65]) {
           const ox = o.cx + seat * hw

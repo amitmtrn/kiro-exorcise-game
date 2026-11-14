@@ -24,10 +24,16 @@ export function seatOfferGeometry(hw: number, H: number): { cx: number; cy: numb
   return { cx: hw / 2, cy: Math.max(r, H - r - 12), r }
 }
 
-/** Lowest y a shared end-screen button of radius `r` may reach so it stays clear of both offers (8 px gap). */
-export function sharedButtonMaxCy(hw: number, H: number, r: number): number {
+/**
+ * Radius and centre y of the shared PLAY AGAIN / MAIN MENU buttons: in the band between the
+ * "out of lives" line (0.6 H, plus its descent) and the per-player offers, shrunk to fit.
+ */
+export function sharedButtonLayout(hw: number, H: number, wantR: number): { r: number; cy: number } {
   const o = seatOfferGeometry(hw, H)
-  return o.cy - o.r - 8 - r
+  const top = H * 0.6 + 12
+  const bottom = o.cy - o.r - 8
+  const r = Math.max(1, Math.min(wantR, Math.floor((bottom - top) / 2)))
+  return { r, cy: (top + bottom) / 2 }
 }
 
 /** Which half a click on the full canvas belongs to, and its half-local position. */
