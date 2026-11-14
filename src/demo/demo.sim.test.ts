@@ -10,6 +10,7 @@ const h = vi.hoisted(() => ({
   skullHits: 0,
   cards: [] as Array<{ badge?: string; photo: boolean; score: number }>,
   drawn: [] as string[],
+  playAgain: null as null | (() => void),
 }))
 
 // The real renderer runs (drawing into a recording proxy), so the run consumes randomness exactly as in the browser.
@@ -20,6 +21,16 @@ vi.mock('../game/render', async (orig) => {
     renderFrame: (c: CanvasRenderingContext2D, s: import('../game/state').GameState, ...rest: unknown[]) => {
       h.state = s
       return (m.renderFrame as (...a: unknown[]) => void)(c, s, ...rest)
+    },
+  }
+})
+vi.mock('../ui/screens', async (orig) => {
+  const m = await orig<typeof import('../ui/screens')>()
+  return {
+    ...m,
+    renderVictory: (...a: unknown[]) => {
+      h.playAgain = a[3] as () => void
+      return (m.renderVictory as (...x: unknown[]) => void)(...a)
     },
   }
 })
@@ -76,7 +87,7 @@ const net = { fetch: vi.fn(), xhr: vi.fn(), beacon: vi.fn(), gum: vi.fn(), setIt
 
 beforeEach(() => {
   rafQueue = []
-  h.state = null; h.skullHits = 0; h.cards = []; h.drawn = []
+  h.state = null; h.playAgain = null; h.skullHits = 0; h.cards = []; h.drawn = []
   Object.values(net).forEach((f) => f.mockClear())
   vi.stubGlobal('document', { createElement: () => canvas() })
   vi.stubGlobal('performance', { now: () => 0 })
@@ -241,6 +252,25 @@ describe('full demo run, headless (demo-mode R4, R5, R6)', () => {
       expect(run.phases.has('playing')).toBe(true)
       expect(getPlayerMode()).toBe(2)
     } finally { resetPlayerMode() }
+  }, 60_000)
+
+  it('PLAY AGAIN on the victory screen starts the seeded demo stage, not an un-seeded stage 1 (R4.8)', async () => {
+    const rt = new DemoRuntime({ seed: DEMO.defaultSeed, stage: 5, speed: DEMO.timeScale, w: W, h: H })
+    await startLoop(null, ctx(), ctx(true), 1, { demo: rt })
+    try {
+      let ts = 0
+      for (let i = 0; i < 4000 && !(h.state?.phase === 'victory' && h.playAgain); i++) {
+        ts += 1000 / 60
+        const q = rafQueue; rafQueue = []; q.forEach((f) => f(ts))
+      }
+      expect(h.state?.phase).toBe('victory')
+      const spy = vi.spyOn(rt, 'onRunStart')
+      h.playAgain!()
+      expect(spy).toHaveBeenCalledTimes(1)
+      for (let i = 0; i < 5; i++) { ts += 1000 / 60; const q = rafQueue; rafQueue = []; q.forEach((f) => f(ts)) }
+      expect(h.state?.phase).not.toBe('victory')
+      expect(h.state?.stage).toBe(5)
+    } finally { stopLoop(); rt.dispose() }
   }, 60_000)
 
   it('another seed plays a different run', async () => {

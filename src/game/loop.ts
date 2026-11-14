@@ -577,7 +577,10 @@ export async function startLoop(
       renderFrame(gameCtx, state, now)
       if (!renderCardPreview(now)) {
         renderVictory(gameCtx, state, now,
-          () => { state = startGame(createInitialState(1)) },
+          () => {
+            if (demo) { state = createInitialState(1); begin(1) } // seeded run at the demo stage, like any other start
+            else state = startGame(createInitialState(1))
+          },
           () => { state = createInitialState(1) },
           () => runCardAction('open', now),
         )
