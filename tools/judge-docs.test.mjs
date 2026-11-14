@@ -98,7 +98,7 @@ describe('docs structure', () => {
     expect(kiro).toMatch(/\| Unit and property tests \| 1120 passed, 0 failed, 0 skipped at PR #5; \d+ passed, 0 failed, 0 skipped on this branch after merging main/)
     expect(kiro).toMatch(/\| #5 \| motion-ui-ergonomics \| 1120 \|/)
     expect(kiro).toMatch(/\| #6 \| demo-mode \| 1254 \|/)
-        expect(kiro).toContain('536.22')
+    expect(kiro).toContain('536.22')
     expect(kiro).not.toContain('534.' + '66')
     expect(kiro).not.toMatch(/open PR #6|not on main|#7 \(open\)/)
   })

@@ -22,7 +22,7 @@ reproducible: `git checkout df26f4d` and run the same command.
 | `fix(...)` commits, mostly review fixes | 57 | `git log df26f4d --oneline -E --grep='^fix' \| wc -l` |
 | Unit and property tests | 1120 passed, 0 failed, 0 skipped at PR #5; 1291 passed, 0 failed, 0 skipped on this branch after merging main (demo mode and `judge-docs`) | `npm test` |
 | Test files | 96 at PR #5; 108 on this branch after merging main | `npm test` ("Test Files") |
-| Property tests: `fc.assert` calls | 119 in 31 files | `grep -rh 'fc\.assert' src tools \| wc -l` |
+| Property tests: `fc.assert` calls (at df26f4d) | 119 in 31 files | `grep -rh 'fc\.assert' src tools \| wc -l` |
 | Hooks | 5 hook entries in 3 files | `ls .kiro/hooks` |
 | Steering files | 3, 233 lines | `wc -l .kiro/steering/*.md` |
 | Custom agents | 1 (`balancer`) | `ls .kiro/agents` |
@@ -204,14 +204,12 @@ enforces it for the card feature: `src/card/privacy.test.ts` fails if the card
 sources contain `fetch(`, `XMLHttpRequest`, `sendBeacon`, `WebSocket`,
 `localStorage`, `http://` or `https://`.
 
-**Steering rule in code, timing.** The `feel-fix` spec (R1.2) turns frame-rate
-independence into a rule: `moveEnemies(enemies, deltaMs, canvasW, canvasH)`
-advances every enemy by `velocity × deltaMs / 1000`. In `src/game/enemies/movement.ts`:
-`step: Math.min(dist, pxPerSec * deltaMs / 1000)`. The `pbt` spec then added
-properties for it (see below). Review finding BUG-4 in `pbt` showed what happens
-without the rule: particles, score labels, `shakeFrames` and `hitFlashFrames`
-decayed per frame, so effects lasted twice as long at 30 fps. They now scale by
-`deltaMs / FRAME_MS`.
+**Steering rule in code, duplicate camera frames.** `tech.md` (the "Camera frame
+rate ≠ loop frame rate" paragraph) says a duplicate frame must be treated as "no new
+frame", "never as "no motion"", and that an exactly-zero whole-frame luminance delta
+signals it (`computeMotionMask().changed`). In `src/game/collision.ts:56`,
+`updateMotionPixels` starts with `if (!mask.changed) return`, so a duplicate frame
+keeps the last mask and does not count as a motion-free frame.
 
 ## Hooks
 
@@ -306,8 +304,8 @@ fast-check 4.10.2 is the only added dev dependency of the `pbt` spec
 
 | Measure | Value | Command |
 |---|---|---|
-| `fc.assert` calls | 119 | `grep -rh 'fc\.assert' src tools \| wc -l` |
-| Files using `fc.assert` | 31 | `grep -rl 'fc\.assert' src tools \| wc -l` |
+| `fc.assert` calls (at df26f4d) | 119 | `grep -rh 'fc\.assert' src tools \| wc -l` |
+| Files using `fc.assert` (at df26f4d) | 31 | `grep -rl 'fc\.assert' src tools \| wc -l` |
 
 Property names, quoted from the tests: `multiplier is always in {1,2,3,4}`
 (`state.property.test.ts`); `straight-line enemies end at the same position at
@@ -398,7 +396,7 @@ hip-to-shin height (72 to 92 % of the frame) to raised-hand zones (19 to 39 %) (
 - Hook file that never fired → 5 `v1` hooks, validated and tested (`hooks`).
 - 0 hits in 45 s with a 30 fps camera → 12 hits, START triggered by waving (harness, `hit-detection-fix`).
 - Spawner could exceed its cap → running count and regression property (`pbt` BUG-1).
-- Frame-dependent movement and effects → `deltaMs`-scaled (`feel-fix`, `pbt` BUG-4).
+- Frame-dependent movement and effects → `deltaMs`-scaled (spec rule `feel-fix` R1.2; `pbt` BUG-4).
 
 ### Test count history (log)
 

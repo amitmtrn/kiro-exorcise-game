@@ -36,7 +36,10 @@ inside this repo checkout. The power was authored in Kiro CLI; installing it in
 Kiro IDE (Powers panel → Import power from a folder) is untested.
 
 ## Facts check test
-Reads `docs/KIRO.md` and the README section between the heading
-`## Built with Kiro (for judges)` and the next `## ` heading. Regexes:
-the banned-name regex (the two names of the game this one was inspired by, matched case-insensitively) and `/ghp_|github_pat_|\bsk-/i`. The banned names are
-checked in `docs/KIRO.md`, the whole `README.md`, `package.json` and `.kiro/steering/*.md`; the token check covers `docs/KIRO.md` and the whole `README.md`.
+Reads `docs/KIRO.md`, the whole `README.md`, `package.json` and `.kiro/steering/*.md`.
+Regexes: the banned-name regex (the two names of the game this one was inspired by,
+matched case-insensitively) runs on all of them; `/ghp_|github_pat_|\bsk-/i` runs on
+`docs/KIRO.md` and the whole `README.md`. The README section between the heading
+`## Built with Kiro (for judges)` and the next `## ` heading is still checked for links
+and bullet count. A further check compares the test totals in the docs with the count
+the `readme-test-count` hook syncs into the README commands table.

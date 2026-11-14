@@ -93,3 +93,4 @@ Files: `README.md`, `docs/KIRO.md`, `package.json`, `.kiro/steering/*`, `.kiro/s
 - [x] `9cbb343` `docs(steering): trademark-safe wording`; the test also scans `package.json` and `.kiro/steering/*.md`.
 - [x] Count test compares the figures in `docs/KIRO.md` and the README with the synced `npm test` count in the README commands table.
 - [x] `npm test` and `npm run build` clean.
+- [x] Commits: `af42512` `docs(judge-docs): second review fixes, T10, synced count test`, then `docs(judge-docs): third review fixes` (steering example, df26f4d labels, design wording).
