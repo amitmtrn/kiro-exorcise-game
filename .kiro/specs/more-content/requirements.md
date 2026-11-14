@@ -175,7 +175,9 @@ stage cap is 5 enemies.
 
 **R5.3** *Stage title card.* The stage-6 card shows one hint line per new ghost
 ("TWIN WISPS: hit both", "MIRROR: wave twice, then swat", "BLINK: swat while
-solid"), each with the ghost's icon shape. The hint text uses the text scale.
+solid"), each with the ghost's icon shape. The hint text uses the text scale. With hints, the name and subtitle sit higher and the
+countdown digit is placed below the subtitle's measured size, so no two lines overlap at
+640 × 360 or larger and text scales 1, 1.25 and 1.5.
 
 **R5.4** *Call-outs.* The first time each new type appears in a stage (also when the Hollow King summons it), a tip
 call-out ("HIT BOTH!", "WAVE TWICE!", "WAIT FOR SOLID!") shows next to it for

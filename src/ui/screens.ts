@@ -168,27 +168,35 @@ export function renderStageTitle(ctx: CanvasRenderingContext2D, state: GameState
   ctx.fillStyle = 'rgba(13,0,20,0.82)'
   ctx.fillRect(0, 0, W, H)
 
+  // Stage 6 carries hint lines, so the name and subtitle sit higher and the countdown is placed from the
+  // subtitle's measured size: its digit never touches the subtitle at any canvas or text scale (more-content R1.9).
+  const hints = stageHints(state)
+  const hinted = hints.length > 0
+  const nameY = hinted ? 0.3 : 0.38
+  const subY = hinted ? 0.42 : 0.52
+
   ctx.textAlign = 'center'
   ctx.font = `${fit(cfg.name, clamp(W / 11, 42, 80), W, WIDE_BAND)}px ${TITLE_FONT_FAMILY}`
   ctx.fillStyle = '#ff6b1a'
   ctx.shadowColor = '#ff6b1a'; ctx.shadowBlur = 20
-  ctx.fillText(cfg.name, W / 2 + pose.nameX * W, H * 0.38)
+  ctx.fillText(cfg.name, W / 2 + pose.nameX * W, H * nameY)
 
-  ctx.font = `${fit(cfg.subtitle, clamp(W / 20, 24, 40), W, WIDE_BAND)}px sans-serif`
+  const subPx = fit(cfg.subtitle, clamp(W / 20, 24, 40), W, WIDE_BAND)
+  ctx.font = `${subPx}px sans-serif`
   ctx.fillStyle = '#ffd166'; ctx.shadowBlur = 0
-  ctx.fillText(cfg.subtitle, W / 2 + pose.subX * W, H * 0.52)
+  ctx.fillText(cfg.subtitle, W / 2 + pose.subX * W, H * subY)
 
   // Stage 6: one hint line per new ghost, each led by its state icon (more-content R5.3)
-  const hints = stageHints(state)
-  const countY = hints.length > 0 ? 0.6 : 0.7
-  ctx.font = `bold ${fit(String(secs), clamp(W / 12, 40, 72), W, WIDE_BAND)}px monospace`
+  const cdPx = fit(String(secs), clamp(W / 12, 40, 72), W, WIDE_BAND)
+  const countY = hinted ? Math.max(H * 0.58, H * subY + 0.25 * subPx + 0.75 * cdPx + 4) : H * 0.7
+  ctx.font = `bold ${cdPx}px monospace`
   ctx.fillStyle = '#e8e8f0'
-  ctx.fillText(String(secs), W / 2, H * countY)
-  if (hints.length > 0) {
+  ctx.fillText(String(secs), W / 2, countY)
+  if (hinted) {
     const px = Math.min(...hints.map((l) => fit(l, clamp(W / 40, 14, 22), W, TEXT_BAND_LOW)))
     ctx.font = `bold ${px}px sans-serif`
     ctx.fillStyle = '#ffd166'
-    hints.forEach((l, i) => ctx.fillText(l, W / 2, H * 0.72 + i * px * 1.5))
+    hints.forEach((l, i) => ctx.fillText(l, W / 2, H * 0.75 + i * px * 1.5))
   }
 
   ctx.restore()
