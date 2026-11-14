@@ -58,6 +58,10 @@ describe('analysis cost per frame by resolution', () => {
     for (let i = 1; i < rows.length; i++) {
       expect(rows[i].imageDataKB).toBeLessThan(rows[i - 1].imageDataKB)
     }
+    // The mask sample count is deterministic: it documents (and pins) the table in the README. 96 x 54 samples
+    // more than any other grid because it uses stride 1, so its JS analysis is the most expensive step.
+    expect(rows.map((r) => [r.grid, r.maskSamples])).toEqual([['320x180', 3600], ['160x90', 3600], ['128x72', 2304], ['96x54', 5184]])
+    expect(rows[3].maskSamples).toBe(Math.max(...rows.map((r) => r.maskSamples)))
     // 96 x 54 uses stride 1 (more samples than 128 x 72) but copies far less data; the analysis stays within 2x of the full grid.
     expect(rows[rows.length - 1].usPerFrame).toBeLessThan(rows[0].usPerFrame * 2)
   })

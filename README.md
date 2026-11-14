@@ -101,7 +101,7 @@ Open the settings panel on the title screen with `O` or the ⚙ button. Settings
 
 URL parameters win over stored values for that visit; a change in the panel replaces the parameter for that setting. The privacy line is unchanged: **Your video stays on your device. Nothing is uploaded.**
 
-**Quality (`?quality=low|med|high|auto`, default `auto`).** The game watches the frame time (rolling average, time constant 1 s) and steps down one level when it stays above 20 ms for 2 s, back up when it stays below 14 ms for 6 s (both limits scale with the display's refresh rate, so a 60 Hz screen or a 30 fps-capped browser can step back up), with a 3 s settle time and a longer wait after a quick down-up-down so it never flip-flops. `high` pins level 0, `med` level 2, `low` level 3. Demo mode always runs at level 0.
+**Quality (`?quality=low|med|high|auto`, default `auto`).** The game watches the frame time (rolling average, time constant 1 s) and steps down one level when it stays above 20 ms for 2 s, back up when it stays below 14 ms for 6 s (both limits scale with the display's refresh rate, so a 60 Hz screen or a 30 fps-capped browser can step back up; a display that has run faster and then drops to a steady 30 fps counts as a slow machine and steps down), with a 3 s settle time and a longer wait after a quick down-up-down so it never flip-flops. `high` pins level 0, `med` level 2, `low` level 3. Demo mode always runs at level 0.
 
 | Level | What changes |
 |---|---|
@@ -114,12 +114,12 @@ Analysis cost per frame (motion mask + 6 hitbox diffs on a 1280 × 720 display, 
 
 | Grid | Mask samples | ImageData read per frame | JS analysis |
 |---|---|---|---|
-| 320 × 180 | 3600 | 450 KB | 25.4 µs |
-| 160 × 90 | 3600 | 113 KB | 25.2 µs |
-| 128 × 72 | 2304 | 72 KB | 16.9 µs |
-| 96 × 54 | 1296 | 41 KB | 8.6 µs |
+| 320 × 180 | 3600 | 450 KB | 26.5 µs |
+| 160 × 90 | 3600 | 113 KB | 26.7 µs |
+| 128 × 72 | 2304 | 72 KB | 17.9 µs |
+| 96 × 54 | 5184 | 41 KB | 44.1 µs |
 
-The JS analysis is small at every size; the saving is the smaller `drawImage` / `getImageData` copy before it (11× fewer bytes at 96 × 54), which Node cannot time. Spec: `.kiro/specs/playtest-polish/`.
+The JS analysis is small at every size (under 50 µs of a 16.7 ms frame). At level 3 it is the most expensive step, about 1.6× level 0, because the 96 × 54 grid samples every pixel (stride 1) so small enemies keep their sample count. Only the smaller `drawImage` / `getImageData` copy before it shrinks (11× fewer bytes at 96 × 54), which Node cannot time. Spec: `.kiro/specs/playtest-polish/`.
 
 **Audio levels.** All sound goes through one master gain (volume and mute), a bus compressor (−18 dB, 3:1) and a limiter (−3 dB, 20:1, 1 ms attack), then the speakers. Every sound effect has a loudness-table gain so its RMS is about −22 dBFS with a peak under −3 dBFS before the limiter; the music is about 6 dB quieter (estimated analytically from its voices). Boss hit + combo chime + ghost hit + music stay under 0 dBFS in the mixing test. Still no audio files.
 
