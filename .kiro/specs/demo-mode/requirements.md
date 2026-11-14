@@ -224,7 +224,7 @@ confined to the demo branch and a wrapper; `STAGES`, `collision.ts`,
 white noise from a private generator instead of `Math.random` (R5.2); the sound is
 the same white noise.
 
-**R7.2** Recording a take with sound: load `?demo=1&seed=6` (seed 5 before more-content), press `M` twice (mute
+**R7.2** Recording a take with sound: load `?demo=1&seed=5`, press `M` twice (mute
 then unmute, which also unlocks the audio context), then start the screen recorder.
 `tools/motion-harness/README.md` and the README document this.
 

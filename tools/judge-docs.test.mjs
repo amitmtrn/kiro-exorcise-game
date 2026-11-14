@@ -83,7 +83,7 @@ describe('docs structure', () => {
   it('states the power was not exercised in the IDE and that demo mode is merged (PR #6)', () => {
     expect(kiro).toMatch(/not exercised in the IDE/)
     expect(kiro).toMatch(/PR #6/)
-    expect(kiro).toContain('?demo=1&seed=6')
+    expect(kiro).toContain('?demo=1&seed=5')
   })
   it('README section links the write-up, the .kiro folders and the live demo', () => {
     for (const l of [

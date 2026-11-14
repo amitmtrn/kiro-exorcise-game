@@ -14,7 +14,7 @@ Ghosts and bats fly in from the dark edges of the screen toward your webcam imag
 - **20 specs** at PR #5 in [`.kiro/specs`](.kiro/specs) (requirements, design, tasks): 805 ticked task checkboxes, 89 commits named after a task (`<type>(<spec>-T<n>)`).
 - **3 steering files** in [`.kiro/steering`](.kiro/steering), **5 hooks** in [`.kiro/hooks`](.kiro/hooks), **1 custom agent** (`balancer`) and **1 local MCP server** (`motion-harness`, stdio only, no network).
 - **1120 tests** at PR #5, 0 failed, 0 skipped; **119 property tests** (`fc.assert`) in 31 files, both at PR #5 (df26f4d). A property found a spawner-cap bug that unit tests had missed (BUG-1), and four more bugs got regression properties.
-- **One PR per feature from #2 on** (#1 bundled the P0/P1 specs): #1 to #7 merged (#6 is demo mode, merge commit 46d9551; #7 is the judge write-up, merge commit 7575a07). Test count by PR: 806, 912, 994, 1045, 1120, 1254, 1291; #8 playtest-polish: 1515; more-content (this branch): 1688.
+- **One PR per feature from #2 on** (#1 bundled the P0/P1 specs): #1 to #7 merged (#6 is demo mode, merge commit 46d9551; #7 is the judge write-up, merge commit 7575a07). Test count by PR: 806, 912, 994, 1045, 1120, 1254, 1291; #8 playtest-polish: 1515; more-content (this branch): 1691.
 - **629.18 Kiro credits** used after the playtest-polish spec and its review fixes (bonus pool of 4000).
 - **Read the full write-up: [docs/KIRO.md](docs/KIRO.md).** Local power: [`.kiro/powers/exorcise-motion-harness`](.kiro/powers/exorcise-motion-harness).
 - **Live demo:** <https://amitmtrn.github.io/kiro-exorcise-game/>
@@ -36,7 +36,7 @@ npm run dev
 
 | Command | What it does |
 |---|---|
-| `npm test` | Run all 1688 unit tests (Vitest) |
+| `npm test` | Run all 1691 unit tests (Vitest) |
 | `npm run build` | Production build → `dist/` |
 | `npm run preview` | Preview the production build locally |
 
@@ -85,7 +85,7 @@ Pick **1 PLAYER** or **2 PLAYERS** on the title screen (wave over a button, or p
 
 ### Demo / attract mode (no camera)
 
-Open the game with `?demo=1` (for example `http://localhost:5173/kiro-exorcise-game/?demo=1&seed=6`) or press `G` on the title screen. The webcam is never requested (no permission prompt) and onboarding is skipped. A scripted, translucent **ghost hand** plays a full run through the real game code: its motion is fed into the same frame-differencing hit detection as a camera, so combos up to x4, hit-stop, knock-back, call-outs, the waves, the bonus round and the three boss phases all happen as they would for a player. It presses the motion buttons with the normal dwell, never touches the Cursed Skull, wins, opens the Exorcist Card (a drawn placeholder portrait and a **DEMO** chip, never downloaded), returns to the title and plays again. A **DEMO** badge is on screen the whole time, and demo scores are never written to your saved high score. Any key (except `M`) or click returns to the normal game.
+Open the game with `?demo=1` (for example `http://localhost:5173/kiro-exorcise-game/?demo=1&seed=5`) or press `G` on the title screen. The webcam is never requested (no permission prompt) and onboarding is skipped. A scripted, translucent **ghost hand** plays a full run through the real game code: its motion is fed into the same frame-differencing hit detection as a camera, so combos up to x4, hit-stop, knock-back, call-outs, the waves, the bonus round and the three boss phases all happen as they would for a player. It presses the motion buttons with the normal dwell, never touches the Cursed Skull, wins, opens the Exorcist Card (a drawn placeholder portrait and a **DEMO** chip, never downloaded), returns to the title and plays again. A **DEMO** badge is on screen the whole time, and demo scores are never written to your saved high score. Any key (except `M`) or click returns to the normal game.
 
 | Parameter | Meaning |
 |---|---|
@@ -94,7 +94,7 @@ Open the game with `?demo=1` (for example `http://localhost:5173/kiro-exorcise-g
 | `stage=N` | Start at stage N (1–6) |
 | `speed=N` | Game speed, 1–3 (default 2: a full run takes about 2.5 minutes; other values use the default) |
 
-**Recording the submission video.** Set the browser window to the size you will record (the run depends on the canvas size; `seed=6` plays a clean run without a game over at 960×540, 1280×720, 1366×768, 1440×900 and 1920×1080), open `?demo=1&seed=6`, press `M` twice (mute, unmute: this key press also unlocks audio) and start the screen recorder. Reload the page for a re-take (F5 / Ctrl+R / Cmd+R and F11 for full screen do not leave demo mode): it plays the same run again. Use `speed=1` for real-time gameplay; the pace is the same on any display of 60 Hz or more. See `tools/motion-harness/README.md` for a headless check. Spec: `.kiro/specs/demo-mode/`.
+**Recording the submission video.** Set the browser window to the size you will record (the run depends on the canvas size; `seed=5` plays a clean run without a game over at 960×540, 1280×720, 1366×768, 1440×900 and 1920×1080), open `?demo=1&seed=5`, press `M` twice (mute, unmute: this key press also unlocks audio) and start the screen recorder. Reload the page for a re-take (F5 / Ctrl+R / Cmd+R and F11 for full screen do not leave demo mode): it plays the same run again. Use `speed=1` for real-time gameplay; the pace is the same on any display of 60 Hz or more. See `tools/motion-harness/README.md` for a headless check. Spec: `.kiro/specs/demo-mode/`.
 
 ### High scores
 

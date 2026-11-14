@@ -6,7 +6,7 @@
 #
 #   tools/motion-harness/run.sh sweep [seconds]   # hand sweeps through the enemies' path; Space starts
 #   tools/motion-harness/run.sh wave  [seconds]   # hand waves over START; no keypress at all
-#   tools/motion-harness/run.sh demo  [seconds]   # ?demo=1&seed=$SEED (default 6): no camera at all, the
+#   tools/motion-harness/run.sh demo  [seconds]   # ?demo=1&seed=$SEED (default 5): no camera at all, the
 #                                                 # scripted ghost hand plays; reports getUserMedia calls and the card
 #
 # Requires: python3 + numpy, google-chrome (or CHROME=<path>), node >= 22.
@@ -21,7 +21,7 @@ OUT="$HERE/out"; mkdir -p "$OUT"
 if curl -sf -o /dev/null "http://127.0.0.1:$PORT/json"; then echo "DevTools port $PORT is already in use; refusing to attach to it (set PORT)" >&2; exit 1; fi
 
 case "$MODE" in sweep|wave|demo) ;; *) echo "mode must be sweep, wave or demo" >&2; exit 1 ;; esac
-SEED=${SEED:-6}
+SEED=${SEED:-5}
 case "$SEED" in ''|*[!0-9]*) echo "SEED must be a non-negative integer" >&2; exit 1 ;; esac
 # Demo mode needs no video at all: no fake camera, no permission flags (getUserMedia must never be called).
 CAMERA_FLAGS=()

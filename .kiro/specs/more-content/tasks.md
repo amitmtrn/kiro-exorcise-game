@@ -33,7 +33,7 @@
 - [x] `patterns.ts`: `finale` track; `trackForStage(n ≥ 6)`.
 - [x] Callouts: tip call-outs for first sightings, "THE HOLLOW KING!"; stage-title hint lines with icon shapes; onboarding line; card badge "FINALE CLEARED".
 - [x] Render: crown, aura, "HOLLOW KING" label.
-- [x] Demo: stage range 1–6 in `params.ts` / `runtime.ts`; default seed 6 (seed 5 loses the 960×540 take on the finale), README / KIRO.md / harness README / `run.sh` / judge-docs test updated together.
+- [x] Demo: stage range 1–6 in `params.ts` / `runtime.ts`; default seed stays 5 (restored after the review fixes, clean at the five tested sizes), README / KIRO.md / harness README / `run.sh` / judge-docs test updated together.
 - [x] Tests: stage 6 config, event order and cut-off times, victory only after stage 6, finale params (telegraph ≥ 400 ms, vulnerable ≥ 1200 ms per cycle), minion kinds per phase, music track validity, tips shown once, finale card badge, onboarding line; existing stage-5-is-last tests moved to stage 6.
 - [x] `npm test` and `npm run build` both clean.
 - [x] Commit: `feat(more-content-T4): stage 6 finale with the Hollow King`
@@ -70,7 +70,7 @@
 
 ## T9 — Demo mode and balance check
 - [x] Demo driver: respects variant vulnerability (`isHittable`), skips a lit wisp and ranks its partner with attacks (`partnerLit`).
-- [x] `demo.sim.test.ts`: full run reaches stage 6 (every new ghost and the Hollow King) and victory, nothing saved, no name screen; default seed 6 re-checked clean at the tested sizes after the driver change; `driver.variants.test.ts`.
+- [x] `demo.sim.test.ts`: full run reaches stage 6 (every new ghost and the Hollow King) and victory, nothing saved, no name screen; default seed 5 re-checked clean at the tested sizes after the driver change; `driver.variants.test.ts`.
 - [x] Motion harness MCP (`read_stage_config`, `run_harness`) and a headless stage-6 sweep; result noted in `design.md` (report only, no tuning change).
 - [x] `npm test` and `npm run build` both clean.
 - [x] Commit: `feat(more-content-T9): demo plays the finale`
@@ -103,3 +103,12 @@
 - [ ] Blink ghost: swat while solid; waving at it while ethereal does nothing.
 - [ ] Stage 6 through the Hollow King to YOU WIN; name entry with the three buttons; table on the title screen.
 - [ ] 2P: both halves name entry at the same time.
+
+## T13 — Review fixes (round 2)
+- [x] R5.4: tips and the king banner are exempt from the combo call-out cap (`addCallout`); test added.
+- [x] R6.3: the finale boss's summon counter restarts at each phase change, so the first phase-3 summon has no blink; test added.
+- [x] R2.4 / design: `lightWisp` lights an `idle` wisp only; design line corrected.
+- [x] R1.6: a random skull spawn keeps clear of new ghosts (retries next tick if no safe point); test added.
+- [x] `nameKeysBlocked` reset in `startLoop` / `stopLoop`; `GameState.stage` comment is 1–6.
+- [x] R12.1: default demo seed back to 5 (clean at the five tested sizes and speeds 1–3); README, KIRO.md, harness README, `run.sh`, judge-docs test and specs updated.
+- [x] `npm test` and `npm run build` both clean.

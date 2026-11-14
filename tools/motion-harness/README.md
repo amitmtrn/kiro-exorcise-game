@@ -36,9 +36,9 @@ Node ≥ 22. Generated videos and browser profiles land in `out/` (git-ignored).
 Demo mode (`.kiro/specs/demo-mode/`) needs no camera and no harness: it is the game itself with a scripted
 ghost hand. To film the submission video:
 
-1. `npm run dev`, then open `http://localhost:5173/kiro-exorcise-game/?demo=1&seed=6` in a normal browser window
+1. `npm run dev`, then open `http://localhost:5173/kiro-exorcise-game/?demo=1&seed=5` in a normal browser window
    sized to the recording (for example 1280×720 or full-screen 1920×1080). The run depends on the canvas size;
-   `seed=6` is a clean run (no game over) at 960×540, 1280×720, 1366×768, 1440×900 and 1920×1080.
+   `seed=5` is a clean run (no game over) at 960×540, 1280×720, 1366×768, 1440×900 and 1920×1080.
 2. Press `M` twice (mute, unmute). The key press unlocks audio; any other key or a click leaves demo mode
    (browser keys stay: `F1`–`F12` and Ctrl / Cmd / Alt chords such as reload, so `F11` full screen is fine).
 3. Start the screen recorder (OBS, the OS recorder, or `chrome --app=<url> --window-size=1280,720` for a chrome-less window).

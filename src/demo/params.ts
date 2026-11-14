@@ -16,7 +16,7 @@ export const DEMO = {
   /** Synthetic camera frame interval in demo time (a 30 fps webcam). */
   frameMs: 1000 / 30,
   /** Plays a clean run (no game over) at the common window sizes; any seed works (demo-mode R5.2). */
-  defaultSeed: 6,
+  defaultSeed: 5,
   defaultStage: 1,
   minSpeed: 1,
   maxSpeed: 3,

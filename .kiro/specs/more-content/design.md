@@ -273,11 +273,13 @@ the player's own row.
 
 ## Demo mode
 
-**Default seed.** With stage 6 the seed-5 run loses its last life to a phase-3 lunge
-at 960×540 (two lives are lost in stage 4 at that size, as before). A scan of seeds
-1–16 at the five tested sizes found 6, 9 and 16 clean at every size; the default seed
-is now **6**, and README, `docs/KIRO.md`, the harness README and `run.sh` say so.
-Seed 5 still works and stays deterministic.
+**Default seed.** The default stays **5** (the operator brief names `?demo=1&seed=5`, and
+every doc uses it). With stage 6 the first build lost its last life to a phase-3 lunge at
+960×540, so the default moved to 6 for a while. After the review fixes (finale blink parity
+counted per phase, skull spawns kept clear of new ghosts) seed 5 plays a clean run at
+960×540, 1280×720, 1366×768, 1440×900 and 1920×1080, at speeds 1, 2 and 3; the sim tests
+assert this. README, `docs/KIRO.md`, the harness README, `run.sh` and the specs all say 5.
+No game tuning was changed to get there.
 
 The driver reads `isHittable`, so blink ghosts in `ethereal | warnIn` and shielded
 mirror ghosts are not targets. For wisps it targets the lit wisp's partner first.
