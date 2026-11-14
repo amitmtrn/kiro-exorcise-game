@@ -61,6 +61,9 @@ export class SyntheticCamera {
     for (const b of this.bufs) this.draw(b, initialHand, handR, displayW, displayH)
   }
 
+  /** A new run begins: the camera clock restarts, so every loop sees the same frame / duplicate-tick pattern at any speed. */
+  resetPhase(): void { this.acc = 0 }
+
   /**
    * Advances the camera clock by `deltaMs` and returns this tick's frames. A tick that falls
    * between two camera frames returns the latest frame as both `cur` and `prev`.

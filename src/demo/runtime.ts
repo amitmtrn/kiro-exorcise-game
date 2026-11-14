@@ -109,6 +109,7 @@ export class DemoRuntime {
   /** A new run begins: the random stream restarts, so every loop of the attract mode plays the same game. */
   onRunStart(): void {
     this.rng = mulberry32(this.seed)
+    this.camera.resetPhase()
   }
 
   dispose(): void {

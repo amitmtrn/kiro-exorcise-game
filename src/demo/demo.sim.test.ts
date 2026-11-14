@@ -108,19 +108,23 @@ interface Run {
   highScoresShown: number[]
   /** Compact fingerprint of the run (hand path + score), for determinism checks. */
   trace: string
+  /** Hand / score fingerprint of each run (from leaving the title to its return), sampled relative to the run's first tick. */
+  runTraces: string[]
 }
 
-async function simulate(seed: number, victories = 1, maxTicks = MAX_TICKS * victories, stage = 1): Promise<Run> {
-  const rt = new DemoRuntime({ seed, stage, speed: DEMO.timeScale, w: W, h: H })
+async function simulate(seed: number, victories = 1, maxTicks = MAX_TICKS * victories, stage = 1, speed: number = DEMO.timeScale): Promise<Run> {
+  const rt = new DemoRuntime({ seed, stage, speed, w: W, h: H })
   await startLoop(null, ctx(), ctx(true), 1, { demo: rt })
   const run: Run = {
     ticks: 0, phases: new Set(), at: {}, maxCombo: 1, bossPhases: new Set(), stages: new Set(), bonus: false,
-    skullSeen: false, missingBadge: [], badgePhases: new Set(), gameOvers: 0, victoryScores: [], highScoresShown: [], trace: '',
+    skullSeen: false, missingBadge: [], badgePhases: new Set(), gameOvers: 0, victoryScores: [], highScoresShown: [], trace: '', runTraces: [],
   }
   let ts = 0
   let prev: GamePhase | null = null
   let won = 0
   const trace: number[] = []
+  let runTrace: number[] = []
+  let runI = 0
   try {
     for (let i = 0; i < maxTicks; i++) {
       ts += 1000 / 60
@@ -145,6 +149,10 @@ async function simulate(seed: number, victories = 1, maxTicks = MAX_TICKS * vict
       if (s.phase === 'victory' && prev !== 'victory') { run.victoryScores.push(s.score); run.at.victory ??= i }
       if (isCardPreviewOpen()) run.at.card ??= i
       if (i % 30 === 0) trace.push(Math.round(rt.hand.x), Math.round(rt.hand.y), s.score)
+      if (s.phase !== 'start') {
+        if (prev === 'start' || prev === null) { runTrace = []; runI = 0 }
+        if (runI++ % 30 === 0) runTrace.push(Math.round(rt.hand.x), Math.round(rt.hand.y), s.score)
+      } else if (prev !== null && prev !== 'start') run.runTraces.push(runTrace.join(','))
       if (s.phase === 'start' && prev !== null && prev !== 'start') {
         won++
         run.at.titleAgain ??= i
@@ -208,8 +216,23 @@ describe('full demo run, headless (demo-mode R4, R5, R6)', () => {
     const run = await simulate(DEMO.defaultSeed, 2)
     expect(run.victoryScores).toHaveLength(2)
     expect(run.victoryScores[1]).toBe(run.victoryScores[0])
+    expect(run.runTraces).toHaveLength(2)
+    expect(run.runTraces[1]).toBe(run.runTraces[0])
     expect(run.gameOvers).toBe(0)
   }, 120_000)
+
+  // R1.1 allows speed 1–3: the clean run (R4.6, R4.5) and the identical loop (R4.8, R5.2) must hold at each.
+  for (const speed of [1, 3]) {
+    it(`speed ${speed}: a clean take, no skull hit, and the second loop replays the first`, async () => {
+      const run = await simulate(DEMO.defaultSeed, 2, MAX_TICKS * 2 * (2 / speed), 1, speed)
+      expect(run.victoryScores).toHaveLength(2)
+      expect(run.gameOvers).toBe(0)
+      expect(h.skullHits).toBe(0)
+      expect(run.runTraces).toHaveLength(2)
+      expect(run.runTraces[1]).toBe(run.runTraces[0])
+      expect(run.victoryScores[1]).toBe(run.victoryScores[0])
+    }, 240_000)
+  }
 
   it('the attract mode leaves the remembered player mode alone (R7.1)', async () => {
     setPlayerMode(2)

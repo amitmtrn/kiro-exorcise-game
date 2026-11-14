@@ -162,3 +162,15 @@ describe('mask points stay near the hand (property)', () => {
     ), { numRuns: 60 })
   })
 })
+
+describe('SyntheticCamera.resetPhase (demo-mode R4.8, R5.2)', () => {
+  it('restarts the camera clock: the same ticks after a reset give the same new / duplicate pattern', () => {
+    const hand = { x: 640, y: 360 }
+    const pattern = (cam: SyntheticCamera) => Array.from({ length: 8 }, () => cam.step(F * 0.4, hand, R, W, H).isNew)
+    const cam = new SyntheticCamera(hand, R, W, H)
+    const first = pattern(cam)
+    cam.step(F * 0.3, hand, R, W, H) // leaves a partial frame banked
+    cam.resetPhase()
+    expect(pattern(cam)).toEqual(first)
+  })
+})
