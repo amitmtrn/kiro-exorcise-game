@@ -797,7 +797,6 @@ export async function startLoop(
       if (prevPhase !== 'victory') {
         // Entry hooks live here so every route into victory gets the lockout reset.
         resetVictoryScreen()
-        saveHighScore(state.highScore) // stored once on entering the summary
         try { sfxStageClear(); stopMusic() } catch { /* ignore */ }
         prevPhase = 'victory'
       }
@@ -857,7 +856,6 @@ export async function startLoop(
       if (state.phase === 'playing') {
         try { startMusic(state.stage) } catch { /* ignore */ }
       } else if (state.phase === 'summary') {
-        saveHighScore(state.highScore) // stored once on entering the summary
         try { sfxStageClear(); stopMusic() } catch { /* ignore */ }
       } else if (state.phase === 'gameover') {
         try { stopMusic() } catch { /* ignore */ }
