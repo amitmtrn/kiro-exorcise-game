@@ -112,3 +112,19 @@ describe('MotionButton one-wave-one-trigger (exorcist-card review fix)', () => {
     expect(btn.fillProgress(500)).toBe(0)
   })
 })
+
+describe('MotionButton point source (two-player-card R1.3)', () => {
+  it('reads only its own points when a source is given, ignoring the whole-frame mask', () => {
+    const pts = Array.from({ length: MIN_MOTION_PIXELS + 2 }, (_, i) => ({ x: 100 + i, y: 100 }))
+    motion(0, 0, 0) // the global mask is empty
+    const own = new MotionButton(100, 100, 40, 'x', () => pts)
+    expect(own.update(0)).toBe('filling')
+    expect(own.update(100)).toBe('filling')
+    const global = new MotionButton(100, 100, 40, 'x')
+    expect(global.update(0)).toBe('idle')
+    // a source with points elsewhere never fills
+    const far = new MotionButton(100, 100, 40, 'x', () => pts.map((p) => ({ x: p.x + 500, y: p.y })))
+    expect(far.update(0)).toBe('idle')
+    expect(far.update(FILL_DURATION_MS + 100)).toBe('idle')
+  })
+})

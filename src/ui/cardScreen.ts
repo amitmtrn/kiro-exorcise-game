@@ -6,6 +6,7 @@
  */
 
 import { MotionButton } from './motionButton'
+import type { PointSource } from './motionButton'
 
 export type CardAction = 'save' | 'toggle' | 'close'
 export type CardKeyAction = 'open' | CardAction
@@ -127,6 +128,9 @@ export class CardPreview {
   private statusAt = Number.NEGATIVE_INFINITY
   private lastLayout: PreviewLayout | null = null
 
+  /** `source`: motion points the buttons read (two-player: the half's own points). Default: whole frame. */
+  constructor(private source: PointSource | null = null) {}
+
   open(now: number): void {
     this.openedAt = now
     this.lastLayout = null
@@ -169,7 +173,7 @@ export class CardPreview {
     let triggered: CardAction | null = null
     for (const spec of L.buttons) {
       let btn = this.buttons.get(spec.id)
-      if (!btn) { btn = new MotionButton(spec.cx, spec.cy, spec.r, spec.label); this.buttons.set(spec.id, btn) }
+      if (!btn) { btn = new MotionButton(spec.cx, spec.cy, spec.r, spec.label, this.source); this.buttons.set(spec.id, btn) }
       btn.cx = spec.cx; btn.cy = spec.cy; btn.radius = spec.r; btn.label = spec.label
       // Until live, motion must also leave the button before it can fill (the opening wave lingers).
       if (btn.updateGated(now, live) === 'triggered' && !triggered) triggered = spec.id

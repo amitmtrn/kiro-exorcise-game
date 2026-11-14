@@ -15,12 +15,12 @@ Files: `src/card/halfSnapshot.ts`, `src/card/twoPlayerCard.ts`, `src/card/layout
 ## T2 — Per-half card UI and input routing
 Files: `src/ui/motionButton.ts`, `src/ui/cardScreen.ts`, `src/ui/seatCard.ts`, tests
 
-- [ ] `MotionButton` / `CardPreview` accept an optional motion point source (default unchanged).
-- [ ] `SeatCardUI`: per-half offer button, preview, click queue, 0.8 s locks, `seatOfferGeometry`.
-- [ ] Unit tests: geometry inside the half, locks, click hit tests, 1P buttons unchanged.
-- [ ] Property test: motion in the other half never triggers a button; clicks only reach the half that contains them.
-- [ ] `npm test` and `npm run build` both clean.
-- [ ] Commit: `feat(two-player-card-T2): per-half card controls with half-only input routing`
+- [x] `MotionButton` / `CardPreview` accept an optional motion point source (default unchanged).
+- [x] `SeatCardUI`: per-half offer button, preview, click queue, 0.8 s locks, `seatOfferGeometry`.
+- [x] Unit tests: geometry inside the half, locks, click hit tests, 1P buttons unchanged.
+- [x] Property test: motion in the other half never triggers a button; clicks only reach the half that contains them.
+- [x] `npm test` and `npm run build` both clean.
+- [x] Commit: `feat(two-player-card-T2): per-half card controls with half-only input routing`
 
 ## T3 — Loop wiring, lifecycle and privacy
 Files: `src/game/loop.ts`, `src/ui/splitscreen.ts`, `src/main.ts`, `src/card/privacy.test.ts`,
