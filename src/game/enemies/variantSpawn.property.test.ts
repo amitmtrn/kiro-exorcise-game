@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import fc from 'fast-check'
 import { spawnVariant, spawnVariantAt, skullClearancePx } from './variantSpawn'
 import { mulberry32 } from '../../test/prng'
-import { travelMs, MIN_TRAVEL_MS, MAX_WAIT_MS, MIN_WINDOW_MS } from './variants'
+import { travelMs, MIN_TRAVEL_MS, MAX_WAIT_MS, MIN_WINDOW_MS, WISP_SIZE } from './variants'
 import { halfWidth } from '../halves'
 
 const kind = fc.constantFrom('wisp', 'mirror', 'blink' as const)
@@ -22,7 +22,9 @@ describe('spawn rules', () => {
         expect(e.targetX).toBe(aw / 2)
         // along the edge the body stays inside the area, so a pair never crosses a divider
         const outsideX = e.x < 0 || e.x > aw
-        if (!outsideX) { expect(e.x).toBeGreaterThanOrEqual(0); expect(e.x).toBeLessThanOrEqual(aw) }
+        if (!outsideX) { expect(e.x).toBeGreaterThanOrEqual(0); expect(e.x).toBeLessThanOrEqual(aw)
+        if (aw >= WISP_SIZE) { expect(e.x - WISP_SIZE / 2).toBeGreaterThanOrEqual(-1e-9); expect(e.x + WISP_SIZE / 2).toBeLessThanOrEqual(aw + 1e-9) } // bodies too
+      }
         else expect(e.y).toBeGreaterThanOrEqual(0)
         // first vulnerability comes well before the ghost can arrive
         expect(travelMs(e, H)).toBeGreaterThan(MAX_WAIT_MS + MIN_WINDOW_MS)
@@ -38,7 +40,9 @@ describe('king-summoned wisp pairs (R1.10)', () => {
       const aw = half ? halfWidth(W) : W
       const made = spawnVariantAt('wisp', fx * aw, fy * H, aw, H, mulberry32(seed))
       expect(made).toHaveLength(2)
-      for (const e of made) { expect(e.x).toBeGreaterThanOrEqual(0); expect(e.x).toBeLessThanOrEqual(aw) }
+      for (const e of made) { expect(e.x).toBeGreaterThanOrEqual(0); expect(e.x).toBeLessThanOrEqual(aw)
+        if (aw >= WISP_SIZE) { expect(e.x - WISP_SIZE / 2).toBeGreaterThanOrEqual(-1e-9); expect(e.x + WISP_SIZE / 2).toBeLessThanOrEqual(aw + 1e-9) } // bodies too
+      }
     }), { numRuns: 300 })
   })
   it('stacks vertically when the area is narrower than a pair', () => {

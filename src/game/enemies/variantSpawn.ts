@@ -83,12 +83,13 @@ export function spawnVariant(kind: VariantType, W: number, H: number, skulls: re
   return [kind === 'mirror' ? createMirror(p, W, H, rand) : createBlink(p, W, H, rand)]
 }
 
-/** Keep a king-summoned wisp pair inside [0, W] (R1.10): clamp the midpoint, or stack the pair when it cannot fit. */
+/** Keep a king-summoned wisp pair, bodies included, inside [0, W] (R1.10): clamp the midpoint, or stack the pair when it cannot fit. */
 function createKingWispPair(p: Pt, W: number, H: number, rand: Rand): Enemy[] {
   const half = PAIR_GAP_PX / 2
-  if (W >= 2 * half) return createWispPair({ x: Math.min(Math.max(p.x, half), W - half), y: p.y }, W, H, rand)
+  const r = WISP_SIZE / 2
+  if (W >= 2 * (half + r)) return createWispPair({ x: Math.min(Math.max(p.x, half + r), W - half - r), y: p.y }, W, H, rand)
   const pairId = tail(rand)
-  const x = Math.min(Math.max(p.x, 0), W)
+  const x = W >= 2 * r ? Math.min(Math.max(p.x, r), W - r) : W / 2
   return [make('wisp', { x, y: p.y - half }, W, H, rand, pairId), make('wisp', { x, y: p.y + half }, W, H, rand, pairId)]
 }
 
