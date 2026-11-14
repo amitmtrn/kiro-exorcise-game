@@ -18,7 +18,7 @@ vi.mock('../audio/sfx', () => ({
   sfxBossHit: vi.fn(), sfxBossDefeated: vi.fn(), sfxCombo: vi.fn(),
 }))
 
-import { computeFrameDiff } from '../webcam/diff'
+import { computeFrameDiff, scaleHitbox } from '../webcam/diff'
 import { sfxCombo } from '../audio/sfx'
 const mockDiff = computeFrameDiff as ReturnType<typeof vi.fn>
 
@@ -604,5 +604,29 @@ describe('resolveHits — combo call-outs (juice R4)', () => {
     const c = hit(2, 1).callouts[0]
     expect(c.x).toBeGreaterThanOrEqual(DW * 0.15)
     expect(c.y).toBeGreaterThan(0)
+  })
+})
+
+describe('resolveHits — motion width (two-player R1.3, R7.2)', () => {
+  it('defaults to the full motion width: scaleHitbox gets no 4th argument, diff runs at 320', () => {
+    mockDiff.mockReturnValue(false)
+    const s = { ...createInitialState(), enemies: [enemy('ghost', 'g1')] }
+    resolveHits(s, FAKE, FAKE, DW, DH, 1000)
+    expect(mockDiff.mock.calls[0][3]).toBe(320)
+    expect((scaleHitbox as ReturnType<typeof vi.fn>).mock.calls.slice(-1)[0]).toHaveLength(3)
+  })
+
+  it('motionW = 160 is passed to the hitbox scale and the frame diff', () => {
+    mockDiff.mockReturnValue(false)
+    const s = { ...createInitialState(), enemies: [enemy('ghost', 'g1')] }
+    resolveHits(s, FAKE, FAKE, DW, DH, 1000, true, 16, 160)
+    expect(mockDiff.mock.calls[0][3]).toBe(160)
+    expect((scaleHitbox as ReturnType<typeof vi.fn>).mock.calls.slice(-1)[0]?.[3]).toBe(160)
+  })
+
+  it('a half-width call scores like a full-width call', () => {
+    mockDiff.mockReturnValue(true)
+    const s = { ...createInitialState(), enemies: [enemy('ghost', 'g1', { hitCount: 1 })] }
+    expect(resolveHits(s, FAKE, FAKE, DW, DH, 1000, true, 16, 160).score).toBe(100)
   })
 })

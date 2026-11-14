@@ -9,11 +9,22 @@ import { STAGE_TITLE_DURATION_MS } from '../game/state'
 import { introPose, outroPose, outroRowAlpha } from '../game/transitions'
 import { MotionButton } from './motionButton'
 import { TITLE_FONT_FAMILY } from './fonts'
+import { getPlayerMode } from '../game/playerMode'
+import type { PlayerMode } from '../game/playerMode'
 import { renderCardOffer, endButtonsLive, registerEndButtonReset } from './cardScreen'
 
 // ─── Motion buttons (persistent instances reused across frames) ───────────────
 
 let startBtn: MotionButton | null = null
+let twoBtn: MotionButton | null = null
+/** Start-screen input lock-out: coming back from MENU must not auto-start a game while the player is still waving. */
+export const START_INPUT_DELAY_MS = 1000
+let startShownAt: number | null = null
+
+/** Call when the start screen is (re)entered: restarts the input lock-out and drops stale button fill. */
+export function resetStartScreen(): void {
+  startShownAt = null; startBtn = null; twoBtn = null
+}
 let retryBtn: MotionButton | null = null
 let menuBtn: MotionButton | null = null
 let nextBtn: MotionButton | null = null
@@ -34,7 +45,7 @@ export function renderStartScreen(
   ctx: CanvasRenderingContext2D,
   state: GameState,
   now: number,
-  onStart: () => void,
+  onStart: (mode: PlayerMode) => void,
 ): void {
   const { width: W, height: H } = ctx.canvas
 
@@ -62,21 +73,44 @@ export function renderStartScreen(
     ctx.fillText(`Best: ${state.highScore}`, W / 2, H * 0.52)
   }
 
-  // Motion button
-  if (!startBtn || startBtn.cx !== W / 2) {
-    startBtn = new MotionButton(W / 2, H * 0.72, clamp(W / 8, 56, 90), '▶ START')
+  // Mode buttons: 1 PLAYER stays at the old START position (the motion harness
+  // waves over it); 2 PLAYERS sits to its right. The remembered mode is ringed.
+  // Shrink the buttons on very narrow canvases so the pair never overlaps (centres ≥ 2r+gap apart).
+  const r = Math.min(clamp(W / 8, 56, 90), Math.max(24, (W - 16) / 5.2))
+  const by = H * 0.72
+  // Entry is signalled by resetStartScreen(); the first render after it starts the lock-out.
+  if (startShownAt === null) startShownAt = now
+  const live = now - startShownAt >= START_INPUT_DELAY_MS
+  const gap = r * 2.6
+  const shift = Math.max(0, W / 2 + gap + r + 4 - W) // slide the pair left only as far as needed
+  const oneX = W / 2 - shift
+  const twoX = oneX + gap
+  if (!startBtn || startBtn.cx !== oneX || startBtn.radius !== r) {
+    startBtn = new MotionButton(oneX, by, r, '1 PLAYER')
   }
-  const result = startBtn.update(now)
+  if (!twoBtn || twoBtn.cx !== twoX || twoBtn.radius !== r) {
+    twoBtn = new MotionButton(twoX, by, r, '2 PLAYERS')
+  }
+  const result = live ? startBtn.update(now) : null
+  const result2 = live ? twoBtn.update(now) : null
   startBtn.render(ctx, now)
+  twoBtn.render(ctx, now)
+  const last = getPlayerMode()
+  const ring = last === 1 ? startBtn : twoBtn
+  ctx.beginPath()
+  ctx.arc(ring.cx, ring.cy, r + 8, 0, Math.PI * 2)
+  ctx.strokeStyle = '#ff6b1a'; ctx.lineWidth = 3; ctx.shadowColor = '#ff6b1a'; ctx.shadowBlur = 10
+  ctx.stroke()
 
   // Instruction
   ctx.font = `${clamp(W / 40, 13, 18)}px sans-serif`
   ctx.fillStyle = 'rgba(232,232,240,0.6)'; ctx.shadowBlur = 0
-  ctx.fillText('Wave over the button to start  •  Press Space', W / 2, H * 0.88)
+  ctx.fillText('Wave over a button  •  or press 1 / 2  •  Space = last mode', W / 2, H * 0.9)
 
   ctx.restore()
 
-  if (result === 'triggered') onStart()
+  if (result === 'triggered') onStart(1)
+  else if (result2 === 'triggered') onStart(2)
 }
 
 // ─── Stage title card ─────────────────────────────────────────────────────────

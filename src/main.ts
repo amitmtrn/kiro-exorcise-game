@@ -10,8 +10,10 @@ import { createOnboarding, onboardingReducer, hasSeenOnboarding, getLocalStorage
 import { toggleDebug } from './game/render'
 import { toggleMute, getAudioContext } from './audio/index'
 import { installAudioUnlock } from './audio/unlock'
+import { modeForKey } from './game/playerMode'
 import { loadTitleFont } from './ui/fonts'
-import { hudFontSize, muteButtonRect } from './ui/hud'
+import { hudFontSize, muteButtonRect, muteButtonRect2P } from './ui/hud'
+import { isTwoPlayerActive } from './game/loop'
 
 const webcamCanvas = document.getElementById('webcam-canvas') as HTMLCanvasElement
 const gameCanvas   = document.getElementById('game-canvas') as HTMLCanvasElement
@@ -45,6 +47,8 @@ installAudioUnlock({
 document.addEventListener('keydown', (e) => {
   if (e.key === 'd' || e.key === 'D') toggleDebug()
   if (e.key === 'm' || e.key === 'M') toggleMute()
+  const pickedMode = modeForKey(e.key)
+  if (pickedMode !== null && !e.repeat) requestStart(pickedMode) // keys 1 / 2 on the start screen
   // Exorcist Card keys (C / S / N / Enter / Esc) only act on the game-over and victory screens.
   if ((e.target as HTMLElement | null)?.tagName !== 'BUTTON' && !e.ctrlKey && !e.metaKey && !e.altKey) {
     if (handleCardKey(e.key, e.repeat)) e.preventDefault()
@@ -59,9 +63,14 @@ document.addEventListener('keydown', (e) => {
 // Tap / click on the HUD mute button (top-right) toggles audio too.
 // Canvas pixel size equals its CSS size, so client coords map 1:1.
 gameCanvas.addEventListener('pointerdown', (e) => {
-  handleCardPointer(e.clientX, e.clientY) // card offer / preview buttons (end screens only)
-  if (isCardPreviewOpen()) return // the preview covers the HUD, so its mute button is not clickable
-  const r = muteButtonRect(gameCanvas.width, hudFontSize(gameCanvas.width))
+  // Two-player: one shared mute button at the top centre (the 1P one is top-right).
+  const fs = hudFontSize(gameCanvas.width)
+  const twoP = isTwoPlayerActive()
+  if (!twoP) {
+    handleCardPointer(e.clientX, e.clientY) // card offer / preview buttons (1P end screens only)
+    if (isCardPreviewOpen()) return // the preview covers the HUD, so its mute button is not clickable
+  }
+  const r = twoP ? muteButtonRect2P(gameCanvas.width, fs) : muteButtonRect(gameCanvas.width, fs)
   if (e.clientX >= r.x && e.clientX <= r.x + r.w && e.clientY >= r.y && e.clientY <= r.y + r.h) {
     toggleMute()
   }

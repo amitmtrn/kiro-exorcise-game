@@ -134,3 +134,10 @@ No storage API is used for the image; no network API is referenced in `src/card/
 | `ui/cardScreen.test.ts` | button hit test, key mapping, end-button lockout, narrow-canvas radius |
 | `ui/motionButton.test.ts` | one wave = one trigger, gated update, reset |
 | `game/loop.card.test.ts` | keys/clicks ignored off the end screens, accepted on them, repeat swallowed, `stopLoop` closes |
+
+## Interaction with two-player
+The card is single-player only for now (a per-player 2P card will be a later spec). In
+two-player mode `loop.ts` skips `session.observe` (no run stats, no snapshot grab), keeps
+`onEndScreen` / `cardOpen` false and drops queued card input. `main.ts` does not forward
+keys or clicks to the card while `isTwoPlayerActive()`, so the 2P end-screen buttons and the
+card buttons never overlap and no input leaks between them. Test: `game/loop.card.test.ts`.

@@ -25,7 +25,7 @@ npm run dev
 
 | Command | What it does |
 |---|---|
-| `npm test` | Run all 912 unit tests (Vitest) |
+| `npm test` | Run all 994 unit tests (Vitest) |
 | `npm run build` | Production build → `dist/` |
 | `npm run preview` | Preview the production build locally |
 
@@ -47,12 +47,17 @@ Five Kung Foo-style stages, each 60 seconds, each with its own enemy mix and mus
 
 Hit detection uses **frame differencing**: fast motion inside an enemy's hitbox registers as a hit — the same technique as the original EyeToy, no ML required.
 
+### Two players (split screen)
+
+Pick **1 PLAYER** or **2 PLAYERS** on the title screen (wave over a button, or press `1` / `2`; `Space` starts in the last mode, remembered for the session only). In 2 PLAYERS the mirrored camera view is split down the middle by an orange divider: the player standing on the **left** of the room sees themselves on the left and plays the left half, the other plays the right half. Each half is its own game: enemies, waves, score, lives, combo, hit-stop and HUD. Motion in one half never hits enemies in the other. Both play the same stage on one shared timer; a player who loses all lives shows **OUT** and the other keeps going; on stage 5 each half has its own boss. The end screen shows both scores and the winner (or a tie). Same single webcam, no network, no video stored. Spec: `.kiro/specs/two-player/`.
+
 ### Controls
 
 | Input | Action |
 |---|---|
 | Wave over a glowing button | Start / Next / Retry / Menu (hands-only play) |
-| `Space` | Start from the title screen |
+| `Space` | Start from the title screen (in the last chosen mode) |
+| `1` / `2` | Start a 1 PLAYER / 2 PLAYERS game from the title screen |
 | `M` or the 🔊 button (top-right) | Mute / unmute |
 | `D` | Toggle the hitbox + motion-mask debug overlay |
 | `C` (game over / victory) | Open the Exorcist Card preview; then `S` / `Enter` save, `N` photo ↔ silhouette, `Esc` close |
@@ -93,12 +98,13 @@ Every feature was planned as a Kiro spec before implementation:
 | `juice/` | Swipe-direction estimate from the motion mask, knock-back with spin and fade, 60 ms hit-stop, combo call-outs, stage intro / outro animations |
 | `music-v2/` | 3-voice procedural sequencer (bass, noise drums, lead) on a look-ahead scheduler, combo-tier layers, title and boss themes, real 0.5 s crossfade |
 | `onboarding/` | First-run silhouette guide with framing check, 3-step how-to, privacy line, camera-denied help, self-hosted Creepster font |
+| `two-player/` | Local split-screen mode on one webcam: left / right halves with mirror-correct ownership, per-player state, shared stage clock, OUT / CLEARED, winner or tie |
 | `balancer/` | Local stdio MCP server for the motion harness and a report-only `balancer` playtest-tuner agent |
 | `exorcist-card/` | Optional shareable trading card (mirrored snapshot, spooky frame, rank title, stats) composed and downloaded locally on game over / victory |
 
 Each spec has `requirements.md`, `design.md`, and `tasks.md`. Writing requirements and design before tasks surfaced design gaps (e.g. skull penalty rules, hitbox coordinate system, mirror parity bug) that would have been painful to fix mid-implementation.
 
-All seventeen specs are implemented. Every task in `tasks.md` is ticked except the manual smoke tests (a webcam playthrough, the music-v2 listening test, enabling GitHub Pages in the repo settings), and `boss-combo/` carries a status note explaining it was superseded by `stages/`.
+All eighteen specs are implemented. Every task in `tasks.md` is ticked except the manual smoke tests (a webcam playthrough, a two-person split-screen playthrough, the music-v2 listening test, enabling GitHub Pages in the repo settings), and `boss-combo/` carries a status note explaining it was superseded by `stages/`.
 
 ### Kiro hooks (`.kiro/hooks/`)
 Standalone `v1` hook files, loaded by Kiro IDE and Kiro CLI V3. Spec: `.kiro/specs/hooks/`.
@@ -160,6 +166,10 @@ src/
     collision.ts        Per-enemy hit resolution — 2-frame gate, spawn grace,
                         combo scoring, shake, hit flash, score pops
     particles.ts        Puff spawn + tick, score-pop labels
+    halves.ts           Two-player half geometry, mirror mapping, motion crop, winner pick
+    twoPlayer.ts        Two-player session: two seats, shared stage clock, OUT / CLEARED, final
+    step.ts             One game-time simulation step shared by 1P and each 2P seat
+    playerMode.ts       1 / 2 player choice, remembered for the session only
     swipe.ts            Swipe direction from the motion-centroid shift (mirror-correct)
     knock.ts            Banished enemies fly off along the swipe (closed-form drag, spin, fade)
     hitstop.ts          60 ms game-time freeze budget (deltaMs-based)
@@ -187,7 +197,8 @@ src/
     hud.ts              Hearts, timer, stage, score, combo (pulse), mute button —
                         outlined glow text, clamp(W/20, 24, 48) font
     motionButton.ts     Wave-to-press buttons driven by frame differencing
-    screens.ts          Start, stage title, summary (stars), victory, game over
+    screens.ts          Start (1 / 2 player buttons), stage title, summary (stars), victory, game over
+    splitscreen.ts      Two-player divider, OUT / CLEARED overlays, shared summary, winner screen
     onboarding.ts       First-run guide, how-to cards, camera-denied screen
     fonts.ts            TITLE_FONT_FAMILY + local font preload (Creepster)
   test/
@@ -214,6 +225,7 @@ src/
     waves/              Wave scripts, intensity curves, bonus round spec
     juice/              Swipe knock-back, hit-stop, combo call-outs, stage intro / outro spec
     music-v2/           3-voice look-ahead music sequencer spec
+    two-player/         Local split-screen two-player mode spec
     balancer/           Harness MCP server + balancer agent spec
     exorcist-card/      Shareable local-only Exorcist Card spec
   settings/mcp.json     Workspace MCP registration (motion-harness, stdio, relative path)

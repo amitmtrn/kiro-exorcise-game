@@ -8,27 +8,25 @@ import { captureFrame, calibrateDiffThreshold, computeMotionMask, MOTION_W, MOTI
 import {
   createInitialState,
   tickTimer,
-  setEnemies,
   setParticles,
   setScoreLabels,
-  decrementLife,
-  resetCombo,
-  incrementMissed,
   saveHighScore,
-  tickShake,
 } from './state'
 import type { GameState } from './state'
-import { tickBoss } from './enemies/bossPhases'
-import { tickSpawners } from './enemies/spawn'
-import { moveEnemies, cullExitedEnemies } from './enemies/movement'
-import { splitReached } from './enemies/reach'
-import { resolveHits, updateMotionPixels } from './collision'
+import { stepSimulation, tickEffects } from './step'
+import { resolveHits, updateMotionPixels, lastMotionPixels } from './collision'
 import { tickParticles, tickScoreLabels } from './particles'
 import { tickKnocks } from './knock'
 import { splitHitStop } from './hitstop'
 import { tickCallouts } from './callouts'
 import { renderFrame } from './render'
-import { renderHUD, hudFontSize, HUD_FONT_FAMILY } from '../ui/hud'
+import { renderHUD, hudFontSize, HUD_FONT_FAMILY, createHudPulse, drawMuteButton, muteButtonRect2P } from '../ui/hud'
+import type { HudPulse } from '../ui/hud'
+import { drawDivider, drawSeatOverlay, renderTwoPlayerSummary, renderTwoPlayerFinal, resetFinalScreen, resetSummaryScreen } from '../ui/splitscreen'
+import { createTwoPlayer, tickTwoPlayer, advanceSession, seatStatus } from './twoPlayer'
+import type { TwoPlayerState } from './twoPlayer'
+import { SEATS, halfOffset, halfWidth, displayPointsInHalf } from './halves'
+import type { Seat } from './halves'
 import {
   renderStartScreen,
   renderStageTitle,
@@ -36,28 +34,35 @@ import {
   renderGameOver,
   renderVictory,
   resetVictoryScreen,
+  resetStartScreen,
 } from '../ui/screens'
 import {
   tickRound,
   startGame,
   retryStage,
   advanceToNextStage,
-  spawnBoss,
 } from './round'
+import { resolveStartRequest, setPlayerMode } from './playerMode'
+import type { PlayerMode, StartRequest } from './playerMode'
 import { CardSession } from '../card/session'
 import { grabMirroredSnapshot, releaseSnapshot } from '../card/snapshot'
 import { composeCard } from '../card/draw'
 import { downloadCanvasPng } from '../card/download'
 import { CardPreview, cardKeyAction, offerHit, lockEndButtons } from '../ui/cardScreen'
 import type { CardAction } from '../ui/cardScreen'
-import { sfxLifeLost, sfxStageClear, startMusic, startTitleMusic, stopMusic, setMusicCombo } from '../audio/index'
+import { sfxStageClear, startMusic, startTitleMusic, stopMusic, setMusicCombo } from '../audio/index'
 
 let rafId = 0
 
+/** True while a two-player game is on screen (main.ts uses it to place the mute tap target). */
+let twoPlayerActive = false
+export function isTwoPlayerActive(): boolean { return twoPlayerActive }
+
 // Keyboard fallback for the motion START button — the start screen says
 // "Press Space". main.ts calls requestStart(); the start branch consumes it.
-let startRequested = false
-export function requestStart(): void { startRequested = true }
+let startRequest: StartRequest | null = null
+/** Space starts in the remembered mode; keys 1 / 2 pick the mode (two-player R6.2). */
+export function requestStart(req: StartRequest = 'last'): void { startRequest = req }
 
 // Exorcist Card input (exorcist-card R1): keys and clicks are queued by main.ts and
 // consumed on the game-over / victory screens only, so a stray key does nothing.
@@ -107,7 +112,8 @@ export async function startLoop(
   gameCtx: CanvasRenderingContext2D,
   initialStage = 1,
 ): Promise<() => void> {
-  startRequested = false // a Space pressed during permission/onboarding must not skip the title
+  twoPlayerActive = false
+  startRequest = null // a Space pressed during permission/onboarding must not skip the title
   const currentCanvas = document.createElement('canvas')
   currentCanvas.width = MOTION_W; currentCanvas.height = MOTION_H
   const currentCtx = currentCanvas.getContext('2d')!
@@ -122,7 +128,7 @@ export async function startLoop(
   drawCalibratingBanner(gameCtx)
   await calibrateDiffThreshold(currentCtx, video, 1000)
   captureFrame(prevCtx, video)
-  startRequested = false // ...nor one pressed during the 1 s calibration above
+  startRequest = null // ...nor one pressed during the 1 s calibration above
 
   let state: GameState = createInitialState(initialStage)
 
@@ -178,12 +184,112 @@ export async function startLoop(
   let lastTimestamp = 0
   let prevPhase = state.phase
 
-  /** Keeps shake, particles and labels expiring on the summary / game-over screens. */
-  function tickEffects(s: GameState, ms: number): GameState {
-    s = tickShake(s, ms)
-    s = setParticles(s, tickParticles(s.particles, ms))
-    s = { ...s, knocks: tickKnocks(s.knocks, ms), callouts: tickCallouts(s.callouts, ms) }
-    return setScoreLabels(s, tickScoreLabels(s.scoreLabels, ms))
+  // ── Two-player session (two-player spec). `two` is non-null while a 2P game is on screen. ──
+  let two: TwoPlayerState | null = null
+  let prevTwoPhase: TwoPlayerState['phase'] | null = null
+  const halfCanvases: HTMLCanvasElement[] = []
+  const pulses: HudPulse[] = [] // created on first use per seat
+  const hudCanvases: HTMLCanvasElement[] = [] // transparent per-seat HUD layers, drawn above the divider
+  /** Action requested by a 2P screen button during a tick; applied after the tick returns (so it is not overwritten). */
+  /** True while the start screen is the visible screen (entry detection for its lock-out). */
+  let startVisible = false
+  let twoAction: 'next' | 'again' | 'menu' | null = null
+
+  /** Start a game in `mode` (remembered for the session). */
+  function begin(mode: PlayerMode): void {
+    setPlayerMode(mode)
+    if (mode === 2) {
+      two = createTwoPlayer()
+      prevTwoPhase = null
+      twoPlayerActive = true // mute tap target switches immediately, not on the first 2P tick
+    } else {
+      state = startGame(state)
+    }
+  }
+
+  /** Back to the title screen from the two-player end screen. */
+  function toMenu(): void {
+    two = null
+    prevTwoPhase = null
+    state = createInitialState(1)
+    prevPhase = state.phase
+    try { stopMusic() } catch { /* ignore */ }
+  }
+
+  function halfCtx(seat: Seat, w: number, h: number): CanvasRenderingContext2D {
+    let c = halfCanvases[seat]
+    if (!c) { c = document.createElement('canvas'); halfCanvases[seat] = c }
+    if (c.width !== w) c.width = w
+    if (c.height !== h) c.height = h
+    return c.getContext('2d')!
+  }
+
+  function hudCtx(seat: Seat, w: number, h: number): CanvasRenderingContext2D {
+    let c = hudCanvases[seat]
+    if (!c) { c = document.createElement('canvas'); hudCanvases[seat] = c }
+    if (c.width !== w) c.width = w
+    if (c.height !== h) c.height = h
+    const x = c.getContext('2d')!
+    x.clearRect(0, 0, w, h)
+    return x
+  }
+
+  /** One tick of a two-player game: simulate both seats, then draw the halves, divider and overlays. */
+  function tickTwo(t: TwoPlayerState, deltaMs: number, now: number, W: number, H: number,
+    cur: ImageData, prev: ImageData, frameIsNew: boolean): TwoPlayerState {
+    const motion = t.phase === 'playing' ? { cur, prev, frameIsNew, now } : null
+    t = tickTwoPlayer(t, deltaMs, W, H, motion)
+
+    // Phase hooks (music / sfx), once per transition
+    if (prevTwoPhase !== t.phase) {
+      try {
+        if (t.phase === 'playing') startMusic(t.stage)
+        else if (t.phase === 'summary') { resetSummaryScreen(); sfxStageClear(); stopMusic() }
+        else if (t.phase === 'final') {
+          resetFinalScreen(); stopMusic()
+          if (t.seats.some((s) => s.phase !== 'gameover')) sfxStageClear() // no jingle when both are out
+        }
+      } catch { /* ignore */ }
+      prevTwoPhase = t.phase
+    }
+    if (t.phase === 'playing') {
+      try { setMusicCombo(Math.max(...t.seats.filter((s) => s.phase === 'playing').map((s) => s.combo), 1)) } catch { /* ignore */ }
+    }
+
+    gameCtx.clearRect(0, 0, W, H)
+    const hw = halfWidth(W)
+    const huds: Array<[CanvasRenderingContext2D, Seat]> = []
+    for (const seat of SEATS) {
+      const s = t.seats[seat]
+      const hctx = halfCtx(seat, hw, H)
+      renderFrame(hctx, s, now, {
+        banished: t.banished[seat],
+        motionPixels: displayPointsInHalf(lastMotionPixels, seat, W),
+      })
+      const pulse = (pulses[seat] ??= createHudPulse())
+      if (s.phase === 'playing') {
+        const hud = hudCtx(seat, hw, H)
+        renderHUD(hud, s, now, { pulse, showMute: false, label: `P${seat + 1}` })
+        huds.push([hud, seat])
+      } else pulse.lastCombo = 1
+      if (t.phase === 'stageTitle' && s.phase === 'stageTitle') renderStageTitle(hctx, s)
+      const status = seatStatus(t, seat)
+      if (t.phase !== 'final' && (status === 'out' || status === 'cleared')) drawSeatOverlay(hctx, status, s.score, now)
+      gameCtx.drawImage(hctx.canvas, halfOffset(seat, W), 0)
+    }
+    drawDivider(gameCtx, hw) // below the HUD text (R1.5)
+    for (const [hud, seat] of huds) gameCtx.drawImage(hud.canvas, halfOffset(seat, W), 0)
+
+    if (t.phase === 'summary') {
+      renderTwoPlayerSummary(gameCtx, t, now, () => { twoAction = 'next' })
+    } else if (t.phase === 'final') {
+      renderTwoPlayerFinal(gameCtx, t, now,
+        () => { twoAction = 'again' },
+        () => { twoAction = 'menu' },
+      )
+    }
+    drawMuteButton(gameCtx, muteButtonRect2P(W, hudFontSize(W))) // above the overlays so it stays visible
+    return t
   }
 
   function tick(timestamp: number): void {
@@ -195,11 +301,18 @@ export async function startLoop(
 
     // Exorcist Card bookkeeping: run stats, snapshots at fun moments, discard when
     // leaving the end screens (retry / menu / play again). Memory only.
-    session.observe(state, displayW, displayH)
-    onEndScreen = state.phase === 'gameover' || state.phase === 'victory'
-    if (onEndScreen) drainCardInputs(now)
-    else cardInputs = []
-    cardOpen = session.isOpen
+    // Not in two-player mode: the card is 1P-only for now (see the two-player design note).
+    if (two) {
+      onEndScreen = false
+      cardInputs = []
+      cardOpen = false
+    } else {
+      session.observe(state, displayW, displayH)
+      onEndScreen = state.phase === 'gameover' || state.phase === 'victory'
+      if (onEndScreen) drainCardInputs(now)
+      else cardInputs = []
+      cardOpen = session.isOpen
+    }
 
     // Always draw webcam feed, then the haunted purple tint (spooky-skin R1.1)
     drawWebcamFrame(webcamCtx, video)
@@ -216,22 +329,41 @@ export async function startLoop(
     updateMotionPixels(mask, displayW, displayH)
     const frameIsNew = mask.changed
 
-    // ── Start screen ──────────────────────────────────────────────────────────
-    if (state.phase === 'start') {
-      try { startTitleMusic() } catch { /* ignore */ }
-      renderFrame(gameCtx, state, now)
-      renderStartScreen(gameCtx, state, now, () => {
-        state = startGame(state)
-      })
-      // Space bar fallback (only honoured while actually on the start screen)
-      if (startRequested && state.phase === 'start') state = startGame(state)
-      startRequested = false
+    // ── Two-player game (own state machine; the 1P branches below are untouched) ──
+    if (two) {
+      startVisible = false
+      twoPlayerActive = true
+      twoAction = null
+      two = tickTwo(two, deltaMs, now, displayW, displayH, currentData, prevData, frameIsNew)
+      // Apply a button pressed during this tick *after* the tick result is stored.
+      const action: typeof twoAction = twoAction
+      twoAction = null
+      if (action === 'next' && two.phase === 'summary') two = advanceSession(two, displayW, displayH)
+      else if (action === 'again') { two = createTwoPlayer(); prevTwoPhase = null }
+      else if (action === 'menu') toMenu()
+      if (!two) twoPlayerActive = false
+      startRequest = null // keys pressed during a 2P game must not leak to the start screen (R6.2)
       prevCtx.drawImage(currentCanvas, 0, 0)
       rafId = requestAnimationFrame(tick)
       return
     }
 
-    startRequested = false // a stray Space outside the start screen is ignored
+    // ── Start screen ──────────────────────────────────────────────────────────
+    if (state.phase === 'start') {
+      if (!startVisible) { resetStartScreen(); startVisible = true } // explicit entry: lock-out + fresh buttons
+      try { startTitleMusic() } catch { /* ignore */ }
+      renderFrame(gameCtx, state, now)
+      renderStartScreen(gameCtx, state, now, (mode) => { begin(mode) })
+      // Space / 1 / 2 fallback (only honoured while actually on the start screen)
+      if (startRequest !== null && state.phase === 'start') begin(resolveStartRequest(startRequest))
+      startRequest = null
+      prevCtx.drawImage(currentCanvas, 0, 0)
+      rafId = requestAnimationFrame(tick)
+      return
+    }
+
+    startVisible = false
+    startRequest = null // a stray key outside the start screen is ignored
 
     // ── Stage title card ──────────────────────────────────────────────────────
     if (state.phase === 'stageTitle') {
@@ -311,42 +443,7 @@ export async function startLoop(
     state = { ...state, hitStopMs: hs.remainingMs }
     const simMs = hs.liveMs
 
-    if (simMs > 0) {
-      // Screen shake counts down with elapsed time (set by resolveHits below)
-      state = tickShake(state, simMs)
-
-      // Stage 5: spawn boss once
-      if (state.stage === 5 && !state.bossActive) {
-        state = spawnBoss(state, displayW, displayH)
-      }
-
-      state = tickSpawners(state, simMs, displayW, displayH)
-
-      const movedEnemies = cullExitedEnemies(
-        moveEnemies(state.enemies, simMs, displayW, displayH),
-        displayW,
-        displayH,
-      )
-      state = setEnemies(state, movedEnemies)
-
-      // Enemies reaching their target cost a life (never in the bonus round, never flybys)
-      const { survivors, missed: missedCount } = splitReached(state.enemies, state.bonus, displayW, displayH)
-      state = setEnemies(state, survivors)
-      for (let i = 0; i < missedCount; i++) {
-        if (state.phase === 'gameover') break // nothing else happens after the last life
-        state = decrementLife(state)
-        state = resetCombo(state)
-        state = incrementMissed(state)
-        try { sfxLifeLost() } catch { /* audio not ready */ }
-      }
-
-      // Boss attacks: a lunge that lands costs a life (tickBoss resets the combo)
-      const livesBeforeBoss = state.lives
-      state = tickBoss(state, displayW, displayH)
-      if (state.lives < livesBeforeBoss) {
-        try { sfxLifeLost() } catch { /* audio not ready */ }
-      }
-    }
+    if (simMs > 0) state = stepSimulation(state, simMs, displayW, displayH)
 
     // Age effects *before* resolveHits so ones spawned this tick start at age 0
     // (identical pose through the freeze at any frame rate).
