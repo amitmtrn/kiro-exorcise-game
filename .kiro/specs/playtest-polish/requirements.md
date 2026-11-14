@@ -217,6 +217,12 @@ menu text is inside its text band, which never overlaps a motion button; no text
 smaller than the **minimum font sizes** (HUD 16 px, menu text 12 px, call-outs
 24 px).
 
+**R9.3** Bigger text applies to the one-player HUD and screens, call-outs, score pops, the onboarding
+caption and the CSS text (onboarding, camera help). With a scale above 1 the stage label shrinks (never below
+16 px) to stay between the hearts and the timer, and the score / combo pulse is reduced where the two would
+collide. The two-player split-screen end screens keep their size: they are laid out around per-half buttons and
+are not rescaled by this spec. Button labels are fitted to their circle and are not scaled.
+
 ### R10 — Reduced flashing
 
 **R10.1** With reduced flashing on: the full-screen red/orange flash is capped at

@@ -53,11 +53,11 @@
 - [x] Commit: `feat(playtest-polish-T7): settings store and panel`
 
 ## T8 — Colourblind rendering and bigger text
-- [ ] `render.ts`, `hud.ts`, `motionButton.ts`: use `getPalette()`; skull "!" marker and dashed ring, `●` / `■` player marks, ring dash patterns when `cb` is on.
-- [ ] `src/ui/textScale.ts` (`scaled`, `hudLayout`); `hud.ts`, `screens.ts` `fit()`, call-outs and onboarding text use it.
-- [ ] Tests: HUD boxes inside the canvas, no overlap with each other or the mute button, at 640 × 480 and 1280 × 720, scales 1 / 1.25 / 1.5; minimum font sizes; fitted menu text inside its band, band clear of motion buttons.
-- [ ] `npm test` and `npm run build` both clean.
-- [ ] Commit: `feat(playtest-polish-T8): colourblind palette in the renderer and bigger text`
+- [x] `render.ts`, `hud.ts`, `motionButton.ts`: use `getPalette()`; skull "!" marker and dashed ring, `●` / `■` player marks, ring dash patterns when `cb` is on.
+- [x] `src/ui/textScale.ts` (`scaled`, `hudLayout`); `hud.ts`, `screens.ts` `fit()`, call-outs and onboarding text use it.
+- [x] Tests: HUD boxes inside the canvas, no overlap with each other or the mute button, at 640 × 480 and 1280 × 720, scales 1 / 1.25 / 1.5; minimum font sizes; fitted menu text inside its band, band clear of motion buttons.
+- [x] `npm test` and `npm run build` both clean.
+- [x] Commit: `feat(playtest-polish-T8): colourblind palette in the renderer and bigger text`
 
 ## T9 — Reduced flashing
 - [ ] Create `src/game/flash.ts` (scheduler, ramped waveform, shake scale); `render.ts` uses it when reduced flashing is on; white hit silhouette skipped; random numbers still drawn.

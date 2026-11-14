@@ -15,6 +15,7 @@ import { getPlayerMode } from '../game/playerMode'
 import type { PlayerMode } from '../game/playerMode'
 import { offerButton, endButtonsLive, registerEndButtonReset } from './cardScreen'
 import { drawSettingsGear } from './settingsPanel'
+import { scaled } from './textScale'
 
 // ─── Motion buttons (persistent instances reused across frames) ───────────────
 // Geometry comes from layout.ts (raised-hand zones). Every screen has an entry lockout with a
@@ -50,6 +51,11 @@ const VICTORY_FADE_MS = 400
 /** Font px that keeps `text` inside the central text band (menu text never reaches the button columns). */
 /** Readable floor for fitted menu text (R5.1): at 640 px wide nothing is drawn smaller than this. */
 export const MIN_TEXT_PX = 12
+
+/** Full-width band for centred titles that sit outside the button columns' vertical range. */
+const WIDE_BAND: readonly [number, number] = [0.05, 0.95]
+/** The stage-summary table spans 28 % … 72 % of the width. */
+const ROW_BAND: readonly [number, number] = [0.28, 0.72]
 
 function fit(text: string, px: number, W: number, band: readonly [number, number] = TEXT_BAND_1P): number {
   return Math.round(fitFontPx(text, px, (band[1] - band[0]) * W, MIN_TEXT_PX))
@@ -137,16 +143,16 @@ export function renderStageTitle(ctx: CanvasRenderingContext2D, state: GameState
   ctx.fillRect(0, 0, W, H)
 
   ctx.textAlign = 'center'
-  ctx.font = `${clamp(W / 11, 42, 80)}px ${TITLE_FONT_FAMILY}`
+  ctx.font = `${fit(cfg.name, clamp(W / 11, 42, 80), W, WIDE_BAND)}px ${TITLE_FONT_FAMILY}`
   ctx.fillStyle = '#ff6b1a'
   ctx.shadowColor = '#ff6b1a'; ctx.shadowBlur = 20
   ctx.fillText(cfg.name, W / 2 + pose.nameX * W, H * 0.38)
 
-  ctx.font = `${clamp(W / 20, 24, 40)}px sans-serif`
+  ctx.font = `${fit(cfg.subtitle, clamp(W / 20, 24, 40), W, WIDE_BAND)}px sans-serif`
   ctx.fillStyle = '#ffd166'; ctx.shadowBlur = 0
   ctx.fillText(cfg.subtitle, W / 2 + pose.subX * W, H * 0.52)
 
-  ctx.font = `bold ${clamp(W / 12, 40, 72)}px monospace`
+  ctx.font = `bold ${fit(String(secs), clamp(W / 12, 40, 72), W, WIDE_BAND)}px monospace`
   ctx.fillStyle = '#e8e8f0'
   ctx.fillText(String(secs), W / 2, H * 0.7)
 
@@ -196,7 +202,7 @@ export function renderSummary(
   ]
   const rowH = H * 0.08
   let ry = H * 0.5
-  ctx.font = `${clamp(W / 30, 16, 24)}px sans-serif`
+  ctx.font = `${fit('Best combo   123456', clamp(W / 30, 16, 24), W, ROW_BAND)}px sans-serif`
   rows.forEach(([label, val], i) => {
     ctx.globalAlpha = outroRowAlpha(state.summaryShownMs, i + 1)
     ctx.fillStyle = 'rgba(232,232,240,0.7)'; ctx.textAlign = 'left'
@@ -350,8 +356,9 @@ export function renderVictory(
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
+/** Clamped size times the text scale setting (playtest-polish R9). Menu text goes through `fit`, which keeps it in its band. */
 function clamp(v: number, min: number, max: number): number {
-  return Math.max(min, Math.min(max, Math.round(v)))
+  return scaled(Math.max(min, Math.min(max, Math.round(v))))
 }
 
 function calcStars(state: GameState): number {

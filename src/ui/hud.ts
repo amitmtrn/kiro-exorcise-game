@@ -8,13 +8,12 @@ import type { GameState } from '../game/state'
 import { stageLabel } from '../game/stages'
 import { isMuted } from '../audio/index'
 import { hudFontSize, muteButtonRect, muteButtonRect2P } from './muteRect'
+import { getPalette } from './palette'
+import { getSettings } from '../settings/runtime'
+import { hudLayout, pulseLimit } from './textScale'
 export { hudFontSize, muteButtonRect, muteButtonRect2P }
 
-// ─── Palette (see .kiro/steering/design.md) ──────────────────────────────────
-const C_LIFE   = '#c0392b'   // Blood Red
-const C_SCORE  = '#ffd166'   // Candlelight Yellow
-const C_COMBO  = '#39ff14'   // Slime Green
-const C_GHOST  = '#e8e8f0'   // Ghost White
+// ─── Palette (see .kiro/steering/design.md; the colourblind variant is in ui/palette.ts) ─────
 const C_OUTLINE = 'rgba(13, 0, 20, 0.85)'  // Midnight
 
 /** Chunky rounded display stack — all system fonts, no external assets. */
@@ -89,6 +88,7 @@ export function renderHUD(ctx: CanvasRenderingContext2D, state: GameState, now: 
     return
   }
 
+  const pal = getPalette()
   const { width: W, height: H } = ctx.canvas
   const pad = 20
   const fontSize = hudFontSize(W)
@@ -97,14 +97,17 @@ export function renderHUD(ctx: CanvasRenderingContext2D, state: GameState, now: 
   // Track combo increments for the pulse
   if (state.combo > pulseState.lastCombo) pulseState.start = now
   pulseState.lastCombo = state.combo
-  const pulse = comboPulseScale(now - pulseState.start)
+  const textScale = getSettings().textScale
+  const rawPulse = comboPulseScale(now - pulseState.start)
+  // With bigger text the pulse is reduced where the score and the combo would collide (R9.2)
+  const pulse = 1 + (rawPulse - 1) * ((pulseLimit(W, fontSize, `Score: ${state.score}`.length, textScale) - 1) / 0.5)
 
   ctx.save()
 
   // ── Lives (top-left) ───────────────────────────────────────────────────────
   let hearts = ''
   for (let i = 0; i < 3; i++) hearts += i < state.lives ? '♥' : '♡'
-  drawHudText(ctx, hearts, pad, pad, C_LIFE, { font: font(fontSize) })
+  drawHudText(ctx, hearts, pad, pad, pal.life, { font: font(fontSize) })
 
   // ── Timer (top-right) ──────────────────────────────────────────────────────
   const secsRemaining = Math.ceil(state.roundTimeMs / 1000)
@@ -114,22 +117,26 @@ export function renderHUD(ctx: CanvasRenderingContext2D, state: GameState, now: 
   const isLow = state.roundTimeMs <= 10_000
   const flashVisible = !isLow || Math.floor(now / 500) % 2 === 0
   if (flashVisible) {
-    drawHudText(ctx, timerText, W - pad, pad, isLow ? C_LIFE : C_SCORE, {
+    drawHudText(ctx, timerText, W - pad, pad, isLow ? pal.life : pal.score, {
       font: `bold ${fontSize}px monospace`, align: 'right', glow: isLow ? 18 : 12,
     })
   }
 
   // ── Stage label (top-center) ───────────────────────────────────────────────
   const cfg = stageLabel(state)
-  drawHudText(ctx, `${cfg.name} — ${cfg.subtitle}`, W / 2, pad, C_GHOST, {
-    font: font(Math.round(fontSize * 0.6), '600'), align: 'center', glow: 8,
-  })
+  const stageText = `${cfg.name} — ${cfg.subtitle}`
+  const lay = hudLayout(W, H, textScale, { label: stageText })
+  if (lay.labelPx !== null) { // dropped only with bigger text on a canvas too narrow for it (R9.2)
+    drawHudText(ctx, stageText, W / 2, pad, pal.ghost, {
+      font: font(lay.labelPx, '600'), align: 'center', glow: 8,
+    })
+  }
 
   // ── Score (bottom-left) — pulses with the combo ────────────────────────────
   ctx.save()
   ctx.translate(pad, H - pad)
   ctx.scale(pulse, pulse)
-  drawHudText(ctx, `Score: ${state.score}`, 0, 0, C_SCORE, {
+  drawHudText(ctx, `Score: ${state.score}`, 0, 0, pal.score, {
     font: font(fontSize), baseline: 'bottom',
   })
   ctx.restore()
@@ -139,14 +146,18 @@ export function renderHUD(ctx: CanvasRenderingContext2D, state: GameState, now: 
     ctx.save()
     ctx.translate(W - pad, H - pad)
     ctx.scale(pulse, pulse)
-    drawHudText(ctx, `×${state.combo}`, 0, 0, C_COMBO, {
+    drawHudText(ctx, `×${state.combo}`, 0, 0, pal.combo, {
       font: font(Math.round(fontSize * 1.2)), align: 'right', baseline: 'bottom', glow: 16,
     })
     ctx.restore()
   }
 
   if (opts.label) {
-    drawHudText(ctx, opts.label, pad, pad + fontSize + 4, C_GHOST, {
+    // Colourblind palette: a different shape and colour per player, never colour alone (R8.2)
+    const cb = getSettings().cb
+    const mark = cb ? (opts.label === 'P2' ? '■ ' : '● ') : ''
+    const labelColor = cb ? (opts.label === 'P2' ? pal.p2 : pal.p1) : pal.ghost
+    drawHudText(ctx, mark + opts.label, pad, pad + fontSize + 4, labelColor, {
       font: font(Math.round(fontSize * 0.6), '600'), glow: 8,
     })
   }
@@ -159,13 +170,14 @@ export function renderHUD(ctx: CanvasRenderingContext2D, state: GameState, now: 
 
 /** The mute / unmute speaker button, drawn into `mb` (single-player: top-right; two-player: top centre). */
 export function drawMuteButton(ctx: CanvasRenderingContext2D, mb: { x: number; y: number; w: number; h: number }): void {
+  const pal = getPalette()
   const muted = isMuted()
   ctx.save()
   ctx.fillStyle = muted ? 'rgba(192,57,43,0.35)' : 'rgba(232,232,240,0.18)'
-  ctx.strokeStyle = muted ? C_LIFE : 'rgba(232,232,240,0.6)'
+  ctx.strokeStyle = muted ? pal.life : 'rgba(232,232,240,0.6)'
   ctx.lineWidth = 2
   ctx.beginPath(); ctx.roundRect(mb.x, mb.y, mb.w, mb.h, 8); ctx.fill(); ctx.stroke()
-  drawHudText(ctx, muted ? '🔇' : '🔊', mb.x + mb.w / 2, mb.y + mb.h / 2, muted ? C_LIFE : C_GHOST, {
+  drawHudText(ctx, muted ? '🔇' : '🔊', mb.x + mb.w / 2, mb.y + mb.h / 2, muted ? pal.life : pal.ghost, {
     font: `${Math.round(mb.h * 0.6)}px sans-serif`, align: 'center', baseline: 'middle', glow: 6,
   })
   ctx.restore()

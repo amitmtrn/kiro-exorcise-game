@@ -14,25 +14,22 @@ import { PHASE2_BELOW, PHASE3_BELOW } from './enemies/bossPhases'
 import { knockPose } from './knock'
 import type { Knock } from './knock'
 import { drawAtmosphere } from './atmosphere'
+import { getPalette } from '../ui/palette'
+import { getSettings } from '../settings/runtime'
+import { calloutPx, scaled } from '../ui/textScale'
 import { getQualityInfo, formatQualityLine } from './quality'
 import { getMotionGrid } from '../webcam/grid'
+
+/** Active palette (colourblind-safe variant when the setting is on). */
+const P = getPalette
 
 // ─── Debug mode ───────────────────────────────────────────────────────────────
 let debugMode = false
 export function toggleDebug(): void { debugMode = !debugMode }
 
 // ─── Colours ──────────────────────────────────────────────────────────────────
-const C_GHOST   = '#e8e8f0'
 const C_EYE     = '#1a0030'
-const C_BAT_B   = '#2a0845'
 const C_BAT_W   = '#1a0030'
-const C_SKULL   = '#ff6b1a'
-const C_SKULL_E = '#c0392b'
-const C_LUNGER  = '#9b59b6'
-const C_PUMPKIN = '#ff6b1a'
-const C_BOSS    = '#e8e8f0'
-const C_BOSS_WINDUP = '#ff6b1a'
-const C_BOSS_ENRAGED = '#c0392b'
 
 // ─── Main entry ───────────────────────────────────────────────────────────────
 
@@ -170,7 +167,7 @@ function drawGhost(ctx: CanvasRenderingContext2D, enemy: Enemy, now: number): vo
   const px = -by, py = bx
 
   ctx.shadowBlur = 0
-  ctx.fillStyle = C_GHOST
+  ctx.fillStyle = P().ghost
   const wisps = [
     { dist: 30, r: 12, a: 0.40 },
     { dist: 46, r: 9,  a: 0.25 },
@@ -204,7 +201,7 @@ function drawGhost(ctx: CanvasRenderingContext2D, enemy: Enemy, now: number): vo
   ctx.beginPath(); ctx.ellipse(14, -h * 0.05, 7, 9, 0, 0, Math.PI * 2); ctx.fill()
   ctx.beginPath(); ctx.ellipse(0, h * 0.22, 4, 5, 0, 0, Math.PI * 2); ctx.fill()
   // Eye highlights
-  ctx.fillStyle = C_GHOST
+  ctx.fillStyle = P().ghost
   ctx.beginPath(); ctx.arc(-12, -h * 0.1, 2, 0, Math.PI * 2); ctx.fill()
   ctx.beginPath(); ctx.arc(16, -h * 0.1, 2, 0, Math.PI * 2); ctx.fill()
 }
@@ -230,7 +227,7 @@ function drawBat(ctx: CanvasRenderingContext2D, enemy: Enemy, now: number): void
   }
 
   // Body + ears
-  ctx.fillStyle = C_BAT_B
+  ctx.fillStyle = P().bat
   ctx.beginPath(); ctx.ellipse(0, 0, 8, 10, 0, 0, Math.PI * 2); ctx.fill()
   for (const side of [-1, 1]) {
     ctx.beginPath()
@@ -239,7 +236,7 @@ function drawBat(ctx: CanvasRenderingContext2D, enemy: Enemy, now: number): void
   }
 
   // Eyes
-  ctx.shadowBlur = 0; ctx.fillStyle = '#ffd166'
+  ctx.shadowBlur = 0; ctx.fillStyle = P().batEye
   ctx.beginPath(); ctx.arc(-4, -3, 2.5, 0, Math.PI * 2); ctx.fill()
   ctx.beginPath(); ctx.arc(4, -3, 2.5, 0, Math.PI * 2); ctx.fill()
 }
@@ -249,10 +246,10 @@ function drawBat(ctx: CanvasRenderingContext2D, enemy: Enemy, now: number): void
 // Still pulses red (steering: "don't hit me").
 function drawSkull(ctx: CanvasRenderingContext2D, now: number): void {
   const glow = 10 + Math.sin(now / 300) * 5
-  ctx.shadowColor = '#c0392b'; ctx.shadowBlur = glow
+  ctx.shadowColor = P().danger; ctx.shadowBlur = glow
 
   // Cranium + jaw
-  ctx.fillStyle = C_SKULL
+  ctx.fillStyle = P().skull
   ctx.beginPath(); ctx.arc(0, -4, 22, 0, Math.PI * 2); ctx.fill()
   ctx.beginPath(); ctx.roundRect(-14, 10, 28, 16, 5); ctx.fill()
   ctx.shadowBlur = 0
@@ -263,8 +260,8 @@ function drawSkull(ctx: CanvasRenderingContext2D, now: number): void {
   ctx.beginPath(); ctx.ellipse(16, 4, 6, 5, -0.6, 0, Math.PI * 2); ctx.fill()
 
   // Eye sockets (glowing red) + nose
-  ctx.fillStyle = C_SKULL_E
-  ctx.shadowColor = '#ff2a1a'; ctx.shadowBlur = 6 + Math.sin(now / 200) * 3
+  ctx.fillStyle = P().skullEye
+  ctx.shadowColor = getSettings().cb ? P().danger : '#ff2a1a'; ctx.shadowBlur = 6 + Math.sin(now / 200) * 3
   ctx.beginPath(); ctx.ellipse(-9, -6, 6, 8, 0, 0, Math.PI * 2); ctx.fill()
   ctx.beginPath(); ctx.ellipse(9, -6, 6, 8, 0, 0, Math.PI * 2); ctx.fill()
   ctx.shadowBlur = 0
@@ -285,6 +282,31 @@ function drawSkull(ctx: CanvasRenderingContext2D, now: number): void {
   ctx.moveTo(-1, -17); ctx.lineTo(4, -15)
   ctx.moveTo(-5, -12); ctx.lineTo(-10, -13)
   ctx.stroke()
+
+  if (getSettings().cb) drawDangerCue(ctx, now)
+}
+
+/**
+ * Colourblind redundancy for the skull (playtest-polish R8.2): a dashed pulsing ring and a "!" marker, so
+ * "do not touch" never depends on its colour. The skull keeps its own shape.
+ */
+function drawDangerCue(ctx: CanvasRenderingContext2D, now: number): void {
+  const danger = P().danger
+  ctx.save()
+  ctx.shadowBlur = 0
+  ctx.strokeStyle = danger
+  ctx.lineWidth = 4
+  ctx.globalAlpha = 0.55 + 0.35 * Math.sin(now / 200)
+  ctx.setLineDash([9, 7])
+  ctx.beginPath(); ctx.arc(0, 2, 40, 0, Math.PI * 2); ctx.stroke()
+  ctx.setLineDash([])
+  ctx.globalAlpha = 1
+  ctx.font = 'bold 26px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
+  ctx.lineWidth = 5; ctx.lineJoin = 'round'; ctx.strokeStyle = 'rgba(13,0,20,0.9)'
+  ctx.strokeText('!', 0, -52)
+  ctx.fillStyle = danger
+  ctx.fillText('!', 0, -52)
+  ctx.restore()
 }
 
 // ─── Lunger ───────────────────────────────────────────────────────────────────
@@ -295,9 +317,9 @@ function drawLunger(ctx: CanvasRenderingContext2D, enemy: Enemy, now: number): v
   // Scale up slightly during windup to telegraph the lunge
   const scale = isWindup ? 1 + 0.3 * Math.sin(now / 60) : 1
   ctx.scale(scale, scale)
-  ctx.shadowColor = C_LUNGER; ctx.shadowBlur = isWindup ? 20 : 10
+  ctx.shadowColor = P().lunger; ctx.shadowBlur = isWindup ? 20 : 10
   // Purple ghost variant
-  ctx.fillStyle = C_LUNGER
+  ctx.fillStyle = P().lunger
   ctx.beginPath()
   ctx.arc(0, -20, 36, Math.PI, 0, false)
   ctx.lineTo(36, 28)
@@ -316,9 +338,9 @@ function drawPumpkin(ctx: CanvasRenderingContext2D, enemy: Enemy): void {
   const damaged = enemy.hitsReceived > 0
   const s = damaged ? 0.85 : 1
   ctx.scale(s, s)
-  ctx.shadowColor = C_PUMPKIN; ctx.shadowBlur = damaged ? 20 : 8
+  ctx.shadowColor = P().pumpkin; ctx.shadowBlur = damaged ? 20 : 8
   // Body: 3 stacked ellipses
-  ctx.fillStyle = C_PUMPKIN
+  ctx.fillStyle = P().pumpkin
   ctx.beginPath(); ctx.ellipse(0, 0, 28, 30, 0, 0, Math.PI*2); ctx.fill()
   ctx.beginPath(); ctx.ellipse(-16, 2, 16, 28, -0.2, 0, Math.PI*2); ctx.fill()
   ctx.beginPath(); ctx.ellipse(16, 2, 16, 28, 0.2, 0, Math.PI*2); ctx.fill()
@@ -337,9 +359,9 @@ function drawPumpkin(ctx: CanvasRenderingContext2D, enemy: Enemy): void {
 
 // ─── Candy (waves bonus round) ────────────────────────────────────────────────
 // A wrapped sweet: palette-coloured body, twisted wrapper ends, a gentle spin.
-const CANDY_COLOURS = ['#ff6b1a', '#ffd166', '#39ff14', '#9b59b6']
 function drawCandy(ctx: CanvasRenderingContext2D, enemy: Enemy, now: number): void {
-  const colour = CANDY_COLOURS[Math.floor(enemy.sineOffset * 4 / (Math.PI * 2)) % CANDY_COLOURS.length]
+  const candy = P().candy
+  const colour = candy[Math.floor(enemy.sineOffset * 4 / (Math.PI * 2)) % candy.length]
   ctx.rotate(Math.sin(now / 300 + enemy.sineOffset) * 0.4)
   ctx.shadowColor = colour; ctx.shadowBlur = 12
   ctx.fillStyle = colour
@@ -347,7 +369,7 @@ function drawCandy(ctx: CanvasRenderingContext2D, enemy: Enemy, now: number): vo
   ctx.beginPath(); ctx.moveTo(-10, 0); ctx.lineTo(-24, -11); ctx.lineTo(-24, 11); ctx.closePath(); ctx.fill()
   ctx.beginPath(); ctx.moveTo(10, 0); ctx.lineTo(24, -11); ctx.lineTo(24, 11); ctx.closePath(); ctx.fill()
   // Body
-  ctx.fillStyle = C_GHOST
+  ctx.fillStyle = P().ghost
   ctx.beginPath(); ctx.ellipse(0, 0, 13, 11, 0, 0, Math.PI * 2); ctx.fill()
   ctx.shadowBlur = 0
   ctx.strokeStyle = colour; ctx.lineWidth = 3
@@ -359,7 +381,7 @@ function drawBoss(ctx: CanvasRenderingContext2D, enemy: Enemy, now: number): voi
   const windup = enemy.bossAttack === 'windup'
   const shielded = enemy.bossPhase >= 2 && enemy.bossAttack === 'idle' && enemy.hitFlashFrames === 0
   const enraged = enemy.bossPhase === 3
-  const aura = windup ? C_BOSS_WINDUP : enraged ? C_BOSS_ENRAGED : '#7b2fbe'
+  const aura = windup ? P().bossWindup : enraged ? P().bossEnraged : '#7b2fbe'
 
   // Wind-up telegraph (boss-phases R3.2): shake, orange glow, pulsing ring, "!"
   if (windup) {
@@ -367,7 +389,7 @@ function drawBoss(ctx: CanvasRenderingContext2D, enemy: Enemy, now: number): voi
     const pulse = 0.5 + 0.5 * Math.sin(now / 50)
     ctx.save()
     ctx.shadowBlur = 0
-    ctx.strokeStyle = C_BOSS_WINDUP
+    ctx.strokeStyle = P().bossWindup
     ctx.globalAlpha = 0.45 + 0.4 * pulse
     ctx.lineWidth = 6
     ctx.beginPath(); ctx.arc(0, 0, 110 + 20 * pulse, 0, Math.PI * 2); ctx.stroke()
@@ -375,7 +397,7 @@ function drawBoss(ctx: CanvasRenderingContext2D, enemy: Enemy, now: number): voi
     ctx.save()
     ctx.shadowBlur = 0
     ctx.font = 'bold 56px sans-serif'; ctx.textAlign = 'center'
-    ctx.fillStyle = C_BOSS_WINDUP
+    ctx.fillStyle = P().bossWindup
     // Above the boss when there is headroom (clear of the HUD title), else beside it.
     if (enemy.y - 105 - 45 >= 50) ctx.fillText('!', 0, -105)
     else ctx.fillText('!', 135, 20)
@@ -400,7 +422,7 @@ function drawBoss(ctx: CanvasRenderingContext2D, enemy: Enemy, now: number): voi
   ctx.shadowColor = aura; ctx.shadowBlur = glow
   // Enlarged ghost
   const w = 80, h = 100
-  ctx.fillStyle = C_BOSS
+  ctx.fillStyle = P().boss
   ctx.beginPath()
   ctx.arc(0, -h * 0.2, w, Math.PI, 0, false)
   ctx.lineTo(w, h * 0.6)
@@ -449,7 +471,7 @@ function drawBossHealthBar(ctx: CanvasRenderingContext2D, boss: Enemy): void {
   ctx.fillStyle = '#ffd166'
   for (const t of [PHASE2_BELOW, PHASE3_BELOW]) ctx.fillRect(x + barW * t - 1, y - 3, 2, barH + 6)
   // Label
-  ctx.fillStyle = boss.bossPhase === 3 ? '#ff6b1a' : '#e8e8f0'
+  ctx.fillStyle = boss.bossPhase === 3 ? P().bossWindup : P().ghost
   ctx.font = 'bold 13px sans-serif'
   ctx.textAlign = 'center'
   const tag = boss.bossPhase === 3 ? 'ENRAGED' : `PHASE ${boss.bossPhase}`
@@ -468,36 +490,33 @@ function drawParticle(ctx: CanvasRenderingContext2D, p: Particle): void {
 }
 
 // ─── Score pop label (spooky-skin R5.2) ───────────────────────────────────────
-const C_SCORE_POP = '#ffd166'  // Candlelight Yellow
 function drawScoreLabel(ctx: CanvasRenderingContext2D, l: ScoreLabel): void {
   ctx.save()
   ctx.globalAlpha = Math.max(0, l.alpha)
-  ctx.font = 'bold 26px sans-serif'
+  ctx.font = `bold ${scaled(26)}px sans-serif`
   ctx.textAlign = 'center'
   ctx.textBaseline = 'middle'
   ctx.lineWidth = 4
   ctx.lineJoin = 'round'
   ctx.strokeStyle = 'rgba(13,0,20,0.85)'
   ctx.strokeText(l.text, l.x, l.y)
-  ctx.shadowColor = C_SCORE_POP; ctx.shadowBlur = 12
-  ctx.fillStyle = C_SCORE_POP
+  ctx.shadowColor = P().score; ctx.shadowBlur = 12
+  ctx.fillStyle = P().score
   ctx.fillText(l.text, l.x, l.y)
   ctx.restore()
 }
 
 // ─── Combo call-out (juice R4) ────────────────────────────────────────────────
-const C_CALLOUT_TIER = '#39ff14'   // Slime Green
-const C_CALLOUT_PRAISE = '#ffd166' // Candlelight Yellow
 function drawCallout(ctx: CanvasRenderingContext2D, c: Callout): void {
   const pose = calloutPose(c)
-  const size = Math.max(28, Math.min(64, ctx.canvas.width / 16))
-  const color = c.kind === 'tierUp' ? C_CALLOUT_TIER : C_CALLOUT_PRAISE
+  const fontPx = calloutPx(ctx.canvas.width, c.x, [...c.text].length)
+  const color = c.kind === 'tierUp' ? P().combo : P().score
   ctx.save()
   ctx.globalAlpha = Math.max(0, Math.min(1, pose.alpha))
   ctx.translate(c.x, c.y + pose.dy)
   ctx.scale(pose.scale, pose.scale)
   ctx.rotate(c.kind === 'tierUp' ? -0.08 : 0.06)
-  ctx.font = `${Math.round(size * 1.1)}px ${TITLE_FONT_FAMILY}`
+  ctx.font = `${fontPx}px ${TITLE_FONT_FAMILY}`
   ctx.textAlign = 'center'
   ctx.textBaseline = 'middle'
   ctx.lineWidth = 6

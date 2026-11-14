@@ -15,7 +15,7 @@ import { modeForKey } from './game/playerMode'
 import { loadTitleFont } from './ui/fonts'
 import { routePointer } from './ui/pointerRoute'
 import { isPanelOpen, openPanel, handlePanelKey, handlePanelPointer } from './ui/settingsPanel'
-import { initSettings } from './settings/runtime'
+import { initSettings, subscribeSettings } from './settings/runtime'
 import { SOUND_HINT, soundHintFontPx } from './ui/layout'
 import { hudFontSize, muteButtonRect, muteButtonRect2P } from './ui/hud'
 import { parseDemoParams, routeDemoKey } from './demo/params'
@@ -24,7 +24,10 @@ import type { DemoParams } from './demo/params'
 import { DemoRuntime } from './demo/runtime'
 
 // Settings (playtest-polish R7): stored values, then URL parameters (?cb=1 ?bigtext=1|2 ?reducedflash=1).
-initSettings({ storage: getLocalStorage(), search: location.search })
+const initial = initSettings({ storage: getLocalStorage(), search: location.search })
+const applyTextScale = (s: { textScale: number }) => document.documentElement?.style.setProperty('--text-scale', String(s.textScale))
+applyTextScale(initial) // CSS text (onboarding, camera help) scales with the setting
+subscribeSettings(applyTextScale)
 
 const webcamCanvas = document.getElementById('webcam-canvas') as HTMLCanvasElement
 const gameCanvas   = document.getElementById('game-canvas') as HTMLCanvasElement
