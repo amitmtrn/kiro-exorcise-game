@@ -11,10 +11,10 @@ Files: `.kiro/powers/exorcise-motion-harness/**`, `tools/power-manifest.test.mjs
 ## T2 — docs/KIRO.md
 Files: `docs/KIRO.md`
 
-- [ ] Compute every repo number with the commands in the design; read `kiro-facts.md` for the rest.
-- [ ] Write all required sections (R1.2–R1.11), 250–450 lines.
-- [ ] `npm test` and `npm run build` both clean.
-- [ ] Commit: `docs(judge-docs-T2): Kiro write-up for judges`
+- [x] Compute every repo number with the commands in the design; read `kiro-facts.md` for the rest.
+- [x] Write all required sections (R1.2–R1.11), 250–450 lines.
+- [x] `npm test` and `npm run build` both clean.
+- [x] Commit: `docs(judge-docs-T2): Kiro write-up for judges`
 
 ## T3 — README section
 Files: `README.md`
