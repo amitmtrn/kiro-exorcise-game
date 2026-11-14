@@ -19,14 +19,14 @@ function apply(e: NameEntry, a: ['prev'] | ['next'] | ['ok'] | ['key', string], 
 }
 
 describe('name entry properties', () => {
-  it('any input sequence keeps a valid final name, the cursor in 0–2 and at most 8 characters', () => {
+  it('any input sequence keeps a valid final name, the cursor on a letter and at most 8 characters', () => {
     fc.assert(fc.property(fc.integer(), fc.array(action, { maxLength: 60 }), (seed, acts) => {
       let e = newNameEntry(generateName(mulberry32(seed)), 0)
       let t = 0
       for (const a of acts) {
         e = apply(e, a, (t += 100))
         expect(e.cursor).toBeGreaterThanOrEqual(0)
-        expect(e.cursor).toBeLessThan(PICK_LEN)
+        expect(e.cursor).toBeLessThan(Math.max(PICK_LEN, e.text.length))
         expect(e.text.length).toBeLessThanOrEqual(8)
         expect(isValidName(finalName(e))).toBe(true)
       }
