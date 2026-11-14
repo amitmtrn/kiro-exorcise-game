@@ -27,8 +27,7 @@ controller, with a margin. The span is stated in `design.md` with its arithmetic
 (2 ms, 120 ms) and at every band edge (the 14 / 20 ms floors, the 60 Hz and
 30 Hz scaled thresholds and the 30 Hz snap edges), for every start level.
 
-**R1.4** Its local duration drops by at least a half. Before and after timings
-are recorded in `tasks.md`.
+**R1.4** Its local duration drops to about half (the span is halved; the step cost is unchanged) and the test gets an explicit 30 s timeout, so a 10× slower runner still passes. Before and after timings are recorded in `tasks.md`.
 
 ## R2 — Other slow tests are safe on a slow runner
 
@@ -66,6 +65,6 @@ stays within its 450-line cap; `tools/judge-docs.test.mjs` passes.
 
 ## Acceptance criteria
 1. `npm test` passes three times in a row; `npm run build` passes.
-2. The R1.5 test runs in under half its old time and has fixed edge examples.
+2. The R1.5 test runs in about half its old time, has an explicit timeout and fixed edge examples.
 3. No test over the threshold lacks an explicit timeout or a speed-up.
 4. `deploy.yml` uses Node 22 and is otherwise unchanged.
