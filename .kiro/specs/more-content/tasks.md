@@ -77,7 +77,7 @@
 
 ## T10 — Docs
 - [x] README: controls table, stages, enemies, high scores, specs tree (`more-content/`), test count.
-- [x] `docs/KIRO.md`: spec lists and history, test count, credits row "After more-content" (figure pending from the operator; the "After playtest-polish" row already existed with 629.18). `judge-docs.test.mjs` follows the new history rows (#8 playtest-polish 1515, more-content on this branch).
+- [x] `docs/KIRO.md`: spec lists and history, test count, credits row "After more-content" (777.68; the "After playtest-polish" row stays 629.18). `judge-docs.test.mjs` follows the new history rows (#8 playtest-polish 1515, more-content on this branch).
 - [x] Docs facts-check test passes; trademark guard passes.
 - [x] `npm test` and `npm run build` both clean.
 - [x] Commit: `docs(more-content-T10): README and KIRO.md`
@@ -138,3 +138,4 @@
 - [x] R12.1: stale seed 6 docs fixed to 5 (`tools/motion-harness/README.md`, `.kiro/specs/demo-mode/design.md`).
 - [x] R1.10: king-summoned wisp pair clamps so the bodies (not only centres) stay inside the area or half; property test extended.
 - [x] R2.3: pair banish keeps the partner in the enemy list if the phase is `gameover` after the first banish (defensive; no reachable path, so no test).
+- [x] Credits row filled: After more-content 777.68 (also the TL;DR row and README headline); test counts 1706.

@@ -20,7 +20,7 @@ reproducible: `git checkout df26f4d` and run the same command.
 | Commits | 175 | `git rev-list --count df26f4d` |
 | Commits named after a spec task, `<type>(<spec>-T<n>)` (67 `feat`, 14 `docs`, 6 `test`, 2 `fix`) | 89 | `git log df26f4d --oneline -E --grep='\([a-z0-9-]+-T[0-9]+\)' \| wc -l` |
 | `fix(...)` commits, mostly review fixes | 57 | `git log df26f4d --oneline -E --grep='^fix' \| wc -l` |
-| Unit and property tests | 1120 passed, 0 failed, 0 skipped at PR #5; 1704 passed, 0 failed, 0 skipped on this branch after merging main (demo mode, `judge-docs`, `playtest-polish` and `more-content`) | `npm test` |
+| Unit and property tests | 1120 passed, 0 failed, 0 skipped at PR #5; 1706 passed, 0 failed, 0 skipped on this branch after merging main (demo mode, `judge-docs`, `playtest-polish` and `more-content`) | `npm test` |
 | Test files | 96 at PR #5; 145 on this branch after merging main | `npm test` ("Test Files") |
 | Property tests: `fc.assert` calls (at df26f4d) | 119 in 31 files | `grep -rh 'fc\.assert' src tools \| wc -l` |
 | Hooks | 5 hook entries in 3 files | `ls .kiro/hooks` |
@@ -28,7 +28,7 @@ reproducible: `git checkout df26f4d` and run the same command.
 | Custom agents | 1 (`balancer`) | `ls .kiro/agents` |
 | MCP servers | 1 (`motion-harness`, local stdio, 2 tools) | `.kiro/settings/mcp.json` |
 | Pull requests | 8 merged (#1 to #8; #7 is this write-up, #8 is playtest-polish); `more-content` is on this branch | (log) |
-| Kiro credits | 629.18 of 4000, after the playtest-polish spec and its review fixes | (log) |
+| Kiro credits | 777.68 of 4000, after the more-content spec and its review fixes | (log) |
 | Kiro app | Kiro CLI 3.3.0 only | (log) |
 
 ## How Kiro was used
@@ -410,7 +410,7 @@ hip-to-shin height (72 to 92 % of the frame) to raised-hand zones (19 to 39 %) (
 | #6 | demo-mode | 1254 |
 | #7 | judge-docs (this write-up, after merging main) | 1291 |
 | #8 | playtest-polish (after merging main) | 1515 |
-| more-content (this branch) | more-content (new ghosts, stage 6 finale, local high scores) | 1704 |
+| more-content (this branch) | more-content (new ghosts, stage 6 finale, local high scores) | 1706 |
 
 0 failed and 0 skipped at each point (log).
 
@@ -432,7 +432,7 @@ Cumulative Kiro `/usage`, from a bonus pool of 4000 (log):
 | After demo-mode (PR #6) | 522.26 |
 | After judge-docs review fixes (13.96 credits for the spec and its fixes) | 536.22 |
 | After playtest-polish | 629.18 |
-| After more-content | (figure pending from the operator) |
+| After more-content | 777.68 |
 
 Largest steps: demo-mode (about 189) and motion-ui-ergonomics (about 70, plus 8).
 
