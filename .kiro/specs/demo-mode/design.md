@@ -120,7 +120,7 @@ ranges of R4.2. Enemy velocity is estimated from the last two observed positions
 `p2 = E + rot(d, ±(15°…35°)) · (R + 70)` (lateral sign from the PRNG, flipped when the
 safety check fails). Quadratic Bézier whose control point is solved so that `B(0.55) = E`;
 the hand therefore crosses the enemy at 55 % of the swipe, near peak speed. Duration
-`clamp(len / (1.6 · h px/s), 220, 520)`. A **miss** replaces `E` by
+`clamp(len / (1.6 · h px/s), 220, 1000)`. A **miss** replaces `E` by
 `E + n · (hitboxHalf + R + 30)` (`n` perpendicular to `d`), with probability 1/8 for
 low-urgency targets only.
 

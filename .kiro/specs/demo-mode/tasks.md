@@ -21,11 +21,11 @@ Files: `src/demo/camera.ts`, `src/demo/camera.test.ts`
 ## T3 — Ghost-hand driver
 Files: `src/demo/driver.ts`, `src/demo/driver.test.ts`, `src/demo/driver.property.test.ts`
 
-- [ ] `DemoDriver`: moves, targeting with reaction delay, curved swipes, deliberate misses, rest / home, boss pre-position.
-- [ ] Skull rule (`handSafe`) on every step; button script (wait for lockout, glide, circle, retreat); run script across phases; never `save`.
-- [ ] Unit tests (determinism, reaction, swipe through target, miss then hit, buttons, skull) and property tests (never inside the skull margin, on screen, deterministic).
-- [ ] `npm test` and `npm run build` both clean.
-- [ ] Commit: `feat(demo-mode-T3): deterministic ghost-hand driver`
+- [x] `DemoDriver`: moves, targeting with reaction delay, curved swipes, deliberate misses, rest / home, boss pre-position.
+- [x] Skull rule (`handSafe`) on every step; button script (wait for lockout, glide, circle, retreat); run script across phases; never `save`.
+- [x] Unit tests (determinism, reaction, swipe through target, miss then hit, buttons, skull) and property tests (never inside the skull margin, on screen, deterministic).
+- [x] `npm test` and `npm run build` both clean.
+- [x] Commit: `feat(demo-mode-T3): deterministic ghost-hand driver`
 
 ## T4 — Overlay art and runtime
 Files: `src/demo/overlay.ts`, `src/demo/runtime.ts`, `src/demo/overlay.test.ts`, `src/demo/runtime.test.ts`

@@ -104,7 +104,7 @@ the "!" and glow have shown (phase 2: 300–400 ms, phase 3: 120–180 ms), so t
 is visible before the hit.
 
 **R4.3** *Swipes.* Each swipe is a curved path (quadratic Bézier with an
-ease-in-out speed profile, 220–520 ms) that passes through the enemy's predicted
+ease-in-out speed profile, 220–1000 ms) that passes through the enemy's predicted
 position and overshoots it. It starts from where the hand is; it never teleports.
 Between swipes the hand rests without moving, so a resting hand never hits anything.
 
