@@ -62,7 +62,7 @@ Files: `src/audio/recipes.ts`, `src/audio/recipes.test.ts`
 
 ## T8 — Review fix: docs PR numbering
 Files: `README.md`, `docs/KIRO.md`, `tools/judge-docs.test.mjs`
-- [ ] ci-timeout was merged as PR #10 (merge 8462694): labelled `#10 ci-timeout` (1741) in both history tables; "#1 to #10 merged".
-- [ ] Judge-docs pins updated to the new wording (not loosened).
-- [ ] `npm test` (twice) and `npm run build` both clean.
-- [ ] Commit: `docs(playtest1-fixes-T8): ci-timeout is PR #10`
+- [x] ci-timeout was merged as PR #10 (merge 8462694): labelled `#10 ci-timeout` (1741) in both history tables; "#1 to #10 merged".
+- [x] Judge-docs pins updated to the new wording (not loosened).
+- [x] `npm test` (twice) and `npm run build` both clean.
+- [x] Commit: `docs(playtest1-fixes-T8): ci-timeout is PR #10`

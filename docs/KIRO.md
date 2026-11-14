@@ -20,13 +20,13 @@ reproducible: `git checkout df26f4d` and run the same command.
 | Commits | 175 | `git rev-list --count df26f4d` |
 | Commits named after a spec task, `<type>(<spec>-T<n>)` (67 `feat`, 14 `docs`, 6 `test`, 2 `fix`) | 89 | `git log df26f4d --oneline -E --grep='\([a-z0-9-]+-T[0-9]+\)' \| wc -l` |
 | `fix(...)` commits, mostly review fixes | 57 | `git log df26f4d --oneline -E --grep='^fix' \| wc -l` |
-| Unit and property tests | 1120 passed, 0 failed, 0 skipped at PR #5; 1850 passed, 0 failed, 0 skipped on this branch (playtest1-fixes) after ci-timeout (1741), in 152 test files (96 at PR #5) | `npm test` |
+| Unit and property tests | 1120 passed, 0 failed, 0 skipped at PR #5; 1853 passed, 0 failed, 0 skipped on this branch (playtest1-fixes) after ci-timeout (1741), in 152 test files (96 at PR #5) | `npm test` |
 | Property tests: `fc.assert` calls (at df26f4d) | 119 in 31 files | `grep -rh 'fc\.assert' src tools \| wc -l` |
 | Hooks | 5 hook entries in 3 files | `ls .kiro/hooks` |
 | Steering files | 3, 233 lines | `wc -l .kiro/steering/*.md` |
 | Custom agents | 1 (`balancer`) | `ls .kiro/agents` |
 | MCP servers | 1 (`motion-harness`, local stdio, 2 tools) | `.kiro/settings/mcp.json` |
-| Pull requests | 9 merged (#1 to #9; #7 is the judge write-up, #8 is playtest-polish, #9 is more-content); `ci-timeout` and `playtest1-fixes` are on this branch | (log) |
+| Pull requests | 10 merged (#1 to #10; #7 is the judge write-up, #8 is playtest-polish, #9 is more-content, #10 is ci-timeout, merge commit 8462694); `playtest1-fixes` is on this branch | (log) |
 | Kiro credits | 802.22 of 4000, after the ci-timeout spec | (log) |
 | Kiro app | Kiro CLI 3.3.0 only | (log) |
 
@@ -410,8 +410,8 @@ hip-to-shin height (72 to 92 % of the frame) to raised-hand zones (19 to 39 %) (
 | #7 | judge-docs (this write-up, after merging main) | 1291 |
 | #8 | playtest-polish (after merging main) | 1515 |
 | #9 | more-content (new ghosts, stage 6 finale, local high scores) | 1728 |
-| ci-timeout | ci-timeout (test timeouts, Node 22 deploy) | 1741 |
-| playtest1-fixes (this branch) | first real-webcam playtest bugs (hearts, motion buttons, name entry, card) | 1850 |
+| #10 | ci-timeout (test timeouts, Node 22 deploy) | 1741 |
+| playtest1-fixes (this branch) | first real-webcam playtest bugs (hearts, motion buttons, name entry, card) | 1853 |
 
 0 failed and 0 skipped at each point (log).
 

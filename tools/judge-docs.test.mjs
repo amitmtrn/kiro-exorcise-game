@@ -111,12 +111,14 @@ describe('docs structure', () => {
     expect(m).not.toBeNull()
     const n = m[1]
     expect(kiro).toContain(`${n} passed, 0 failed, 0 skipped on this branch`)
-    expect(kiro).toMatch(/\| ci-timeout \| .* \| 1741 \|/)
+    expect(kiro).toMatch(/\| #10 \| ci-timeout .* \| 1741 \|/)
+    expect(kiro).toContain('10 merged (#1 to #10;')
     expect(kiro).toMatch(new RegExp(`\\| playtest1-fixes \\(this branch\\) \\| .* \\| ${n} \\|`))
     expect(kiro).toMatch(/\| #9 \| more-content .* \| 1728 \|/)
     expect(kiro).toMatch(/\| #8 \| playtest-polish .* \| 1515 \|/)
     expect(kiro).toMatch(/\| #7 \| judge-docs .* \| 1291 \|/)
-    expect(readme).toContain(`#8 playtest-polish: 1515; #9 more-content: 1728; ci-timeout: 1741; playtest1-fixes (this branch): ${n}.`)
+    expect(readme).toContain('#1 to #10 merged')
+    expect(readme).toContain(`#8 playtest-polish: 1515; #9 more-content: 1728; #10 ci-timeout: 1741; playtest1-fixes (this branch): ${n}.`)
   })
   it('the per-spec commit list reconciles with the headline 89', () => {
     expect(kiro).toContain('| 89 |')
