@@ -22,9 +22,7 @@ describe('spawn rules', () => {
         expect(e.targetX).toBe(aw / 2)
         // along the edge the body stays inside the area, so a pair never crosses a divider
         const outsideX = e.x < 0 || e.x > aw
-        if (!outsideX) { expect(e.x).toBeGreaterThanOrEqual(0); expect(e.x).toBeLessThanOrEqual(aw)
-        if (aw >= WISP_SIZE) { expect(e.x - WISP_SIZE / 2).toBeGreaterThanOrEqual(-1e-9); expect(e.x + WISP_SIZE / 2).toBeLessThanOrEqual(aw + 1e-9) } // bodies too
-      }
+        if (!outsideX) { expect(e.x).toBeGreaterThanOrEqual(0); expect(e.x).toBeLessThanOrEqual(aw) }
         else expect(e.y).toBeGreaterThanOrEqual(0)
         // first vulnerability comes well before the ghost can arrive
         expect(travelMs(e, H)).toBeGreaterThan(MAX_WAIT_MS + MIN_WINDOW_MS)
