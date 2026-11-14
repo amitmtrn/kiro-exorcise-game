@@ -55,8 +55,16 @@ import { CardPreview, cardKeyAction, offerHit, lockEndButtons } from '../ui/card
 import { SeatCard, routeSeatClick, sharedButtonsLive } from '../ui/seatCard'
 import type { CardAction } from '../ui/cardScreen'
 import { sfxStageClear, startMusic, startTitleMusic, stopMusic, setMusicCombo } from '../audio/index'
+import type { DemoRuntime } from '../demo/runtime'
+import type { DemoView } from '../demo/driver'
+import { handRadius } from '../demo/driver'
+import { drawDemoBackdrop, drawDemoBadge, drawGhostHand, grabDemoPortrait } from '../demo/overlay'
 
 let rafId = 0
+
+/** True while the title screen of a 1P game is showing (main.ts: the `G` demo toggle works only there). */
+let titleVisible = false
+export function isStartScreenVisible(): boolean { return titleVisible }
 
 /** True while a two-player game is on screen (main.ts uses it to place the mute tap target). */
 let twoPlayerActive = false
@@ -123,12 +131,19 @@ function drawCalibratingBanner(ctx: CanvasRenderingContext2D): void {
   ctx.restore()
 }
 
+/**
+ * `opts.demo` (demo-mode): camera-free run. `video` is then null, no camera frame is read and the motion
+ * frames come from the demo runtime; everything after that point is the normal loop.
+ */
 export async function startLoop(
-  video: HTMLVideoElement,
+  video: HTMLVideoElement | null,
   webcamCtx: CanvasRenderingContext2D,
   gameCtx: CanvasRenderingContext2D,
   initialStage = 1,
+  opts: { demo?: DemoRuntime } = {},
 ): Promise<() => void> {
+  const demo = opts.demo ?? null
+  activeDemo = demo
   twoPlayerActive = false
   startRequest = null // a Space pressed during permission/onboarding must not skip the title
   const currentCanvas = document.createElement('canvas')
@@ -139,26 +154,32 @@ export async function startLoop(
   prevCanvas.width = MOTION_W; prevCanvas.height = MOTION_H
   const prevCtx = prevCanvas.getContext('2d')!
 
-  // Show the first webcam frame + a banner while the 1 s noise calibration runs
-  drawWebcamFrame(webcamCtx, video)
-  drawWebcamTint(webcamCtx)
-  drawCalibratingBanner(gameCtx)
-  await calibrateDiffThreshold(currentCtx, video, 1000)
-  captureFrame(prevCtx, video)
+  // Show the first webcam frame + a banner while the 1 s noise calibration runs (no camera in demo mode)
+  if (!demo) {
+    drawWebcamFrame(webcamCtx, video!)
+    drawWebcamTint(webcamCtx)
+    drawCalibratingBanner(gameCtx)
+    await calibrateDiffThreshold(currentCtx, video!, 1000)
+    captureFrame(prevCtx, video!)
+  }
   startRequest = null // ...nor one pressed during the 1 s calibration above
 
   let state: GameState = createInitialState(initialStage)
 
   // Exorcist Card: snapshot + run stats live in memory only and die with the screen.
+  // Demo mode: a procedural placeholder portrait instead of a camera snapshot, a DEMO chip on the card,
+  // and a download that writes nothing (demo-mode R6.3).
   const session = new CardSession<HTMLCanvasElement, HTMLCanvasElement>({
-    grab: (w, h) => grabMirroredSnapshot(video, w, h),
+    grab: demo ? (w, h) => grabDemoPortrait(w, h) : (w, h) => grabMirroredSnapshot(video!, w, h),
     releaseSnapshot,
     compose: (data, photo) => composeCard(
       data,
       photo ? { source: photo, width: photo.width, height: photo.height } : null,
     ),
     releaseCard: releaseSnapshot,
-    download: (c) => downloadCanvasPng(c),
+    // demo: nothing is written, so the save must never report "saved"
+    download: demo ? async () => false : (c) => downloadCanvasPng(c),
+    ...(demo ? { extra: () => ({ badge: 'DEMO' }) } : {}),
   })
   const preview = new CardPreview()
 
@@ -167,7 +188,7 @@ export async function startLoop(
   let twoNow: TwoPlayerState | null = null
   const seatPoints: Array<ReturnType<typeof displayPointsInHalf>> = [[], []]
   const seatSessions = SEATS.map((seat) => new CardSession<HTMLCanvasElement, HTMLCanvasElement>({
-    grab: (w, h) => grabHalfSnapshot(video, seat, w, h),
+    grab: (w, h) => grabHalfSnapshot(video!, seat, w, h),
     releaseSnapshot,
     compose: (data, photo) => composeCard(
       data,
@@ -248,13 +269,17 @@ export async function startLoop(
   let twoAction: 'next' | 'again' | 'menu' | null = null
 
   /** Start a game in `mode` (remembered for the session). */
-  function begin(mode: PlayerMode): void {
-    setPlayerMode(mode)
+  function begin(requested: PlayerMode): void {
+    const mode: PlayerMode = demo ? 1 : requested // the attract mode has no camera for a 2P split: always one player
+    if (!demo) setPlayerMode(mode) // the attract mode must not overwrite the session's remembered mode (R7.1)
     gameOverVisible = false
     if (mode === 2) {
       two = createTwoPlayer()
       prevTwoPhase = null
       twoPlayerActive = true // mute tap target switches immediately, not on the first 2P tick
+    } else if (demo) {
+      demo.onRunStart() // every loop of the attract mode replays the same game
+      state = { ...startGame(state), stage: demo.startStage }
     } else {
       state = startGame(state)
     }
@@ -376,9 +401,33 @@ export async function startLoop(
     return t
   }
 
+  /** What the demo driver may see: the state at the top of the tick, like the screens (demo-mode design). */
+  function demoView(now: number, w: number, h: number): DemoView {
+    return {
+      phase: state.phase, stage: state.stage, bonus: state.bonus, enemies: state.enemies, w, h, now,
+      cardOpen: session.isOpen, hasPhoto: session.hasPhoto, noPhoto: session.noPhoto,
+    }
+  }
+
+  /** Normal mode: the plain tick. Demo mode: fixed scaled step, then the ghost hand and the DEMO badge on top. */
   function tick(timestamp: number): void {
-    const deltaMs = lastTimestamp === 0 ? 16 : Math.min(timestamp - lastTimestamp, 100)
+    if (!demo) { tickBody(timestamp); return }
+    const step = demo.beginTick(timestamp)
+    if (!step) { rafId = requestAnimationFrame(tick); return } // too soon after the last processed frame
+    try {
+      tickBody(timestamp, step.deltaMs)
+      drawGhostHand(gameCtx, demo.hand, demo.trail, handRadius(gameCtx.canvas.height), performance.now())
+      drawDemoBadge(gameCtx) // last: above the game, the card preview and the hand, in every phase
+    } catch (err) {
+      stopLoop() // also restores the patched clock, Math.random and score persistence
+      throw err
+    }
+  }
+
+  function tickBody(timestamp: number, forcedDeltaMs?: number): void {
+    const deltaMs = forcedDeltaMs ?? (lastTimestamp === 0 ? 16 : Math.min(timestamp - lastTimestamp, 100))
     lastTimestamp = timestamp
+    titleVisible = state.phase === 'start' && !two
     const now = performance.now()
     const displayW = webcamCtx.canvas.width
     const displayH = webcamCtx.canvas.height
@@ -398,14 +447,25 @@ export async function startLoop(
       cardOpen = session.isOpen
     }
 
-    // Always draw webcam feed, then the haunted purple tint (spooky-skin R1.1)
-    drawWebcamFrame(webcamCtx, video)
-    drawWebcamTint(webcamCtx)
+    let currentData: ImageData
+    let prevData: ImageData
+    if (demo) {
+      // Demo mode: a procedural backdrop and the scripted hand's frames stand in for the camera.
+      drawDemoBackdrop(webcamCtx)
+      drawWebcamTint(webcamCtx)
+      const f = demo.frame(demoView(now, displayW, displayH))
+      currentData = f.cur
+      prevData = f.prev
+    } else {
+      // Always draw webcam feed, then the haunted purple tint (spooky-skin R1.1)
+      drawWebcamFrame(webcamCtx, video!)
+      drawWebcamTint(webcamCtx)
 
-    // Capture motion frame every tick for motion buttons to work on all screens
-    captureFrame(currentCtx, video)
-    const currentData = currentCtx.getImageData(0, 0, MOTION_W, MOTION_H)
-    const prevData = prevCtx.getImageData(0, 0, MOTION_W, MOTION_H)
+      // Capture motion frame every tick for motion buttons to work on all screens
+      captureFrame(currentCtx, video!)
+      currentData = currentCtx.getImageData(0, 0, MOTION_W, MOTION_H)
+      prevData = prevCtx.getImageData(0, 0, MOTION_W, MOTION_H)
+    }
 
     // Whole-frame motion mask: drives the motion buttons + debug overlay, and
     // tells us whether the camera actually delivered a new frame this tick.
@@ -519,7 +579,10 @@ export async function startLoop(
       renderFrame(gameCtx, state, now)
       if (!renderCardPreview(now)) {
         renderVictory(gameCtx, state, now,
-          () => { state = startGame(createInitialState(1)) },
+          () => {
+            if (demo) { state = createInitialState(1); begin(1) } // seeded run at the demo stage, like any other start
+            else state = startGame(createInitialState(1))
+          },
           () => { state = createInitialState(1) },
           () => runCardAction('open', now),
         )
@@ -586,12 +649,16 @@ export async function startLoop(
 }
 
 let resetSession: (() => void) | null = null
+/** The demo runtime of the running loop; `stopLoop` disposes it so the patched globals never outlive the loop. */
+let activeDemo: DemoRuntime | null = null
 
 export function stopLoop(): void {
   resetSession?.(); resetSession = null // the snapshot must not outlive the loop
+  activeDemo?.dispose(); activeDemo = null
   onEndScreen = false
   cardOpen = false
   twoPlayerActive = false
+  titleVisible = false
   twoFinal = false
   if (rafId) { cancelAnimationFrame(rafId); rafId = 0 }
 }
