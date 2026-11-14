@@ -144,8 +144,11 @@ html, body {
 .sound-hint {
   position: absolute;
   left: 50%;
-  bottom: 4%;
+  /* top and max-width come from layout.ts SOUND_HINT (applied by main.ts): top centre, never over a button */
   transform: translateX(-50%);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   padding: 0.4em 1em;
   border-radius: 999px;
   background: rgba(13, 0, 20, 0.7);

@@ -13,6 +13,7 @@ import { installAudioUnlock } from './audio/unlock'
 import { modeForKey } from './game/playerMode'
 import { loadTitleFont } from './ui/fonts'
 import { routePointer } from './ui/pointerRoute'
+import { SOUND_HINT } from './ui/layout'
 import { hudFontSize, muteButtonRect, muteButtonRect2P } from './ui/hud'
 
 const webcamCanvas = document.getElementById('webcam-canvas') as HTMLCanvasElement
@@ -36,6 +37,8 @@ const soundHint = document.createElement('div')
 soundHint.className = 'sound-hint'
 soundHint.setAttribute('role', 'status')
 soundHint.textContent = '🔊 Click or press any key to enable sound'
+soundHint.style.top = `${SOUND_HINT.topFrac * 100}%`
+soundHint.style.maxWidth = `${SOUND_HINT.maxWidthFrac * 100}%`
 soundHint.hidden = true
 document.getElementById('ui')!.appendChild(soundHint)
 installAudioUnlock({

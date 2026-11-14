@@ -38,12 +38,12 @@ Files: `src/ui/splitscreen.ts`, `src/ui/seatCard.ts`, `src/ui/hud.ts`, `src/game
 - [x] Commit: `feat(motion-ui-ergonomics-T4): 2P per-half raised-hand buttons`
 
 ## T5 — Sound hint and onboarding
-Files: `src/style.css`, `src/ui/onboarding.ts`, `src/ui/onboarding.test.ts`
+Files: `src/style.css`, `src/main.ts`, `src/ui/layout.ts`, `src/ui/onboarding.ts`, `src/ui/onboarding.test.ts`
 
-- [ ] `.sound-hint` at the top centre (matches `soundHintRect`).
-- [ ] `guideGeometry` hand targets = layout start zones; "Raise a hand…" line drawn by `drawGuide`.
-- [ ] `npm test` and `npm run build` both clean.
-- [ ] Commit: `feat(motion-ui-ergonomics-T5): sound hint at the top, onboarding hand targets from the layout`
+- [x] Sound hint at the top centre: `SOUND_HINT` in `layout.ts` applied by `main.ts` (matches `soundHintRect`).
+- [x] `guideGeometry` hand targets = layout start zones; "Raise a hand…" line drawn by `drawGuide`.
+- [x] `npm test` and `npm run build` both clean.
+- [x] Commit: `feat(motion-ui-ergonomics-T5): sound hint at the top, onboarding hand targets from the layout`
 
 ## T6 — Docs and harness
 Files: `README.md`, `tools/motion-harness/make_y4m.py`, `tools/motion-harness/README.md`

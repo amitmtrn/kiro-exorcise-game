@@ -106,8 +106,8 @@ last), calls `suppress()` (progress 0, latch) on every other button (R2.7).
 
 ## Sound hint, onboarding
 
-`.sound-hint` moves to `top: 1.5%`, `max-width: 56%`. `soundHintRect` mirrors it for
-tests. The onboarding silhouette takes its hand targets from
+The sound hint moves to the top centre: `SOUND_HINT` (`topFrac` 1.5 %, `maxWidthFrac` 56 %) in `layout.ts`
+is applied by `main.ts` as inline style, and `soundHintRect` uses the same constants for the tests. The onboarding silhouette takes its hand targets from
 `buttonLayout('start', w, h)` and `drawGuide` writes the "Raise a hand…" line below
 the head/shoulders (inside the text band).
 

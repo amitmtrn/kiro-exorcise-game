@@ -65,7 +65,7 @@ afterEach(() => { vi.unstubAllGlobals() })
 
 function ctx(): CanvasRenderingContext2D {
   return {
-    canvas: { width: 800, height: 600 }, clearRect() {}, save() {}, restore() {}, beginPath() {}, ellipse() {}, arc() {},
+    canvas: { width: 800, height: 600 }, clearRect() {}, save() {}, restore() {}, beginPath() {}, ellipse() {}, arc() {}, fillText() {},
     lineTo() {}, closePath() {}, fill() {}, stroke() {}, setLineDash() {},
   } as unknown as CanvasRenderingContext2D
 }

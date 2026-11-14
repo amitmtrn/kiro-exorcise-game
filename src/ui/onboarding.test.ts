@@ -1,9 +1,11 @@
+/// <reference types="vite/client" />
 import { describe, it, expect } from 'vitest'
 import fc from 'fast-check'
 import {
-  guideGeometry, classifyCameraError, DENIED_TITLE, DENIED_LEAD, DENIED_INSTRUCTIONS,
+  guideGeometry, drawGuide, GUIDE_HANDS_LINE, classifyCameraError, DENIED_TITLE, DENIED_LEAD, DENIED_INSTRUCTIONS,
 } from './onboarding'
 import { PRIVACY_LINE } from '../game/onboarding'
+import { buttonLayout, soundHintRect, rectsOverlap, circleRect, SOUND_HINT } from './layout'
 
 describe('guideGeometry', () => {
   it('keeps head, shoulders and hands inside common canvases', () => {
@@ -78,5 +80,46 @@ describe('camera-denied copy', () => {
     expect(DENIED_INSTRUCTIONS.length).toBeGreaterThanOrEqual(3)
     expect(DENIED_INSTRUCTIONS.join(' ')).toMatch(/Allow/)
     expect(DENIED_INSTRUCTIONS[DENIED_INSTRUCTIONS.length - 1]).toMatch(/Try again/)
+  })
+})
+
+describe('guide hand targets = start-screen button zones (motion-ui-ergonomics R7.1)', () => {
+  it('equal the layout centres and radii for random canvas sizes', () => {
+    fc.assert(fc.property(fc.integer({ min: 640, max: 2560 }), fc.integer({ min: 480, max: 1440 }), (w, h) => {
+      const g = guideGeometry(w, h)
+      const zones = buttonLayout('start', w, h)
+      expect(g.hands).toEqual(zones.map((z) => ({ cx: z.cx, cy: z.cy, r: z.r })))
+      for (const z of zones) expect(z.cy).toBeLessThanOrEqual(0.4 * h)
+    }), { numRuns: 200 })
+  })
+
+  it('drawGuide writes the "Raise a hand" line', () => {
+    const texts: string[] = []
+    const ctx = new Proxy({ canvas: { width: 1280, height: 720 } } as Record<string, unknown>, {
+      get(t, k: string) {
+        if (k === 'fillText') return (x: string) => { texts.push(x) }
+        return k in t ? t[k] : () => undefined
+      },
+      set(t, k: string, v) { t[k] = v; return true },
+    }) as unknown as CanvasRenderingContext2D
+    drawGuide(ctx, false, 0)
+    expect(texts).toContain(GUIDE_HANDS_LINE)
+    expect(GUIDE_HANDS_LINE).toBe('Raise a hand to the glowing circles to press them')
+  })
+})
+
+describe('sound-unlock hint (motion-ui-ergonomics R6.1)', () => {
+  const sources = import.meta.glob<string>(['../main.ts', '../style.css'], { query: '?raw', import: 'default', eager: true })
+  it('is placed from the layout constants (top centre), not at the bottom, and never intersects a button', () => {
+    const main = sources['../main.ts']
+    expect(main).toContain('SOUND_HINT.topFrac')
+    expect(main).toContain('SOUND_HINT.maxWidthFrac')
+    expect(SOUND_HINT.topFrac).toBeLessThan(0.05)
+    for (const screen of ['start', 'summary', 'gameover', 'victory', 'preview', 'summary2p', 'final2p', 'preview2p'] as const) {
+      for (const [w, h] of [[640, 480], [1280, 720], [2560, 1440]]) {
+        const hint = soundHintRect(w, h)
+        for (const b of buttonLayout(screen, w, h)) expect(rectsOverlap(hint, circleRect(b))).toBe(false)
+      }
+    }
   })
 })

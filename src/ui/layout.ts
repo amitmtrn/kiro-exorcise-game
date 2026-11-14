@@ -182,12 +182,15 @@ export function muteRectOf(screen: ScreenId, W: number): Rect {
   return SCREENS_2P.includes(screen) ? muteRectFor(halfWidth(W), true) : muteRectFor(W, false)
 }
 
-/** The sound-unlock hint pill (mirrors `.sound-hint` in style.css): top centre, ≤ 56 % wide. */
+/** Placement of the sound-unlock hint pill: top centre, ≤ 56 % wide (main.ts applies it as inline style). */
+export const SOUND_HINT = { topFrac: 0.015, maxWidthFrac: 0.56 } as const
+
+/** The sound-unlock hint pill rect for a canvas (mirrors the `.sound-hint` element). */
 export function soundHintRect(W: number, H: number): Rect {
   const font = Math.max(14, Math.min(22, 0.02 * W))
-  const w = Math.min(0.56 * W, 24 * font)
+  const w = Math.min(SOUND_HINT.maxWidthFrac * W, 24 * font)
   const h = font * 2.2
-  return { x: W / 2 - w / 2, y: 0.015 * H, w, h }
+  return { x: W / 2 - w / 2, y: SOUND_HINT.topFrac * H, w, h }
 }
 
 export function rectsOverlap(a: Rect, b: Rect): boolean {

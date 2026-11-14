@@ -15,6 +15,10 @@ import {
 } from '../webcam/framing'
 import { drawWebcamFrame } from '../webcam/capture'
 import { drawWebcamTint } from '../game/atmosphere'
+import { buttonLayout, fitFontPx, TEXT_BAND_1P } from './layout'
+
+/** The line under the silhouette that explains the hand targets (motion-ui-ergonomics R7.1). */
+export const GUIDE_HANDS_LINE = 'Raise a hand to the glowing circles to press them'
 
 // ─── Pure helpers ─────────────────────────────────────────────────────────────
 
@@ -25,7 +29,10 @@ export interface GuideGeometry {
   hands: Array<{ cx: number; cy: number; r: number }>
 }
 
-/** Procedural silhouette: head, shoulders and two hand targets, all inside the canvas. */
+/**
+ * Procedural silhouette: head, shoulders and two hand targets, all inside the canvas. The hand targets
+ * are exactly the start screen's button zones (layout.ts), so the guide shows where the hands go.
+ */
 export function guideGeometry(w: number, h: number): GuideGeometry {
   // Everything sits in the upper ~55 % so the bottom-anchored panel never covers the targets.
   const unit = Math.min(h, w * 0.6)
@@ -36,10 +43,7 @@ export function guideGeometry(w: number, h: number): GuideGeometry {
   return {
     head,
     shoulders: { cx: w / 2, cy: shCy, r: shR, from: Math.PI, to: 2 * Math.PI },
-    hands: [
-      { cx: w * 0.2, cy: h * 0.42, r: unit * 0.07 },
-      { cx: w * 0.8, cy: h * 0.42, r: unit * 0.07 },
-    ],
+    hands: buttonLayout('start', w, h).map((b) => ({ cx: b.cx, cy: b.cy, r: b.r })),
   }
 }
 
@@ -144,6 +148,19 @@ export function drawGuide(ctx: CanvasRenderingContext2D, stable: boolean, timeMs
     ctx.beginPath(); ctx.arc(hand.cx, hand.cy, hand.r * 0.35, 0, Math.PI * 2); ctx.stroke()
     ctx.setLineDash([14, 10])
   }
+  ctx.restore()
+
+  // Caption under the shoulders' top edge, inside the central text band (clear of the hand targets)
+  ctx.save()
+  const band = (TEXT_BAND_1P[1] - TEXT_BAND_1P[0]) * w
+  const px = Math.round(fitFontPx(GUIDE_HANDS_LINE, Math.max(14, Math.min(26, w / 40)), band))
+  ctx.font = `bold ${px}px sans-serif`
+  ctx.textAlign = 'center'
+  ctx.textBaseline = 'middle'
+  ctx.fillStyle = '#ffd166'
+  ctx.shadowColor = '#0d0014'
+  ctx.shadowBlur = 8
+  ctx.fillText(GUIDE_HANDS_LINE, w / 2, h * 0.52)
   ctx.restore()
 }
 
