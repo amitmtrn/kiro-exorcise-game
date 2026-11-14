@@ -121,6 +121,6 @@
 - [x] R6.3 readability: on small canvases a summoned minion starts clear of the boss sprite; test added.
 - [x] R6.4: fight-budget test includes the entry flight and states its slack (done with the R6.4 fix).
 - [x] R11.3: name hint says `M` is taken while typing a 1P name; spec line added.
-- [ ] `GameState.bossActive` comment corrected.
-- [ ] Demo seed 5 re-checked at the five window sizes and speeds 1–3; sim tests pass.
-- [ ] `npm test` and `npm run build` both clean after each fix.
+- [x] `GameState.bossActive` comment corrected.
+- [x] Demo seed 5 re-checked at the five window sizes and speeds 1–3; sim tests pass.
+- [x] `npm test` and `npm run build` both clean after each fix.

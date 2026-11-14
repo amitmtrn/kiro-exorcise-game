@@ -130,7 +130,7 @@ export interface GameState {
   stageMissed: number     // enemies that reached center this stage
   highScore: number       // all-time high score from localStorage
   summaryShownMs: number  // how long summary has been shown
-  bossActive: boolean     // stage 5 boss spawned
+  bossActive: boolean     // the stage boss (stage 5 boss or stage 6 Hollow King) has spawned
   waveIndex: number       // next scripted wave event to fire (waves spec)
   variantIndex: number    // next scripted new-ghost event (more-content)
   seenVariants: string[]  // new-ghost types whose tip call-out already showed this stage
