@@ -96,8 +96,8 @@ function setup(search: string) {
   let ts = 0
   const frames = (n: number) => { for (let i = 0; i < n; i++) { ts += 1000 / 60; const q = raf; raf = []; q.forEach((f) => f(ts)) } }
   /** Fires a key at the document listeners in registration order (what a browser does). */
-  const key = (k: string) => {
-    const ev = { key: k, code: '', repeat: false, ctrlKey: false, metaKey: false, altKey: false, target: null, preventDefault: vi.fn() }
+  const key = (k: string, repeat = false) => {
+    const ev = { key: k, code: '', repeat, ctrlKey: false, metaKey: false, altKey: false, target: null, preventDefault: vi.fn() }
     for (const l of docL.filter((x) => x.type === 'keydown')) l.fn(ev)
     return ev
   }
@@ -271,6 +271,23 @@ describe('G on the normal title screen (R1.2)', () => {
     env.key('G')
     await flush()
     expect(m.initWebcam).toHaveBeenCalledTimes(2) // back to the normal flow
+  })
+
+  it('a held G (auto-repeat) enters demo once and does not leave it again', async () => {
+    const video = { srcObject: null }
+    m.initWebcam.mockImplementation(async () => video)
+    const env = setup('')
+    await import('../main')
+    await flush()
+    env.frames(5)
+    env.key('g')
+    await flush()
+    for (let i = 0; i < 5; i++) { const ev = env.key('g', true); expect(ev.preventDefault).toHaveBeenCalled() }
+    await flush()
+    env.drawn.length = 0
+    env.frames(5)
+    expect(env.drawn).toContain('DEMO')
+    expect(m.initWebcam).toHaveBeenCalledTimes(1)
   })
 
   it('G does nothing away from the title screen (no loop running yet: camera prompt open)', async () => {

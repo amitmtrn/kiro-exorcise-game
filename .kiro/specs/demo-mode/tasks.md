@@ -5,7 +5,7 @@ Files: `src/demo/params.ts`, `src/demo/rng.ts`, `src/game/state.ts`, `src/demo/p
 
 - [x] `params.ts`: `DEMO` config, `parseDemoParams`, `DEMO_TOGGLE_KEY`, `demoKeyAction`; `rng.ts`: `mulberry32`.
 - [x] `state.ts`: `setHighScorePersistence(on)`; when off `saveHighScore` writes nothing and `loadHighScore` returns 0 (default on, behaviour unchanged).
-- [x] Unit tests: parameter parsing and clamping, key table, persistence on / off / restored.
+- [x] Unit tests: parameter parsing (invalid values fall back to the default), key table, persistence on / off / restored.
 - [x] `npm test` and `npm run build` both clean.
 - [x] Commit: `feat(demo-mode-T1): demo parameters, key rules and score-persistence switch`
 
@@ -22,7 +22,7 @@ Files: `src/demo/camera.ts`, `src/demo/camera.test.ts`
 Files: `src/demo/driver.ts`, `src/demo/driver.test.ts`, `src/demo/driver.property.test.ts`
 
 - [x] `DemoDriver`: moves, targeting with reaction delay, curved swipes, deliberate misses, rest / home, boss pre-position.
-- [x] Skull rule (`handSafe`) on every step; button script (wait for lockout, glide, circle, retreat); run script across phases; never `save`.
+- [x] Skull rule (`stepSafe`) on every step; button script (wait for lockout, glide, circle, retreat); run script across phases; never `save`.
 - [x] Unit tests (determinism, reaction, swipe through target, miss then hit, buttons, skull) and property tests (never inside the skull margin, on screen, deterministic).
 - [x] `npm test` and `npm run build` both clean.
 - [x] Commit: `feat(demo-mode-T3): deterministic ghost-hand driver`
@@ -59,16 +59,16 @@ Files: `src/demo/demo.sim.test.ts`, `src/demo/main.demo.test.ts`, `src/demo/driv
 Files: `README.md`, `tools/motion-harness/README.md`, `tools/motion-harness/run.sh`, `tools/motion-harness/drive.mjs`
 
 - [x] README: Demo mode section (URL parameters, `G`, how to record, sound tip), spec table row, spec count and test count.
-- [x] Motion harness README: "Recording the demo" (`?demo=1&seed=7`, window size, screen recorder tips, re-takes).
+- [x] Motion harness README: "Recording the demo" (`?demo=1&seed=5`, window size, screen recorder tips, re-takes).
 - [x] `run.sh demo` (`SEED=`): headless Chrome without fake-camera flags on `?demo=1&seed=N`; `drive.mjs` counts `getUserMedia` / fetch / XHR / `sendBeacon` from the first script and reports `cardAtMs`. Ran once: 0 calls, card after ~137 s. The MCP `run_harness` tool keeps its two modes.
 - [x] `npm test` and `npm run build` both clean.
 - [x] Commit: `docs(demo-mode-T7): README and harness notes for recording the demo`
 
 ## T8 — Manual smoke test (browser)
-- [ ] `?demo=1&seed=7`: no camera prompt; DEMO badge in every screen; the ghost hand fills the START ring and the game starts; stages play through; combo x4 call-out; boss telegraph visible; YOU WIN; the card opens with the DEMO chip and a silhouette portrait; the loop returns to the title and starts again.
+- [ ] `?demo=1&seed=5`: no camera prompt; DEMO badge in every screen; the ghost hand fills the START ring and the game starts; stages play through; combo x4 call-out; boss telegraph visible; YOU WIN; the card opens with the DEMO chip and a silhouette portrait; the loop returns to the title and starts again.
 - [ ] Any key or click leaves demo and shows the normal title (camera prompt appears); `G` on the title screen goes back to demo.
 
-Pre-check (automated, headless Chrome 1280×720, `?demo=1&seed=7`, not a substitute for the manual pass): title, playing HUD with the DEMO badge clear of score and timer, ghost-hand cursor, NEXT ring filling on the summary, YOU WIN (98,025), card preview with the DEMO chip and the placeholder portrait (via `&stage=5`), SAVE never approached, return to the title; Space left demo, removed the demo parameters from the URL and the normal flow requested the camera (no camera in headless: the camera-help screen). Still manual: the real permission prompt and `G` back into demo on a real title screen.
+Pre-check (automated, before T10, so with the old default seed 7; headless Chrome 1280×720, `?demo=1&seed=7`, not a substitute for the manual pass): title, playing HUD with the DEMO badge clear of score and timer, ghost-hand cursor, NEXT ring filling on the summary, YOU WIN (98,025), card preview with the DEMO chip and the placeholder portrait (via `&stage=5`), SAVE never approached, return to the title; Space left demo, removed the demo parameters from the URL and the normal flow requested the camera (no camera in headless: the camera-help screen). Still manual: the real permission prompt and `G` back into demo on a real title screen.
 
 ## T9 — Review fixes
 Files: `src/demo/params.ts`, `src/demo/runtime.ts`, `src/demo/driver.ts`, `src/game/loop.ts`, `src/main.ts`, `tools/motion-harness/run.sh`, tests next to each, README
@@ -83,4 +83,17 @@ Files: `src/demo/params.ts`, `src/demo/runtime.ts`, `src/demo/driver.ts`, `src/g
 - [x] `run.sh`: empty `CAMERA_FLAGS` expansion safe under `set -u` on bash < 4.4.
 - [x] Headless simulation: `cancelAnimationFrame` stub drops the queued callback, so a stopped loop no longer ticks into the next simulated run (the determinism test compared two runs that shared a stale loop).
 - [x] Tests for each of the above; `npm test` and `npm run build` both clean.
+- [x] Commits: `fix(demo-mode): ...`
+
+## T10 — Review fixes (round 2)
+Files: `src/demo/params.ts`, `src/demo/driver.ts`, `src/main.ts`, `tools/motion-harness/drive.mjs`, tests next to each, spec docs, README
+
+- [x] A held `G` enters demo and stays: auto-repeat keydowns of non-passive keys are swallowed while demo is on (R1.2); tests in `params.test.ts` and `main.demo.test.ts`.
+- [x] Deliberate misses need `timeToThreatMs > MISS_SAFE_MS` (R4.4); driver test.
+- [x] Velocity estimate uses a fixed time constant instead of a per-tick blend; driver test.
+- [x] Default seed 5 (seed 7 no longer plays a clean run after the two driver changes; 5 is clean at 960×540 to 1920×1080); the game-over coverage test uses seed 2. README, harness README and specs updated.
+- [x] Spec docs aligned with the code (camera signatures, `reset()`, `stepSafe`, `DEMO` table, listener phases, T3 wording).
+- [x] Harness `firstPlayAtMs` uses the real clock (`Date.now()`), not the patched demo clock.
+- [x] Sound hint is restored on leaving demo.
+- [x] `npm test` and `npm run build` both clean.
 - [x] Commits: `fix(demo-mode): ...`

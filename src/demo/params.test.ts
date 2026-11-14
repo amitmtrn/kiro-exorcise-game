@@ -100,6 +100,10 @@ describe('routeDemoKey (R1.2–R1.4)', () => {
     expect(routeDemoKey({ key: 'r', ctrlKey: true }, on)).toBe('pass')
     expect(routeDemoKey({ key: 'r', metaKey: true }, on)).toBe('pass')
     expect(routeDemoKey({ key: 'm' }, on)).toBe('pass')
+    // auto-repeats of a held key are used up: one press is one toggle
+    expect(routeDemoKey({ key: 'g', repeat: true }, on)).toBe('swallow')
+    expect(routeDemoKey({ key: ' ', repeat: true }, on)).toBe('swallow')
+    expect(routeDemoKey({ key: 'm', repeat: true }, on)).toBe('pass')
     expect(routeDemoKey({ key: 'Shift' }, on)).toBe('pass')
   })
   it('normal title: G enters, other keys pass', () => {

@@ -20,10 +20,10 @@ as always.
 
 | File | Contents |
 |---|---|
-| `params.ts` | `DEMO` config (`stepMs`, `minFrameMs`, `timeScale`, `frameMs`, `defaultSeed`, burst / hold timings, hand radius), `parseDemoParams(search)`, `DEMO_TOGGLE_KEY = 'g'`, `demoKeyAction(e)` → `'toggle' \| 'exit' \| 'ignore'` |
+| `params.ts` | `DEMO` config (`stepMs`, `stepSlackMs`, `maxGapMs`, `timeScale`, `frameMs`, `defaultSeed`, speed limits, hand radius; the burst / hold timings are constants in `driver.ts`), `parseDemoParams(search)`, `DEMO_TOGGLE_KEY = 'g'`, `demoKeyAction(e)` → `'toggle' \| 'exit' \| 'ignore'`, `routeDemoKey` |
 | `rng.ts` | `mulberry32(seed)` (own copy: production code does not import from `src/test`) |
 | `camera.ts` | `SyntheticCamera`: two reusable `W×H×4` buffers, a 30 fps frame clock, a hand disc, noise |
-| `driver.ts` | `DemoDriver` (pure state machine), `DemoView`, `handSafe` (skull rule) |
+| `driver.ts` | `DemoDriver` (pure state machine), `DemoView`, `stepSafe` (skull rule) |
 | `overlay.ts` | `drawDemoBackdrop`, `drawGhostHand`, `drawDemoBadge`, `drawDemoPortrait` (canvas, procedural) |
 | `runtime.ts` | `DemoRuntime`: owns camera + driver + trail, the fixed step, the clock / `Math.random` patch, `dispose()` |
 
@@ -36,7 +36,7 @@ export const DEMO = {
   maxGapMs: 100,       // one frame gap counts for at most this much real time; longer gaps clear the bank
   timeScale: 2,        // game / driver / clock advance stepMs * scale per processed tick
   frameMs: 1000 / 30,  // synthetic camera frame interval (demo time)
-  defaultSeed: 7,
+  defaultSeed: 5,
   handRadiusH: 0.055,  // hand disc radius as a fraction of the canvas height (clamped 36..60 px:
                        // two discs must cover 15 % of the fixed-size 192 px boss hitbox on small canvases)
 }
@@ -56,9 +56,9 @@ decided by `main.ts`, which also checks that the title screen is showing).
 
 ```ts
 class SyntheticCamera {
-  constructor(initialHand: Pt, displayW, displayH)
+  constructor(initialHand: Pt, handR: number, displayW: number, displayH: number)
   /** Advances the camera clock; returns the frames for this tick. */
-  step(deltaMs: number, hand: Pt, handR: number): { cur: ImageData; prev: ImageData; isNew: boolean }
+  step(deltaMs: number, hand: Pt, handR: number, displayW: number, displayH: number): { cur: ImageData; prev: ImageData; isNew: boolean }
 }
 ```
 
@@ -89,7 +89,7 @@ interface DemoView {
 }
 class DemoDriver {
   constructor(seed: number)
-  reset(seed?: number): void           // new run: same seed → same run
+  reset(): void                        // new run: the seed restarts, so the same seed → the same run
   update(deltaMs: number, view: DemoView): { x: number; y: number }
   readonly stats: { swipes; misses; presses; blocked }   // for tests and the harness
 }
@@ -101,7 +101,7 @@ home) is a `Move`; the wave over a button is a `Circle` primitive (radius 0.55 r
 constant speed, so every camera frame carries motion). There is no other way for the
 hand to change position, so the skull rule has a single choke point.
 
-**Skull rule (R4.5).** `handSafe(from, to, R, skulls, travelPx)`: both discs
+**Skull rule (R4.5).** `stepSafe(from, to, R, skulls, w, h, tickMs, extraMs?)`: both discs
 `(from, R)` and `(to, R)` must be at distance ≥ `R + 2·px + travelPx` from every
 skull hitbox, where `px = max(displayW / MOTION_W, displayH / MOTION_H)` (one motion pixel) and `travelPx` is the skull's
 travel in one tick (`speed · h · (stepMs·scale + 16) / 1000`). Only skulls that can be hit
@@ -113,6 +113,8 @@ is held, the current `Move` is dropped and `stats.blocked` increments. Planned s
 are pre-checked by sampling the path every `u = 1/16` against the same rule inflated by
 the skull travel up to that sample's time; failing that the other bend is tried, then the
 target is skipped for 400 ms.
+
+**Misses and velocity.** A deliberate miss also needs `timeToThreatMs(e) > MISS_SAFE_MS` (3000 ms), so a miss plus the re-swipe always fits before the enemy could cost a life (R4.4). The enemy velocity estimate used for the aim lead is an exponential average with a fixed time constant (`VELOCITY_TAU_MS` = 24 ms), so the lead does not depend on `speed`. The hand trail fade in `runtime.ts` is per tick (cosmetic).
 
 **Urgency.** `timeToThreatMs(e)` estimates when an enemy costs a life: scripted paths and
 drops from the remaining path time, lungers from approach + 600 ms wind-up + lunge, others from
@@ -230,11 +232,11 @@ class DemoRuntime {
 
 `boot()` reads `parseDemoParams(location.search)`. Key routing is the pure
 `routeDemoKey(e, { demoOn, onTitle, msSinceLeft })` → `leave | enter | swallow | pass`
-(`params.ts`); auto-repeats of the key that left demo are swallowed for 500 ms. The
+(`params.ts`); while demo is on, auto-repeats of any non-passive key are swallowed (one physical press is one toggle, so a held `G` enters demo and stays), and auto-repeats of the key that left demo are swallowed for 500 ms. The
 onboarding state is created on the first normal boot only, so demo mode never reads the
 onboarding flag. Demo: load the title font, skip
 `initWebcam` / onboarding, create `DemoRuntime`, `startLoop(null, …, stage, { demo })`.
-A `keydown` / `pointerdown` handler (capture phase, before the existing ones) applies
+A `keydown` handler (a bubble listener on `document`, registered before the existing one) and a capture-phase `pointerdown` listener on `window` apply
 `demoKeyAction` while demo is on: `exit` → `leaveDemo()` (stop loop, `dispose()`, `stopMusic()`,
 `history.replaceState` removes the demo parameters so a reload is the normal game, then
 `boot()`; a module flag `demoLeft` makes every later `boot()` ignore the URL's demo

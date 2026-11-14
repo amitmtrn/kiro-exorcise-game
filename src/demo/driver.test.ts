@@ -149,6 +149,30 @@ describe('deliberate misses (R4.4)', () => {
   })
 })
 
+describe('misses never cost a life by themselves (R4.4)', () => {
+  it('no deliberate miss at a distant enemy that is about to reach the centre', () => {
+    for (let seed = 1; seed <= 40; seed++) {
+      const d = new DemoDriver(seed)
+      // a ghost far from the centre, fast enough to arrive within the miss budget
+      run(d, 60, () => view({ enemies: [ghost('a', 1100, 120, { speed: 0.5 })] }))
+      expect(d.stats.misses).toBe(0)
+    }
+  })
+})
+
+describe('aim lead is independent of the tick length', () => {
+  it('a steadily moving ghost is aimed at the same way at 1x and 3x tick lengths', () => {
+    const aimed = (dt: number) => {
+      const d = new DemoDriver(5)
+      let x = 1000
+      for (let t = 0; t < 700; t += dt) { d.update(dt, view({ enemies: [ghost('a', x, 200)] })); x -= 0.1 * dt }
+      return d.hand
+    }
+    const a = aimed(1000 / 60), b = aimed(50)
+    expect(Math.abs(a.x - b.x)).toBeLessThan(60)
+  })
+})
+
 describe('never the skull (R4.5)', () => {
   it('a skull next to the only target blocks the swipe: the hand never enters the margin', () => {
     const d = new DemoDriver(2)

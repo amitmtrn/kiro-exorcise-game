@@ -25,7 +25,7 @@ npm run dev
 
 | Command | What it does |
 |---|---|
-| `npm test` | Run all 1239 unit tests (Vitest) |
+| `npm test` | Run all 1242 unit tests (Vitest) |
 | `npm run build` | Production build → `dist/` |
 | `npm run preview` | Preview the production build locally |
 
@@ -66,16 +66,16 @@ Pick **1 PLAYER** or **2 PLAYERS** on the title screen (wave over a button, or p
 
 ### Demo / attract mode (no camera)
 
-Open the game with `?demo=1` (for example `http://localhost:5173/kiro-exorcise-game/?demo=1&seed=7`) or press `G` on the title screen. The webcam is never requested (no permission prompt) and onboarding is skipped. A scripted, translucent **ghost hand** plays a full run through the real game code: its motion is fed into the same frame-differencing hit detection as a camera, so combos up to x4, hit-stop, knock-back, call-outs, the waves, the bonus round and the three boss phases all happen as they would for a player. It presses the motion buttons with the normal dwell, never touches the Cursed Skull, wins, opens the Exorcist Card (a drawn placeholder portrait and a **DEMO** chip, never downloaded), returns to the title and plays again. A **DEMO** badge is on screen the whole time, and demo scores are never written to your saved high score. Any key (except `M`) or click returns to the normal game.
+Open the game with `?demo=1` (for example `http://localhost:5173/kiro-exorcise-game/?demo=1&seed=5`) or press `G` on the title screen. The webcam is never requested (no permission prompt) and onboarding is skipped. A scripted, translucent **ghost hand** plays a full run through the real game code: its motion is fed into the same frame-differencing hit detection as a camera, so combos up to x4, hit-stop, knock-back, call-outs, the waves, the bonus round and the three boss phases all happen as they would for a player. It presses the motion buttons with the normal dwell, never touches the Cursed Skull, wins, opens the Exorcist Card (a drawn placeholder portrait and a **DEMO** chip, never downloaded), returns to the title and plays again. A **DEMO** badge is on screen the whole time, and demo scores are never written to your saved high score. Any key (except `M`) or click returns to the normal game.
 
 | Parameter | Meaning |
 |---|---|
 | `demo=1` | Start in demo mode (`demo=0` or no parameter: normal game) |
-| `seed=N` | Run to play (default `7`). Same seed + same window size = the identical run every time |
+| `seed=N` | Run to play (default `5`). Same seed + same window size = the identical run every time |
 | `stage=N` | Start at stage N (1–5) |
 | `speed=N` | Game speed, 1–3 (default 2: a full run takes about 2.5 minutes; other values use the default) |
 
-**Recording the submission video.** Set the browser window to the size you will record (the run depends on the canvas size; `seed=7` plays a clean run without a game over at 960×540, 1280×720, 1366×768, 1440×900 and 1920×1080), open `?demo=1&seed=7`, press `M` twice (mute, unmute: this key press also unlocks audio) and start the screen recorder. Reload the page for a re-take (F5 / Ctrl+R / Cmd+R and F11 for full screen do not leave demo mode): it plays the same run again. Use `speed=1` for real-time gameplay; the pace is the same on any display of 60 Hz or more. See `tools/motion-harness/README.md` for a headless check. Spec: `.kiro/specs/demo-mode/`.
+**Recording the submission video.** Set the browser window to the size you will record (the run depends on the canvas size; `seed=5` plays a clean run without a game over at 960×540, 1280×720, 1366×768, 1440×900 and 1920×1080), open `?demo=1&seed=5`, press `M` twice (mute, unmute: this key press also unlocks audio) and start the screen recorder. Reload the page for a re-take (F5 / Ctrl+R / Cmd+R and F11 for full screen do not leave demo mode): it plays the same run again. Use `speed=1` for real-time gameplay; the pace is the same on any display of 60 Hz or more. See `tools/motion-harness/README.md` for a headless check. Spec: `.kiro/specs/demo-mode/`.
 
 ### Testing hit detection without a webcam
 

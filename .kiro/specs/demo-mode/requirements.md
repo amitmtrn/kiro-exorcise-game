@@ -24,13 +24,14 @@ demo toggle is **`G`** ("ghost hand").
 
 **R1.1** `?demo=1` in the page URL starts demo mode at page load. `?demo=0` (or
 no `demo` parameter) starts the normal game. Optional parameters: `seed=N`
-(non-negative integer, default `7`, a seed that plays a clean run at common window
+(non-negative integer, default `5`, a seed that plays a clean run at common window
 sizes), `stage=N` (1–5, default `1`: the stage the run starts at) and `speed=N` (a plain decimal number from 1 to 3, default `DEMO.timeScale` = 2; above 3 the 66 ms game step is too coarse for the scripted hand). A missing or invalid
 value, including an out-of-range one (`speed=9`, `speed=0`) and non-decimal forms (`0x2`, `1e1`, `+2`), falls back to its default; nothing is clamped and nothing throws.
 
 **R1.2** On the title screen of a normal game, `G` (no Ctrl / Meta / Alt) switches
 demo mode on. In demo mode `G` switches it off. `G` in a normal game anywhere but
-the title screen does nothing.
+the title screen does nothing. One physical press is one toggle: key auto-repeats
+while demo is on are ignored, so a held `G` enters demo and stays.
 
 **R1.3** In demo mode any key press or click / tap on the canvas, other than `G`
 (R1.2) and the passive keys of R1.4, leaves demo mode and shows the normal title
@@ -122,7 +123,7 @@ is met: the hand waits beside it.
 **R4.4** *Deliberate misses.* About one swipe in eight at a low-urgency target
 (not a boss, not a lunger, not within 35 % of the screen height of the centre) passes
 beside the enemy instead of through it; the next swipe then hits. A miss never
-costs a life by itself.
+costs a life by itself: a miss is only planned when the enemy needs more than 3 s to reach the centre.
 
 **R4.5** *Never the skull.* At every frame the hand disc (current and next position)
 stays clear of the hitbox of every skull by the hand radius plus a margin (two
@@ -213,7 +214,7 @@ confined to the demo branch and a wrapper; `STAGES`, `collision.ts`,
 white noise from a private generator instead of `Math.random` (R5.2); the sound is
 the same white noise.
 
-**R7.2** Recording a take with sound: load `?demo=1&seed=7`, press `M` twice (mute
+**R7.2** Recording a take with sound: load `?demo=1&seed=5`, press `M` twice (mute
 then unmute, which also unlocks the audio context), then start the screen recorder.
 `tools/motion-harness/README.md` and the README document this.
 

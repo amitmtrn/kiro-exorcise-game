@@ -59,12 +59,14 @@ const placeSoundHint = () => { soundHint.style.fontSize = `${soundHintFontPx(gam
 placeSoundHint()
 window.addEventListener('resize', placeSoundHint)
 document.getElementById('ui')!.appendChild(soundHint)
+// what the controller wants, kept apart from the demo override so leaving demo restores the hint
+let hintHidden = true
 installAudioUnlock({
   target: window,
   getCtx: getAudioContext,
   // a webcam-only player never clicks: the hint hides itself so it cannot sit over the stage label (R6.2)
   // the hint is hidden in demo mode: clicking it would leave demo (demo-mode R6.5)
-  onLocked: createSoundHintController((hidden) => { soundHint.hidden = hidden || demo !== null }, SOUND_HINT_MS),
+  onLocked: createSoundHintController((hidden) => { hintHidden = hidden; soundHint.hidden = hidden || demo !== null }, SOUND_HINT_MS),
 })
 
 // Demo keys run first (registered before the normal handler). Any key leaves demo mode except the passive ones;
@@ -164,6 +166,7 @@ function leaveDemo(): void {
   stopLoop()
   rt.dispose()
   leftDemoAt = performance.now()
+  soundHint.hidden = hintHidden
   stopMusic() // the demo's stage or boss track must not play over the camera prompt
   webcamCtx.clearRect(0, 0, webcamCanvas.width, webcamCanvas.height)
   gameCtx.clearRect(0, 0, gameCanvas.width, gameCanvas.height)

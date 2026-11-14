@@ -46,6 +46,10 @@ export const CONTACT_U = 0.55
 export const MISS_ONE_IN = 8
 /** A target nearer than this fraction of the canvas height to the centre is never missed on purpose. */
 export const MISS_SAFE_CENTRE_H = 0.35
+/** A deliberate miss needs at least this long before the target could cost a life: time for the miss plus a re-swipe (R4.4). */
+export const MISS_SAFE_MS = 3000
+/** Time constant of the enemy velocity estimate, ms (the old fixed 0.5 blend at a 60 Hz tick). */
+export const VELOCITY_TAU_MS = 24
 export const HOME_AFTER_MS = 1500
 export const BUTTON_SETTLE_MS = 300
 export const BURST_MS = 2400
@@ -357,8 +361,9 @@ export class DemoDriver {
         this.tracks.set(e.id, tr)
       } else {
         // Smoothed velocity estimate, px per ms.
-        tr.vx = 0.5 * tr.vx + 0.5 * ((e.x - tr.x) / dt)
-        tr.vy = 0.5 * tr.vy + 0.5 * ((e.y - tr.y) / dt)
+        const a = 1 - Math.exp(-dt / VELOCITY_TAU_MS) // time-based, so aim lead does not depend on `speed`
+        tr.vx += a * ((e.x - tr.x) / dt - tr.vx)
+        tr.vy += a * ((e.y - tr.y) / dt - tr.vy)
         tr.x = e.x; tr.y = e.y
       }
       if (on && tr.first === null) tr.first = this.t
@@ -502,6 +507,7 @@ export class DemoDriver {
 
     const lowUrgency = e.type !== 'boss' && e.type !== 'lunger'
       && Math.hypot(e.x - view.w / 2, e.y - view.h / 2) > MISS_SAFE_CENTRE_H * view.h
+      && timeToThreatMs(e, view.w, view.h) > MISS_SAFE_MS
     const wantMiss = lowUrgency && !this.missed.has(e.id) && this.rng() < 1 / MISS_ONE_IN
 
     if (wantMiss) {

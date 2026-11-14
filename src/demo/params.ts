@@ -14,7 +14,7 @@ export const DEMO = {
   /** Synthetic camera frame interval in demo time (a 30 fps webcam). */
   frameMs: 1000 / 30,
   /** Plays a clean run (no game over) at the common window sizes; any seed works (demo-mode R5.2). */
-  defaultSeed: 7,
+  defaultSeed: 5,
   defaultStage: 1,
   minSpeed: 1,
   maxSpeed: 3,
@@ -105,7 +105,12 @@ export function routeDemoKey(
   e: KeyLike & { repeat?: boolean },
   ctx: { demoOn: boolean; onTitle: boolean; msSinceLeft: number },
 ): DemoKeyRoute {
-  if (ctx.demoOn) return demoKeyAction(e) === 'ignore' ? 'pass' : 'leave'
+  if (ctx.demoOn) {
+    const action = demoKeyAction(e)
+    if (action === 'ignore') return 'pass'
+    // one physical press is one toggle: auto-repeats of a held key (e.g. the G that entered demo) are used up
+    return e.repeat ? 'swallow' : 'leave'
+  }
   if (e.repeat && ctx.msSinceLeft < LEAVE_REPEAT_MS) return 'swallow'
   if (!e.repeat && isDemoToggleKey(e, ctx.onTitle)) return 'enter'
   return 'pass'

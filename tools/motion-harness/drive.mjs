@@ -67,7 +67,7 @@ console.log('monitor:', await ev(`(async () => {
     // Phase probe: overlay screens paint an opaque dark rect; playing leaves mid-screen transparent.
     const W = gc.canvas.width, H = gc.canvas.height
     const a = [[0.3, 0.5], [0.7, 0.5], [0.5, 0.55]].map(([fx, fy]) => gc.getImageData(Math.round(W * fx), Math.round(H * fy), 1, 1).data[3]).sort((x, y) => x - y)[1]
-    if (a < 40) { m.playFrames++; if (m.firstPlayAt < 0) m.firstPlayAt = Math.round(performance.now() - m.t0) }
+    if (a < 40) { m.playFrames++; if (m.firstPlayAt < 0) m.firstPlayAt = Math.round(Date.now() - m.rt0) }
     // Demo: performance.now runs on the demo clock, so the card time is measured in real ms.
     if (loop && m.cardAtMs < 0 && loop.isCardPreviewOpen()) m.cardAtMs = Date.now() - m.rt0
     requestAnimationFrame(f)
