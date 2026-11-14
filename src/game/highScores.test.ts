@@ -93,6 +93,10 @@ describe('table logic', () => {
 })
 
 describe('storage', () => {
+  it.each(['12abc', '-5', '1.5', ' 7', ''])('does not migrate a malformed legacy score %j', (raw) => {
+    st = fakeStorage({ [LEGACY_KEY]: raw }); vi.stubGlobal('localStorage', st)
+    expect(loadTable()).toEqual([])
+  })
   it('migrates the legacy single high score once', () => {
     st = fakeStorage({ [LEGACY_KEY]: '4200' }); vi.stubGlobal('localStorage', st)
     const t = loadTable(new Date(2025, 9, 31))

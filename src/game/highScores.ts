@@ -143,7 +143,8 @@ export function loadTable(now: Date = new Date()): ScoreEntry[] {
   try {
     const json = st.getItem(STORAGE_KEY)
     if (json !== null) return parseTable(json)
-    const legacy = parseInt(st.getItem(LEGACY_KEY) ?? '', 10)
+    const raw = st.getItem(LEGACY_KEY) ?? ''
+    const legacy = /^\d+$/.test(raw) ? parseInt(raw, 10) : NaN
     if (Number.isInteger(legacy) && legacy >= 1) {
       const t = insertScore([], { id: 'legacy', name: MIGRATED_NAME, score: Math.min(legacy, 1e9), stage: 1, date: today(now), mode: '1P' }).table
       saveTable(t)
