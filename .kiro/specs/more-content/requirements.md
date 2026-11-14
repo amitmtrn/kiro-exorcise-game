@@ -228,7 +228,9 @@ ends the game with `victory`, and plays the fanfare.
 
 **R7.1** `advanceToNextStage` from stage 5 goes to stage 6 (stage title, lives and
 score carried); from stage 6 it yields `victory`. The `stages` table no longer
-assumes stage 5 is last anywhere (boss spawn, card, 2P `won` status, demo).
+assumes stage 5 is last anywhere (boss spawn, card, 2P `won` status, demo). The card's
+boss moment is taken when a boss on the field last tick is gone and the phase is now
+`summary` or `victory`, in 1P and 2P alike (`bossDefeatedSince`).
 
 **R7.2** In 2P, stage 6 runs on both halves like any other stage. A half that
 defeats the king reaches `victory`; the other half keeps playing until it wins,

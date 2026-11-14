@@ -57,6 +57,15 @@ export function momentRank(kind: MomentKind, combo = 1): number {
 }
 
 /**
+ * True when a boss was defeated between two ticks: it was on the field last tick and the
+ * phase is now `summary` (stage 5) or `victory` (stage 6). The timeout path ends in
+ * `gameover`, so it never counts. Used for every 1P and 2P seat (more-content R7.1).
+ */
+export function bossDefeatedSince(hadBoss: boolean, phase: string): boolean {
+  return hadBoss && (phase === 'summary' || phase === 'victory')
+}
+
+/**
  * Folds one tick's state into the run stats. Returns the new stats plus the
  * moment (if any) that this observation created.
  */

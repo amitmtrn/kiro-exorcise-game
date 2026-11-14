@@ -51,6 +51,7 @@ import {
 import { isPanelOpen, closePanel, renderSettingsPanel } from '../ui/settingsPanel'
 import { resolveStartRequest, setPlayerMode } from './playerMode'
 import type { PlayerMode, StartRequest } from './playerMode'
+import { bossDefeatedSince } from './runStats'
 import { CardSession } from '../card/session'
 import { grabMirroredSnapshot, releaseSnapshot } from '../card/snapshot'
 import { grabHalfSnapshot } from '../card/halfSnapshot'
@@ -352,6 +353,7 @@ export async function startLoop(
   }
   /** Per seat: a boss was on that seat's field at the previous tick (so its disappearance means it was defeated). */
   const seatHadBoss: [boolean, boolean] = [false, false]
+  let hadBoss1P = false
   seatCardsRef = seatCards
   twoFinal = false
 
@@ -599,7 +601,10 @@ export async function startLoop(
       cardInputs = []
       cardOpen = false
     } else {
-      session.observe(state, displayW, displayH)
+      // Boss defeated on the previous tick (stage 5 now goes to summary, not victory): snapshot the boss moment.
+      const bossDefeated = bossDefeatedSince(hadBoss1P, state.phase)
+      hadBoss1P = state.enemies.some((e) => e.type === 'boss')
+      session.observe(bossDefeated ? { ...state, bossDefeated } : state, displayW, displayH)
       onEndScreen = (state.phase === 'gameover' || state.phase === 'victory') && !pendingName
       if (onEndScreen) drainCardInputs(now)
       else cardInputs = []
@@ -666,7 +671,7 @@ export async function startLoop(
         seatPoints[seat] = displayPointsInHalf(lastMotionPixels, seat, displayW)
         const ss = two.seats[seat]
         // Boss defeated in this half on the previous tick: snapshot now, while the player is still in front of the camera.
-        const bossDefeated = seatHadBoss[seat] && (ss.phase === 'summary' || ss.phase === 'victory')
+        const bossDefeated = bossDefeatedSince(seatHadBoss[seat], ss.phase)
         seatHadBoss[seat] = ss.enemies.some((e) => e.type === 'boss')
         seatSessions[seat].observe(bossDefeated ? { ...ss, bossDefeated } : ss, displayW, displayH)
       }
