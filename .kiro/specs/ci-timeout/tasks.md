@@ -5,12 +5,12 @@ Timings are local (Node 24), from `npx vitest run --reporter=verbose`.
 ## T1 — Speed up the R1.5 property
 Files: `src/game/quality.property.test.ts`
 
-- [ ] Measure the before time (445 ms).
-- [ ] Random property: span 60 s, direction tracking without allocation, same range and `numRuns` 200 (R1.1, R1.2).
-- [ ] Fixed examples at the original 120 s for 2 ms, 120 ms and every band edge, every start level (R1.3).
-- [ ] Record the after time here (R1.4).
-- [ ] Run `npm test` and `npm run build`; both clean.
-- [ ] Commit: `test(ci-timeout-T1): faster R1.5 property with fixed edge examples`
+- [x] Measure the before time (445 ms).
+- [x] Random property: span 60 s, direction tracking without allocation, same range and `numRuns` 200 (R1.1, R1.2).
+- [x] Fixed examples at the original 120 s for 2 ms, 120 ms and every band edge, every start level (R1.3).
+- [x] Record the after time here (R1.4): 186 ms (−58 %); the 13 fixed examples cost 1–19 ms each.
+- [x] Run `npm test` and `npm run build`; both clean.
+- [x] Commit: `test(ci-timeout-T1): faster R1.5 property with fixed edge examples`
 
 ## T2 — Explicit timeouts for legitimately long tests
 Files: `src/game/enemies/spawn.property.test.ts`, `src/game/enemies/spawn.waves.property.test.ts`, `src/game/bonus.property.test.ts`, `src/demo/demo.sim.test.ts`, `tools/motion-harness/mcp-server.test.mjs`

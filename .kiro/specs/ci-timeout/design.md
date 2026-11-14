@@ -15,13 +15,13 @@ runner (Node 20, shared vCPU), over the 5 s default.
 | Step down | `DOWN_AFTER_MS` 2 s over budget, then `SETTLE_MS` 3 s |
 | Step up | `UP_AFTER_MS` 6 s under budget × `upPenalty` (1 here: the penalty only grows after a step down inside 30 s), then `SETTLE_MS` 3 s |
 | Rolling average | time constant `AVG_TAU_MS` 1 s, converges in about 5 s |
-| Refresh estimate | creeps up at `REF_CREEP` 0.01 ms per ms, so 16.67 → 29 ms (the 30 Hz snap) needs 12.3 s |
+| Refresh estimate | creeps up at `REF_CREEP` 0.01 ms per ms, so it needs at most (120 − 16.67) / 0.01 = 10.3 s to follow the slowest frame time |
 
-Longest chain for a constant `f`: three steps up from level 3, each
-6 s + 3 s = 9 s, so 27 s, plus the first average convergence of about 2 s, is
-29 s. A flip back would need another full window after the refresh estimate
-stops moving (about 12.3 s + 3 s settle). Upper bound for the last possible
-change: about 41 s.
+Longest chain for a constant `f`: the refresh estimate settles by 10.3 s, then
+three steps up from level 3 take 6 s + 3 s = 9 s each, 27 s. Upper bound for the
+last possible change: 10.3 + 27 ≈ 38 s (about 40 s with the average's
+convergence). A later flip would need another full window with unchanged
+thresholds, which constant input does not produce.
 
 Measured: a sweep of `f` = 2…120 in steps of 0.37 ms, all four start levels,
 over 240 s: the last level change is at 25.3 s (`f` = 31.23, start 3), and the
@@ -31,14 +31,14 @@ refresh estimate stops moving by 10.3 s. So a **60 s** span covers the bound
 
 ## Test changes (`quality.property.test.ts`)
 - The random property runs 60 s instead of 120 s. `numRuns` stays 200, `f`
-  stays 2–120, every start level.
+  stays 2–120, every start level, and an explicit 30 s timeout.
 - A new example test runs the **original 120 s** for `f` in
-  `[2, 120, 14, 18.34, 20, 21.67, 28.9, 29, 38.3, 38.4, 43.3, 16.67, 33.33]`
+  `[2, 120, 14, 16.67, 18.34, 20, 21.67, 28.9, 29, 36.67, 38.3, 38.4, 43.33]`
   and every start level. These are the extremes and the thresholds: the 14 / 20 ms
   floors, 16.67 × 1.1 and × 1.3, 33.33 × 1.1 and × 1.3, and the 15 % snap edges
   of the 30 Hz class.
 - The R1.1 test (step-size independence) is untouched.
-- Both use a shared helper that records only the direction of each change, with
+- The random property and the examples share a helper that records only the direction of each change, with
   no per-change objects.
 
 ## Other slow tests
