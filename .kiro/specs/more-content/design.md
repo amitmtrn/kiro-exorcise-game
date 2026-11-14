@@ -211,7 +211,7 @@ sanitizeName(raw), generateName(rand), qualifies(table, score), insertScore(tabl
 renameEntry(table, id, name), parseTable(json), loadTable(), saveTable(table), recordScore(entry), tableBest()
 ```
 
-`loadTable` does the migration (R8.4) and returns `[]` when persistence is off.
+`loadTable` does the migration (R8.4) and returns `[]` when persistence is off. `ensureTable` runs before the first legacy-key write and stores `[]` when there is nothing to migrate.
 `state.ts` exports `highScorePersistence()`; `loadHighScore` returns
 `max(legacy, tableBest)` (0 with persistence off). `id` is a random token used
 to rename the entry later; it is stored but carries no personal data.

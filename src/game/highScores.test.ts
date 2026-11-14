@@ -4,7 +4,7 @@ import {
   recordScore, renameStored, tableBest, today, isValidEntry, STORAGE_KEY, LEGACY_KEY, TABLE_SIZE, MIGRATED_NAME, NAME_WORDS,
 } from './highScores'
 import type { ScoreEntry } from './highScores'
-import { setHighScorePersistence, loadHighScore } from './state'
+import { setHighScorePersistence, loadHighScore, saveHighScore, createInitialState } from './state'
 import { mulberry32 } from '../test/prng'
 
 const e = (id: string, score: number, o: Partial<ScoreEntry> = {}): ScoreEntry =>
@@ -111,6 +111,21 @@ describe('storage', () => {
     expect(st.setItem).not.toHaveBeenCalled()
     st.data[LEGACY_KEY] = 'junk'
     expect(loadTable()).toEqual([])
+  })
+  it('fresh storage → stage clear → next stage → game over: one row, no OLD-BEST', () => {
+    saveHighScore(800) // the summary branch writes the legacy key mid-run
+    createInitialState(2) // the next stage reloads the best
+    expect(loadTable()).toEqual([])
+    const r = recordScore({ score: 800, stage: 2, mode: '1P' }, mulberry32(3))!
+    expect(r.rank).toBe(1)
+    const t = loadTable()
+    expect(t).toHaveLength(1)
+    expect(t.some((x) => x.name === MIGRATED_NAME)).toBe(false)
+  })
+  it('a score left by an older build still migrates when this build saves first', () => {
+    st = fakeStorage({ [LEGACY_KEY]: '4200' }); vi.stubGlobal('localStorage', st)
+    saveHighScore(100)
+    expect(loadTable().map((x) => [x.name, x.score])).toEqual([[MIGRATED_NAME, 4200]])
   })
   it('records a run with a generated name and renames it', () => {
     const r = recordScore({ score: 1234, stage: 6, mode: '2P' }, mulberry32(1))!

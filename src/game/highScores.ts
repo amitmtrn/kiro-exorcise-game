@@ -154,6 +154,21 @@ export function loadTable(now: Date = new Date()): ScoreEntry[] {
   return []
 }
 
+/**
+ * Settles the migration before anything writes the legacy key: migrates a score an older build left, or stores
+ * an empty table so a later legacy write by this build is never mistaken for an old best (R8.4).
+ */
+export function ensureTable(now: Date = new Date()): void {
+  if (!highScorePersistence()) return
+  const st = storage()
+  if (!st) return
+  try {
+    if (st.getItem(STORAGE_KEY) !== null) return
+    loadTable(now)
+    if (st.getItem(STORAGE_KEY) === null) saveTable([])
+  } catch { /* unreadable storage */ }
+}
+
 export function saveTable(table: readonly ScoreEntry[]): void {
   if (!highScorePersistence()) return
   try { storage()?.setItem(STORAGE_KEY, serializeTable(table)) } catch { /* quota / privacy mode */ }

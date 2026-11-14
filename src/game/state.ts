@@ -10,7 +10,7 @@ import type { Knock } from './knock'
 import type { Callout } from './callouts'
 import { thinParticles } from './quality'
 import { highScorePersistence } from './persistence'
-import { loadTable, tableBest } from './highScores'
+import { ensureTable, loadTable, tableBest } from './highScores'
 
 export interface Hitbox {
   x: number // top-left x
@@ -205,6 +205,7 @@ export function loadHighScore(): number {
 /** Keeps the legacy single-score key written too, so older builds still see the best score (more-content R8.4). */
 export function saveHighScore(score: number): void {
   if (!highScorePersistence()) return
+  ensureTable()
   try {
     localStorage.setItem('exorcise-highscore', String(score))
   } catch { /* ignore */ }

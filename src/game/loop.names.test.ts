@@ -113,7 +113,7 @@ describe('1P run end', () => {
     h.score = 0
     await startLoop({} as HTMLVideoElement, ctx(), ctx())
     frame(16)
-    expect(store[STORAGE_KEY]).toBeUndefined()
+    expect(JSON.parse(store[STORAGE_KEY] ?? '[]')).toEqual([]) // at most the empty-table marker
     expect(isNameEntryOpen()).toBe(false)
     expect(renderGameOver).toHaveBeenCalled()
   })

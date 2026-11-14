@@ -266,7 +266,10 @@ throws. Storage errors (quota, privacy mode) are swallowed.
 `exorcise-highscore` holds a positive integer, the table starts with one entry
 `{ name: "OLD-BEST", score, stage: 1, date: <today>, mode: "1P" }` and is saved.
 The legacy key is left in place and still written (older builds keep working);
-the HUD best score is the larger of the two.
+the HUD best score is the larger of the two. Only a score left by an older build
+migrates: before this build first writes the legacy key it settles the migration
+(`ensureTable`), storing an empty table when there is nothing to migrate, so its own
+mid-run legacy write never becomes an "OLD-BEST" row.
 
 **R8.5** *Demo mode.* With persistence off (`setHighScorePersistence(false)`, set
 by demo mode) the table loads empty, nothing is read from storage and nothing is

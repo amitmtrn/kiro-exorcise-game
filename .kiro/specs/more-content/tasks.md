@@ -132,3 +132,6 @@
 - [x] Name picker cursor follows the last typed letter beyond 3 characters; test added.
 - [x] R8.4: legacy score migration accepts digits only; test added.
 - [x] `npm test` and `npm run build` both clean after each fix; demo seed 5 sims pass.
+
+## T16 — Review fixes (round 5)
+- [x] R8.4: no phantom OLD-BEST. `saveHighScore` calls `ensureTable()` first (migrates an older build's score, else stores `[]`); tests: fresh storage → stage clear → next stage → game over gives one row, older-build score still migrates.
