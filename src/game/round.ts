@@ -62,8 +62,6 @@ export function tickRound(
       return state
 
     case 'summary': {
-      // Save high score whenever we reach summary
-      saveHighScore(state.highScore)
       const summaryShownMs = state.summaryShownMs + deltaMs
       if (summaryShownMs >= SUMMARY_AUTO_ADVANCE_MS) {
         return advanceToNextStage(state, canvasW, canvasH)

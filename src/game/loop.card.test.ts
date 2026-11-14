@@ -118,7 +118,7 @@ describe('card input on an end screen', () => {
 })
 
 describe('high score storage on end screens (more-content R8.4)', () => {
-  for (const phase of ['gameover', 'victory']) {
+  for (const phase of ['summary', 'gameover', 'victory']) {
     it(`${phase}: the best score is stored once on entry, not every frame`, async () => {
       h.phase = phase
       const reads = { get: 0, set: 0 }
