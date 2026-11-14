@@ -9,6 +9,8 @@ import type { PathSpec } from './paths'
 import type { Knock } from './knock'
 import type { Callout } from './callouts'
 import { thinParticles } from './quality'
+import { highScorePersistence } from './persistence'
+import { loadTable, tableBest } from './highScores'
 
 export interface Hitbox {
   x: number // top-left x
@@ -188,21 +190,21 @@ export function makeEnemy(partial: Partial<Enemy> & Pick<Enemy, 'id' | 'type' | 
 
 // ─── Initial state ────────────────────────────────────────────────────────────
 
-/** Demo mode turns this off: demo scores must never reach localStorage (demo-mode R6.4). */
-let persistHighScore = true
-export function setHighScorePersistence(on: boolean): void { persistHighScore = on }
+export { setHighScorePersistence, highScorePersistence } from './persistence'
 
+/** All-time best: the larger of the legacy single score and the top of the table (0 with persistence off). */
 export function loadHighScore(): number {
-  if (!persistHighScore) return 0
+  if (!highScorePersistence()) return 0
+  let legacy = 0
   try {
-    return parseInt(localStorage.getItem('exorcise-highscore') ?? '0', 10) || 0
-  } catch {
-    return 0
-  }
+    legacy = parseInt(localStorage.getItem('exorcise-highscore') ?? '0', 10) || 0
+  } catch { /* ignore */ }
+  return Math.max(legacy, tableBest(loadTable()))
 }
 
+/** Keeps the legacy single-score key written too, so older builds still see the best score (more-content R8.4). */
 export function saveHighScore(score: number): void {
-  if (!persistHighScore) return
+  if (!highScorePersistence()) return
   try {
     localStorage.setItem('exorcise-highscore', String(score))
   } catch { /* ignore */ }

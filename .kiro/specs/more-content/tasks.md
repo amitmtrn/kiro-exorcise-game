@@ -39,12 +39,12 @@
 - [x] Commit: `feat(more-content-T4): stage 6 finale with the Hollow King`
 
 ## T5 — High-score table core
-- [ ] Create `src/game/highScores.ts`: types, `sanitizeName`, `generateName`, `qualifies`, `insertScore`, `renameEntry`, `parseTable`, `loadTable` (with migration), `saveTable`, `recordScore`, `tableBest`.
-- [ ] `state.ts`: `highScorePersistence()`; `loadHighScore` = max(legacy, table best); demo persistence off disables the table too.
-- [ ] Unit tests: ordering, ties, cap 10, qualifies, migration, hostile JSON, storage errors, demo off writes nothing.
-- [ ] Property tests: table invariants after any insert sequence, `parse(serialise(t)) = t`, `sanitizeName` always valid, stored JSON has only the allowed keys.
-- [ ] `npm test` and `npm run build` both clean.
-- [ ] Commit: `feat(more-content-T5): local top-10 high-score table`
+- [x] Create `src/game/highScores.ts`: types, `sanitizeName`, `generateName`, `qualifies`, `insertScore`, `renameEntry`, `parseTable`, `loadTable` (with migration), `saveTable`, `recordScore`, `tableBest`.
+- [x] `src/game/persistence.ts` (`setHighScorePersistence`, `highScorePersistence`, re-exported by `state.ts`); `loadHighScore` = max(legacy, table best); demo persistence off disables the table too.
+- [x] Unit tests: ordering, ties, cap 10, qualifies, migration, hostile JSON, storage errors, demo off writes nothing.
+- [x] Property tests: table invariants after any insert sequence, `parse(serialise(t)) = t`, `sanitizeName` always valid, stored JSON has only the allowed keys.
+- [x] `npm test` and `npm run build` both clean.
+- [x] Commit: `feat(more-content-T5): local top-10 high-score table`
 
 ## T6 — Name entry core and layout
 - [ ] Create `src/game/nameEntry.ts`: `newNameEntry`, `pickStep`, `confirm`, `typeChar`, `backspace`, `tickNameEntry`, `finalName`.
