@@ -9,6 +9,18 @@ import { getAudioContext, getMasterGain } from './context'
 
 function now(): number { return getAudioContext().currentTime }
 
+/**
+ * White-noise samples come from a private generator, not Math.random: a sound effect must never
+ * consume the game's random stream (demo mode seeds it to replay the same run, demo-mode R5.2).
+ */
+let noiseState = 0x2545f491
+function noiseSample(): number {
+  noiseState ^= noiseState << 13
+  noiseState ^= noiseState >>> 17
+  noiseState ^= noiseState << 5
+  return ((noiseState >>> 0) / 4294967296) * 2 - 1
+}
+
 /** Create a gain envelope: attack → sustain → release. */
 function envelope(
   ctx: AudioContext,
@@ -63,7 +75,7 @@ function playNoise(
   const bufLen = Math.ceil(ctx.sampleRate * durationSec)
   const buf = ctx.createBuffer(1, bufLen, ctx.sampleRate)
   const data = buf.getChannelData(0)
-  for (let i = 0; i < bufLen; i++) data[i] = Math.random() * 2 - 1
+  for (let i = 0; i < bufLen; i++) data[i] = noiseSample()
 
   const src = ctx.createBufferSource()
   src.buffer = buf

@@ -6,6 +6,8 @@
 #
 #   tools/motion-harness/run.sh sweep [seconds]   # hand sweeps through the enemies' path; Space starts
 #   tools/motion-harness/run.sh wave  [seconds]   # hand waves over START; no keypress at all
+#   tools/motion-harness/run.sh demo  [seconds]   # ?demo=1&seed=$SEED (default 5): no camera at all, the
+#                                                 # scripted ghost hand plays; reports getUserMedia calls and the card
 #
 # Requires: python3 + numpy, google-chrome (or CHROME=<path>), node >= 22.
 set -euo pipefail
@@ -18,7 +20,15 @@ OUT="$HERE/out"; mkdir -p "$OUT"
 # A leftover Chrome on the DevTools port would be attached to by drive.mjs: stale metrics.
 if curl -sf -o /dev/null "http://127.0.0.1:$PORT/json"; then echo "DevTools port $PORT is already in use; refusing to attach to it (set PORT)" >&2; exit 1; fi
 
-[ -f "$OUT/$MODE.y4m" ] || python3 -I "$HERE/make_y4m.py" "$MODE" "$OUT/$MODE.y4m"
+case "$MODE" in sweep|wave|demo) ;; *) echo "mode must be sweep, wave or demo" >&2; exit 1 ;; esac
+SEED=${SEED:-5}
+case "$SEED" in ''|*[!0-9]*) echo "SEED must be a non-negative integer" >&2; exit 1 ;; esac
+# Demo mode needs no video at all: no fake camera, no permission flags (getUserMedia must never be called).
+CAMERA_FLAGS=()
+if [ "$MODE" != demo ]; then
+  [ -f "$OUT/$MODE.y4m" ] || python3 -I "$HERE/make_y4m.py" "$MODE" "$OUT/$MODE.y4m"
+  CAMERA_FLAGS=(--use-fake-ui-for-media-stream --use-fake-device-for-media-stream "--use-file-for-fake-video-capture=$OUT/$MODE.y4m")
+fi
 
 URL="http://127.0.0.1:$DEV/kiro-exorcise-game/"
 # Something already listens on the dev port: measuring that server would be silently wrong.
@@ -56,16 +66,16 @@ for _ in $(seq 1 200); do
 done
 curl -sf -o /dev/null "$URL" || { echo "vite did not serve $URL in time" >&2; exit 1; }
 
+PAGE="http://127.0.0.1:$DEV/kiro-exorcise-game/"; [ "$MODE" = demo ] && PAGE="$PAGE?demo=1&seed=$SEED"
 rm -rf "$OUT/profile-$MODE"; mkdir -p "$OUT/profile-$MODE"
 "$CHROME" --headless=new --user-data-dir="$OUT/profile-$MODE" --no-first-run \
   --no-default-browser-check --disable-gpu --window-size=1280,720 \
   --host-resolver-rules="MAP * ~NOTFOUND , EXCLUDE 127.0.0.1" \
-  --use-fake-ui-for-media-stream --use-fake-device-for-media-stream \
-  --use-file-for-fake-video-capture="$OUT/$MODE.y4m" \
+  ${CAMERA_FLAGS[@]+"${CAMERA_FLAGS[@]}"} \
   --autoplay-policy=no-user-gesture-required --remote-debugging-port="$PORT" \
-  "http://127.0.0.1:$DEV/kiro-exorcise-game/" > "$OUT/chrome-$MODE.log" 2>&1 & CHROME_PID=$!
+  "$PAGE" > "$OUT/chrome-$MODE.log" 2>&1 & CHROME_PID=$!
 
-START=space; [ "$MODE" = wave ] && START=wave
+START=space; [ "$MODE" = wave ] && START=wave; [ "$MODE" = demo ] && START=demo
 # Background + wait so INT/TERM traps fire immediately instead of after drive.mjs ends.
 node "$HERE/drive.mjs" "$PORT" $((SECS * 1000)) "$START" & DRIVE_PID=$!
 wait "$DRIVE_PID"
