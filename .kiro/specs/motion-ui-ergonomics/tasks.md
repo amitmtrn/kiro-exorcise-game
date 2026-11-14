@@ -51,3 +51,16 @@ Files: `README.md`, `tools/motion-harness/make_y4m.py`, `tools/motion-harness/RE
 - [x] README controls section and spec table; wave harness hovers over the new 1 PLAYER zone.
 - [x] `npm test` and `npm run build` both clean.
 - [x] Commit: `docs(motion-ui-ergonomics-T6): controls, harness and spec index`
+
+## T7 — Review fixes
+Files: `src/ui/motionButton.ts`, `src/ui/layout.ts`, `src/ui/seatCard.ts`, `src/game/loop.ts`, `src/main.ts`, `src/style.css`, `src/ui/screens.ts`, tests, spec docs
+
+- [x] R2.3: no reversal grace, first on frame after a gap uncredited; property test covers every off ≥ on pattern.
+- [x] Exclusive-group property asserts winner = first button, losers dropped and latched.
+- [x] `sharedButtonsLive` extracted and tested (offer vs PLAY AGAIN / MAIN MENU, both halves).
+- [x] Progress ring stays on the canvas (`RING_OUTSET`, radius cap) + property test.
+- [x] Sound hint font from `soundHintFontPx`, auto-hide after 8 s (R6.2).
+- [x] Start hint on two lines, ≥ 12 px at 640 px (R7.2).
+- [x] Design doc drift fixed (`COL_INNER_P1/P2`, `textBand(aw, seat)`, test file name).
+- [x] `npm test` and `npm run build` both clean.
+- [x] Commit: `fix(motion-ui-ergonomics): review fixes`

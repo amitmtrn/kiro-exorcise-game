@@ -114,6 +114,9 @@ describe('sound-unlock hint (motion-ui-ergonomics R6.1)', () => {
     const main = sources['../main.ts']
     expect(main).toContain('SOUND_HINT.topFrac')
     expect(main).toContain('SOUND_HINT.maxWidthFrac')
+    expect(main).toContain('soundHintFontPx(window.innerWidth)') // font from the same model as soundHintRect
+    expect(main).toContain('SOUND_HINT_MS') // auto-hides for webcam-only players (R6.2)
+    expect(sources['../style.css']).not.toMatch(/\.sound-hint[^}]*font-size:\s*clamp/)
     expect(SOUND_HINT.topFrac).toBeLessThan(0.05)
     for (const screen of ['start', 'summary', 'gameover', 'victory', 'preview', 'summary2p', 'final2p', 'preview2p'] as const) {
       for (const [w, h] of [[640, 480], [1280, 720], [2560, 1440]]) {

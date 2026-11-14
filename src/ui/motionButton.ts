@@ -4,6 +4,7 @@
  * display space, published every tick) to detect motion inside the circle.
  */
 
+import { RING_OUTSET } from './layout'
 import { lastMotionPixels, motionFrameSeq, motionCell } from '../game/collision'
 
 /** Where a button reads its motion points (display space of its own canvas). */
@@ -19,8 +20,6 @@ export const FILL_DURATION_MS = DWELL_MS
 export const MIN_COVERAGE = 0.12
 /** Absolute floor of moved samples inside the circle, whatever the circle size. */
 export const MIN_MOTION_PIXELS = 3
-/** A waving hand is still for a moment at each reversal: no drain for this long (R2.3). */
-export const REVERSAL_GRACE_MS = 100
 /** Off-target drain speed relative to the fill speed (> 1: sway never accumulates). */
 export const DECAY_RATE = 1.5
 /** Time credited between two real camera frames is capped (a stalled camera cannot fill a button). */
@@ -100,13 +99,14 @@ export class MotionButton {
     }
 
     if (active) {
-      if (wasActive || this.progress > 0) this.progress += dt // the first active frame only starts the clock
+      if (wasActive) this.progress += dt // the first active frame after a gap only restarts the clock
       if (this.progress >= this.dwellMs) {
         this.progress = 0
         this.awaitRelease = true // one wave = one trigger (exorcist-card R1.2)
         return 'triggered'
       }
-    } else if (now - this.lastActiveAt > REVERSAL_GRACE_MS) {
+    } else {
+      // No grace: every off frame drains, so on/off patterns with off >= on never net-fill (R2.3).
       this.progress = Math.max(0, this.progress - dt * DECAY_RATE)
     }
     return this.progress > 0 ? 'filling' : 'idle'
@@ -165,13 +165,13 @@ export class MotionButton {
 
     // Progress ring: always visible as a faint track, bright while filling
     ctx.beginPath()
-    ctx.arc(this.cx, this.cy, this.radius + 6, 0, Math.PI * 2)
+    ctx.arc(this.cx, this.cy, this.radius + RING_OUTSET - 3, 0, Math.PI * 2)
     ctx.strokeStyle = 'rgba(255, 209, 102, 0.25)'
     ctx.lineWidth = 4
     ctx.stroke()
     if (progress > 0) {
       ctx.beginPath()
-      ctx.arc(this.cx, this.cy, this.radius + 6, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * progress)
+      ctx.arc(this.cx, this.cy, this.radius + RING_OUTSET - 3, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * progress)
       ctx.strokeStyle = destructive ? '#c0392b' : '#39ff14'
       ctx.lineWidth = 6
       ctx.stroke()

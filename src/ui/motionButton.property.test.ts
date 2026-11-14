@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest'
 import fc from 'fast-check'
-import { MotionButton, DWELL_MS, DECAY_RATE, updateExclusive, REVERSAL_GRACE_MS } from './motionButton'
+import { MotionButton, DWELL_MS, updateExclusive } from './motionButton'
 import { updateMotionPixels } from '../game/collision'
 
 vi.mock('../webcam/diff', () => ({
@@ -41,10 +41,9 @@ describe('MotionButton properties (R2)', () => {
 
   it('any pattern whose off gaps outweigh its on bursts never fires (sway)', () => {
     fc.assert(fc.property(
-      fc.integer({ min: 1, max: 12 }), fc.integer({ min: 4, max: 20 }), fc.integer({ min: 1, max: 5 }),
+      fc.integer({ min: 1, max: 20 }), fc.integer({ min: 1, max: 20 }), fc.integer({ min: 1, max: 5 }),
       (onFrames, offFrames, cycles) => {
-        // off time beyond the grace drains faster than the on time fills
-        fc.pre((offFrames * 33 - REVERSAL_GRACE_MS) * DECAY_RATE >= onFrames * 33)
+        fc.pre(offFrames >= onFrames) // R2.3: off >= on never fires, however short the gaps
         const btn = new MotionButton(160, 90, 40, 'x')
         const on = disc(160, 90, 40)
         let t = 0
@@ -70,12 +69,22 @@ describe('MotionButton properties (R2)', () => {
     fc.assert(fc.property(fc.integer({ min: 2, max: 5 }), segs, (k, pattern) => {
       const btns = Array.from({ length: k }, () => new MotionButton(160, 90, 40, 'x'))
       const on = disc(160, 90, 40)
-      let t = 0
+      let t = 0, prevFired = false
       for (const s of pattern) for (let i = 0; i < s.n; i++) {
         frame(s.on ? on : [])
         const w = updateExclusive(btns, t, true)
         expect(w).toBeGreaterThanOrEqual(-1)
         expect(w).toBeLessThan(k)
+        if (w >= 0) {
+          // identical buttons: the first one wins; every other one is dropped and latched
+          expect(w).toBe(0)
+          btns.forEach((b, j) => { if (j !== w) expect(b.fillProgress()).toBe(0) })
+          prevFired = true
+        } else if (prevFired && s.on) {
+          // losers stay latched while the hand is still on the circle
+          expect(btns.every(b => b.fillProgress() === 0)).toBe(true)
+        }
+        if (!s.on) prevFired = false
         t += 33
       }
     }), { numRuns: 200 })

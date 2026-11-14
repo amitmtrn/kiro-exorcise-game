@@ -102,10 +102,11 @@ export function renderStartScreen(
   ctx.stroke()
 
   // Instruction
-  const hint = 'Raise a hand to a glowing circle  •  or press 1 / 2  •  Space = last mode'
-  ctx.font = `${fit(hint, clamp(W / 40, 13, 18), W)}px sans-serif`
+  const hintLines = ['Raise a hand to a glowing circle', 'or press 1 / 2  •  Space = last mode']
+  const hintPx = Math.min(...hintLines.map((l) => fit(l, clamp(W / 40, 13, 18), W)))
+  ctx.font = `${hintPx}px sans-serif`
   ctx.fillStyle = 'rgba(232,232,240,0.6)'; ctx.shadowBlur = 0
-  ctx.fillText(hint, W / 2, H * 0.9)
+  hintLines.forEach((l, i) => ctx.fillText(l, W / 2, H * 0.9 + i * hintPx * 1.3))
 
   ctx.restore()
 

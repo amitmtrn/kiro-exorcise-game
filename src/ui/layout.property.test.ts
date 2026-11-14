@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import fc from 'fast-check'
 import {
   buttonLayout, areaButtons, textRects, muteRectOf, soundHintRect, rectsOverlap, circleRect,
-  SCREENS_1P, SCREENS_2P, MAX_CENTRE_Y, CENTRE_BAND, buttonRadius,
+  SCREENS_1P, SCREENS_2P, MAX_CENTRE_Y, CENTRE_BAND, buttonRadius, RING_OUTSET,
 } from './layout'
 import type { ScreenId } from './layout'
 import { halfWidth, halfOffset } from '../game/halves'
@@ -72,6 +72,20 @@ describe('layout properties (motion-ui-ergonomics R1, R4, R5, R6)', () => {
       expect(hint.x + hint.w).toBeLessThanOrEqual(W)
       for (const b of buttonLayout(s, W, H, o)) expect(rectsOverlap(hint, circleRect(b))).toBe(false)
       expect(rectsOverlap(hint, muteRectOf(s, W))).toBe(false)
+    }), { numRuns: 400 })
+  })
+
+  it('the progress ring stays on the canvas, even at the outer columns (R5.1)', () => {
+    fc.assert(fc.property(size, screenArb, optsArb, ({ W, H }, s, o) => {
+      const hw = halfWidth(W)
+      for (const b of buttonLayout(s, W, H, o)) {
+        const lo = b.seat === null ? 0 : halfOffset(b.seat, W)
+        const hi = b.seat === null ? W : lo + hw
+        const ring = b.r + RING_OUTSET
+        expect(b.cx - ring).toBeGreaterThanOrEqual(lo - 1e-9)
+        expect(b.cx + ring).toBeLessThanOrEqual(hi + 1e-9)
+        expect(b.cy - ring).toBeGreaterThanOrEqual(0)
+      }
     }), { numRuns: 400 })
   })
 

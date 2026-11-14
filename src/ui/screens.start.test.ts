@@ -71,3 +71,20 @@ describe('start screen lock-out and latch (motion-ui-ergonomics R2.5)', () => {
     expect(two.cx).toBeGreaterThan(W / 2)
   })
 })
+
+describe('start hint readability (motion-ui-ergonomics R7.2)', () => {
+  it('is two short lines drawn at >= 12 px even on a 640 px canvas', () => {
+    resetStartScreen()
+    const fonts: string[] = [], texts: string[] = []
+    const store: Record<string, unknown> = { canvas: { width: 640, height: 480 } }
+    const ctx = new Proxy(store, {
+      get: (t, k: string) => k === 'fillText' ? (s: string) => texts.push(`${s}|${t.font}`) : (k in t ? t[k] : () => ({ width: 10 })),
+      set: (t, k: string, v) => { t[k] = v; return true },
+    }) as unknown as CanvasRenderingContext2D
+    renderStartScreen(ctx, createInitialState(1), 10_000, () => {})
+    const hint = texts.filter((t) => t.startsWith('Raise a hand') || t.startsWith('or press'))
+    expect(hint).toHaveLength(2)
+    for (const h of hint) { fonts.push(h.split('|')[1]); expect(parseInt(h.split('|')[1])).toBeGreaterThanOrEqual(12) }
+    expect(fonts.length).toBe(2)
+  })
+})

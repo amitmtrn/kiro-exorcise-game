@@ -154,7 +154,8 @@ html, body {
   background: rgba(13, 0, 20, 0.7);
   color: #ffd166;
   font-family: inherit;
-  font-size: clamp(14px, 2vw, 22px);
+  /* font-size comes from layout.ts soundHintFontPx (applied by main.ts) */
+  font-size: 14px;
   pointer-events: none;
 }
 .sound-hint[hidden] { display: none; }

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest'
 import fc from 'fast-check'
-import { SeatCard, seatOfferGeometry, routeSeatClick, PREVIEW_LOCK_MAX_MS } from './seatCard'
+import { SeatCard, seatOfferGeometry, routeSeatClick, sharedButtonsLive, PREVIEW_LOCK_MAX_MS } from './seatCard'
 import type { SeatSession } from './seatCard'
 import { previewLayout, PREVIEW_INPUT_DELAY_MS } from './cardScreen'
 import { displayPointsInHalf, halfWidth } from '../game/halves'
@@ -239,5 +239,29 @@ describe('preview lease (motion-ui-ergonomics R4.3)', () => {
     expect(card.blocksOtherHalf(1000)).toBe(true)
     expect(card.blocksOtherHalf(1000 + PREVIEW_LOCK_MAX_MS - 1)).toBe(true)
     expect(card.blocksOtherHalf(1000 + PREVIEW_LOCK_MAX_MS)).toBe(false)
+  })
+})
+
+describe('offer vs shared buttons in one frame (motion-ui-ergonomics R2.7)', () => {
+  it('an offer that opens this frame holds its half\'s shared buttons; both halves may open together', () => {
+    const sessions = [fakeSession(), fakeSession()]
+    const pts: Pt[][] = [[], []]
+    const cards = [0, 1].map((s) => new SeatCard(s as Seat, sessions[s], () => pts[s])) as [SeatCard<CanvasImageSource>, SeatCard<CanvasImageSource>]
+    const ctx = fakeCtx(HW, H)
+    cards.forEach((c) => c.render(ctx, 0, true))
+    pts[0] = ring(seatOfferGeometry(HW, H, 0).cx, seatOfferGeometry(HW, H, 0).cy, seatOfferGeometry(HW, H, 0).r)
+    pts[1] = ring(seatOfferGeometry(HW, H, 1).cx, seatOfferGeometry(HW, H, 1).cy, seatOfferGeometry(HW, H, 1).r)
+    let sawLiveWhileOpening = false
+    for (let now = 100; now <= 100 + FILL_DURATION_MS + 400; now += 33) {
+      newFrame()
+      const before = sessions.map((s) => s.calls.open)
+      cards.forEach((c) => c.render(ctx, now, true))
+      const live = sharedButtonsLive(cards, now)
+      sessions.forEach((s, i) => { if (s.calls.open > before[i] && live[i]) sawLiveWhileOpening = true })
+    }
+    expect(sessions[0].calls.open).toBe(1)
+    expect(sessions[1].calls.open).toBe(1)
+    expect(sawLiveWhileOpening).toBe(false)
+    expect(sharedButtonsLive(cards, 5000)).toEqual([false, false])
   })
 })

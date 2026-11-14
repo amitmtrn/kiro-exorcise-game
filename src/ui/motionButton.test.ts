@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest'
 import {
-  MotionButton, DWELL_MS, DESTRUCTIVE_DWELL_MS, MIN_MOTION_PIXELS, REVERSAL_GRACE_MS, MAX_FRAME_GAP_MS,
+  MotionButton, DWELL_MS, DESTRUCTIVE_DWELL_MS, MIN_MOTION_PIXELS, MAX_FRAME_GAP_MS,
   RELEASE_STILL_MS, ENTRY_LOCK_MS, EntryLock, updateExclusive,
 } from './motionButton'
 import { updateMotionPixels } from '../game/collision'
@@ -86,11 +86,11 @@ describe('MotionButton activation (motion-ui-ergonomics R2)', () => {
 
   it('keeps filling through a short reversal gap', () => {
     const btn = new MotionButton(160, 90, 40, 'x')
-    let t = run(btn, 0, 300, true).t
-    t = run(btn, t, REVERSAL_GRACE_MS - 30, false).t
+    let t = run(btn, 0, 400, true).t
+    t = run(btn, t, 70, false).t
     const p = btn.fillProgress()
     expect(p).toBeGreaterThan(0.3)
-    expect(run(btn, t, 400, true).fired).toBe(true)
+    expect(run(btn, t, 500, true).fired).toBe(true)
   })
 
   it('drains partially instead of resetting to zero', () => {

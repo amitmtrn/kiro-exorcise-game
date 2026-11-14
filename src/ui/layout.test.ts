@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { buttonLayout, areaButtons, fitFontPx, previewCardRect, soundHintRect, SCREENS_2P } from './layout'
+import { soundHintFontPx, buttonLayout, areaButtons, fitFontPx, previewCardRect, soundHintRect, SCREENS_2P } from './layout'
 
 const ids = (s: Parameters<typeof buttonLayout>[0], W = 1280, H = 720) => buttonLayout(s, W, H).map((b) => b.id)
 
@@ -55,6 +55,11 @@ describe('helpers', () => {
     expect(c.x).toBeGreaterThan(0.12 * 1280)
     expect(c.x + c.w).toBeLessThan(0.88 * 1280)
     expect(c.h).toBeLessThanOrEqual(0.8 * 720 + 1e-9)
+  })
+  it('sound hint font follows the viewport width, clamped to 14..22 px', () => {
+    expect(soundHintFontPx(300)).toBe(14)
+    expect(soundHintFontPx(1000)).toBe(20)
+    expect(soundHintFontPx(4000)).toBe(22)
   })
   it('sound hint is at the top centre', () => {
     const h = soundHintRect(1280, 720)

@@ -86,9 +86,10 @@ a sleeve or a single finger does not count. Coverage is measured in cells of the
 motion grid, so it is independent of the canvas size.
 
 **R2.3** Decay instead of reset: while the hand is off the circle the fill drains
-at **1.5×** the fill rate after a 100 ms reversal grace, so a rhythmic sway never
-accumulates (a button never fills with less than 650 ms of on-target time, and
-`on/off` patterns with off ≥ on never fire).
+at **1.5×** the fill rate from the first off frame (no grace), and the first on
+frame after a gap only restarts the clock. A rhythmic sway therefore never
+accumulates: a button never fills with less than 650 ms of on-target time, and
+`on/off` patterns with off ≥ on never fire, whatever the gap length.
 
 **R2.4** Duplicate camera frames are ignored by buttons: a tick whose camera
 frame equals the previous one neither fills nor drains and returns the previous
@@ -141,7 +142,8 @@ mute rect is disjoint from every 2P button.
 
 ## R5 — Sizes
 
-**R5.1** Radii scale with the canvas: `r = clamp(min(0.07·H, 0.08·W or 0.105·halfW), 20, 80)`.
+**R5.1** Radii scale with the canvas: `r = clamp(min(0.07·H, 0.08·W or 0.105·halfW, 0.12·aw − 10), 20, 80)`.
+The cap keeps the progress ring (radius + 9 px with its stroke) on the canvas at the outer column.
 Nothing is clipped at any size from 640×480 to 2560×1440 (including odd aspect
 ratios in that range). Text of the menu screens is fitted to the central 60 %.
 
@@ -149,13 +151,21 @@ ratios in that range). Text of the menu screens is fitted to the central 60 %.
 
 **R6.1** The sound hint is at the top centre (1.5 % from the top, at most 56 % of
 the width) and does not intersect any motion button, the mute button or the
-2P mute button.
+2P mute button. The hint's font size comes from the same model (`soundHintFontPx`
+of the viewport width).
+
+**R6.2** The hint hides itself 8 s after it is shown, so a webcam-only player
+(who never clicks) does not keep it over the stage label during play.
 
 ## R7 — Onboarding
 
 **R7.1** The silhouette guide's hand targets are exactly the start screen's
 button zones (same layout constants, same centres and radii) and it shows the
 line "Raise a hand to the glowing circles to press them".
+
+**R7.2** The start screen's instruction is two short lines ("Raise a hand to a
+glowing circle" / "or press 1 / 2 • Space = last mode"), each fitted to the
+central text band and drawn at 12 px or more on a 640 px canvas.
 
 ## R8 — Unchanged behaviour and constraints
 

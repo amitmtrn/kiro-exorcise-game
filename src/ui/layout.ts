@@ -51,6 +51,8 @@ export const COL_RIGHT_1P = 0.88
 export const RADIUS_H = 0.07
 export const RADIUS_W_FULL = 0.08
 export const RADIUS_W_HALF = 0.105
+/** Distance from the circle edge to the outer edge of the progress ring stroke (ring r + 6, line width 6). */
+export const RING_OUTSET = 9
 export const RADIUS_MIN = 20
 export const RADIUS_MAX = 80
 /** Body centreline exclusion: |x − c| ≥ this × area width (R1.2). */
@@ -65,7 +67,8 @@ export const CARD_ASPECT = 600 / 840
 
 /** Radius for an area `aw` wide and `H` high (scales with the canvas, clamped). */
 export function buttonRadius(aw: number, H: number, half: boolean): number {
-  const r = Math.min(RADIUS_H * H, (half ? RADIUS_W_HALF : RADIUS_W_FULL) * aw)
+  // the progress ring (radius + RING_OUTSET) must stay on the canvas at the outer column too (R5.1)
+  const r = Math.min(RADIUS_H * H, (half ? RADIUS_W_HALF : RADIUS_W_FULL) * aw, COL_OUTER * aw - RING_OUTSET - 1)
   return Math.floor(Math.max(RADIUS_MIN, Math.min(RADIUS_MAX, r)))
 }
 
@@ -185,9 +188,14 @@ export function muteRectOf(screen: ScreenId, W: number): Rect {
 /** Placement of the sound-unlock hint pill: top centre, ≤ 56 % wide (main.ts applies it as inline style). */
 export const SOUND_HINT = { topFrac: 0.015, maxWidthFrac: 0.56 } as const
 
+/** Font size in px of the hint pill for a viewport `W` px wide (main.ts applies it inline). */
+export function soundHintFontPx(W: number): number {
+  return Math.max(14, Math.min(22, 0.02 * W))
+}
+
 /** The sound-unlock hint pill rect for a canvas (mirrors the `.sound-hint` element). */
 export function soundHintRect(W: number, H: number): Rect {
-  const font = Math.max(14, Math.min(22, 0.02 * W))
+  const font = soundHintFontPx(W)
   const w = Math.min(SOUND_HINT.maxWidthFrac * W, 24 * font)
   const h = font * 2.2
   return { x: W / 2 - w / 2, y: SOUND_HINT.topFrac * H, w, h }

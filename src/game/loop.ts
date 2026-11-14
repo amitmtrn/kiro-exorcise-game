@@ -52,7 +52,7 @@ import { badgeFor, cardFileName, seatLabel } from '../card/twoPlayerCard'
 import { composeCard } from '../card/draw'
 import { downloadCanvasPng } from '../card/download'
 import { CardPreview, cardKeyAction, offerHit, lockEndButtons } from '../ui/cardScreen'
-import { SeatCard, routeSeatClick } from '../ui/seatCard'
+import { SeatCard, routeSeatClick, sharedButtonsLive } from '../ui/seatCard'
 import type { CardAction } from '../ui/cardScreen'
 import { sfxStageClear, startMusic, startTitleMusic, stopMusic, setMusicCombo } from '../audio/index'
 
@@ -356,8 +356,7 @@ export async function startLoop(
       }
       // A half's shared buttons wait for its own preview (open or just changed); the other half's open preview holds
       // them for at most PREVIEW_LOCK_MAX_MS, so one player cannot lock the other out (motion-ui-ergonomics R4.3).
-      const buttonsLive: [boolean, boolean] = [0, 1].map((s) =>
-        !seatCards[s].isOpen && now >= seatCards[s].lockedUntil && !seatCards[1 - s].blocksOtherHalf(now)) as [boolean, boolean]
+      const buttonsLive = sharedButtonsLive([seatCards[0], seatCards[1]], now)
       renderTwoPlayerFinal(gameCtx, t, now,
         () => { twoAction = 'again' },
         () => { twoAction = 'menu' },

@@ -46,6 +46,20 @@ export interface SeatSession<C extends CanvasImageSource> {
   takeStatus(): 'saved' | 'failed' | null
 }
 
+/**
+ * Which halves' shared buttons (PLAY AGAIN / MAIN MENU) may read motion, per half. Must be computed after
+ * both cards rendered this frame: an offer that just opened makes `isOpen` true, so it wins the frame over
+ * the shared buttons (motion-ui-ergonomics R2.7).
+ */
+export function sharedButtonsLive(
+  cards: readonly [{ isOpen: boolean; lockedUntil: number; blocksOtherHalf(now: number): boolean },
+    { isOpen: boolean; lockedUntil: number; blocksOtherHalf(now: number): boolean }],
+  now: number,
+): [boolean, boolean] {
+  return [0, 1].map((s) =>
+    !cards[s].isOpen && now >= cards[s].lockedUntil && !cards[1 - s].blocksOtherHalf(now)) as [boolean, boolean]
+}
+
 export class SeatCard<C extends CanvasImageSource> {
   private readonly preview: CardPreview
   private offer: ButtonSet

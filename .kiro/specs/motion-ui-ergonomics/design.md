@@ -18,8 +18,8 @@ Zones, as fractions of the **area** (the canvas in 1P, one half in 2P) :
 | `ROW_A` | 0.17 H | first row (prefer 15–35 %) |
 | row B | `ROW_A·H + 3.1·r` | second row, centre distance 3.1 r (gap 1.1 r); ≤ 0.387 H |
 | `COL_OUTER` | 0.12 | left column in 1P, screen-edge column in 2P |
-| `COL_INNER_2P` | 0.80 (P1) / 0.20 (P2) | inner column of a half |
-| radius | `clamp(min(0.07 H, 0.08 aw | 0.105 aw), 20, 80)` | `aw` = area width, 0.105 for a half |
+| `COL_INNER_P1` / `COL_INNER_P2` | 0.80 / 0.20 | inner column of a half |
+| radius | `clamp(min(0.07 H, 0.08 aw \| 0.105 aw, 0.12 aw − 10), 20, 80)` | `aw` = area width, 0.105 for a half; last term keeps the ring (`RING_OUTSET` 9) on the canvas |
 | single column y | `max(row A, muteBottom + r + 8)` | clears the mute button; always ≤ 0.40 H |
 
 Slots per area: a **stacked column** (rows A and B) and a **single column**
@@ -41,7 +41,7 @@ API (all pure):
 ```ts
 buttonLayout(screen, W, H, opts?) : ButtonSpec[]        // full-canvas coordinates, 2P screens return both halves
 areaButtons(screen, aw, H, seat | null, opts?) : ButtonSpec[]   // area-local coordinates (what a half canvas uses)
-textBand(aw, H, kind) : { x0, x1 }                       // x range reserved for centred text
+textBand(aw, seat) : { x0, x1 }                       // x range reserved for centred text
 textRects(screen, W, H) : Rect[]                         // title / score / banner / card-image rects
 fitFontPx(text, px, maxW) : number                       // keeps centred titles inside the text band
 soundHintRect(W, H) : Rect                               // mirrors the CSS of .sound-hint
@@ -71,8 +71,8 @@ between the columns.
 4. While `awaitRelease` (after a trigger, or `updateGated(now, false)`): stay idle
    with progress 0 until the circle was still for > 150 ms.
 5. Active: `progress += dt` if the previous evaluation was active or progress > 0
-   (the first active frame only starts the clock). Inactive: hold for
-   `REVERSAL_GRACE_MS` (100), then `progress −= 1.5 · dt`.
+   (the first active frame only starts the clock). Inactive: `progress −= 1.5 · dt`
+   on every off frame, no grace (a grace period let 3-on/3-off patterns net-fill).
 6. `progress ≥ dwell` → `'triggered'` once, progress 0, latch armed.
 
 `fillProgress()` = `progress / dwell`; `render` draws the wedge and a ring (arc
@@ -117,7 +117,7 @@ the head/shoulders (inside the text band).
 |---|---|
 | `layout.test.ts`, `layout.property.test.ts` | R1, R3.2, R4.4, R4.5, R5, R6, R7 over random canvases |
 | `motionButton.test.ts`, `motionButton.property.test.ts` | R2 |
-| `screens.*.test.ts`, `splitscreen.test.ts`, `seatCard.test.ts`, `cardScreen.test.ts`, `loop.*.test.ts` | per-screen lockout/latch, exclusivity, 2P halves, lease |
+| `screens.*.test.ts`, `splitscreen.buttons.test.ts`, `seatCard.test.ts`, `cardScreen.test.ts`, `loop.*.test.ts` | per-screen lockout/latch, exclusivity, 2P halves, lease |
 | `onboarding.test.ts` | hand targets equal layout zones |
 
 ## Notes
@@ -130,3 +130,9 @@ the head/shoulders (inside the text band).
   walked away cannot hold the other hostage, and sway cannot reach a raised edge button with 12 % coverage and
   a 650 ms dwell. MAIN MENU needs 1000 ms.
 * Motion harness `wave` mode now hovers over the 1 PLAYER zone (mirrored raw x = 88 %, y = 17 %).
+
+## Review fixes (T7)
+
+- `sharedButtonsLive(cards, now)` (`seatCard.ts`) is computed after both cards rendered, so an offer
+  that opens this frame holds its half's PLAY AGAIN / MAIN MENU (R2.7); `loop.ts` uses it.
+- `main.ts` sets the hint font from `soundHintFontPx(window.innerWidth)` and hides the hint after `SOUND_HINT_MS` (8 s).
