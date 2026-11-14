@@ -22,11 +22,11 @@ Files: `src/game/collision.ts`, `src/ui/motionButton.ts`, `src/ui/motionButton.t
 ## T3 — 1P screens use the layout
 Files: `src/ui/screens.ts`, `src/ui/cardScreen.ts`, `src/game/loop.ts`, tests
 
-- [ ] Start, summary, game over, victory and card offer / preview buttons from `buttonLayout`; text fitted to the text band; card image ≤ 60 % width.
-- [ ] Entry lockout + latch on every 1P screen (`resetGameOverScreen`); exclusive groups (offer, retry, menu); destructive dwell for MENU / SAVE.
-- [ ] Clicks, taps and keys unchanged (tests).
-- [ ] `npm test` and `npm run build` both clean.
-- [ ] Commit: `feat(motion-ui-ergonomics-T3): 1P buttons in raised-hand zones`
+- [x] Start, summary, game over, victory and card offer / preview buttons from `buttonLayout`; text fitted to the text band; card image ≤ 60 % width.
+- [x] Entry lockout + latch on every 1P screen (`resetGameOverScreen`); exclusive groups (offer, retry, menu); destructive dwell for MENU / SAVE.
+- [x] Clicks, taps and keys unchanged (tests).
+- [x] `npm test` and `npm run build` both clean.
+- [x] Commit: `feat(motion-ui-ergonomics-T3): 1P buttons in raised-hand zones`
 
 ## T4 — 2P screens and halves
 Files: `src/ui/splitscreen.ts`, `src/ui/seatCard.ts`, `src/ui/hud.ts`, `src/game/loop.ts`, tests

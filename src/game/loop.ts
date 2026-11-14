@@ -35,6 +35,7 @@ import {
   renderVictory,
   resetVictoryScreen,
   resetStartScreen,
+  resetGameOverScreen,
 } from '../ui/screens'
 import {
   tickRound,
@@ -239,6 +240,8 @@ export async function startLoop(
   const hudCanvases: HTMLCanvasElement[] = [] // transparent per-seat HUD layers, drawn above the divider
   /** True while the start screen is the visible screen (entry detection for its lock-out). */
   let startVisible = false
+  /** True while the game-over screen is the visible screen (entry detection for its lock-out). */
+  let gameOverVisible = false
   /** Action requested by a 2P screen button during a tick; applied after the tick returns (so it is not overwritten). */
   let twoAction: 'next' | 'again' | 'menu' | null = null
 
@@ -447,6 +450,7 @@ export async function startLoop(
 
     startVisible = false
     startRequest = null // a stray key outside the start screen is ignored
+    if (state.phase !== 'gameover') gameOverVisible = false
 
     // ── Stage title card ──────────────────────────────────────────────────────
     if (state.phase === 'stageTitle') {
@@ -479,6 +483,7 @@ export async function startLoop(
 
     // ── Game Over ─────────────────────────────────────────────────────────────
     if (state.phase === 'gameover') {
+      if (!gameOverVisible) { resetGameOverScreen(); gameOverVisible = true } // explicit entry: lock-out + fresh buttons
       saveHighScore(state.highScore)
       state = tickEffects(state, deltaMs)
       renderFrame(gameCtx, state, now)

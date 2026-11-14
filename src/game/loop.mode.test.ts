@@ -39,7 +39,7 @@ vi.mock('../ui/splitscreen', () => ({
 }))
 vi.mock('../ui/screens', () => ({
   renderStartScreen: (_c: unknown, _s: unknown, _n: unknown, cb: (m: 1 | 2) => void) => { h.onStart = cb; if (h.fireStart) { const m = h.fireStart; h.fireStart = null; cb(m) } }, renderStageTitle: vi.fn(), renderSummary: vi.fn(),
-  renderGameOver: vi.fn(), renderVictory: vi.fn(), resetVictoryScreen: vi.fn(), resetStartScreen: vi.fn(),
+  renderGameOver: vi.fn(), renderVictory: vi.fn(), resetVictoryScreen: vi.fn(), resetStartScreen: vi.fn(), resetGameOverScreen: vi.fn(),
 }))
 vi.mock('../audio/index', () => ({
   sfxLifeLost: vi.fn(), sfxStageClear: vi.fn(), startMusic: vi.fn(), startTitleMusic: vi.fn(),

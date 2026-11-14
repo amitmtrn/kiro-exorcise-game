@@ -11,7 +11,7 @@
 
 import { halfOffset, halfWidth } from '../game/halves'
 import type { Seat } from '../game/halves'
-import { hudFontSize, muteButtonRect, muteButtonRect2P } from './hud'
+import { hudFontSize, muteButtonRect, muteButtonRect2P } from './muteRect'
 
 export type ScreenId =
   | 'start' | 'summary' | 'gameover' | 'victory' | 'preview'
