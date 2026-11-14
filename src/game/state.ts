@@ -73,6 +73,7 @@ export interface Enemy {
   // Skull-specific (feel-fix R2)
   onScreenMs: number // time the centre has been inside the canvas
   exiting: boolean   // skull is leaving the screen
+  graceMs: number    // playtest2-fixes R3.3: skull spawn grace left (counts down while fully on screen); touching it costs nothing while > 0
   // Spooky-skin R4.2 — frames left to render this enemy in solid white
   hitFlashFrames: number
   // Juice R1: display-space centroid of the moved pixels in the hitbox on the last gate frame with motion
@@ -197,6 +198,7 @@ export function makeEnemy(partial: Partial<Enemy> & Pick<Enemy, 'id' | 'type' | 
     harmless: false,
     onScreenMs: 0,
     exiting: false,
+    graceMs: 0,
     ...partial,
   }
 }

@@ -193,6 +193,12 @@ export function resolveHits(
       continue
     }
 
+    // A new skull is harmless until its spawn grace has run (playtest2-fixes R3.3): the swat is ignored and it stays.
+    if (enemy.type === 'skull' && enemy.graceMs > 0) {
+      updatedEnemies.push({ ...enemy, hitCount: 0 })
+      continue
+    }
+
     // Shielded boss / approaching lunger: motion does nothing and the gate resets.
     // A protected mirror ghost still runs the gate: the swat is absorbed with feedback (more-content R3.1).
     if (!isHittable(enemy) && enemy.type !== 'mirror') {

@@ -44,9 +44,9 @@ mark use the palette's danger colour and the same shapes.
 each 2P half, also when the heart is protected by the grace window (the combo
 still resets).
 
-**R1.4** Threatening line / arc enemies (ghost, pumpkin) end inside the player
-zone (the centre of the canvas, `PLAYER_END` box), not at an arbitrary play-area
-point. This amends waves R1.2 ("not the centre") and keeps its reaction
+**R1.4** Threatening line / arc enemies and landing drops (ghost, pumpkin) end
+inside the player zone (the centre of the area, `PLAYER_END`: x 38–62 %,
+y 35–65 %), not at an arbitrary play-area point. This amends waves R1.2 ("not the centre") and keeps its reaction
 window: a line / arc walk never takes less time than a walk of
 `MIN_CHORD_H` (0.85) canvas heights at the same nominal speed. A shorter chord
 is travelled proportionally slower (speed scaled, duration kept).

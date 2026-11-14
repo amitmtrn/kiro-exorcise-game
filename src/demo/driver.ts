@@ -128,6 +128,17 @@ export function stepSafe(
   return true
 }
 
+/** Extra clearance (px) the hand keeps from a skull's corridor before it steps aside. */
+const SKULL_CORRIDOR_PX = 90
+
+/** Distance from a point to the segment a → b. */
+function distToSegment(p: Pt, a: Pt, b: Pt): number {
+  const dx = b.x - a.x, dy = b.y - a.y
+  const l2 = dx * dx + dy * dy
+  const t = l2 === 0 ? 0 : clamp(((p.x - a.x) * dx + (p.y - a.y) * dy) / l2, 0, 1)
+  return Math.hypot(p.x - (a.x + dx * t), p.y - (a.y + dy * t))
+}
+
 function smoother(u: number): number { const c = Math.min(1, Math.max(0, u)); return c * c * c * (c * (6 * c - 15) + 10) }
 /** Skulls that can be hit right now: hit detection runs while playing and on the summary screen only. */
 function liveSkulls(view: DemoView): Enemy[] {
@@ -181,6 +192,8 @@ interface Move {
   miss?: boolean
   /** For glides: a staging move round a skull. */
   detour?: boolean
+  /** A step aside out of a skull's corridor (never interrupted by another flee). */
+  flee?: boolean
 }
 
 interface Track {
@@ -308,6 +321,11 @@ export class DemoDriver {
     }
 
     if (this.move && this.move.kind !== 'circle' && view.phase === 'playing') this.maybeInterrupt(view)
+    if (this.move && !this.move.flee && view.phase === 'playing') {
+      // A skull heading for the hand beats everything else: step into the body column while that is still safe.
+      const flee = this.fleeFromSkull(view, R, liveSkulls(view))
+      if (flee) { this.move = flee; this.holdMs = 0 }
+    }
     if (!this.move) this.plan(view, R, dt)
 
     if (this.move) {
@@ -406,6 +424,10 @@ export class DemoDriver {
   private planPlaying(view: DemoView, R: number, dt: number): void {
     if (this.holdMs > 0) { this.holdMs -= dt; if (this.holdMs > 0) return }
     const skulls = liveSkulls(view)
+    // A skull flies a straight line to its hover point beside the body zone (playtest2-fixes R2). A hand resting in
+    // that corridor would be pinned by the skull rule until the skull leaves, so it steps into the body column first.
+    const flee = this.fleeFromSkull(view, R, skulls)
+    if (flee) { this.move = flee; return }
     const staged = this.stageLunger(view)
     if (staged) {
       this.idleSince = this.t
@@ -439,6 +461,19 @@ export class DemoDriver {
     }
   }
 
+  /** A glide into the body column when a skull's remaining corridor passes near the hand; null when not needed or unsafe. */
+  private fleeFromSkull(view: DemoView, R: number, skulls: readonly Enemy[]): Move | null {
+    const near = skulls.some((sk) => {
+      const half = Math.max(sk.hitbox.w, sk.hitbox.h) / 2
+      return distToSegment(this.hand, sk, { x: sk.targetX, y: sk.targetY }) < half + R + SKULL_CORRIDOR_PX
+    })
+    if (!near) return null
+    const to = { x: view.w / 2, y: clamp(this.hand.y, 0.3 * view.h, 0.7 * view.h) }
+    if (Math.hypot(to.x - this.hand.x, to.y - this.hand.y) < 30) return null
+    const mv = this.makeGlide(to, view.h, 250, 700)
+    return this.pathSafe(mv.at, mv.dur, R, skulls, view) ? { ...mv, flee: true } : null
+  }
+
   /** How urgent an enemy is: lower is more urgent. Attacking lungers / bosses first, then threats near the centre. */
   private urgency(e: Enemy, view: DemoView): number {
     const attacking = (e.type === 'boss' && e.bossAttack !== 'idle') || (e.type === 'lunger' && e.movePhase !== 'approach')
@@ -455,6 +490,7 @@ export class DemoDriver {
     const m = this.move!
     // A glide (pre-positioning, going home, a detour) gives way to any target that is ready, unless it is the
     // detour itself (it has no target and leads to a safe swipe; any target interrupts only when urgent).
+    if (m.flee) return // stepping out of a skull's corridor is finished first
     if (m.kind === 'glide' && !m.detour) {
       if (this.pickTarget(view)) { this.move = null; this.holdMs = 0 }
       return

@@ -61,8 +61,9 @@ Fixes:
   `'miss'` in `palette.danger` with an outline; the text itself is the cue.
   The heart loss already shakes the hearts (playtest1-fixes R1.3), so the red
   word at the enemy and the shaking hearts appear on the same tick.
-- **Where threats end (the choice).** Line / arc ghosts and pumpkins end in
-  `PLAYER_END`: x 38–62 %, y 35–65 % of the area played. Alternatives:
+- **Where threats end (the choice, T1).** Line / arc ghosts and pumpkins end in
+  `PLAYER_END`: x 38–62 %, y 35–65 % of the area played; landing drops land at
+  x 38–62 %, y 45–65 %. Alternatives:
   - *Keep a random play-area point, add the telegraph only.* Fair, but a heart
     can still be lost far from anyone, and the lost heart stays unexplained.
   - *End at the exact centre like the new ghosts and the lunger.* Simplest, but
@@ -106,6 +107,18 @@ a target y, and the skull flies along the horizontal line to it. It exits along
 so it never crosses the column. A 2P seat passes its half, so each half has its
 own column. The skull stays a hazard at both sides of the player, at hand height.
 
+### Demo driver (T1)
+Skulls now hover at the sides, where the hand rests between swipes. The skull
+rule (demo-mode R4.5) then pinned the hand next to a hovering skull until it left,
+and threats ending at the centre cost hearts (seed 5 lost runs at 960 × 540 and at
+speed 3). `fleeFromSkull` glides the hand into the body column when a skull's
+remaining corridor (its position to its target) passes within
+`hitbox / 2 + R + 90 px` of the hand; a flee is not interrupted by targets (an
+interrupted glide restarts its easing each tick and never gets anywhere). The
+body column is skull-free by construction, so the flee always ends safe. With it
+seed 5 is clean at every tested size and speed, and no seed 1–16 fails at speed 2;
+the game-over coverage test uses seed 10 at speed 3.
+
 ## 3. A skull hurts the moment it enters, under the HUD (T1)
 
 Observed: a skull enters from the bottom left, under the "Score" text, where a
@@ -128,11 +141,13 @@ Fix:
   `y ∈ [max(0.25 H, hudH + halfHit), min(0.65 H, H − hudH − halfHit)]`
   (`H / 2` when the band is empty on a tiny canvas). The line is horizontal, so the
   hitbox never meets a HUD rect or the body column.
-- `SKULL_GRACE_MS = 1000`: `warnMs` of a skull counts while its whole hitbox is
-  inside the canvas. While `warnMs < SKULL_GRACE_MS` `resolveHits` ignores the
-  skull (no hit, no life loss, not removed) and the danger ring of §1 shows with
-  the same progress. A skull in the grace therefore costs nothing at any frame
-  rate; after the grace it behaves as before.
+- `SKULL_GRACE_MS = 1000`: a new skull carries `graceMs = SKULL_GRACE_MS`, and
+  `tickSkull` counts it down by `deltaMs` only while its whole hitbox is inside the
+  canvas. While `graceMs > 0` `resolveHits` ignores the skull (no hit, no life
+  loss, not removed) and the danger ring of §1 shows. A skull in the grace
+  therefore costs nothing at any frame rate; after the grace it behaves as before.
+- The exit is horizontal, away from the centre (`tickSkull`), so it never crosses
+  the body column or a HUD row.
 
 ## 4. Silence after death, silent motion buttons (T3, T4)
 

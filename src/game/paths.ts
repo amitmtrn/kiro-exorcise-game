@@ -5,6 +5,8 @@
  * heights), so it cannot depend on the canvas size either.
  */
 
+import { PLAYER_END } from './zones'
+
 export type PathKind = 'line' | 'arc' | 'flyby' | 'drop'
 export type WavePath = PathKind | 'swarm'
 export const WAVE_PATHS: readonly WavePath[] = ['line', 'arc', 'flyby', 'drop', 'swarm']
@@ -132,34 +134,19 @@ function edgeStart(r: Rand, W: number, H: number, edges: Edges): { x: number; y:
 }
 
 /**
- * Pick the walk target for a line / arc: a random play-area point (x 20–80 %,
- * y 25–75 %), unless that walk is shorter than MIN_CHORD_H. Then the target is
- * built deterministically instead: the point MIN_CHORD_H away from the start,
- * towards the random point, clamped to the play area; if clamping still leaves it
- * short, the farthest corner of the play area. So the walk is always at least
- * min(MIN_CHORD_H, the farthest reachable distance) — on very narrow canvases
- * the full 0.85 H can be geometrically out of reach.
+ * Walk target for a line / arc (playtest2-fixes R1.4): a random point in the player zone `PLAYER_END`, so a
+ * threat that costs a heart does so where the player is, not at an arbitrary, unmarked point.
  */
-function walkTarget(r: Rand, start: { x: number; y: number }, W: number, H: number): { x: number; y: number } {
-  const dist = (x: number, y: number) => Math.hypot((x - start.x) * W, (y - start.y) * H) / H
-  const cx = between(r, 0.2, 0.8)
-  const cy = between(r, 0.25, 0.75)
-  if (dist(cx, cy) >= MIN_CHORD_H) return { x: cx, y: cy }
-  const clampX = (x: number) => Math.min(0.8, Math.max(0.2, x))
-  const clampY = (y: number) => Math.min(0.75, Math.max(0.25, y))
-  // Push the random target out along the same direction to exactly MIN_CHORD_H.
-  const dx = (cx - start.x) * W / H, dy = cy - start.y
-  const len = Math.hypot(dx, dy) || 1
-  const px = clampX(start.x + (dx / len) * MIN_CHORD_H * H / W)
-  const py = clampY(start.y + (dy / len) * MIN_CHORD_H)
-  if (dist(px, py) >= MIN_CHORD_H) return { x: px, y: py }
-  // Farthest corner of the play area.
-  let best = { x: cx, y: cy }, bestD = -1
-  for (const x of [0.2, 0.8]) for (const y of [0.25, 0.75]) {
-    const d = dist(x, y)
-    if (d > bestD) { bestD = d; best = { x, y } }
-  }
-  return best
+function walkTarget(r: Rand): { x: number; y: number } {
+  return { x: between(r, PLAYER_END.x0, PLAYER_END.x1), y: between(r, PLAYER_END.y0, PLAYER_END.y1) }
+}
+
+/**
+ * The reaction window (waves R1.2): a walk shorter than MIN_CHORD_H is travelled proportionally slower, so it
+ * never takes less time than a MIN_CHORD_H walk at the nominal speed, on any canvas shape.
+ */
+function windowSpeed(speed: number, chordH: number): number {
+  return chordH >= MIN_CHORD_H ? speed : speed * (chordH / MIN_CHORD_H)
 }
 
 /** Build one path. `swarm` is not a kind of its own: see makeSwarm. */
@@ -182,8 +169,9 @@ export function makePath(kind: PathKind, o: PathOptions): PathSpec {
   }
 
   if (kind === 'drop') {
-    const x = between(r, 0.15, 0.85)
-    const y1 = o.through ? 1 + my : between(r, 0.45, 0.7)
+    // A landing drop is a threat: it lands in the player zone. A bonus drop falls through anywhere.
+    const x = o.through ? between(r, 0.15, 0.85) : between(r, PLAYER_END.x0, PLAYER_END.x1)
+    const y1 = o.through ? 1 + my : between(r, 0.45, PLAYER_END.y1)
     // A landing drop costs a life when its path time runs out, so it never falls
     // faster than MIN_DROP_S seconds for its whole length (any canvas size).
     const dropSpeed = o.through ? speed : Math.min(speed, (y1 + my) / MIN_DROP_S)
@@ -195,9 +183,10 @@ export function makePath(kind: PathKind, o: PathOptions): PathSpec {
     }
   }
 
-  // line / arc: edge → a spread-out point in the play area (never the centre on purpose)
+  // line / arc: edge → a spread-out point in the player zone
   const start = edgeStart(r, W, H, o.edges ?? 'all')
-  const { x: x1, y: y1 } = walkTarget(r, start, W, H)
+  const { x: x1, y: y1 } = walkTarget(r)
+  const walkSpeed = windowSpeed(speed, Math.hypot((x1 - start.x) * W, (y1 - start.y) * H) / H)
   let bend = 0
   if (kind === 'arc') {
     const mag = between(r, 0.08, 0.18)
@@ -209,7 +198,7 @@ export function makePath(kind: PathKind, o: PathOptions): PathSpec {
     const towardCentre = (W / 2 - mxp) * nx + (H / 2 - myp) * ny
     bend = (towardCentre >= 0 ? 1 : -1) * mag
   }
-  return { ...base, kind, x0: start.x, y0: start.y, x1, y1, bend }
+  return { ...base, kind, speed: walkSpeed, x0: start.x, y0: start.y, x1, y1, bend }
 }
 
 

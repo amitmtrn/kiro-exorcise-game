@@ -4,27 +4,28 @@
 - [x] `requirements.md`, `design.md` (root causes) and `tasks.md`.
 - [x] Commit: `docs(playtest2-fixes-T0): spec for the second playtest bugs`
 
-## T1 — Skulls: body zone, HUD rects, side entry, spawn grace
-Files: `src/game/zones.ts`, `enemies/skull.ts`, `enemies/movement.ts`, `collision.ts`, `state.ts`, `render.ts`
-- [ ] Failing tests first: a centre-targeted skull enters the body zone; a skull spawns on the bottom edge and under a HUD rect; a skull hit in its first 800 ms costs a heart.
-- [ ] `zones.ts`: `bodyZone`, `hudRects`, `rectsIntersect`; `Enemy.warnMs`.
-- [ ] `createSkull`: side entry between the HUD rows, target beside the body zone, horizontal path; `SKULL_GRACE_MS`; the grace counts while the hitbox is fully on screen.
-- [ ] `resolveHits` ignores a skull in its grace; danger ring drawn (shared with T2).
-- [ ] Property tests (`zones.property.test.ts`): targets / paths / exit never meet the body zone or HUD rects, never the bottom or top edge, at 640×360 … 3024×1364 and 2P halves; a skull in grace costs nothing.
-- [ ] `npm test` and `npm run build` both clean.
-- [ ] Commit: `fix(playtest2-fixes-T1): skulls keep out of the body zone and the HUD, with a spawn grace`
+## T1 — Zones: skulls at the sides with a spawn grace, threats end in the player zone
+Files: `src/game/zones.ts`, `enemies/skull.ts`, `enemies/movement.ts`, `collision.ts`, `state.ts`, `paths.ts`, `src/demo/driver.ts`, `.kiro/specs/waves/requirements.md`
+- [x] Failing tests first: a centre-targeted skull enters the body zone; a skull spawns on the bottom edge and under a HUD rect; a skull hit in its first 800 ms costs a heart; line / arc / drop end outside the player zone; a portrait walk is shorter in time than a 0.85 H walk.
+- [x] `zones.ts`: `bodyZone`, `hudRects`, `rectsIntersect`, `PLAYER_END`; `Enemy.graceMs`.
+- [x] `createSkull` / `skullPlacement`: side entry between the HUD rows, target beside the body zone, horizontal path and exit; `SKULL_GRACE_MS` counts while the hitbox is fully on screen.
+- [x] `resolveHits` ignores a skull in its grace (no heart, not removed).
+- [x] `makePath`: line / arc / landing drop end in `PLAYER_END`; short chords are slowed (`windowSpeed`), never shorter in time than a 0.85 H walk. Waves R1.2 amended.
+- [x] Property tests (`zones.property.test.ts`): spawn edge, targets, flight / hover / exit never meet the body zone or HUD rects, at 320×360 … 3024×1364 and portrait, at 8–100 ms ticks; grace ≥ 800 ms and only counts fully on screen. `skull.grace.test.ts`: a skull in grace costs nothing.
+- [x] Demo driver: steps into the body column when a skull's corridor passes near the hand (`fleeFromSkull`, not interrupted). Seed 5 is clean at every tested size and speed; the game-over coverage test uses seed 10 at speed 3 (no seed 1–16 fails at speed 2 any more).
+- [x] `npm test` and `npm run build` both clean.
+- [x] Commit: `fix(playtest2-fixes-T1): skulls keep out of the body zone and the HUD with a spawn grace, threats end near the player`
 
-## T2 — Telegraph for every heart-costing arrival, end near the player, MISSED
-Files: `src/game/enemies/telegraph.ts`, `reach.ts`, `movement.ts`, `paths.ts`, `step.ts`, `callouts.ts`, `render.ts`, `.kiro/specs/waves/*`
-- [ ] Failing tests first: a short-path ghost costs a heart with `warnMs` 0; line / arc end outside the player zone; no MISSED call-out.
+## T2 — Telegraph for every heart-costing arrival, MISSED call-out
+Files: `src/game/enemies/telegraph.ts`, `reach.ts`, `movement.ts`, `step.ts`, `callouts.ts`, `render.ts`, `src/demo/driver.ts`
+- [ ] Failing tests first: a short-path ghost costs a heart with `warnMs` 0; no MISSED call-out; a skull in grace shows no ring.
 - [ ] `telegraph.ts` (`etaMs`, `tickWarn`, `telegraphProgress`); `reached()` gated on `TELEGRAPH_MIN_MS`.
-- [ ] `makePath` ends line / arc in `PLAYER_END`; short chords are slowed, never shortened in time.
 - [ ] `splitReached` returns `lost`; `step.ts` adds the `'miss'` call-out; red "MISSED" drawn.
-- [ ] Danger ring with dashed outline and "!" (reduced flash: steady; cb: palette danger).
-- [ ] Property tests (`telegraph.property.test.ts`): no threat costs a heart before `warnMs ≥ 1000` at any tick split; path and chord window; call-out per arrival.
-- [ ] Waves requirements / design note the amended R1.2; existing path tests updated only for the end zone.
+- [ ] Danger ring with dashed outline and "!" on alarmed threats and on skulls in their grace (reduced flash: steady; cb: palette danger).
+- [ ] Property tests (`telegraph.property.test.ts`): no threat costs a heart before `warnMs ≥ 1000` at any tick split; one call-out per arrival.
+- [ ] Demo driver `timeToThreatMs` includes the telegraph wait.
 - [ ] `npm test` and `npm run build` both clean; demo seed 5 sims clean.
-- [ ] Commit: `fix(playtest2-fixes-T2): telegraph every heart-costing arrival for 1 s, end threats near the player, MISSED call-out`
+- [ ] Commit: `fix(playtest2-fixes-T2): telegraph every heart-costing arrival for 1 s, MISSED call-out`
 
 ## T3 — New procedural sounds in the gain table
 Files: `src/audio/recipes.ts`, `sfx.ts`, `index.ts`, `recipes.test.ts`

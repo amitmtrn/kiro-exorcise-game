@@ -347,8 +347,10 @@ describe('full demo run, headless (demo-mode R4, R5, R6)', () => {
     expect(run.ticks).toBeLessThan(3000)
   }, 60_000)
 
-  it('some seed in 1–6 loses a stage, so the game-over screen and RETRY are covered', async () => {
-    const run = await simulate(2)
+  // playtest2-fixes: with skulls at the sides and threats ending at the centre no seed in 1–16 fails at speed 2;
+  // seed 10 at speed 3 does, so it covers the game-over screen and RETRY.
+  it('a failing seed loses a stage, so the game-over screen and RETRY are covered', async () => {
+    const run = await simulate(10, 1, MAX_TICKS, 1, 3)
     expect(run.gameOvers).toBeGreaterThan(0)
     expect(run.badgePhases.has('gameover')).toBe(true)
     expect(run.at.victory).toBeDefined()
