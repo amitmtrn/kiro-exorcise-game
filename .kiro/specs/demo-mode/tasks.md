@@ -12,11 +12,11 @@ Files: `src/demo/params.ts`, `src/demo/rng.ts`, `src/game/state.ts`, `src/demo/p
 ## T2 — Synthetic camera
 Files: `src/demo/camera.ts`, `src/demo/camera.test.ts`
 
-- [ ] `SyntheticCamera`: two buffers, 30 fps frame clock, hand disc, noise, duplicate ticks return `cur === prev`.
-- [ ] Unit tests: layout and size, real `computeMotionMask` output (grid, `changed`), resting hand has no points, determinism.
-- [ ] Property test: mask points are always within the hand disc plus one cell, for any hand path.
-- [ ] `npm test` and `npm run build` both clean.
-- [ ] Commit: `feat(demo-mode-T2): synthetic camera producing real-format motion frames`
+- [x] `SyntheticCamera`: two buffers, 30 fps frame clock, hand disc, noise, duplicate ticks return `cur === prev`.
+- [x] Unit tests: layout and size, real `computeMotionMask` output (grid, `changed`), resting hand has no points, determinism.
+- [x] Property test: mask points are always within the hand disc plus one cell, for any hand path.
+- [x] `npm test` and `npm run build` both clean.
+- [x] Commit: `feat(demo-mode-T2): synthetic camera producing real-format motion frames`
 
 ## T3 — Ghost-hand driver
 Files: `src/demo/driver.ts`, `src/demo/driver.test.ts`, `src/demo/driver.property.test.ts`
