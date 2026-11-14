@@ -39,11 +39,11 @@ Files: `src/demo/overlay.ts`, `src/demo/runtime.ts`, `src/demo/overlay.test.ts`,
 ## T5 — Loop and main wiring
 Files: `src/game/loop.ts`, `src/main.ts`, `src/demo/normal.test.ts`
 
-- [ ] `loop.ts`: optional `demo` runtime (null video, frames from `demo.frame`, tick wrapper with cursor + badge, stage start, demo card session with portrait / `DEMO` chip / no-op download, persistence off); `isStartScreenVisible()`. Normal path byte-for-byte the same behaviour.
-- [ ] `main.ts`: `?demo=` parameters, no `getUserMedia` / onboarding in demo, `G` toggle on the title screen, any other key or click leaves demo (passive keys excepted), sound hint hidden in demo, `replaceState` on leave.
-- [ ] Test: normal `startLoop` with a video uses the camera, draws no badge and leaves the clock, `Math.random` and persistence alone.
-- [ ] `npm test` and `npm run build` both clean.
-- [ ] Commit: `feat(demo-mode-T5): demo branch in the loop and main entry`
+- [x] `loop.ts`: optional `demo` runtime (null video, frames from `demo.frame`, tick wrapper with cursor + badge, stage start, demo card session with portrait / `DEMO` chip / no-op download, persistence off); `isStartScreenVisible()`. Normal path byte-for-byte the same behaviour.
+- [x] `main.ts`: `?demo=` parameters, no `getUserMedia` / onboarding in demo, `G` toggle on the title screen, any other key or click leaves demo (passive keys excepted), sound hint hidden in demo, `replaceState` on leave.
+- [x] Test: normal `startLoop` with a video uses the camera, draws no badge and leaves the clock, `Math.random` and persistence alone.
+- [x] `npm test` and `npm run build` both clean.
+- [x] Commit: `feat(demo-mode-T5): demo branch in the loop and main entry`
 
 ## T6 — Headless full-run simulation
 Files: `src/demo/demo.sim.test.ts`

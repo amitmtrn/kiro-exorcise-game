@@ -5,6 +5,7 @@
 
 import type { Pt } from './camera'
 import { TITLE_FONT_FAMILY } from '../ui/fonts'
+import { scaleToFit } from '../card/layout'
 
 const COLORS = {
   midnight: '#0d0014',
@@ -165,4 +166,14 @@ export function drawDemoPortrait(w: number, h: number, create: () => HTMLCanvasE
     drawDemoPlayer(ctx, w / 2, w, h, 0.9)
   }
   return canvas
+}
+
+/** Snapshot size cap of the real camera path (640 × 480), so the card photo window gets the same aspect handling. */
+const PORTRAIT_MAX_W = 640
+const PORTRAIT_MAX_H = 480
+
+/** Drop-in for `grabMirroredSnapshot` in demo mode: the placeholder portrait sized like a real snapshot. */
+export function grabDemoPortrait(displayW: number, displayH: number): HTMLCanvasElement {
+  const { w, h } = scaleToFit(displayW, displayH, PORTRAIT_MAX_W, PORTRAIT_MAX_H)
+  return drawDemoPortrait(w, h)
 }

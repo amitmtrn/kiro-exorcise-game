@@ -5,7 +5,7 @@
 import { createSoundHintController } from './ui/soundHint'
 import './style.css'
 import { initWebcam, stopWebcam } from './webcam/capture'
-import { startLoop, requestStart, handleCardKey, handleCardPointer, handleSeatCardPointer, isCardPreviewOpen, isTwoPlayerActive } from './game/loop'
+import { startLoop, stopLoop, requestStart, handleCardKey, handleCardPointer, handleSeatCardPointer, isCardPreviewOpen, isTwoPlayerActive, isStartScreenVisible } from './game/loop'
 import { showCameraDenied, classifyCameraError, runOnboarding } from './ui/onboarding'
 import { createOnboarding, onboardingReducer, hasSeenOnboarding, getLocalStorage } from './game/onboarding'
 import { toggleDebug } from './game/render'
@@ -16,6 +16,9 @@ import { loadTitleFont } from './ui/fonts'
 import { routePointer } from './ui/pointerRoute'
 import { SOUND_HINT, soundHintFontPx } from './ui/layout'
 import { hudFontSize, muteButtonRect, muteButtonRect2P } from './ui/hud'
+import { parseDemoParams, demoKeyAction, isDemoToggleKey } from './demo/params'
+import type { DemoParams } from './demo/params'
+import { DemoRuntime } from './demo/runtime'
 
 const webcamCanvas = document.getElementById('webcam-canvas') as HTMLCanvasElement
 const gameCanvas   = document.getElementById('game-canvas') as HTMLCanvasElement
@@ -31,6 +34,14 @@ window.addEventListener('resize', resizeCanvases)
 
 const webcamCtx = webcamCanvas.getContext('2d')!
 const gameCtx   = gameCanvas.getContext('2d')!
+
+// Demo mode (demo-mode spec): a camera-free scripted run for filming. `demo` is non-null while it is on.
+let demo: DemoRuntime | null = null
+/** The camera of the normal game currently on screen (released when demo mode takes over). */
+let activeVideo: HTMLVideoElement | null = null
+/** Key events the demo handler already used: the normal key handler skips them. */
+const consumedKeys = new WeakSet<Event>()
+let leftDemoAt = Number.NEGATIVE_INFINITY
 
 // Unlock the AudioContext on ANY user gesture (browser autoplay policy). A
 // webcam-only player sees a hint until the first click, tap or key press.
@@ -50,10 +61,29 @@ installAudioUnlock({
   target: window,
   getCtx: getAudioContext,
   // a webcam-only player never clicks: the hint hides itself so it cannot sit over the stage label (R6.2)
-  onLocked: createSoundHintController((hidden) => { soundHint.hidden = hidden }, SOUND_HINT_MS),
+  // the hint is hidden in demo mode: clicking it would leave demo (demo-mode R6.5)
+  onLocked: createSoundHintController((hidden) => { soundHint.hidden = hidden || demo !== null }, SOUND_HINT_MS),
 })
 
+// Demo keys run first (registered before the normal handler). Any key leaves demo mode except the passive ones;
+// `G` on the normal title screen starts it. The audio-unlock listener on window still sees the key.
 document.addEventListener('keydown', (e) => {
+  if (demo) {
+    if (demoKeyAction(e) === 'ignore') return // bare modifiers and M (mute): the normal handler runs
+    consumedKeys.add(e); e.preventDefault()
+    leaveDemo()
+  } else if (e.repeat && performance.now() - leftDemoAt < 500) {
+    consumedKeys.add(e) // a held key that left demo must not start a game on its repeats
+  } else if (isDemoToggleKey(e, isStartScreenVisible())) {
+    consumedKeys.add(e); e.preventDefault()
+    enterDemo()
+  }
+})
+// Any click / tap leaves demo mode too (the event still reaches the normal handlers).
+window.addEventListener('pointerdown', () => { if (demo) leaveDemo() }, true)
+
+document.addEventListener('keydown', (e) => {
+  if (consumedKeys.has(e)) return
   if (e.key === 'd' || e.key === 'D') toggleDebug()
   if (e.key === 'm' || e.key === 'M') toggleMute()
   const pickedMode = modeForKey(e.key)
@@ -96,7 +126,48 @@ function denyCamera(err: unknown): void {
   })
 }
 
+/** The page URL without the demo parameters, so a reload (or leaving demo) is the normal game. */
+function urlWithoutDemo(): string {
+  const u = new URL(location.href)
+  for (const k of ['demo', 'seed', 'stage', 'speed']) u.searchParams.delete(k)
+  return u.pathname + (u.search ? u.search : '') + u.hash
+}
+
+/** Starts demo mode: no getUserMedia, no onboarding, no video element (demo-mode R2). */
+async function bootDemo(params: DemoParams): Promise<void> {
+  const rt = new DemoRuntime({ seed: params.seed, stage: params.stage, speed: params.speed, w: gameCanvas.width, h: gameCanvas.height })
+  demo = rt
+  soundHint.hidden = true
+  await loadTitleFont().catch(() => undefined)
+  if (demo !== rt) return // left demo while the font was loading
+  await startLoop(null, webcamCtx, gameCtx, 1, { demo: rt })
+}
+
+/** `G` on the normal title screen: release the camera and switch to the scripted run (R1.2, R1.5). */
+function enterDemo(): void {
+  stopLoop()
+  if (activeVideo) { stopWebcam(activeVideo); activeVideo = null }
+  void bootDemo(parseDemoParams(location.search))
+}
+
+/** Back to the normal game: stop the demo loop, restore clock / random / persistence, ask for the camera as usual. */
+function leaveDemo(): void {
+  const rt = demo
+  if (!rt) return
+  demo = null
+  stopLoop()
+  rt.dispose()
+  leftDemoAt = performance.now()
+  webcamCtx.clearRect(0, 0, webcamCanvas.width, webcamCanvas.height)
+  gameCtx.clearRect(0, 0, gameCanvas.width, gameCanvas.height)
+  try { history.replaceState(null, '', urlWithoutDemo()) } catch { /* ignore */ }
+  void boot()
+}
+
 async function boot(): Promise<void> {
+  const params = parseDemoParams(location.search)
+  if (params.demo) { await bootDemo(params); return }
+
   // Start the font load alongside the permission prompt instead of delaying it.
   const fontReady = loadTitleFont().catch(() => undefined)
   const storage = getLocalStorage()
@@ -108,12 +179,13 @@ async function boot(): Promise<void> {
     denyCamera(err)
     return
   }
+  activeVideo = video
   await fontReady
 
   // First run: silhouette guide + how-to over the live camera, then the usual flow.
   if (onboarding.step !== 'done') {
     const result = await runOnboarding(video, webcamCtx, gameCtx, storage, onboarding, (s) => { onboarding = s })
-    if (result === 'cameraLost') { stopWebcam(video); denyCamera({ name: 'NotReadableError' }); return }
+    if (result === 'cameraLost') { stopWebcam(video); activeVideo = null; denyCamera({ name: 'NotReadableError' }); return }
   }
 
   await startLoop(video, webcamCtx, gameCtx)
