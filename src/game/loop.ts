@@ -143,6 +143,7 @@ export async function startLoop(
   opts: { demo?: DemoRuntime } = {},
 ): Promise<() => void> {
   const demo = opts.demo ?? null
+  activeDemo = demo
   twoPlayerActive = false
   startRequest = null // a Space pressed during permission/onboarding must not skip the title
   const currentCanvas = document.createElement('canvas')
@@ -411,9 +412,14 @@ export async function startLoop(
     if (!demo) { tickBody(timestamp); return }
     const step = demo.beginTick(timestamp)
     if (!step) { rafId = requestAnimationFrame(tick); return } // too soon after the last processed frame
-    tickBody(timestamp, step.deltaMs)
-    drawGhostHand(gameCtx, demo.hand, demo.trail, handRadius(gameCtx.canvas.height), performance.now())
-    drawDemoBadge(gameCtx) // last: above the game, the card preview and the hand, in every phase
+    try {
+      tickBody(timestamp, step.deltaMs)
+      drawGhostHand(gameCtx, demo.hand, demo.trail, handRadius(gameCtx.canvas.height), performance.now())
+      drawDemoBadge(gameCtx) // last: above the game, the card preview and the hand, in every phase
+    } catch (err) {
+      stopLoop() // also restores the patched clock, Math.random and score persistence
+      throw err
+    }
   }
 
   function tickBody(timestamp: number, forcedDeltaMs?: number): void {
@@ -638,9 +644,12 @@ export async function startLoop(
 }
 
 let resetSession: (() => void) | null = null
+/** The demo runtime of the running loop; `stopLoop` disposes it so the patched globals never outlive the loop. */
+let activeDemo: DemoRuntime | null = null
 
 export function stopLoop(): void {
   resetSession?.(); resetSession = null // the snapshot must not outlive the loop
+  activeDemo?.dispose(); activeDemo = null
   onEndScreen = false
   cardOpen = false
   twoPlayerActive = false

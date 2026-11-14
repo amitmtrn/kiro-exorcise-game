@@ -34,6 +34,8 @@ vi.mock('../card/draw', () => ({ composeCard: () => ({ width: 600, height: 840 }
 
 import { startLoop, stopLoop, isStartScreenVisible } from '../game/loop'
 import { saveHighScore } from '../game/state'
+import { DemoRuntime } from './runtime'
+import { renderFrame } from '../game/render'
 
 function canvas() {
   const base: Record<string, unknown> = { drawImage() {}, getImageData: () => ({ data: new Uint8ClampedArray(64) }) }
@@ -102,5 +104,31 @@ describe('normal mode with a video', () => {
   it('still persists the high score', () => {
     saveHighScore(1234)
     expect(store.get('exorcise-highscore')).toBe('1234')
+  })
+})
+
+describe('demo runtime lifetime (demo-mode design: dispose on stopLoop)', () => {
+  const opts = { seed: 3, stage: 1, speed: 2, w: 800, h: 600 }
+
+  it('stopLoop restores performance.now and Math.random', async () => {
+    const random = Math.random
+    const nowFn = performance.now
+    const rt = new DemoRuntime(opts)
+    expect(Math.random).not.toBe(random)
+    await startLoop(null, ctx(), ctx(), 1, { demo: rt })
+    stopLoop()
+    expect(Math.random).toBe(random)
+    expect(performance.now).toBe(nowFn)
+  })
+
+  it('an exception in a demo tick stops the loop and restores the globals', async () => {
+    const random = Math.random
+    const nowFn = performance.now
+    const rt = new DemoRuntime(opts)
+    await startLoop(null, ctx(), ctx(), 1, { demo: rt })
+    vi.mocked(renderFrame).mockImplementationOnce(() => { throw new Error('boom') })
+    expect(() => frame(1000)).toThrow('boom')
+    expect(Math.random).toBe(random)
+    expect(performance.now).toBe(nowFn)
   })
 })
