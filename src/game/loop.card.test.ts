@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 
-const h = vi.hoisted(() => ({ phase: 'gameover' as string }))
+const h = vi.hoisted(() => ({ phase: 'gameover' as string, sessions: [] as unknown[] }))
 
 vi.mock('../webcam/capture', () => ({ drawWebcamFrame: vi.fn() }))
 vi.mock('./atmosphere', () => ({ drawWebcamTint: vi.fn() }))
@@ -10,7 +10,7 @@ vi.mock('../webcam/diff', () => ({
   calibrateDiffThreshold: async () => {},
   computeMotionMask: () => ({ changed: false }),
 }))
-vi.mock('./collision', () => ({ updateMotionPixels: vi.fn(), resolveHits: vi.fn(), lastMotionPixels: [] }))
+vi.mock('./collision', () => ({ updateMotionPixels: vi.fn(), resolveHits: (st: unknown) => st, lastBanished: [], lastMotionPixels: [] }))
 vi.mock('./render', () => ({ renderFrame: vi.fn() }))
 vi.mock('../ui/hud', async (orig) => ({ ...(await orig<typeof import('../ui/hud')>()), renderHUD: vi.fn(), hudFontSize: () => 16, HUD_FONT_FAMILY: 'x' }))
 vi.mock('../ui/screens', () => ({
@@ -30,12 +30,29 @@ vi.mock('../card/snapshot', () => ({
   grabMirroredSnapshot: () => { grab.calls++; return null }, releaseSnapshot: vi.fn(),
 }))
 
+vi.mock('../card/session', async (orig) => {
+  const m = await orig<typeof import('../card/session')>()
+  class Recorded<P, C> extends m.CardSession<P, C> {
+    constructor(deps: ConstructorParameters<typeof m.CardSession<P, C>>[0]) { super(deps); h.sessions.push(this) }
+  }
+  return { ...m, CardSession: Recorded }
+})
+
 vi.mock('../card/draw', () => ({ composeCard: () => ({ width: 600, height: 840 }) }))
 
-import { startLoop, requestStart, isTwoPlayerActive, handleCardKey, handleCardPointer, isCardPreviewOpen, stopLoop } from './loop'
+import { startLoop, requestStart, isTwoPlayerActive, handleCardKey, handleCardPointer, handleSeatCardPointer, isCardPreviewOpen, stopLoop } from './loop'
+import type { CardSession } from '../card/session'
 
 function canvas() {
-  return { width: 4, height: 4, getContext: () => ({ drawImage() {}, getImageData: () => ({ data: new Uint8ClampedArray(64) }) }) }
+  const base: Record<string, unknown> = { drawImage() {}, getImageData: () => ({ data: new Uint8ClampedArray(64) }) }
+  const c = {
+    width: 4, height: 4,
+    getContext: () => new Proxy(base, { // other 2D calls (2P overlays, per-seat card layers) are no-ops
+      get: (t, k: string) => (k === 'canvas' ? c : k in t ? t[k] : () => ({ addColorStop() {} })),
+      set: () => true,
+    }),
+  }
+  return c
 }
 function ctx(): CanvasRenderingContext2D {
   const store: Record<string, unknown> = { canvas: { width: 800, height: 600 } }
@@ -100,20 +117,30 @@ describe('card input on an end screen', () => {
   })
 })
 
-describe('card in two-player mode (merge decision: card is 1P only)', () => {
-  it('never accepts card keys or clicks and never captures a snapshot', async () => {
+describe('1P card in two-player mode (card is per seat, never the 1P session)', () => {
+  it('drives a 2P game to the end screen: the 1P session and 1P snapshot stay idle, 1P card input stays closed', async () => {
     h.phase = 'start'
+    h.sessions.length = 0
     grab.calls = 0
     const stop = await startLoop({} as HTMLVideoElement, ctx(), ctx())
     frame(16)
     requestStart(2)
     frame(32) // title consumes the request and begins a 2P game
-    for (let i = 0; i < 5; i++) frame(48 + i * 16)
     expect(isTwoPlayerActive()).toBe(true)
+    const [oneP, seat0, seat1] = h.sessions as Array<CardSession<unknown, unknown>>
+    const observe1P = vi.spyOn(oneP, 'observe')
+    const observeSeat0 = vi.spyOn(seat0, 'observe')
+    const observeSeat1 = vi.spyOn(seat1, 'observe')
+    let ts = 32
+    for (let i = 0; i < 8000 && !handleSeatCardPointer(1, 1); i++) frame(ts += 100) // true only on the 2P end screen
+    expect(handleSeatCardPointer(1, 1)).toBe(true)
     for (const k of ['c', 'C', 's', 'Enter', 'n', 'Escape']) expect(handleCardKey(k)).toBe(false)
     expect(handleCardPointer(10, 10)).toBe(false)
     expect(isCardPreviewOpen()).toBe(false)
     expect(grab.calls).toBe(0)
+    expect(observe1P).not.toHaveBeenCalled() // the guard in loop.ts: no 1P run stats in 2P
+    expect(observeSeat0.mock.calls.length).toBeGreaterThan(10)
+    expect(observeSeat1.mock.calls.length).toBe(observeSeat0.mock.calls.length)
     stop()
   })
 })

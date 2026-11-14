@@ -26,11 +26,15 @@ export interface RunStats {
   stage: number
   /** Phase seen on the previous observation, to detect transitions. */
   phase: GamePhase | null
+  /** The boss moment was already offered (a later `victory` must not offer it again). */
+  bossTaken?: boolean
 }
 
 export type ObservedState = Pick<GameState, 'phase' | 'stage' | 'stageBanished' | 'combo'> & {
   /** Per-stage best combo; catches a tier gained and lost within one tick. */
   bestCombo?: number
+  /** Set by the two-player loop on the tick after a seat's boss was defeated (the seat's phase is then summary / victory). */
+  bossDefeated?: boolean
 }
 
 export const BOSS_MOMENT_RANK = 100
@@ -68,7 +72,8 @@ export function observeRun(
   const peak = Math.max(s.combo, s.bestCombo ?? 1)
   let moment: Moment | null = null
   const entered = s.phase !== stats.phase
-  if (entered && s.phase === 'victory') moment = { kind: 'boss', rank: BOSS_MOMENT_RANK }
+  const bossNow = !stats.bossTaken && ((entered && s.phase === 'victory') || s.bossDefeated === true)
+  if (bossNow) moment = { kind: 'boss', rank: BOSS_MOMENT_RANK }
   else if (entered && s.phase === 'gameover') moment = { kind: 'end', rank: END_MOMENT_RANK }
   else if (peak >= 2 && peak > stats.bestCombo) {
     moment = { kind: 'combo', rank: momentRank('combo', peak) }
@@ -81,6 +86,7 @@ export function observeRun(
       bestCombo: Math.max(stats.bestCombo, peak),
       stage: Math.max(stats.stage, s.stage),
       phase: s.phase,
+      ...(bossNow || stats.bossTaken ? { bossTaken: true } : {}),
     },
     moment,
   }

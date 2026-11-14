@@ -6,6 +6,9 @@
 
 import { lastMotionPixels } from '../game/collision'
 
+/** Where a button reads its motion points (display space of its own canvas). */
+export type PointSource = () => ReadonlyArray<{ x: number; y: number }>
+
 export const FILL_DURATION_MS = 800 // time to hold motion before triggering
 /** Sampled motion pixels that must fall inside the circle; filters sensor noise. */
 export const MIN_MOTION_PIXELS = 3
@@ -27,7 +30,14 @@ export class MotionButton {
   /** After a trigger (or `hold`) the button ignores motion until it has left the circle. */
   private awaitRelease = false
 
-  constructor(cx: number, cy: number, radius: number, label: string) {
+  /**
+   * Optional point source. Default: the whole-frame mask. A two-player card button reads
+   * only the points of its own half (two-player-card R1.3).
+   */
+  private source: PointSource | null
+
+  constructor(cx: number, cy: number, radius: number, label: string, source: PointSource | null = null) {
+    this.source = source
     this.cx = cx
     this.cy = cy
     this.radius = radius
@@ -38,7 +48,7 @@ export class MotionButton {
   update(now: number): 'idle' | 'filling' | 'triggered' {
     let inside = 0
     const r2 = this.radius * this.radius
-    for (const mp of lastMotionPixels) {
+    for (const mp of this.source ? this.source() : lastMotionPixels) {
       const dx = mp.x - this.cx
       const dy = mp.y - this.cy
       if (dx * dx + dy * dy < r2 && ++inside >= MIN_MOTION_PIXELS) break

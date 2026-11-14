@@ -25,7 +25,7 @@ npm run dev
 
 | Command | What it does |
 |---|---|
-| `npm test` | Run all 994 unit tests (Vitest) |
+| `npm test` | Run all 1045 unit tests (Vitest) |
 | `npm run build` | Production build → `dist/` |
 | `npm run preview` | Preview the production build locally |
 
@@ -49,7 +49,7 @@ Hit detection uses **frame differencing**: fast motion inside an enemy's hitbox 
 
 ### Two players (split screen)
 
-Pick **1 PLAYER** or **2 PLAYERS** on the title screen (wave over a button, or press `1` / `2`; `Space` starts in the last mode, remembered for the session only). In 2 PLAYERS the mirrored camera view is split down the middle by an orange divider: the player standing on the **left** of the room sees themselves on the left and plays the left half, the other plays the right half. Each half is its own game: enemies, waves, score, lives, combo, hit-stop and HUD. Motion in one half never hits enemies in the other. Both play the same stage on one shared timer; a player who loses all lives shows **OUT** and the other keeps going; on stage 5 each half has its own boss. The end screen shows both scores and the winner (or a tie). Same single webcam, no network, no video stored. Spec: `.kiro/specs/two-player/`.
+Pick **1 PLAYER** or **2 PLAYERS** on the title screen (wave over a button, or press `1` / `2`; `Space` starts in the last mode, remembered for the session only). In 2 PLAYERS the mirrored camera view is split down the middle by an orange divider: the player standing on the **left** of the room sees themselves on the left and plays the left half, the other plays the right half. Each half is its own game: enemies, waves, score, lives, combo, hit-stop and HUD. Motion in one half never hits enemies in the other. Both play the same stage on one shared timer; a player who loses all lives shows **OUT** and the other keeps going; on stage 5 each half has its own boss. The end screen shows both scores and the winner (or a tie), and each player can make their **own** Exorcist Card from their own half: their own snapshot (cropped to their half, mirrored like the game), stats, rank title, a P1 / P2 label and a WINNER (or TIE) badge. Each half has its own offer and SAVE / NO PHOTO / CLOSE buttons, operated by a wave or click in that half only; files are `exorcist-card-p1.png` / `-p2.png`. Same single webcam, no network, no video stored. Spec: `.kiro/specs/two-player/`.
 
 ### Controls
 
@@ -58,9 +58,9 @@ Pick **1 PLAYER** or **2 PLAYERS** on the title screen (wave over a button, or p
 | Wave over a glowing button | Start / Next / Retry / Menu (hands-only play) |
 | `Space` | Start from the title screen (in the last chosen mode) |
 | `1` / `2` | Start a 1 PLAYER / 2 PLAYERS game from the title screen |
-| `M` or the 🔊 button (top-right) | Mute / unmute |
+| `M` or the 🔊 button (top-right; top centre in 2 PLAYERS) | Mute / unmute |
 | `D` | Toggle the hitbox + motion-mask debug overlay |
-| `C` (game over / victory) | Open the Exorcist Card preview; then `S` / `Enter` save, `N` photo ↔ silhouette, `Esc` close |
+| `C` (game over / victory, 1 PLAYER only) | Open the Exorcist Card preview; then `S` / `Enter` save, `N` photo ↔ silhouette, `Esc` close |
 
 ### Testing hit detection without a webcam
 
@@ -101,10 +101,11 @@ Every feature was planned as a Kiro spec before implementation:
 | `two-player/` | Local split-screen mode on one webcam: left / right halves with mirror-correct ownership, per-player state, shared stage clock, OUT / CLEARED, winner or tie |
 | `balancer/` | Local stdio MCP server for the motion harness and a report-only `balancer` playtest-tuner agent |
 | `exorcist-card/` | Optional shareable trading card (mirrored snapshot, spooky frame, rank title, stats) composed and downloaded locally on game over / victory |
+| `two-player-card/` | Per-player Exorcist Card on the 2P end screen: own half of the camera, own highlight moment and stats, P1 / P2 label, WINNER / TIE badge, per-half wave / click controls |
 
 Each spec has `requirements.md`, `design.md`, and `tasks.md`. Writing requirements and design before tasks surfaced design gaps (e.g. skull penalty rules, hitbox coordinate system, mirror parity bug) that would have been painful to fix mid-implementation.
 
-All eighteen specs are implemented. Every task in `tasks.md` is ticked except the manual smoke tests (a webcam playthrough, a two-person split-screen playthrough, the music-v2 listening test, enabling GitHub Pages in the repo settings), and `boss-combo/` carries a status note explaining it was superseded by `stages/`.
+All nineteen specs are implemented. Every task in `tasks.md` is ticked except the manual smoke tests (a webcam playthrough, a two-person split-screen playthrough, the music-v2 listening test, enabling GitHub Pages in the repo settings), and `boss-combo/` carries a status note explaining it was superseded by `stages/`.
 
 ### Kiro hooks (`.kiro/hooks/`)
 Standalone `v1` hook files, loaded by Kiro IDE and Kiro CLI V3. Spec: `.kiro/specs/hooks/`.
@@ -193,10 +194,12 @@ src/
     snapshotStore.ts    One in-memory snapshot slot (strictly-better replacement, discard)
     session.ts          Run stats + snapshot + preview lifecycle (discarded on retry / menu)
     snapshot.ts         Mirrored snapshot grab; draw.ts card art; download.ts local PNG download
+    halfSnapshot.ts     2P: snapshot of one half only (mirror-correct crop); twoPlayerCard.ts badge / file names
   ui/
     hud.ts              Hearts, timer, stage, score, combo (pulse), mute button —
                         outlined glow text, clamp(W/20, 24, 48) font
     motionButton.ts     Wave-to-press buttons driven by frame differencing
+    seatCard.ts         2P per-half card offer / preview with half-only input routing
     screens.ts          Start (1 / 2 player buttons), stage title, summary (stars), victory, game over
     splitscreen.ts      Two-player divider, OUT / CLEARED overlays, shared summary, winner screen
     onboarding.ts       First-run guide, how-to cards, camera-denied screen

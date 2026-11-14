@@ -23,6 +23,8 @@ export interface SessionState {
   stageBanished: number
   combo: number
   score: number
+  /** Two-player: this seat's boss was defeated on the previous tick. */
+  bossDefeated?: boolean
 }
 
 export interface SessionDeps<P, C> {
@@ -34,6 +36,8 @@ export interface SessionDeps<P, C> {
   releaseCard: (c: C) => void
   /** Saves the card locally; resolves true on success. */
   download: (c: C) => Promise<boolean>
+  /** Extra card fields read each time the card is built (two-player label and badge). */
+  extra?: () => Partial<CardData>
 }
 
 export type SaveStatus = 'saved' | 'failed'
@@ -146,6 +150,7 @@ export class CardSession<P, C> {
       stageCount: STAGES.length,
       banished: totalBanished(this.stats),
       rank: rankForScore(s.score),
+      ...(this.deps.extra?.() ?? {}),
     }
     this.cardImage = this.deps.compose(data, photo)
     if (old !== null) { try { this.deps.releaseCard(old) } catch { /* ignore */ } }

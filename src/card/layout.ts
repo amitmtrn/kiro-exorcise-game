@@ -25,6 +25,10 @@ export interface CardData {
   stageCount: number
   banished: number
   rank: string
+  /** Two-player only: "P1" / "P2" chip on the photo. */
+  playerLabel?: string
+  /** Two-player only: "WINNER" / "TIE" ribbon on the photo. */
+  badge?: string
 }
 
 export interface CardTexts {
@@ -32,6 +36,8 @@ export interface CardTexts {
   rank: string
   rows: ReadonlyArray<{ label: string; value: string }>
   footer: string
+  playerLabel?: string
+  badge?: string
 }
 
 export interface CardLayout {
@@ -42,6 +48,9 @@ export interface CardLayout {
   rank: TextBox
   rows: ReadonlyArray<{ label: TextBox; value: TextBox }>
   footer: TextBox
+  /** Present only when the texts carry a player label / badge (two-player card). */
+  playerLabel?: TextBox
+  badge?: TextBox
 }
 
 export const MIN_CARD_W = 200
@@ -107,7 +116,11 @@ function groupDigits(n: number): string {
 
 /** The strings shown on the card. */
 export function buildCardTexts(d: CardData): CardTexts {
+  const extra: Partial<CardTexts> = {}
+  if (d.playerLabel) extra.playerLabel = d.playerLabel
+  if (d.badge) extra.badge = d.badge
   return {
+    ...extra,
     title: 'EXORCIST',
     rank: d.rank,
     rows: [
@@ -161,7 +174,16 @@ export function layoutCard(w: number, h: number, texts: CardTexts): CardLayout {
     }
   })
 
+  // Two-player chips sit inside the photo window (top-left label, top-right badge).
+  const chipB = { top: photo.y + photo.h * 0.03, height: photo.h * 0.12 }
+  const chipPad = photo.w * 0.04
+  const chipMax = photo.w * 0.4
+  const extra: Pick<CardLayout, 'playerLabel' | 'badge'> = {}
+  if (texts.playerLabel) extra.playerLabel = make(texts.playerLabel, chipB, photo.x + chipPad, 'left', chipMax, cw * 0.075, 8)
+  if (texts.badge) extra.badge = make(texts.badge, chipB, photo.x + photo.w - chipPad, 'right', chipMax, cw * 0.075, 8)
+
   return {
+    ...extra,
     frameOuter,
     frameInner,
     photo,

@@ -65,6 +65,14 @@ describe('observeRun', () => {
 })
 
 describe('momentRank', () => {
+  it('2P: a boss defeat offers the boss moment at once (summary), and a later victory does not repeat it', () => {
+    const r = observeRun(createRunStats(), st()).stats
+    let o = observeRun(r, st({ phase: 'summary', bossDefeated: true }))
+    expect(o.moment).toEqual({ kind: 'boss', rank: 100 })
+    o = observeRun(o.stats, st({ phase: 'victory' }))
+    expect(o.moment).toBeNull()
+  })
+
   it('orders boss > combo tiers > end', () => {
     expect(momentRank('boss')).toBeGreaterThan(momentRank('combo', 4))
     expect(momentRank('combo', 4)).toBeGreaterThan(momentRank('combo', 2))

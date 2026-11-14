@@ -201,3 +201,33 @@ describe('CardSession card flow', () => {
     expect(t.session.takeStatus()).toBe('failed')
   })
 })
+
+describe('CardSession extra card fields (two-player-card)', () => {
+  it('merges extra() into the card data each time the card is built', () => {
+    let badge: string | undefined = 'WINNER'
+    const compose = vi.fn((d: CardData, p: string | null) => ({ d, p }))
+    const session = new CardSession<string, { d: CardData; p: string | null }>({
+      grab: () => 's', releaseSnapshot: vi.fn(), compose, releaseCard: vi.fn(), download: async () => true,
+      extra: () => ({ playerLabel: 'P2', badge }),
+    })
+    session.observe(S({ phase: 'gameover', score: 40 }), 640, 480)
+    session.open()
+    expect(compose.mock.calls[0][0]).toMatchObject({ playerLabel: 'P2', badge: 'WINNER', score: 40 })
+    badge = undefined
+    session.close(); session.open()
+    expect(compose.mock.calls[1][0].badge).toBeUndefined()
+  })
+
+  it('two sessions are independent (one player\'s combo gives the other nothing)', () => {
+    const mk = () => {
+      const grab = vi.fn(() => 'x')
+      return { grab, s: new CardSession<string, string>({ grab, releaseSnapshot: vi.fn(), compose: () => 'c', releaseCard: vi.fn(), download: async () => true }) }
+    }
+    const a = mk(), b = mk()
+    a.s.observe(S(), 640, 480); b.s.observe(S(), 640, 480)
+    a.s.observe(S({ combo: 3 }), 640, 480); b.s.observe(S(), 640, 480)
+    expect(a.grab).toHaveBeenCalledTimes(1)
+    expect(b.grab).not.toHaveBeenCalled()
+    expect(b.s.hasPhoto).toBe(false)
+  })
+})

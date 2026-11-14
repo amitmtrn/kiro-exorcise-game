@@ -136,8 +136,14 @@ No storage API is used for the image; no network API is referenced in `src/card/
 | `game/loop.card.test.ts` | keys/clicks ignored off the end screens, accepted on them, repeat swallowed, `stopLoop` closes |
 
 ## Interaction with two-player
-The card is single-player only for now (a per-player 2P card will be a later spec). In
-two-player mode `loop.ts` skips `session.observe` (no run stats, no snapshot grab), keeps
-`onEndScreen` / `cardOpen` false and drops queued card input. `main.ts` does not forward
-keys or clicks to the card while `isTwoPlayerActive()`, so the 2P end-screen buttons and the
-card buttons never overlap and no input leaks between them. Test: `game/loop.card.test.ts`.
+The 1P card flow above is single-player only and is unchanged. In two-player mode `loop.ts` never feeds the
+1P `CardSession` (`session.observe` is not called, no run stats, no 1P snapshot grab), keeps `onEndScreen` /
+`cardOpen` false and drops queued 1P card input. `main.ts` forwards neither card keys nor clicks to the 1P card
+while `isTwoPlayerActive()` (the key path and the click path are both gated), so the 2P end-screen buttons and the
+1P card buttons never overlap and no input leaks between them.
+
+Each player of a 2P game gets their own card from their own half, with their own sessions, previews and controls:
+see `.kiro/specs/two-player-card/` (the earlier "card is 1P only for now" restriction is removed). That feature
+reuses `CardSession`, `CardPreview`, `MotionButton`, `layoutCard` / `drawCard` and `downloadCanvasPng` unchanged for
+1P; the only additions are optional (`extra()`, point source, label / badge, file name).
+Tests: `game/loop.card.test.ts` (1P session idle in 2P, driven to the end screen), `game/loop.card2p.test.ts`.
