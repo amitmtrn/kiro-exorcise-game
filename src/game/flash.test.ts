@@ -101,6 +101,40 @@ describe('overlayAlpha', () => {
     expect(overlayAlpha(b, 0, 1150, true)).toBe(0)
     expect(overlayAlpha(a, 1300, 1150, true)).toBeGreaterThan(0)
   })
+  it('two halves of a group share one budget: 3 flashes per second on the whole screen', () => {
+    const a = {}, b = {}, group = {}
+    const onsets = (draw: (t: number) => number) => {
+      const wave: number[] = []
+      for (let t = 0; t < 4000; t++) wave.push(draw(t))
+      return wave
+    }
+    // alternating hits on the left and right half every 150 ms
+    let endA = 0, endB = 0
+    const shared = onsets((t) => {
+      if (t % 300 === 0) endA = t + 100
+      if (t % 300 === 150) endB = t + 100
+      return Math.max(overlayAlpha(a, endA, t, true, group), overlayAlpha(b, endB, t, true, group))
+    })
+    expect(maxFlashesPerWindow(shared)).toBeLessThanOrEqual(MAX_FLASHES_PER_S)
+    expect(maxFlashesPerWindow(shared)).toBe(MAX_FLASHES_PER_S)
+    // without a group each half is limited alone and the screen exceeds the limit
+    const c = {}, d = {}
+    endA = 0; endB = 0
+    const alone = onsets((t) => {
+      if (t % 300 === 0) endA = t + 100
+      if (t % 300 === 150) endB = t + 100
+      return Math.max(overlayAlpha(c, endA, t, true), overlayAlpha(d, endB, t, true))
+    })
+    expect(maxFlashesPerWindow(alone)).toBeGreaterThan(MAX_FLASHES_PER_S)
+  })
+  it('a group forgets onsets stamped by a clock that went backwards', () => {
+    const a = {}, g = {}
+    for (const t of [2 ** 40, 2 ** 40 + 500]) overlayAlpha(a, t + 100, t, true, g)
+    const b = {}
+    let peak = 0
+    for (let t = 1000; t < 1300; t += 5) peak = Math.max(peak, overlayAlpha(b, 1300, t, true, g))
+    expect(peak).toBeGreaterThan(0.1)
+  })
   it('skull hits every 100 ms flash at most 3 times per second', () => {
     const key = {}
     let end = 0

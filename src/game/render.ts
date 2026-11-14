@@ -43,6 +43,8 @@ export interface RenderOpts {
   banished?: Enemy[]
   /** Moved pixels for the debug overlay, in this canvas's coordinates. Default: `lastMotionPixels`. */
   motionPixels?: Array<{ x: number; y: number }>
+  /** Two-player: key shared by both halves so reduced flashing is limited per screen, not per half. */
+  flashGroup?: object
 }
 
 export function renderFrame(
@@ -92,7 +94,7 @@ export function renderFrame(
   if (boss) drawBossHealthBar(ctx, boss)
 
   // Red/orange flash overlay
-  const flashAlpha = overlayAlpha(ctx.canvas, state.flashEndTime, now, reduced)
+  const flashAlpha = overlayAlpha(ctx.canvas, state.flashEndTime, now, reduced, opts.flashGroup)
   if (flashAlpha > 0) {
     ctx.save()
     ctx.globalAlpha = flashAlpha

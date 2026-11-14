@@ -49,6 +49,25 @@ describe('flash scheduler properties (R10.2)', () => {
     }), { numRuns: 60 })
   })
 
+  it('two halves sharing a group obey the 3-per-second rule on the combined screen', () => {
+    fc.assert(fc.property(
+      fc.array(fc.tuple(fc.integer({ min: 1, max: 400 }), fc.boolean()), { minLength: 1, maxLength: 60 }),
+      (events) => {
+        const keys = [{}, {}], group = {}
+        const hits: Array<{ at: number; half: number }> = []
+        let t = 0
+        for (const [g, right] of events) { t += g; hits.push({ at: t, half: right ? 1 : 0 }) }
+        const ends = [0, 0]
+        let next = 0
+        const wave: number[] = []
+        for (let ms = 0; ms < t + 1000; ms++) {
+          while (next < hits.length && hits[next].at <= ms) { ends[hits[next].half] = hits[next].at + 300; next++ }
+          wave.push(Math.max(overlayAlpha(keys[0], ends[0], ms, true, group), overlayAlpha(keys[1], ends[1], ms, true, group)))
+        }
+        return maxFlashesPerWindow(wave) <= MAX_FLASHES_PER_S && wave.every((a) => a <= REDUCED_ALPHA + 1e-12)
+      }), { numRuns: 60 })
+  })
+
   it('the normal flash constant is unchanged and higher than the reduced one', () => {
     expect(NORMAL_ALPHA).toBe(0.4)
     expect(REDUCED_ALPHA).toBeLessThan(NORMAL_ALPHA)

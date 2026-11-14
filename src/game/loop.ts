@@ -366,6 +366,7 @@ export async function startLoop(
       renderFrame(hctx, s, now, {
         banished: t.banished[seat],
         motionPixels: displayPointsInHalf(lastMotionPixels, seat, W),
+        flashGroup: gameCtx.canvas, // one reduced-flash budget for the whole screen (R10.2)
       })
       const pulse = (pulses[seat] ??= createHudPulse())
       if (s.phase === 'playing') {

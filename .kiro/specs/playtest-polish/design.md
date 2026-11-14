@@ -264,6 +264,11 @@ The alpha is slew-limited (a follower, not a hand-shaped envelope), so it never 
 arrives during a fade-out. Onsets are counted over `1000 ms + RAMP_MS`: a flash becomes visible up to one ramp
 after its onset, so any four visible flashes are more than 1000 ms apart.
 
+Scheduler state is per canvas; `overlayAlpha(key, …, group?)` takes an optional group object whose accepted
+onsets are shared. The two-player loop passes the game canvas as `flashGroup` for both halves, so the
+3-per-second limit holds for the whole screen (onsets stamped after `now`, from a clock that went
+backwards, are dropped).
+
 `render.ts` keeps its `state.flashEndTime` input. It derives a flash *request* per
 distinct `flashEndTime`, feeds it to a module scheduler and draws
 `flashAlphaAt`. With reduced off the scheduler is bypassed and the code path is

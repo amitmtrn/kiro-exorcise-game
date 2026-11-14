@@ -117,12 +117,16 @@ export function maxFlashesPerWindow(wave: readonly number[], stepMs = 1, windowM
 
 interface Slot { sched: FlashScheduler; seenEnd: number }
 const slots = new WeakMap<object, Slot>()
+/** Accepted flash onsets per screen group (the two halves of a two-player screen share one budget). */
+const groups = new WeakMap<object, readonly number[]>()
 
 /**
  * Overlay alpha for the game's red flash on `key` (a canvas: each two-player half has its own). Normal mode is
  * the old constant 0.4 until `flashEndTime`. Reduced mode feeds each new `flashEndTime` to the scheduler.
+ * `group` (two-player: the shared game canvas) makes all keys of the group draw their flash onsets from one
+ * 3-per-second budget, so the whole screen never shows more than 3 flashes in 1000 ms (R10.2).
  */
-export function overlayAlpha(key: object, flashEndTime: number, now: number, reduced: boolean): number {
+export function overlayAlpha(key: object, flashEndTime: number, now: number, reduced: boolean, group?: object): number {
   if (!reduced) return now < flashEndTime ? NORMAL_ALPHA : 0
   let slot = slots.get(key)
   if (!slot) { slot = { sched: createFlashScheduler(), seenEnd: 0 }; slots.set(key, slot) }
@@ -130,7 +134,14 @@ export function overlayAlpha(key: object, flashEndTime: number, now: number, red
   slots.set(key, slot)
   if (flashEndTime !== slot.seenEnd) {
     slot.seenEnd = flashEndTime
-    if (flashEndTime > now) slot.sched = requestFlash(slot.sched, now, flashEndTime - now, NORMAL_ALPHA)
+    if (flashEndTime > now) {
+      if (group) {
+        // onsets stamped after `now` come from a clock that went backwards (demo clock): forget them
+        const shared = (groups.get(group) ?? []).filter((t) => t <= now)
+        slot.sched = requestFlash({ ...slot.sched, onsets: shared }, now, flashEndTime - now, NORMAL_ALPHA)
+        groups.set(group, slot.sched.onsets)
+      } else slot.sched = requestFlash(slot.sched, now, flashEndTime - now, NORMAL_ALPHA)
+    }
   }
   slot.sched = advance(slot.sched, now)
   return slot.sched.alpha

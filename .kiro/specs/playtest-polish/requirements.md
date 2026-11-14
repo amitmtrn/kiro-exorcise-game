@@ -262,7 +262,9 @@ starts at 2^40), so no tint stays on screen and later flashes still show.
 
 **R10.2** No more than **3 flashes in any 1000 ms window** (WCAG 2.3.1): a pure
 flash scheduler accepts flash requests (time, amplitude) and drops the ones that
-would be the 4th in the window. A property test samples the produced brightness
+would be the 4th in the window. The limit is per screen: in two-player mode both
+halves draw their flash onsets from one shared budget (`flashGroup`), so the whole
+screen shows at most 3 flashes in 1000 ms, not 3 per half. A property test samples the produced brightness
 waveform at 1 ms and checks the rule for random request streams.
 
 **R10.3** There is no lightning or strobe effect in the game today; the timer's
