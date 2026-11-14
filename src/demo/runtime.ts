@@ -11,6 +11,7 @@ import type { DemoView } from './driver'
 import { SyntheticCamera } from './camera'
 import type { CameraFrames, Pt } from './camera'
 import { setHighScorePersistence } from '../game/state'
+import { lockEndButtons } from '../ui/cardScreen'
 
 export interface DemoOptions {
   seed: number
@@ -22,7 +23,12 @@ export interface DemoOptions {
   h: number
 }
 
-const CLOCK_START_MS = 1000
+/**
+ * Every demo run starts its clock here: one fixed value, so the clock arithmetic (and every comparison made
+ * with it) is bit-identical from run to run, and far above any real `performance.now()`, so a timestamp left
+ * in a module by the normal game (or an earlier demo run, see `lockEndButtons`) can never lie in its future.
+ */
+export const CLOCK_START_MS = 2 ** 40
 const TRAIL_LEN = 6
 
 export class DemoRuntime {
@@ -61,6 +67,8 @@ export class DemoRuntime {
       Object.defineProperty(performance, 'now', { value: () => this.clock, configurable: true, writable: true })
       this.nowPatched = true
     } catch { /* a frozen performance object: the run is then deterministic only up to frame timing */ }
+    // The end-screen lock and the card offer button keep a timestamp across loops: restart them on the demo clock.
+    lockEndButtons(this.clock)
   }
 
   /** The demo game clock in ms (what `performance.now()` returns while the runtime exists). */
@@ -107,5 +115,7 @@ export class DemoRuntime {
       } catch { /* ignore */ }
     }
     setHighScorePersistence(true)
+    // ...and back on the real clock, so the normal game's end-screen buttons are not held by a demo timestamp.
+    try { lockEndButtons(performance.now()) } catch { /* ignore */ }
   }
 }

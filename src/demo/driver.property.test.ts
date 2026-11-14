@@ -1,6 +1,6 @@
 import { describe, it } from 'vitest'
 import fc from 'fast-check'
-import { DemoDriver, handRadius, stepSafe } from './driver'
+import { DemoDriver, handRadius, stepSafe, MAX_HAND_SPEED_H } from './driver'
 import type { DemoView } from './driver'
 import { makeEnemy } from '../game/state'
 import type { Enemy } from '../game/state'
@@ -86,13 +86,13 @@ describe('driver properties (demo-mode R4.1, R4.5)', () => {
     ), { numRuns: 40 })
   })
 
-  it('per-step movement is bounded (no teleporting) at the demo frame rate', () => {
+  it('per-step movement never exceeds the hand top speed (no teleporting)', () => {
     fc.assert(fc.property(
       fc.integer({ min: 1, max: 1000 }),
       fc.array(fc.nat({ max: 5 }), { minLength: 1, maxLength: 5 }).chain((xs) => fc.tuple(...xs.map((_, i) => arbEnemy(i)))),
       (seed, specs) => {
         const { path } = simulate(seed, 1280, 720, specs as Spec[], 120)
-        for (let i = 1; i < path.length; i++) if (Math.hypot(path[i].x - path[i - 1].x, path[i].y - path[i - 1].y) > 150) return false
+        for (let i = 1; i < path.length; i++) if (Math.hypot(path[i].x - path[i - 1].x, path[i].y - path[i - 1].y) > (MAX_HAND_SPEED_H * 720 * DT) / 1000 + 1e-6) return false
         return true
       },
     ), { numRuns: 60 })

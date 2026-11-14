@@ -24,8 +24,8 @@ demo toggle is **`G`** ("ghost hand").
 
 **R1.1** `?demo=1` in the page URL starts demo mode at page load. `?demo=0` (or
 no `demo` parameter) starts the normal game. Optional parameters: `seed=N`
-(non-negative integer, default `7`), `stage=N` (1–5, default `1`: the stage the
-run starts at) and `speed=N` (1–4, default `DEMO.timeScale`). A missing or invalid
+(non-negative integer, default `7`, a seed that plays a clean run at common window
+sizes), `stage=N` (1–5, default `1`: the stage the run starts at) and `speed=N` (1–4, default `DEMO.timeScale`). A missing or invalid
 value falls back to its default; nothing throws.
 
 **R1.2** On the title screen of a normal game, `G` (no Ctrl / Meta / Alt) switches
@@ -104,9 +104,14 @@ the "!" and glow have shown (phase 2: 300–400 ms, phase 3: 120–180 ms), so t
 is visible before the hit.
 
 **R4.3** *Swipes.* Each swipe is a curved path (quadratic Bézier with an
-ease-in-out speed profile, 220–1000 ms) that passes through the enemy's predicted
-position and overshoots it. It starts from where the hand is; it never teleports.
-Between swipes the hand rests without moving, so a resting hand never hits anything.
+ease-in-out speed profile, 180–800 ms) that passes through the enemy's predicted
+position and overshoots it. It starts from where the hand is; it never teleports:
+no step is faster than the hand's top speed (4.5 canvas heights per second; a longer
+step is shortened and the move falls behind schedule). Between swipes the hand rests
+without moving (80–200 ms), so a resting hand never hits anything. A swipe at a
+non-urgent target is dropped when an attack or a threat due within 1.2 s is ready
+to be swiped (a person changing their mind). An approaching lunger about to wind up
+is met: the hand waits beside it.
 
 **R4.4** *Deliberate misses.* About one swipe in eight at a low-urgency target
 (not a boss, not a lunger, not within 35 % of the screen height of the centre) passes
@@ -115,7 +120,7 @@ costs a life by itself.
 
 **R4.5** *Never the skull.* At every frame the hand disc (current and next position)
 stays clear of the hitbox of every skull by the hand radius plus a margin (two
-sampling cells plus the skull's travel in one tick). If the next step would break
+motion-canvas pixels plus the skull's travel in one tick). If the next step would break
 that, the hand holds still instead (a still hand cannot hit). Planned swipes whose
 path breaks the margin are replanned from the other side or skipped.
 
@@ -146,8 +151,13 @@ are skipped.
 
 **R5.2** The demo clock (`performance.now()` while demo mode is on) advances by the
 same scaled step per processed tick, and `Math.random` is a PRNG seeded from `seed`
-and re-seeded at the start of every run. Same seed, same fixed step: the run is
-identical every time, in the browser and in the headless simulation.
+and re-seeded at the start of every run. Same seed, same fixed step and same canvas
+size: the run is identical every time, in the browser and in the headless simulation.
+The clock starts at one fixed value (2^40 ms) far above any real `performance.now()`,
+so timestamps left in modules by the normal game cannot lie in its future, and the
+driver's own clock restarts at 0 for every run, so float rounding is identical from
+run to run. Cosmetic randomness that differs between the browser and the headless
+run (sound-effect noise) must not draw from `Math.random`.
 
 **R5.3** Normal gameplay timing, stage durations and balance are unchanged: the
 scale exists only in demo mode and `STAGES` is not modified.
@@ -185,7 +195,9 @@ demo mode restores both.
 behaves as before, and every existing test passes unmodified. `loop.ts` changes are
 confined to the demo branch and a wrapper; `STAGES`, `collision.ts`,
 `motionButton.ts`, `screens.ts` and `state.ts` reducers are not changed (the only
-`state.ts` change is the persistence switch of R6.4, default on).
+`state.ts` change is the persistence switch of R6.4, default on). `sfx.ts` takes its
+white noise from a private generator instead of `Math.random` (R5.2); the sound is
+the same white noise.
 
 **R7.2** Recording a take with sound: load `?demo=1&seed=7`, press `M` twice (mute
 then unmute, which also unlocks the audio context), then start the screen recorder.

@@ -11,13 +11,14 @@ export const DEMO = {
   timeScale: 2,
   /** Synthetic camera frame interval in demo time (a 30 fps webcam). */
   frameMs: 1000 / 30,
+  /** Plays a clean run (no game over) at the common window sizes; any seed works (demo-mode R5.2). */
   defaultSeed: 7,
   defaultStage: 1,
   minSpeed: 1,
   maxSpeed: 4,
   /** Hand disc radius as a fraction of the canvas height, clamped to [handMinPx, handMaxPx]. */
   handRadiusH: 0.055,
-  handMinPx: 28,
+  handMinPx: 36,
   handMaxPx: 60,
 } as const
 
@@ -79,4 +80,24 @@ export function demoKeyAction(e: KeyLike): DemoKeyAction {
 /** True when a key press on the normal title screen should switch demo mode on (R1.2). */
 export function isDemoToggleKey(e: KeyLike, onTitleScreen: boolean): boolean {
   return onTitleScreen && !e.ctrlKey && !e.metaKey && !e.altKey && e.key.toLowerCase() === DEMO_TOGGLE_KEY
+}
+
+export type DemoKeyRoute = 'leave' | 'enter' | 'swallow' | 'pass'
+
+/** How long after leaving demo mode the auto-repeats of the key that left it are swallowed. */
+export const LEAVE_REPEAT_MS = 500
+
+/**
+ * Routes one keydown (demo-mode R1.2–R1.4). `leave`: stop demo, show the normal title (the key is used up).
+ * `enter`: start demo (G on the normal title screen). `swallow`: auto-repeat of the key that just left demo.
+ * `pass`: the normal key handler runs.
+ */
+export function routeDemoKey(
+  e: KeyLike & { repeat?: boolean },
+  ctx: { demoOn: boolean; onTitle: boolean; msSinceLeft: number },
+): DemoKeyRoute {
+  if (ctx.demoOn) return demoKeyAction(e) === 'ignore' ? 'pass' : 'leave'
+  if (e.repeat && ctx.msSinceLeft < LEAVE_REPEAT_MS) return 'swallow'
+  if (!e.repeat && isDemoToggleKey(e, ctx.onTitle)) return 'enter'
+  return 'pass'
 }

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { DemoDriver, handRadius, stepSafe, distToRect, REACT_MS, BURST_MS, CARD_HOLD_MS } from './driver'
+import { DemoDriver, handRadius, stepSafe, distToRect, REACT_MS, BURST_MS, CARD_HOLD_MS, MAX_HAND_SPEED_H } from './driver'
 import type { DemoView } from './driver'
 import { makeEnemy } from '../game/state'
 import type { Enemy } from '../game/state'
@@ -80,10 +80,10 @@ describe('aiming (R4.2, R4.3)', () => {
     expect(dist(b, { x: 640, y: 300 })).toBeGreaterThan(60) // overshoot
   })
 
-  it('never teleports: consecutive positions are close (≤ 90 px per 30 fps frame)', () => {
+  it('never teleports: no step is faster than the hand top speed', () => {
     const d = new DemoDriver(5)
     const path = run(d, 200, () => view({ enemies: [ghost('a', 900, 200), ghost('b', 200, 500)] }))
-    for (let i = 1; i < path.length; i++) expect(dist(path[i], path[i - 1])).toBeLessThan(90)
+    for (let i = 1; i < path.length; i++) expect(dist(path[i], path[i - 1])).toBeLessThanOrEqual((MAX_HAND_SPEED_H * H * DT) / 1000 + 1e-6)
   })
 
   it('a resting hand does not move at all', () => {

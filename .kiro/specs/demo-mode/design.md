@@ -36,7 +36,8 @@ export const DEMO = {
   timeScale: 2,        // game / driver / clock advance stepMs * scale per processed tick
   frameMs: 1000 / 30,  // synthetic camera frame interval (demo time)
   defaultSeed: 7,
-  handRadiusH: 0.055,  // hand disc radius as a fraction of the canvas height (clamped 28..60 px)
+  handRadiusH: 0.055,  // hand disc radius as a fraction of the canvas height (clamped 36..60 px:
+                       // two discs must cover 15 % of the fixed-size 192 px boss hitbox on small canvases)
 }
 parseDemoParams(search: string): { demo: boolean; seed: number; stage: number; speed: number }
 ```
@@ -92,39 +93,52 @@ class DemoDriver {
 
 **Movement primitive.** `Move = { path(u) → Pt; durMs; t }` with ease-in-out
 `u(t) = smootherstep(t / dur)`. Every hand movement (swipe, glide to a button, retreat,
-home) is a `Move`; the wave over a button is a `Circle` primitive (radius 0.45 r, 2.5 Hz,
+home) is a `Move`; the wave over a button is a `Circle` primitive (radius 0.55 r, 4 Hz,
 constant speed, so every camera frame carries motion). There is no other way for the
 hand to change position, so the skull rule has a single choke point.
 
 **Skull rule (R4.5).** `handSafe(from, to, R, skulls, travelPx)`: both discs
-`(from, R)` and `(to, R)` must be at distance ≥ `R + 2·cell + travelPx` from every
-skull hitbox, where `cell = 4 · displayW / MOTION_W` and `travelPx` is the skull's
-travel in one tick (`speed · h · (stepMs·scale + 16) / 1000`). The diff region of a
+`(from, R)` and `(to, R)` must be at distance ≥ `R + 2·px + travelPx` from every
+skull hitbox, where `px = max(displayW / MOTION_W, displayH / MOTION_H)` (one motion pixel) and `travelPx` is the skull's
+travel in one tick (`speed · h · (stepMs·scale + 16) / 1000`). Only skulls that can be hit
+count (`playing`, `summary`): a frozen skull behind the game-over screen does not block the
+hand. The diff region of a
 frame pair lies inside the union of the two discs, so no sampled pixel of the skull's
 hitbox can move. `update` runs this on every proposed step; if it fails the position
 is held, the current `Move` is dropped and `stats.blocked` increments. Planned swipes
 are pre-checked by sampling the path every `u = 1/16` against the same rule inflated by
-the skull travel over the whole swipe; failing that the other bend is tried, then the
+the skull travel up to that sample's time; failing that the other bend is tried, then the
 target is skipped for 400 ms.
 
+**Urgency.** `timeToThreatMs(e)` estimates when an enemy costs a life: scripted paths and
+drops from the remaining path time, lungers from approach + 600 ms wind-up + lunge, others from
+distance / speed; harmless enemies, flybys, skulls and the boss are `Infinity`. A swipe or glide
+at something less urgent is dropped when an attack or a threat due within `URGENT_MS` (1200) is
+ready. An approaching lunger within 0.3 h of the centre (and no other threat due within 1.5 s)
+makes the hand wait just outside it, so the wind-up is met. When no safe swipe exists from the
+hand's position (a skull in the way), the driver tries aims around the target and then a
+straight **detour** glide to a staging point from which a safe swipe exists.
+
 **Targeting.** Candidates: `isHittable(e)`, `e.type !== 'skull'`, centre inside the canvas
-(inset 8 px), `view.now − e.spawnedAt ≥ 150`, and `reactReady` (see below). Order: not
-harmless first, then distance of the enemy to its target (the centre), then id. The driver
+(inset 8 px), `view.now − e.spawnedAt ≥ 150`, and `reactReady` (see below). Order: attacks
+(boss / lunger wind-up, lunge, recover) first, then threats by `timeToThreatMs`, then an idle boss,
+then harmless targets by distance to the centre. The driver
 keeps `firstSeen[id]` (driver time) and a per-enemy reaction delay drawn from the PRNG
 when first seen (180–320 ms). For a boss / lunger in wind-up the delay counts from the
-moment the attack was first observed (`bossAttack`/`movePhase` change), with the phase
-ranges of R4.2. Enemy velocity is estimated from the last two observed positions
+moment the attack was first observed (`bossAttack` leaves `idle` / `movePhase` leaves
+`approach`; wind-up, lunge and recover are one attack), with the phase ranges of R4.2. Enemy velocity is estimated from the last two observed positions
 (`vel`), and the swipe aims at `pos + vel · (0.55 · dur)`.
 
 **Swipe path.** `p0` = hand, `E` = predicted target, `d` = unit(E − p0). End point
 `p2 = E + rot(d, ±(15°…35°)) · (R + 70)` (lateral sign from the PRNG, flipped when the
 safety check fails). Quadratic Bézier whose control point is solved so that `B(0.55) = E`;
 the hand therefore crosses the enemy at 55 % of the swipe, near peak speed. Duration
-`clamp(len / (1.6 · h px/s), 220, 1000)`. A **miss** replaces `E` by
+`clamp(len / (2.2 · h px/s), 180, 800)` where `len` is the length of the curve (sampled), and
+every step is capped at 4.5 h px/s (`MAX_HAND_SPEED_H`). A **miss** replaces `E` by
 `E + n · (hitboxHalf + R + 30)` (`n` perpendicular to `d`), with probability 1/8 for
 low-urgency targets only.
 
-**Rest.** After a swipe the hand holds still for a cooldown of 120–260 ms (PRNG), then
+**Rest.** After a swipe the hand holds still for a cooldown of 80–200 ms (PRNG), then
 re-targets. With nothing to hit for 1.5 s it glides to a home point (0.5 w, 0.6 h). In
 boss phases 2 and 3, while the boss is shielded, the hand pre-positions at
 `(boss.x, boss.y + 0.2 h)` so a wind-up can be met in time.
@@ -154,6 +168,15 @@ class DemoRuntime {
 
 - `beginTick`: skips the frame when `timestamp − lastProcessed < minFrameMs`; otherwise
   `deltaMs = stepMs · speed`, advances the demo clock by `deltaMs`.
+- The clock starts at `CLOCK_START_MS = 2^40` for every runtime. All clock values then share
+  one binade and one ulp, so `clock + step` rounds the same way in every run and differences
+  are bit-identical; and it is far above any real `performance.now()`. `lockEndButtons(clock)`
+  runs on construction and `lockEndButtons(realNow)` on `dispose()`, so the end-screen lock
+  and the card offer button never hold a timestamp from the other clock.
+- `DemoDriver` restarts its own time at 0 when a run begins (after the title screen), for the
+  same reason. The attract loop therefore replays the identical run.
+- `sfx.ts` noise uses a private xorshift generator: sound effects run in the browser and are
+  mocked in tests, so they must not consume the seeded `Math.random` stream.
 - On construction it installs `performance.now = () => clock` and
   `Math.random = mulberry32(seed)`; `dispose()` puts both back (also on `stopLoop`).
   `performance.now()` is what the enemy factories stamp `spawnedAt` with and what the loop
@@ -193,7 +216,11 @@ class DemoRuntime {
 
 ### `main.ts`
 
-`boot()` reads `parseDemoParams(location.search)`. Demo: load the title font, skip
+`boot()` reads `parseDemoParams(location.search)`. Key routing is the pure
+`routeDemoKey(e, { demoOn, onTitle, msSinceLeft })` → `leave | enter | swallow | pass`
+(`params.ts`); auto-repeats of the key that left demo are swallowed for 500 ms. The
+onboarding state is created on the first normal boot only, so demo mode never reads the
+onboarding flag. Demo: load the title font, skip
 `initWebcam` / onboarding, create `DemoRuntime`, `startLoop(null, …, stage, { demo })`.
 A `keydown` / `pointerdown` handler (capture phase, before the existing ones) applies
 `demoKeyAction` while demo is on: `exit` → `leaveDemo()` (stop loop, `dispose()`, `boot()` normal,
@@ -221,4 +248,5 @@ between `new DemoRuntime` and `dispose()`.
 | `demo/overlay.test.ts` | badge text and position, ghost hand draws, portrait draws (recording context) |
 | `demo/state.persist.test.ts` | demo scores never reach `localStorage`; restored after dispose |
 | `demo/demo.sim.test.ts` | headless full run through the real `startLoop` (fake clock, recording context, no canvas, mocked audio): victory and card preview within a bound, no skull hit, combo x4, DEMO badge every tick of every phase, no `getUserMedia` / `fetch` / XHR / `sendBeacon`, nothing stored, same result twice, loops to the title |
+| `demo/main.demo.test.ts` | `main.ts` against a stub DOM: `?demo=1` never calls `initWebcam` / `getUserMedia` / onboarding / network and draws DEMO; `M` stays in demo; any other key or a click leaves (key used up, click does not reach the mute button, clock and `Math.random` restored, URL cleaned, camera requested); `?demo=0` normal; `G` on the normal title releases the camera and starts demo |
 | `demo/normal.test.ts` | normal `startLoop` with a video: camera path used, no demo badge, no clock / `Math.random` patch, `saveHighScore` persists |

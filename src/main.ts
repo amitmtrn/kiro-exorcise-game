@@ -16,7 +16,7 @@ import { loadTitleFont } from './ui/fonts'
 import { routePointer } from './ui/pointerRoute'
 import { SOUND_HINT, soundHintFontPx } from './ui/layout'
 import { hudFontSize, muteButtonRect, muteButtonRect2P } from './ui/hud'
-import { parseDemoParams, demoKeyAction, isDemoToggleKey } from './demo/params'
+import { parseDemoParams, routeDemoKey } from './demo/params'
 import type { DemoParams } from './demo/params'
 import { DemoRuntime } from './demo/runtime'
 
@@ -68,19 +68,19 @@ installAudioUnlock({
 // Demo keys run first (registered before the normal handler). Any key leaves demo mode except the passive ones;
 // `G` on the normal title screen starts it. The audio-unlock listener on window still sees the key.
 document.addEventListener('keydown', (e) => {
-  if (demo) {
-    if (demoKeyAction(e) === 'ignore') return // bare modifiers and M (mute): the normal handler runs
-    consumedKeys.add(e); e.preventDefault()
-    leaveDemo()
-  } else if (e.repeat && performance.now() - leftDemoAt < 500) {
-    consumedKeys.add(e) // a held key that left demo must not start a game on its repeats
-  } else if (isDemoToggleKey(e, isStartScreenVisible())) {
-    consumedKeys.add(e); e.preventDefault()
-    enterDemo()
-  }
+  const route = routeDemoKey(e, { demoOn: demo !== null, onTitle: isStartScreenVisible(), msSinceLeft: performance.now() - leftDemoAt })
+  if (route === 'pass') return
+  consumedKeys.add(e)
+  e.preventDefault()
+  if (route === 'leave') leaveDemo()
+  else if (route === 'enter') enterDemo()
 })
-// Any click / tap leaves demo mode too (the event still reaches the normal handlers).
-window.addEventListener('pointerdown', () => { if (demo) leaveDemo() }, true)
+// Any click / tap leaves demo mode too; it is used up (it does not also press the mute button underneath).
+window.addEventListener('pointerdown', (e) => {
+  if (!demo) return
+  e.stopPropagation()
+  leaveDemo()
+}, true)
 
 document.addEventListener('keydown', (e) => {
   if (consumedKeys.has(e)) return
@@ -116,12 +116,13 @@ gameCanvas.addEventListener('pointerdown', (e) => {
 })
 
 // Module-level so a retry (camera denied, or lost mid-onboarding) resumes the same state.
-let onboarding = createOnboarding(hasSeenOnboarding(getLocalStorage()))
+// Created on the first normal boot: demo mode never reads the onboarding flag (demo-mode R2.2).
+let onboarding: ReturnType<typeof createOnboarding> | null = null
 
 function denyCamera(err: unknown): void {
-  onboarding = onboardingReducer(onboarding, { type: 'cameraDenied' })
+  onboarding = onboardingReducer(onboarding!, { type: 'cameraDenied' })
   showCameraDenied(classifyCameraError(err), () => {
-    onboarding = onboardingReducer(onboarding, { type: 'retry' })
+    onboarding = onboardingReducer(onboarding!, { type: 'retry' })
     void boot()
   })
 }
@@ -171,6 +172,7 @@ async function boot(): Promise<void> {
   // Start the font load alongside the permission prompt instead of delaying it.
   const fontReady = loadTitleFont().catch(() => undefined)
   const storage = getLocalStorage()
+  onboarding ??= createOnboarding(hasSeenOnboarding(storage))
 
   let video: HTMLVideoElement
   try {
@@ -183,8 +185,8 @@ async function boot(): Promise<void> {
   await fontReady
 
   // First run: silhouette guide + how-to over the live camera, then the usual flow.
-  if (onboarding.step !== 'done') {
-    const result = await runOnboarding(video, webcamCtx, gameCtx, storage, onboarding, (s) => { onboarding = s })
+  if (onboarding!.step !== 'done') {
+    const result = await runOnboarding(video, webcamCtx, gameCtx, storage, onboarding!, (s) => { onboarding = s })
     if (result === 'cameraLost') { stopWebcam(video); activeVideo = null; denyCamera({ name: 'NotReadableError' }); return }
   }
 
