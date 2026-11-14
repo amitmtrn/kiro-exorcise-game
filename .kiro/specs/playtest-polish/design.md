@@ -37,18 +37,22 @@ export function levelForMode(mode): QualityLevel | null          // null = auto
 `stepFrameBudget`: `avg += (delta − avg)·(1 − e^(−delta/τ))`; `overMs += delta`
 while `avg > down` else reset to 0 (same for `underMs` with `avg < up`), where
 `down = max(20, 1.3 · snap(refMs))`, `up = max(14, 1.1 · snap(refMs))` and `snap`
-picks the largest of 8.33 / 16.67 / 33.33 ms that `refMs` is within 15 % of (else 16.67). The
+picks the largest of 8.33 / 16.67 / 33.33 ms that `refMs` is within 15 % of (else 16.67);
+33.33 is only a candidate while `fastMs < 1000`, where `fastMs` accumulates the time spent in
+frames shorter than 25 ms (a display that never ran faster than 40 Hz may be a 30 Hz panel). The
 refresh estimate is what makes step-up reachable: the loop feeds the rAF
 interval, which never goes below the display's refresh interval (16.7 ms at
 60 Hz), so a fixed 14 ms up threshold could only be met at ≥ 72 Hz. A steady
 28 ms or 40 ms stream is not within 15 % of any vsync interval (28 · 1.15 < 33.3),
 so a slow machine keeps the 60 Hz thresholds and steps down. A steady 29–38 ms
-stream is taken for a 30 Hz cap: the estimate reaches it within about 2 s (before
+stream of a display that has never run faster is taken for a 30 Hz cap: the estimate reaches it within about 2 s (before
 the 2 s down counter completes), so it never steps down and never reverses
+(property test). After 1 s of fast frames the 30 Hz band is no longer snapped to, so a
+60 Hz session that falls to a steady 33 ms exceeds the 21.7 ms threshold and steps down
 (property test). The loop also tracks the
 average with a pinned mode, for the debug overlay. All counters
 are in ms, so 60 and 30 fps loops decide identically. After a change: `settleMs =
-3000`, `avg` re-seeded to 17 ms (the middle of the band), counters 0. A step up
+3000`, `avg` re-seeded to the mean of the current down and up thresholds (`reseedMs`), counters 0. A step up
 sets `sinceUpMs = 0`; a step down while `sinceUpMs < 30 s` doubles `upPenalty`
 (1, 2, 4). The up wait is `6000 · upPenalty`.
 

@@ -46,8 +46,13 @@ describe('display refresh rate (review fix)', () => {
   it('steps back up on a 30 fps-capped display, and does not step down on it', () => {
     const steady = simulate([[33.3, 60_000]])
     expect(steady.final.level).toBe(0)
-    const { final } = simulate([[16.7, 3000], [50, 20_000], [33.3, 150_000]])
+    const { final } = simulate([[50, 20_000], [33.3, 150_000]]) // never ran faster
     expect(final.level).toBe(0)
+  })
+  it('a 60 Hz session that drops to a steady 30 fps steps down and stays down', () => {
+    const { final, changes } = simulate([[16.7, 5000], [33.3, 150_000]])
+    expect(final.level).toBe(3)
+    expect(changes.map((c) => c.level)).toEqual([1, 2, 3])
   })
   it('still steps down at 60 Hz when frames take 28 ms', () => {
     const { final } = simulate([[16.7, 5000], [28, 30_000]])

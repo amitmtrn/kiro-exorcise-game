@@ -27,8 +27,10 @@ export const IGNORE_ABOVE_MS = 250
 /** A step down within this long after a step up lengthens the next up wait. */
 export const FLIP_WINDOW_MS = 30_000
 export const MAX_UP_PENALTY = 4
-/** The average is re-seeded here after a change (middle of the 14–20 ms band). */
-export const RESEED_MS = 17
+/** A frame interval below this means the display runs faster than 40 Hz. */
+export const FAST_FRAME_MS = 25
+/** Once this much time was spent in such frames the display has "run faster": a later 30 Hz-band stream is a slow machine. */
+export const SEEN_FAST_MS = 1000
 /** The thresholds scale with the display's refresh interval so a 60 Hz or 30 fps-capped display can step up. */
 export const REF_DOWN_FACTOR = 1.3
 export const REF_UP_FACTOR = 1.1
@@ -45,13 +47,16 @@ const SNAP_MARGIN = 1.15
  * The vsync interval the estimate is within 15 % of (the largest such), else 60 Hz. A steady 28 ms or 40 ms is a slow
  * machine, not a 36 Hz or 25 Hz display, so it keeps the 60 Hz thresholds and steps down.
  */
-export function snapRefMs(refMs: number): number {
+export function snapRefMs(refMs: number, allow30Hz = true): number {
   let best = REF_START_MS
-  for (const v of VSYNC_MS) if (v <= refMs * SNAP_MARGIN && refMs <= v * SNAP_MARGIN) best = v
+  for (const v of VSYNC_MS) if ((allow30Hz || v < 30) && v <= refMs * SNAP_MARGIN && refMs <= v * SNAP_MARGIN) best = v
   return best
 }
-export function downThresholdMs(refMs: number): number { return Math.max(BUDGET_DOWN_MS, snapRefMs(refMs) * REF_DOWN_FACTOR) }
-export function upThresholdMs(refMs: number): number { return Math.max(BUDGET_UP_MS, snapRefMs(refMs) * REF_UP_FACTOR) }
+/** `allow30Hz` is false once the session has seen a faster display (see `SEEN_FAST_MS`). */
+export function downThresholdMs(refMs: number, allow30Hz = true): number { return Math.max(BUDGET_DOWN_MS, snapRefMs(refMs, allow30Hz) * REF_DOWN_FACTOR) }
+export function upThresholdMs(refMs: number, allow30Hz = true): number { return Math.max(BUDGET_UP_MS, snapRefMs(refMs, allow30Hz) * REF_UP_FACTOR) }
+/** Where the average is re-seeded after a level change: the middle of the current band. */
+export function reseedMs(refMs: number, allow30Hz = true): number { return (downThresholdMs(refMs, allow30Hz) + upThresholdMs(refMs, allow30Hz)) / 2 }
 
 export interface FrameBudgetState {
   level: QualityLevel
@@ -64,10 +69,12 @@ export interface FrameBudgetState {
   upPenalty: number
   /** Display refresh interval estimate: the fastest recent frame interval, creeping up slowly. */
   refMs: number
+  /** Time spent in frames faster than FAST_FRAME_MS (capped at SEEN_FAST_MS). A display that never ran faster may be a 30 Hz panel. */
+  fastMs: number
 }
 
 export function createFrameBudget(level: QualityLevel = 0): FrameBudgetState {
-  return { level, avgMs: 16, overMs: 0, underMs: 0, settleMs: 0, sinceUpMs: Number.POSITIVE_INFINITY, upPenalty: 1, refMs: REF_START_MS }
+  return { level, avgMs: 16, overMs: 0, underMs: 0, settleMs: 0, sinceUpMs: Number.POSITIVE_INFINITY, upPenalty: 1, refMs: REF_START_MS, fastMs: 0 }
 }
 
 /** Advances the controller by one frame of `deltaMs`. Pure. */
@@ -76,18 +83,20 @@ export function stepFrameBudget(s: FrameBudgetState, deltaMs: number): FrameBudg
   const avgMs = s.avgMs + (deltaMs - s.avgMs) * (1 - Math.exp(-deltaMs / AVG_TAU_MS))
   const sinceUpMs = s.sinceUpMs + deltaMs
   const refMs = deltaMs < s.refMs ? s.refMs + (deltaMs - s.refMs) * (1 - Math.exp(-deltaMs / REF_TAU_MS)) : Math.min(deltaMs, s.refMs + deltaMs * REF_CREEP)
-  s = { ...s, refMs }
+  const fastMs = deltaMs < FAST_FRAME_MS ? Math.min(SEEN_FAST_MS, s.fastMs + deltaMs) : s.fastMs
+  const allow30 = fastMs < SEEN_FAST_MS
+  s = { ...s, refMs, fastMs }
   if (s.settleMs > 0) {
     return { ...s, avgMs, sinceUpMs, settleMs: Math.max(0, s.settleMs - deltaMs), overMs: 0, underMs: 0 }
   }
-  const overMs = avgMs > downThresholdMs(refMs) ? s.overMs + deltaMs : 0
-  const underMs = avgMs < upThresholdMs(refMs) ? s.underMs + deltaMs : 0
+  const overMs = avgMs > downThresholdMs(refMs, allow30) ? s.overMs + deltaMs : 0
+  const underMs = avgMs < upThresholdMs(refMs, allow30) ? s.underMs + deltaMs : 0
   if (overMs >= DOWN_AFTER_MS && s.level < MAX_LEVEL) {
     const upPenalty = sinceUpMs < FLIP_WINDOW_MS ? Math.min(MAX_UP_PENALTY, s.upPenalty * 2) : 1
-    return { level: (s.level + 1) as QualityLevel, avgMs: RESEED_MS, overMs: 0, underMs: 0, settleMs: SETTLE_MS, sinceUpMs, upPenalty, refMs }
+    return { level: (s.level + 1) as QualityLevel, avgMs: reseedMs(refMs, allow30), overMs: 0, underMs: 0, settleMs: SETTLE_MS, sinceUpMs, upPenalty, refMs, fastMs }
   }
   if (underMs >= UP_AFTER_MS * s.upPenalty && s.level > 0) {
-    return { level: (s.level - 1) as QualityLevel, avgMs: RESEED_MS, overMs: 0, underMs: 0, settleMs: SETTLE_MS, sinceUpMs: 0, upPenalty: s.upPenalty, refMs }
+    return { level: (s.level - 1) as QualityLevel, avgMs: reseedMs(refMs, allow30), overMs: 0, underMs: 0, settleMs: SETTLE_MS, sinceUpMs: 0, upPenalty: s.upPenalty, refMs, fastMs }
   }
   return { ...s, avgMs, overMs, underMs, sinceUpMs }
 }

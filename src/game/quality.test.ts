@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import {
   createFrameBudget, stepFrameBudget, parseQualityMode, levelForMode, configureQuality, resetQuality,
   getQuality, getQualityInfo, thinParticles, calloutCap, atmosphereOn,
-  DOWN_AFTER_MS, UP_AFTER_MS, SETTLE_MS, IGNORE_ABOVE_MS, RESEED_MS,
+  DOWN_AFTER_MS, UP_AFTER_MS, SETTLE_MS, IGNORE_ABOVE_MS, reseedMs, downThresholdMs, upThresholdMs, SEEN_FAST_MS,
   type FrameBudgetState,
 } from './quality'
 
@@ -36,8 +36,33 @@ describe('stepFrameBudget', () => {
   it('re-seeds the average after a change', () => {
     let s = createFrameBudget()
     while (s.level === 0) s = stepFrameBudget(s, 25)
-    expect(s.avgMs).toBe(RESEED_MS)
+    expect(s.avgMs).toBeCloseTo((downThresholdMs(s.refMs) + upThresholdMs(s.refMs)) / 2, 9)
+    expect(s.avgMs).toBe(reseedMs(s.refMs))
     expect(s.settleMs).toBe(SETTLE_MS)
+  })
+
+  it('re-seeds to the middle of the 60 Hz and 30 Hz bands, not a fixed 17 ms', () => {
+    expect(reseedMs(16.67)).toBeCloseTo((16.67 * 1.3 + 16.67 * 1.1) / 2, 6)
+    expect(reseedMs(33.33)).toBeCloseTo((33.33 * 1.3 + 33.33 * 1.1) / 2, 6)
+    expect(reseedMs(8.33)).toBeCloseTo(17, 6)
+    expect(reseedMs(33.33, false)).toBeCloseTo(reseedMs(16.67), 6)
+  })
+
+  it('a display that ran at 60 Hz and then drops to a steady 33 ms steps down (not a 30 Hz panel)', () => {
+    let s = run(createFrameBudget(0), 16.67, SEEN_FAST_MS + 500)
+    expect(s.level).toBe(0)
+    s = run(s, 33.33, 30_000)
+    expect(s.level).toBeGreaterThan(0)
+  })
+
+  it('a display that never ran faster than 30 fps keeps level 0 even after a long time', () => {
+    expect(run(createFrameBudget(0), 33.33, 300_000).level).toBe(0)
+  })
+
+  it('a few fast frames are not enough to count as having seen a faster display', () => {
+    let s = run(createFrameBudget(0), 10, 300)
+    s = run(s, 33.33, 60_000)
+    expect(s.level).toBe(0)
   })
 
   it('steps up after 6 s under 14 ms', () => {

@@ -61,17 +61,23 @@ interval). The estimate is snapped to the 120 / 60 / 30 Hz interval it is within
 jitter) and a 30 fps-capped browser can therefore step back up; on a 120 Hz display
 the values are the plain 20 / 14 ms. A steady 28 ms or 40 ms stream is a slow
 machine, not a display, and steps down. A steady frame time of about 29–38 ms is
-treated as a 30 Hz cap and does not step down. (Review fixes RF1, RF10.)
+treated as a 30 Hz cap and does not step down, but only for a display that has never
+run faster: once the session has spent **1000 ms** in frames shorter than 25 ms, the
+30 Hz band is no longer snapped to (a vsync-locked weak laptop that falls from 60 to
+30 fps is a slow machine) and a sustained 29–38 ms stream steps down. (Review fixes
+RF1, RF10, RF20.)
 
 **R1.4** Hysteresis: after any change no further change happens for
-**3000 ms** (settle time); the average is re-seeded to the middle of the band so
-the old, stale value does not trigger the next step. A step up that is followed
+**3000 ms** (settle time); the average is re-seeded to the middle of the current
+band (the mean of the down and up thresholds) so the old, stale value does not
+trigger the next step. A step up that is followed
 by a step down within **30 s** doubles the step-up wait (up to 4×), so a machine
 sitting right on the border settles instead of flip-flopping.
 
 **R1.5** For any constant frame time the level moves in one direction only (never
 down then up, or up then down), and always stays within 0–3. A constant 30 fps
-cap (29–38 ms) therefore keeps level 0. (Changes of the frame time caused by a level
+cap (29–38 ms) from the start of the session therefore keeps level 0; a stream that
+drops into that band after the display ran faster only steps down. (Changes of the frame time caused by a level
 change itself are not constant-frame-time input; the up-wait penalty of R1.4 limits
 such oscillation.)
 

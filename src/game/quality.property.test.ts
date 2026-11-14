@@ -67,6 +67,31 @@ describe('frame budget properties', () => {
     }))
   })
 
+  it('after the display has run faster, a steady 29-38 ms stream steps down and never up', () => {
+    fc.assert(fc.property(fc.double({ min: 29, max: 38, noNaN: true }), fc.double({ min: 8, max: 20, noNaN: true }), fc.integer({ min: 0, max: 2 }), (slow, fast, start) => {
+      let s = createFrameBudget(start as 0)
+      for (let t = 0; t < 1500; t += fast) s = stepFrameBudget(s, fast)
+      const startLevel = s.level
+      let t = 0
+      while (t < 120_000) {
+        const n = stepFrameBudget(s, slow)
+        if (n.level < s.level) return false
+        s = n; t += slow
+      }
+      return s.level > startLevel
+    }), { numRuns: 100 })
+  })
+
+  it('a display that never ran faster than 25 ms is still taken for a 30 Hz panel', () => {
+    fc.assert(fc.property(fc.double({ min: 29, max: 38, noNaN: true }), fc.array(fc.double({ min: 25, max: 40, noNaN: true }), { maxLength: 20 }), (f, warm) => {
+      let s = createFrameBudget(0)
+      for (const d of warm) s = stepFrameBudget(s, d)
+      if (s.level !== 0) return true
+      for (let t = 0; t < 60_000; t += f) s = stepFrameBudget(s, f)
+      return s.level === 0
+    }), { numRuns: 60 })
+  })
+
   it('reaction time is set by elapsed ms, not frame count', () => {
     // 29–38.3 ms is indistinguishable from a 30 Hz display and does not step down (R1.3)
     fc.assert(fc.property(fc.oneof(fc.double({ min: 24, max: 28, noNaN: true }), fc.double({ min: 39, max: 100, noNaN: true })), (f) => {
