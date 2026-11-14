@@ -9,13 +9,13 @@
 - [x] Commit: `feat(playtest-polish-T1): frame budget controller`
 
 ## T2 — Adaptive motion grid
-- [ ] Create `src/webcam/grid.ts` (ladder, `getMotionGrid`, `setMotionGrid`, `gridForLevel`).
-- [ ] `diff.ts`, `swipe.ts`, `halves.ts`, `collision.ts` read the grid at call time; `resetHitGates`, `clearMotionPixels` in `collision.ts`.
-- [ ] Tests: default grid unchanged, normalised hitbox mapping, `motionCell` follows the grid, gate reset helper.
-- [ ] Property tests: a moving blob gives a hit at every supported resolution; no blob, no hit; motion button fills with the same dwell at every grid.
-- [ ] Benchmark test `src/webcam/grid.bench.test.ts` printing analysis cost per resolution.
-- [ ] `npm test` and `npm run build` both clean.
-- [ ] Commit: `feat(playtest-polish-T2): adaptive motion-diff grid`
+- [x] Create `src/webcam/grid.ts` (ladder, `getMotionGrid`, `setMotionGrid`, `gridForLevel`).
+- [x] `diff.ts`, `swipe.ts`, `halves.ts`, `collision.ts` read the grid at call time; `resetHitGates`, `clearMotionPixels` in `collision.ts`.
+- [x] Tests: default grid unchanged, normalised hitbox mapping, `motionCell` follows the grid, gate reset helper.
+- [x] Property tests: a moving blob gives a hit at every supported resolution; no blob, no hit; motion button fills with the same dwell at every grid.
+- [x] Benchmark test `src/webcam/grid.bench.test.ts` printing analysis cost per resolution.
+- [x] `npm test` and `npm run build` both clean.
+- [x] Commit: `feat(playtest-polish-T2): adaptive motion-diff grid`
 
 ## T3 — Wire quality into the loop, renderer and URL
 - [ ] `loop.ts`: step the controller with real frame deltas (never in demo), apply grid changes with the R2.3 protocol (resize, re-capture, gate reset, `frameIsNew = false`).

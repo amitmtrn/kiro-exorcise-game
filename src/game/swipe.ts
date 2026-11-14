@@ -9,7 +9,8 @@
  */
 
 import type { Hitbox } from './state'
-import { DIFF_THRESHOLD, SAMPLE_STRIDE } from '../webcam/diff'
+import { DIFF_THRESHOLD } from '../webcam/diff'
+import { getMotionGrid } from '../webcam/grid'
 
 export interface Pt { x: number; y: number }
 
@@ -40,8 +41,9 @@ export function motionPointsIn(
   const prv = prevData?.data
   if (!cur || !prv) return []
   const points: Pt[] = []
-  for (let row = 0; row < hitbox.h; row += SAMPLE_STRIDE) {
-    for (let col = 0; col < hitbox.w; col += SAMPLE_STRIDE) {
+  const stride = getMotionGrid().stride
+  for (let row = 0; row < hitbox.h; row += stride) {
+    for (let col = 0; col < hitbox.w; col += stride) {
       const px = Math.round(hitbox.x + col)
       const py = Math.round(hitbox.y + row)
       if (px < 0 || px >= canvasWidth || py < 0) continue

@@ -7,7 +7,8 @@
  * half of the mirrored view, seat 1 (player 2) the right half. Spec: two-player R1.
  */
 
-import { mirrorX, MOTION_W, MOTION_H } from '../webcam/diff'
+import { mirrorX } from '../webcam/diff'
+import { getMotionGrid } from '../webcam/grid'
 import type { Pt } from './swipe'
 
 export type Seat = 0 | 1
@@ -38,7 +39,7 @@ export function seatOfRawColumn(col: number, rawW: number): Seat {
 }
 
 /** Width, in motion-canvas pixels, of one half of the motion frame. */
-export function motionHalfWidth(w: number = MOTION_W): number {
+export function motionHalfWidth(w: number = getMotionGrid().w): number {
   return halfWidth(w)
 }
 
@@ -60,8 +61,8 @@ function scratchFor(seat: Seat, slot: number, len: number): Uint8ClampedArray {
 export function cropMotionHalf(
   src: ImageData,
   seat: Seat,
-  w: number = MOTION_W,
-  h: number = MOTION_H,
+  w: number = getMotionGrid().w,
+  h: number = getMotionGrid().h,
   slot?: number,
 ): ImageData {
   const hw = motionHalfWidth(w)
@@ -80,7 +81,7 @@ export function cropMotionHalf(
  * Motion points of a full-frame mask that fall in `seat`'s half, with x made
  * relative to that half (0 … motionW/2).
  */
-export function toHalfPoints(points: Pt[], seat: Seat, motionW: number = MOTION_W): Pt[] {
+export function toHalfPoints(points: Pt[], seat: Seat, motionW: number = getMotionGrid().w): Pt[] {
   const hw = motionHalfWidth(motionW)
   const from = seat * hw
   const out: Pt[] = []

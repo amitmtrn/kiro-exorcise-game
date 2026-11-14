@@ -252,3 +252,24 @@ alpha ≤ 0.15.
 those mocks do not export new names, so new runtime state lives in new modules
 (`webcam/grid.ts`, `game/quality.ts`, `settings/runtime.ts`) and the callers import
 from those directly.
+
+---
+
+## Measured (R4.2)
+
+`npx vitest run src/webcam/grid.bench --disableConsoleIntercept` on the development
+machine (Node, one run; timings vary by machine, the sample and byte columns do
+not). Analysis = motion mask + 6 hitbox diffs on a 1280 × 720 display:
+
+| Grid | Stride | Mask samples | ImageData read per frame (cur + prev) | JS analysis |
+|---|---|---|---|---|
+| 320 × 180 | 4 | 3600 | 450 KB | 25.4 µs |
+| 160 × 90 | 2 | 3600 | 113 KB | 25.2 µs |
+| 128 × 72 | 2 | 2304 | 72 KB | 16.9 µs |
+| 96 × 54 | 2 | 1296 | 41 KB | 8.6 µs |
+
+The JS analysis is small at every size. The saving is mainly in what the browser
+does before it: `drawImage` down-scaling into a smaller canvas and two
+`getImageData` copies per frame, 11× fewer bytes at 96 × 54. That cost is not
+measurable in Node, so the byte column is its proxy; the real effect has to be
+checked with a throttled browser (T11).
