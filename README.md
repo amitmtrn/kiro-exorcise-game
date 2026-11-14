@@ -14,8 +14,8 @@ Ghosts and bats fly in from the dark edges of the screen toward your webcam imag
 - **20 specs** at PR #5 in [`.kiro/specs`](.kiro/specs) (requirements, design, tasks): 805 ticked task checkboxes, 89 commits named after a task (`<type>(<spec>-T<n>)`).
 - **3 steering files** in [`.kiro/steering`](.kiro/steering), **5 hooks** in [`.kiro/hooks`](.kiro/hooks), **1 custom agent** (`balancer`) and **1 local MCP server** (`motion-harness`, stdio only, no network).
 - **1120 tests** at PR #5, 0 failed, 0 skipped; **119 property tests** (`fc.assert`) in 31 files, both at PR #5 (df26f4d). A property found a spawner-cap bug that unit tests had missed (BUG-1), and four more bugs got regression properties.
-- **One PR per feature from #2 on** (#1 bundled the P0/P1 specs): #1 to #6 merged (#6 is demo mode, merge commit 46d9551); #7 adds the judge write-up. Test count by PR: 806, 912, 994, 1045, 1120, 1254; this branch after merging main: 1291.
-- **536.22 Kiro credits** used after the `judge-docs` spec and its review fixes (bonus pool of 4000).
+- **One PR per feature from #2 on** (#1 bundled the P0/P1 specs): #1 to #7 merged (#6 is demo mode, merge commit 46d9551; #7 is the judge write-up, merge commit 7575a07). Test count by PR: 806, 912, 994, 1045, 1120, 1254, 1291; playtest-polish (open PR) after merging main: 1515.
+- **629.18 Kiro credits** used after the playtest-polish spec and its review fixes (bonus pool of 4000).
 - **Read the full write-up: [docs/KIRO.md](docs/KIRO.md).** Local power: [`.kiro/powers/exorcise-motion-harness`](.kiro/powers/exorcise-motion-harness).
 - **Live demo:** <https://amitmtrn.github.io/kiro-exorcise-game/>
 
@@ -36,7 +36,7 @@ npm run dev
 
 | Command | What it does |
 |---|---|
-| `npm test` | Run all 1291 unit tests (Vitest) |
+| `npm test` | Run all 1515 unit tests (Vitest) |
 | `npm run build` | Production build → `dist/` |
 | `npm run preview` | Preview the production build locally |
 
@@ -71,7 +71,8 @@ Pick **1 PLAYER** or **2 PLAYERS** on the title screen (wave over a button, or p
 | `1` / `2` | Start a 1 PLAYER / 2 PLAYERS game from the title screen |
 | `M` or the 🔊 button (top-right; top centre in 2 PLAYERS) | Mute / unmute |
 | Click / tap a circle | Same as the hand press for the exorcist card buttons (unchanged) |
-| `D` | Toggle the hitbox + motion-mask debug overlay |
+| `D` | Toggle the hitbox + motion-mask debug overlay (also shows the quality level, frame time and diff resolution) |
+| `O` or the ⚙ button (bottom-left, title screen) | Open the settings panel: `↑` / `↓` select, `Enter` / `Space` / click change, `Esc` or `O` close. Keyboard and mouse / touch only (no wave button: the title's raised-hand zones are taken by 1 PLAYER and 2 PLAYERS) |
 | `G` (title screen) | Start the camera-free demo / attract mode; in demo mode any key (except `M`) or click returns to the normal game |
 | `C` (game over / victory, 1 PLAYER only) | Open the Exorcist Card preview; then `S` / `Enter` save, `N` photo ↔ silhouette, `Esc` close |
 
@@ -87,6 +88,40 @@ Open the game with `?demo=1` (for example `http://localhost:5173/kiro-exorcise-g
 | `speed=N` | Game speed, 1–3 (default 2: a full run takes about 2.5 minutes; other values use the default) |
 
 **Recording the submission video.** Set the browser window to the size you will record (the run depends on the canvas size; `seed=5` plays a clean run without a game over at 960×540, 1280×720, 1366×768, 1440×900 and 1920×1080), open `?demo=1&seed=5`, press `M` twice (mute, unmute: this key press also unlocks audio) and start the screen recorder. Reload the page for a re-take (F5 / Ctrl+R / Cmd+R and F11 for full screen do not leave demo mode): it plays the same run again. Use `speed=1` for real-time gameplay; the pace is the same on any display of 60 Hz or more. See `tools/motion-harness/README.md` for a headless check. Spec: `.kiro/specs/demo-mode/`.
+
+### Settings, URL parameters and quality
+
+Open the settings panel on the title screen with `O` or the ⚙ button. Settings are stored in `localStorage` under one key (`exorcise-settings`) and hold only these values, never video or images.
+
+| Setting | URL parameter (this visit only, not saved) | Effect |
+|---|---|---|
+| Colourblind-safe colours | `?cb=1` (`0` = off) | Okabe-Ito palette for the enemies, P1 / P2, lives, score, combo and button rings. Colour is never the only cue: the Cursed Skull keeps its shape and gets a dashed pulsing ring and a "!" , P1 / P2 get ● / ■ marks, button rings differ in pattern (dotted idle, solid filling, dashed for MENU / SAVE) |
+| Text size 100 / 125 / 150 % | `?bigtext=1` (125 %), `?bigtext=2` (150 %), `0` = 100 % | HUD, call-outs, score pops, menus, onboarding text. Menu text still fits its band, the stage label shrinks to stay between the hearts and the timer. The two-player end screens keep their size |
+| Reduced flashing | `?reducedflash=1` (`0` = off) | Full-screen flash capped at alpha 0.15 (from 0.4) with soft fades and at most 3 flashes per second (WCAG 2.3.1), screen shake at 25 %, no white hit silhouette. On by default when the browser asks for `prefers-reduced-motion` |
+
+URL parameters win over stored values for that visit; a change in the panel replaces the parameter for that setting. The privacy line is unchanged: **Your video stays on your device. Nothing is uploaded.**
+
+**Quality (`?quality=low|med|high|auto`, default `auto`).** The game watches the frame time (rolling average, time constant 1 s) and steps down one level when it stays above 20 ms for 2 s, back up when it stays below 14 ms for 6 s (both limits scale with the display's refresh rate, so a 60 Hz screen or a 30 fps-capped browser can step back up; a display that has run faster and then drops to a steady 30 fps counts as a slow machine and steps down), with a 3 s settle time and a longer wait after a quick down-up-down so it never flip-flops. `high` pins level 0, `med` level 2, `low` level 3. Demo mode always runs at level 0.
+
+| Level | What changes |
+|---|---|
+| 0 | Full quality: 320 × 180 motion grid |
+| 1 | Every 2nd particle, one combo call-out at a time |
+| 2 | Motion grid 160 × 90 (hitboxes map through normalised space, the 2-frame gate and published motion are reset on the change, the noise calibration is kept) |
+| 3 | Motion grid 96 × 54, no fog, steady candle glow |
+
+Analysis cost per frame (motion mask + 6 hitbox diffs on a 1280 × 720 display, one development machine, `npx vitest run src/webcam/grid.bench --disableConsoleIntercept`; timings vary by machine):
+
+| Grid | Mask samples | ImageData read per frame | JS analysis |
+|---|---|---|---|
+| 320 × 180 | 3600 | 450 KB | 26.5 µs |
+| 160 × 90 | 3600 | 113 KB | 26.7 µs |
+| 128 × 72 | 2304 | 72 KB | 17.9 µs |
+| 96 × 54 | 5184 | 41 KB | 44.1 µs |
+
+The JS analysis is small at every size (under 50 µs of a 16.7 ms frame). At level 3 it is the most expensive step, about 1.6× level 0, because the 96 × 54 grid samples every pixel (stride 1) so small enemies keep their sample count. Only the smaller `drawImage` / `getImageData` copy before it shrinks (11× fewer bytes at 96 × 54), which Node cannot time. Spec: `.kiro/specs/playtest-polish/`.
+
+**Audio levels.** All sound goes through one master gain (volume and mute), a bus compressor (−18 dB, 3:1) and a limiter (−3 dB, 20:1, 1 ms attack), then the speakers. Every sound effect has a loudness-table gain so its RMS is about −22 dBFS with a peak under −3 dBFS before the limiter; the music is about 6 dB quieter (estimated analytically from its voices). Boss hit + combo chime + ghost hit + music stay under 0 dBFS in the mixing test. Still no audio files.
 
 ### Testing hit detection without a webcam
 
@@ -129,12 +164,13 @@ Every feature was planned as a Kiro spec before implementation:
 | `exorcist-card/` | Optional shareable trading card (mirrored snapshot, spooky frame, rank title, stats) composed and downloaded locally on game over / victory |
 | `motion-ui-ergonomics/` | Raised-hand button zones (an arm's length from the body, within reach at 2.5 m, never torso or legs) from one pure layout module, coverage + dwell + decay activation with a progress ring, entry lockout and release latch on every screen, one action per frame, per-half 2P copies, sound hint moved to the top, onboarding hand targets from the layout |
 | `two-player-card/` | Per-player Exorcist Card on the 2P end screen: own half of the camera, own highlight moment and stats, P1 / P2 label, WINNER / TIE badge, per-half wave / click controls |
+| `playtest-polish/` | Adaptive quality (frame-budget monitor, 320 → 160 → 96 wide motion grid, `?quality=`), master compressor / limiter and per-sound loudness table, settings panel (`O`), colourblind palette with shape cues and CIEDE2000 tests, bigger text, reduced flashing (≤ 3 per second) |
 | `demo-mode/` | Camera-free attract mode for filming: `?demo=1&seed=N` or `G`, a deterministic scripted ghost hand that feeds synthetic motion frames into the real hit detection, fixed time step and seeded run, DEMO badge, placeholder card portrait, scores never saved |
 | `judge-docs/` | Judge-facing Kiro write-up (`docs/KIRO.md`), README section, local `exorcise-motion-harness` power, facts-check test |
 
 Each spec has `requirements.md`, `design.md`, and `tasks.md`. Writing requirements and design before tasks surfaced design gaps (e.g. skull penalty rules, hitbox coordinate system, mirror parity bug) that would have been painful to fix mid-implementation.
 
-All twenty-two specs are implemented. Every task in `tasks.md` is ticked except the manual smoke tests (a webcam playthrough, a two-person split-screen playthrough, the music-v2 listening test, a demo-mode browser check, enabling GitHub Pages in the repo settings), and `boss-combo/` carries a status note explaining it was superseded by `stages/`.
+All twenty-three specs are implemented. Every task in `tasks.md` is ticked except the manual smoke tests (a webcam playthrough, a two-person split-screen playthrough, the music-v2 listening test, a demo-mode browser check, enabling GitHub Pages in the repo settings), and `boss-combo/` carries a status note explaining it was superseded by `stages/`.
 
 ### Kiro hooks (`.kiro/hooks/`)
 Standalone `v1` hook files, loaded by Kiro IDE and Kiro CLI V3. Spec: `.kiro/specs/hooks/`.
@@ -184,6 +220,7 @@ src/
     framing.ts          Onboarding framing check (too dark / too close / low detail)
     diff.ts             Frame differencing — mirrored capture, MOTION_W/H,
                         scaleHitbox, calibrateDiffThreshold
+    grid.ts             Adaptive motion grid (320×180 → 160×90 → 128×72 → 96×54)
   game/
     loop.ts             requestAnimationFrame loop — 320×180 motion canvas,
                         "Calibrating…" banner, all phases, shake + score-label ticks
@@ -206,6 +243,9 @@ src/
     callouts.ts         NICE! / GREAT! / PERFECT! and x2-x4 COMBO! call-outs
     transitions.ts      Easing + stage intro / outro poses
     atmosphere.ts       Webcam tint, drifting fog, candle glow
+    quality.ts          Frame-budget monitor, quality levels, ?quality= parsing
+    hitGate.ts          Hit-gate reset on a grid change
+    flash.ts            Reduced-flashing scheduler (≤ 3 flashes per second, capped alpha, slew-limited)
     render.ts           Procedural canvas art (ghost wisps, bat flap, cracked
                         skull, lunger, pumpkin, boss), shake, white hit flash,
                         boss health bar, debug overlay (D key)
@@ -231,6 +271,10 @@ src/
     buttonSet.ts        Persistent motion buttons keyed by layout id
     motionButton.ts     Wave-to-press buttons: coverage + dwell + decay, release latch, entry lockout, exclusive groups
     muteRect.ts         Mute button rectangle shared by the HUD and the layout
+    cvd.ts              Lab, CIEDE2000, colour-vision-deficiency simulation (Machado 2009)
+    palette.ts          Default and Okabe-Ito palettes
+    textScale.ts        Text scale helper, pure HUD layout, call-out size
+    settingsPanel.ts    Settings panel and ⚙ button
     seatCard.ts         2P per-half card offer / preview with half-only input routing
     screens.ts          Start (1 / 2 player buttons), stage title, summary (stars), victory, game over
     splitscreen.ts      Two-player divider, OUT / CLEARED overlays, shared summary, winner screen
@@ -238,8 +282,13 @@ src/
     fonts.ts            TITLE_FONT_FAMILY + local font preload (Creepster)
   test/
     prng.ts             Seeded PRNG for deterministic tests
+  settings/
+    settings.ts         Setting types, URL parameters, storage (one key), precedence
+    runtime.ts          Live settings, change notifications
   audio/
     context.ts          AudioContext singleton, master gain, mute / volume
+    bus.ts              Master bus: gain → compressor → limiter → destination
+    recipes.ts          SFX as data, offline renderer, loudness table, music level estimate
     sfx.ts              8 procedural Web Audio sound effects
     music.ts            Music API (startMusic, startTitleMusic, stopMusic, setMusicCombo)
     music/              patterns, look-ahead scheduler, combo layers, voices, engine + crossfade
@@ -263,6 +312,8 @@ src/
     two-player/         Local split-screen two-player mode spec
     balancer/           Harness MCP server + balancer agent spec
     exorcist-card/      Shareable local-only Exorcist Card spec
+    demo-mode/          Camera-free scripted attract mode for filming spec
+    playtest-polish/    Adaptive quality, audio levels, accessibility options spec
     judge-docs/         Judge-facing write-up and README spec
   powers/               exorcise-motion-harness Kiro power
   settings/mcp.json     Workspace MCP registration (motion-harness, stdio, relative path)

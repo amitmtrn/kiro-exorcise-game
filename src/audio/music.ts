@@ -10,8 +10,10 @@
 import { getAudioContext, getMasterGain } from './context'
 import { createMusicEngine, type MusicEngine } from './music/engine'
 import { trackForStage, type TrackId } from './music/patterns'
+import { MUSIC_GAIN } from './recipes'
 
 let engine: MusicEngine | null = null
+let musicBus: GainNode | null = null
 let wanted: TrackId | null = null     // last requested track (cheap idempotence check)
 let lastCombo = 1
 let pausedWanted = typeof document !== 'undefined' && document.hidden
@@ -20,9 +22,19 @@ if (typeof document !== 'undefined') {
   document.addEventListener('visibilitychange', () => setMusicPaused(document.hidden))
 }
 
+/** One gain stage in front of the master bus: the music loudness table entry (playtest-polish R6.1). */
+function getMusicBus(): GainNode {
+  if (!musicBus) {
+    musicBus = getAudioContext().createGain()
+    musicBus.gain.value = MUSIC_GAIN
+    musicBus.connect(getMasterGain())
+  }
+  return musicBus
+}
+
 function getEngine(): MusicEngine {
   if (!engine) {
-    engine = createMusicEngine({ ctx: getAudioContext(), destination: getMasterGain() })
+    engine = createMusicEngine({ ctx: getAudioContext(), destination: getMusicBus() })
     engine.setCombo(lastCombo)
     if (pausedWanted) engine.setPaused(true)
   }
@@ -66,6 +78,7 @@ export function setMusicPaused(p: boolean): void {
 export function resetMusicForTests(): void {
   if (engine) engine.dispose()
   engine = null
+  musicBus = null
   wanted = null
   lastCombo = 1
   pausedWanted = false

@@ -3,6 +3,8 @@
  * start-screen frame) and resumed on demand to satisfy browser autoplay policy.
  */
 
+import { buildMasterBus } from './bus'
+
 let ctx: AudioContext | null = null
 let masterGain: GainNode | null = null
 let muted = false
@@ -26,9 +28,7 @@ function saveVolume(v: number): void {
 export function getAudioContext(): AudioContext {
   if (!ctx) {
     ctx = new AudioContext()
-    masterGain = ctx.createGain()
-    masterGain.gain.value = muted ? 0 : volume
-    masterGain.connect(ctx.destination)
+    masterGain = buildMasterBus(ctx).input // master gain → compressor → limiter → destination
     volume = loadVolume()
     masterGain.gain.value = muted ? 0 : volume
   }

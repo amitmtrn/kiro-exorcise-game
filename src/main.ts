@@ -14,11 +14,20 @@ import { installAudioUnlock } from './audio/unlock'
 import { modeForKey } from './game/playerMode'
 import { loadTitleFont } from './ui/fonts'
 import { routePointer } from './ui/pointerRoute'
+import { isPanelOpen, openPanel, handlePanelKey, handlePanelPointer } from './ui/settingsPanel'
+import { initSettings, subscribeSettings } from './settings/runtime'
 import { SOUND_HINT, soundHintFontPx } from './ui/layout'
 import { hudFontSize, muteButtonRect, muteButtonRect2P } from './ui/hud'
 import { parseDemoParams, routeDemoKey } from './demo/params'
+import { configureQuality, parseQualityMode, resetQuality } from './game/quality'
 import type { DemoParams } from './demo/params'
 import { DemoRuntime } from './demo/runtime'
+
+// Settings (playtest-polish R7): stored values, then URL parameters (?cb=1 ?bigtext=1|2 ?reducedflash=1).
+const initial = initSettings({ storage: getLocalStorage(), search: location.search })
+const applyTextScale = (s: { textScale: number }) => document.documentElement?.style.setProperty('--text-scale', String(s.textScale))
+applyTextScale(initial) // CSS text (onboarding, camera help) scales with the setting
+subscribeSettings(applyTextScale)
 
 const webcamCanvas = document.getElementById('webcam-canvas') as HTMLCanvasElement
 const gameCanvas   = document.getElementById('game-canvas') as HTMLCanvasElement
@@ -75,7 +84,7 @@ installAudioUnlock({
 // Demo keys run first (registered before the normal handler). Any key leaves demo mode except the passive ones;
 // `G` on the normal title screen starts it. The audio-unlock listener on window still sees the key.
 document.addEventListener('keydown', (e) => {
-  const route = routeDemoKey(e, { demoOn: demo !== null || demoBooting, onTitle: isStartScreenVisible(), msSinceLeft: performance.now() - leftDemoAt })
+  const route = routeDemoKey(e, { demoOn: demo !== null || demoBooting, onTitle: isStartScreenVisible() && !isPanelOpen(), msSinceLeft: performance.now() - leftDemoAt })
   if (route === 'pass') return
   consumedKeys.add(e)
   e.preventDefault()
@@ -94,6 +103,16 @@ document.addEventListener('keydown', (e) => {
   if (consumedKeys.has(e)) return
   // In demo mode only a plain M (mute) reaches the game: the other passive keys (chords, F-keys) do nothing here.
   if ((demo !== null || demoBooting) && !((e.key === 'm' || e.key === 'M') && !e.ctrlKey && !e.metaKey && !e.altKey)) return
+  // Settings panel: O opens it on the title screen; while it is open it takes every key.
+  if (isPanelOpen()) {
+    // Browser shortcuts (reload, zoom, devtools, fullscreen, Tab) still work with the panel open.
+    const browserKey = e.ctrlKey || e.metaKey || e.altKey || /^F\d{1,2}$/.test(e.key) || e.key === 'Tab'
+    if (!browserKey) { handlePanelKey(e.key, e.repeat); e.preventDefault() }
+    return
+  }
+  if ((e.key === 'o' || e.key === 'O') && !e.repeat && !e.ctrlKey && !e.metaKey && !e.altKey && isStartScreenVisible()) {
+    openPanel(); e.preventDefault(); return
+  }
   if (e.key === 'd' || e.key === 'D') toggleDebug()
   if (e.key === 'm' || e.key === 'M') toggleMute()
   const pickedMode = modeForKey(e.key)
@@ -112,6 +131,8 @@ document.addEventListener('keydown', (e) => {
 // Tap / click on the HUD mute button (top-right) toggles audio too.
 // Canvas pixel size equals its CSS size, so client coords map 1:1.
 gameCanvas.addEventListener('pointerdown', (e) => {
+  // Settings gear / panel (title screen only; not in demo mode)
+  if (!demo && !demoBooting && isStartScreenVisible() && handlePanelPointer(e.clientX, e.clientY, gameCanvas.width, gameCanvas.height)) return
   // Two-player: one shared mute button at the top centre (the 1P one is top-right).
   const fs = hudFontSize(gameCanvas.width)
   const twoPlayer = isTwoPlayerActive()
@@ -147,6 +168,7 @@ function urlWithoutDemo(): string {
 /** Starts demo mode: no getUserMedia, no onboarding, no video element (demo-mode R2). */
 async function bootDemo(params: DemoParams): Promise<void> {
   soundHint.hidden = true
+  resetQuality() // demo mode ignores ?quality: always level 0 (playtest-polish R3.2)
   demoBooting = true
   leaveWhenBooted = false
   // The font first: the runtime patches the clock and Math.random, which must not happen while no loop (and no DEMO badge) runs.
@@ -186,6 +208,7 @@ async function boot(): Promise<void> {
   // After leaving demo the URL is ignored: the normal game starts even if `replaceState` failed.
   const params = parseDemoParams(demoLeft ? '' : location.search)
   if (params.demo) { await bootDemo(params); return }
+  configureQuality(parseQualityMode(location.search)) // ?quality=low|med|high|auto
 
   // Start the font load alongside the permission prompt instead of delaying it.
   const fontReady = loadTitleFont().catch(() => undefined)

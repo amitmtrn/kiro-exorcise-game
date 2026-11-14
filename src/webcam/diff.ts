@@ -2,14 +2,15 @@
  * Frame differencing — detects motion inside a hitbox by comparing luminance
  * values between the current and previous webcam frame.
  *
- * The motion canvas is fixed at MOTION_W × MOTION_H for performance.
+ * The motion canvas is MOTION_W × MOTION_H by default and smaller at lower quality levels (see grid.ts).
  * Hitbox coordinates from display space must be scaled with scaleHitbox()
  * before passing to computeFrameDiff.
  */
 
 import type { Hitbox } from '../game/state'
+import { getMotionGrid } from './grid'
 
-/** Fixed size of the off-screen motion canvas. */
+/** Full size of the off-screen motion canvas (the default grid; see grid.ts for the adaptive sizes). */
 export const MOTION_W = 320
 export const MOTION_H = 180
 
@@ -63,10 +64,10 @@ export function scaleHitbox(
   hitbox: Hitbox,
   displayW: number,
   displayH: number,
-  motionW: number = MOTION_W,
+  motionW: number = getMotionGrid().w,
 ): Hitbox {
   const sx = motionW / displayW
-  const sy = MOTION_H / displayH
+  const sy = getMotionGrid().h / displayH
   return {
     x: hitbox.x * sx,
     y: hitbox.y * sy,
@@ -82,7 +83,7 @@ export function scaleHitbox(
  * @param currentData - Full-canvas ImageData for the current frame
  * @param prevData    - Full-canvas ImageData for the previous frame
  * @param hitbox      - Axis-aligned bounding box to check (motion canvas coords)
- * @param canvasWidth - Width of the motion canvas (use MOTION_W = 320)
+ * @param canvasWidth - Width of the motion canvas (the current motion grid width)
  */
 export function computeFrameDiff(
   currentData: ImageData,
@@ -93,9 +94,10 @@ export function computeFrameDiff(
   const { x, y, w, h } = hitbox
   let movedPixels = 0
   let totalSampled = 0
+  const stride = getMotionGrid().stride
 
-  for (let row = 0; row < h; row += SAMPLE_STRIDE) {
-    for (let col = 0; col < w; col += SAMPLE_STRIDE) {
+  for (let row = 0; row < h; row += stride) {
+    for (let col = 0; col < w; col += stride) {
       const px = Math.round(x + col)
       const py = Math.round(y + row)
       // Hitboxes may overhang the frame (enemies enter from off-screen). Skip
@@ -216,7 +218,7 @@ export function computeMotionMask(
   prevData: ImageData,
   canvasWidth: number,
   canvasHeight: number,
-  stride: number = SAMPLE_STRIDE,
+  stride: number = getMotionGrid().stride,
 ): MotionMask {
   const points: Array<{ x: number; y: number }> = []
   let sampled = 0

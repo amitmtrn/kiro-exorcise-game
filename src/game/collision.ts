@@ -8,7 +8,8 @@ import {
   incrementCombo, incrementBanished, setShake, addScoreLabels,
   SHAKE_FRAMES, SHAKE_COMBO_THRESHOLD, FRAME_MS,
 } from './state'
-import { computeFrameDiff, scaleHitbox, MOTION_W, MOTION_H } from '../webcam/diff'
+import { computeFrameDiff, scaleHitbox } from '../webcam/diff'
+import { getMotionGrid } from '../webcam/grid'
 import type { MotionMask } from '../webcam/diff'
 import { STAGES } from './stages'
 import { onBossHit } from './enemies/bossPhases'
@@ -44,9 +45,6 @@ const HIT_FRAMES_REQUIRED = 2
  */
 export let lastMotionPixels: Array<{ x: number; y: number }> = []
 
-/** Sampling stride of the motion mask (same value as diff.ts SAMPLE_STRIDE; kept local so mocks of diff stay valid). */
-export const GRID_STRIDE = 4
-
 /**
  * Publish the whole-frame motion mask in display space. On a duplicate camera
  * frame (mask.changed === false) the previous pixels are kept for readers that
@@ -54,11 +52,12 @@ export const GRID_STRIDE = 4
  */
 export function updateMotionPixels(mask: MotionMask, displayW: number, displayH: number): void {
   if (!mask.changed) return
-  const sx = displayW / MOTION_W
-  const sy = displayH / MOTION_H
+  const g = getMotionGrid()
+  const sx = displayW / g.w
+  const sy = displayH / g.h
   lastMotionPixels = mask.points.map((p) => ({ x: p.x * sx, y: p.y * sy }))
   motionFrameSeq++
-  motionCell = { w: GRID_STRIDE * sx, h: GRID_STRIDE * sy }
+  motionCell = { w: g.stride * sx, h: g.stride * sy }
 }
 
 /**
@@ -130,7 +129,7 @@ export function resolveHits(
   now: number,
   frameIsNew = true,
   deltaMs: number = FRAME_MS,
-  motionW: number = MOTION_W,
+  motionW: number = getMotionGrid().w,
 ): GameState {
   lastBanished = []
   lastSwipes = new Map()
@@ -177,7 +176,7 @@ export function resolveHits(
       continue
     }
 
-    const scaledHitbox = motionW === MOTION_W
+    const scaledHitbox = motionW === getMotionGrid().w
       ? scaleHitbox(enemy.hitbox, displayW, displayH)
       : scaleHitbox(enemy.hitbox, displayW, displayH, motionW)
     const diffResult = computeFrameDiff(currentData, prevData, scaledHitbox, motionW)
@@ -191,7 +190,7 @@ export function resolveHits(
     let curC: Pt | null = null
     if (diffResult) {
       const c = centroid(motionPointsIn(currentData, prevData, scaledHitbox, motionW))
-      if (c) curC = { x: c.x * displayW / motionW, y: c.y * displayH / MOTION_H }
+      if (c) curC = { x: c.x * displayW / motionW, y: c.y * displayH / getMotionGrid().h }
     }
 
     if (newHitCount < HIT_FRAMES_REQUIRED) {

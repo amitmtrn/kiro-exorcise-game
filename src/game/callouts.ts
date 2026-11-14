@@ -3,6 +3,7 @@
  * praise word ("NICE!", "GREAT!", "PERFECT!") on every second streak count.
  */
 
+import { calloutCap } from './quality'
 import { easeOutBack } from './transitions'
 
 export const CALLOUT_LIFE_MS = 900
@@ -56,7 +57,8 @@ export function makeCallout(x: number, y: number, choice: CalloutChoice, canvasW
 /** Appends a call-out; beyond MAX_CALLOUTS the oldest is dropped. */
 export function addCallout(list: Callout[], c: Callout): Callout[] {
   const next = [...list, c]
-  return next.length > MAX_CALLOUTS ? next.slice(next.length - MAX_CALLOUTS) : next
+  const cap = calloutCap() // playtest-polish R3.4: 3 at full quality, 1 below
+  return next.length > cap ? next.slice(next.length - cap) : next
 }
 
 export function tickCallouts(list: Callout[], deltaMs: number): Callout[] {

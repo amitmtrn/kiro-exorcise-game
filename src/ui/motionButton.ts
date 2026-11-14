@@ -4,6 +4,8 @@
  * display space, published every tick) to detect motion inside the circle.
  */
 
+import { getPalette } from './palette'
+import { getSettings } from '../settings/runtime'
 import { RING_OUTSET, fitFontPx } from './layout'
 import { lastMotionPixels, motionFrameSeq, motionCell } from '../game/collision'
 
@@ -141,6 +143,8 @@ export class MotionButton {
   render(ctx: CanvasRenderingContext2D, now: number): void {
     const progress = this.fillProgress(now)
     const destructive = this.dwellMs > DWELL_MS
+    const cb = getSettings().cb
+    const pal = getPalette()
 
     ctx.save()
 
@@ -149,9 +153,12 @@ export class MotionButton {
     ctx.arc(this.cx, this.cy, this.radius, 0, Math.PI * 2)
     ctx.fillStyle = 'rgba(42, 8, 69, 0.75)'
     ctx.fill()
-    ctx.strokeStyle = 'rgba(255, 107, 26, 0.6)'
+    ctx.strokeStyle = cb ? pal.ringIdle : 'rgba(255, 107, 26, 0.6)'
     ctx.lineWidth = 3
+    // Colourblind palette: the ring state is also a pattern (idle dotted, filling solid, destructive dashed)
+    if (cb) { ctx.globalAlpha = 0.85; ctx.setLineDash(progress > 0 ? [] : [3, 7]) }
     ctx.stroke()
+    if (cb) { ctx.globalAlpha = 1; ctx.setLineDash([]) }
 
     // Fill arc
     if (progress > 0) {
@@ -159,8 +166,10 @@ export class MotionButton {
       ctx.moveTo(this.cx, this.cy)
       ctx.arc(this.cx, this.cy, this.radius, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * progress)
       ctx.closePath()
-      ctx.fillStyle = 'rgba(255, 107, 26, 0.45)'
+      ctx.fillStyle = cb ? pal.ringIdle : 'rgba(255, 107, 26, 0.45)'
+      if (cb) ctx.globalAlpha = 0.45
       ctx.fill()
+      if (cb) ctx.globalAlpha = 1
     }
 
     // Progress ring: always visible as a faint track, bright while filling
@@ -172,9 +181,11 @@ export class MotionButton {
     if (progress > 0) {
       ctx.beginPath()
       ctx.arc(this.cx, this.cy, this.radius + RING_OUTSET - 3, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * progress)
-      ctx.strokeStyle = destructive ? '#c0392b' : '#39ff14'
+      ctx.strokeStyle = cb ? (destructive ? pal.ringDanger : pal.ringFill) : (destructive ? '#c0392b' : '#39ff14')
       ctx.lineWidth = 6
+      if (cb && destructive) ctx.setLineDash([12, 6])
       ctx.stroke()
+      if (cb) ctx.setLineDash([])
     }
 
     // Label

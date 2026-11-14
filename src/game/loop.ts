@@ -4,7 +4,11 @@
 
 import { drawWebcamFrame } from '../webcam/capture'
 import { drawWebcamTint } from './atmosphere'
-import { captureFrame, calibrateDiffThreshold, computeMotionMask, MOTION_W, MOTION_H } from '../webcam/diff'
+import { captureFrame, calibrateDiffThreshold, computeMotionMask } from '../webcam/diff'
+import { getMotionGrid, setMotionGrid, resetMotionGrid, gridForLevel } from '../webcam/grid'
+import {
+  createFrameBudget, stepFrameBudget, trackFrameAverage, getQuality, setQualityLevel, setQualityAvg, getQualityInfo, resetQuality,
+} from './quality'
 import {
   createInitialState,
   tickTimer,
@@ -15,6 +19,7 @@ import {
 import type { GameState } from './state'
 import { stepSimulation, tickEffects } from './step'
 import { resolveHits, updateMotionPixels, lastMotionPixels } from './collision'
+import { resetHitGates } from './hitGate'
 import { tickParticles, tickScoreLabels } from './particles'
 import { tickKnocks } from './knock'
 import { splitHitStop } from './hitstop'
@@ -43,6 +48,7 @@ import {
   retryStage,
   advanceToNextStage,
 } from './round'
+import { isPanelOpen, closePanel, renderSettingsPanel } from '../ui/settingsPanel'
 import { resolveStartRequest, setPlayerMode } from './playerMode'
 import type { PlayerMode, StartRequest } from './playerMode'
 import { CardSession } from '../card/session'
@@ -121,13 +127,17 @@ function drawCalibratingBanner(ctx: CanvasRenderingContext2D): void {
   ctx.clearRect(0, 0, W, H)
   ctx.fillStyle = 'rgba(13, 0, 20, 0.6)'
   ctx.fillRect(0, 0, W, H)
-  ctx.font = `bold ${hudFontSize(W)}px ${HUD_FONT_FAMILY}`
+  const msg = 'Calibrating… hold still 👻'
+  let px = hudFontSize(W)
+  ctx.font = `bold ${px}px ${HUD_FONT_FAMILY}`
+  const mw = typeof ctx.measureText === 'function' ? (ctx.measureText(msg)?.width ?? 0) : 0
+  if (mw > W * 0.9 && mw > 0) { px = Math.max(12, Math.floor(px * W * 0.9 / mw)); ctx.font = `bold ${px}px ${HUD_FONT_FAMILY}` }
   ctx.textAlign = 'center'
   ctx.textBaseline = 'middle'
   ctx.fillStyle = '#ffd166'
   ctx.shadowColor = '#ffd166'
   ctx.shadowBlur = 14
-  ctx.fillText('Calibrating… hold still 👻', W / 2, H / 2)
+  ctx.fillText(msg, W / 2, H / 2)
   ctx.restore()
 }
 
@@ -146,12 +156,15 @@ export async function startLoop(
   activeDemo = demo
   twoPlayerActive = false
   startRequest = null // a Space pressed during permission/onboarding must not skip the title
+  // Demo mode is always full quality and the full 320 × 180 grid, so seeded runs replay identically (R3.2).
+  if (demo) { resetQuality(); resetMotionGrid() } else setMotionGrid(gridForLevel(getQuality()))
+  const grid0 = getMotionGrid()
   const currentCanvas = document.createElement('canvas')
-  currentCanvas.width = MOTION_W; currentCanvas.height = MOTION_H
+  currentCanvas.width = grid0.w; currentCanvas.height = grid0.h
   const currentCtx = currentCanvas.getContext('2d')!
 
   const prevCanvas = document.createElement('canvas')
-  prevCanvas.width = MOTION_W; prevCanvas.height = MOTION_H
+  prevCanvas.width = grid0.w; prevCanvas.height = grid0.h
   const prevCtx = prevCanvas.getContext('2d')!
 
   // Show the first webcam frame + a banner while the 1 s noise calibration runs (no camera in demo mode)
@@ -253,6 +266,7 @@ export async function startLoop(
     return true
   }
   let lastTimestamp = 0
+  let budget = createFrameBudget(getQuality())
   let prevPhase = state.phase
 
   // ── Two-player session (two-player spec). `two` is non-null while a 2P game is on screen. ──
@@ -263,6 +277,8 @@ export async function startLoop(
   const hudCanvases: HTMLCanvasElement[] = [] // transparent per-seat HUD layers, drawn above the divider
   /** True while the start screen is the visible screen (entry detection for its lock-out). */
   let startVisible = false
+  /** The settings panel was open on the previous title tick (closing restarts the buttons' lock-out). */
+  let panelWasOpen = false
   /** True while the game-over screen is the visible screen (entry detection for its lock-out). */
   let gameOverVisible = false
   /** Action requested by a 2P screen button during a tick; applied after the tick returns (so it is not overwritten). */
@@ -350,6 +366,7 @@ export async function startLoop(
       renderFrame(hctx, s, now, {
         banished: t.banished[seat],
         motionPixels: displayPointsInHalf(lastMotionPixels, seat, W),
+        flashGroup: gameCtx.canvas, // one reduced-flash budget for the whole screen (R10.2)
       })
       const pulse = (pulses[seat] ??= createHudPulse())
       if (s.phase === 'playing') {
@@ -426,6 +443,7 @@ export async function startLoop(
 
   function tickBody(timestamp: number, forcedDeltaMs?: number): void {
     const deltaMs = forcedDeltaMs ?? (lastTimestamp === 0 ? 16 : Math.min(timestamp - lastTimestamp, 100))
+    const rawMs = lastTimestamp === 0 ? 0 : timestamp - lastTimestamp
     lastTimestamp = timestamp
     titleVisible = state.phase === 'start' && !two
     const now = performance.now()
@@ -447,6 +465,29 @@ export async function startLoop(
       cardOpen = session.isOpen
     }
 
+    // Adaptive quality (playtest-polish R1, R2.3): never in demo mode. In auto mode the monitor decides;
+    // a pinned level (?quality=) never moves. A new grid size runs the change protocol below.
+    let gridChanged = false
+    if (!demo) {
+      // The average is tracked in every mode (the debug overlay shows it); only auto mode applies the level.
+      if (getQualityInfo().mode === 'auto') {
+        budget = stepFrameBudget({ ...budget, level: getQuality() }, rawMs)
+        setQualityLevel(budget.level)
+      } else budget = trackFrameAverage(budget, rawMs) // pinned: plain average only, no level change, re-seed or settle
+      setQualityAvg(budget.avgMs)
+      if (setMotionGrid(gridForLevel(getQuality()))) {
+        const g = getMotionGrid()
+        currentCanvas.width = g.w; currentCanvas.height = g.h
+        prevCanvas.width = g.w; prevCanvas.height = g.h // resizing blanks both canvases
+        captureFrame(prevCtx, video!)
+        updateMotionPixels({ points: [], sampled: 0, moved: 0, changed: true }, displayW, displayH) // drop points of the old grid
+        state = resetHitGates(state)
+        if (two) two = { ...two, seats: [resetHitGates(two.seats[0]), resetHitGates(two.seats[1])] }
+        gridChanged = true
+      }
+    }
+    const grid = getMotionGrid()
+
     let currentData: ImageData
     let prevData: ImageData
     if (demo) {
@@ -463,15 +504,16 @@ export async function startLoop(
 
       // Capture motion frame every tick for motion buttons to work on all screens
       captureFrame(currentCtx, video!)
-      currentData = currentCtx.getImageData(0, 0, MOTION_W, MOTION_H)
-      prevData = prevCtx.getImageData(0, 0, MOTION_W, MOTION_H)
+      currentData = currentCtx.getImageData(0, 0, grid.w, grid.h)
+      prevData = prevCtx.getImageData(0, 0, grid.w, grid.h)
     }
 
     // Whole-frame motion mask: drives the motion buttons + debug overlay, and
     // tells us whether the camera actually delivered a new frame this tick.
-    const mask = computeMotionMask(currentData, prevData, MOTION_W, MOTION_H)
-    updateMotionPixels(mask, displayW, displayH)
-    const frameIsNew = mask.changed
+    const mask = computeMotionMask(currentData, prevData, grid.w, grid.h)
+    // On the tick of a grid change the previous frame was just re-captured: no new camera frame (R2.3).
+    const frameIsNew = mask.changed && !gridChanged
+    updateMotionPixels(gridChanged ? { ...mask, changed: false } : mask, displayW, displayH)
 
     // ── Two-player game (own state machine; the 1P branches below are untouched) ──
     if (two) {
@@ -503,10 +545,20 @@ export async function startLoop(
 
     // ── Start screen ──────────────────────────────────────────────────────────
     if (state.phase === 'start') {
-      if (!startVisible) { resetStartScreen(); startVisible = true } // explicit entry: lock-out + fresh buttons
+      if (!startVisible) { resetStartScreen(); startVisible = true; closePanel() } // explicit entry: lock-out + fresh buttons
       try { startTitleMusic() } catch { /* ignore */ }
       renderFrame(gameCtx, state, now)
-      renderStartScreen(gameCtx, state, now, (mode) => { begin(mode) })
+      if (isPanelOpen()) {
+        // Settings panel (playtest-polish R7.2): the motion buttons get no update, Space / 1 / 2 do nothing.
+        panelWasOpen = true
+        renderSettingsPanel(gameCtx)
+        startRequest = null
+        prevCtx.drawImage(currentCanvas, 0, 0)
+        rafId = requestAnimationFrame(tick)
+        return
+      }
+      if (panelWasOpen) { resetStartScreen(); panelWasOpen = false } // wave that closed nothing must not press a button
+      renderStartScreen(gameCtx, state, now, (mode) => { begin(mode) }, { gear: !demo })
       // Space / 1 / 2 fallback (only honoured while actually on the start screen)
       if (startRequest !== null && state.phase === 'start' && !twoStarted()) begin(resolveStartRequest(startRequest))
       startRequest = null
@@ -660,5 +712,6 @@ export function stopLoop(): void {
   twoPlayerActive = false
   titleVisible = false
   twoFinal = false
+  closePanel()
   if (rafId) { cancelAnimationFrame(rafId); rafId = 0 }
 }

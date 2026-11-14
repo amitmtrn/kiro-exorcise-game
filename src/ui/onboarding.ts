@@ -5,6 +5,7 @@
  * the reducer in game/onboarding.ts.
  */
 
+import { scaled } from './textScale'
 import {
   createOnboarding, onboardingReducer, shouldPersist, persistSeen,
   PRIVACY_LINE, GUIDE_TITLE, GUIDE_TEXT, HOWTO_STEPS,
@@ -154,7 +155,7 @@ export function drawGuide(ctx: CanvasRenderingContext2D, stable: boolean, timeMs
   ctx.save()
   // below the button rows (0.54 H >= 0.47 H), so the wide band applies (R5.1)
   const band = (TEXT_BAND_LOW[1] - TEXT_BAND_LOW[0]) * w
-  const px = Math.round(fitFontPx(GUIDE_HANDS_LINE, Math.max(14, Math.min(26, w / 40)), band, 12))
+  const px = Math.round(fitFontPx(GUIDE_HANDS_LINE, scaled(Math.max(14, Math.min(26, w / 40))), band, 12))
   ctx.font = `bold ${px}px sans-serif`
   ctx.textAlign = 'center'
   ctx.textBaseline = 'middle'

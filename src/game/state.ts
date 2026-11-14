@@ -8,6 +8,7 @@
 import type { PathSpec } from './paths'
 import type { Knock } from './knock'
 import type { Callout } from './callouts'
+import { thinParticles } from './quality'
 
 export interface Hitbox {
   x: number // top-left x
@@ -262,7 +263,7 @@ export function removeEnemy(state: GameState, id: string): GameState {
 }
 
 export function addParticles(state: GameState, particles: Particle[]): GameState {
-  return { ...state, particles: [...state.particles, ...particles] }
+  return { ...state, particles: [...state.particles, ...thinParticles(particles)] }
 }
 
 export function setEnemies(state: GameState, enemies: Enemy[]): GameState {
