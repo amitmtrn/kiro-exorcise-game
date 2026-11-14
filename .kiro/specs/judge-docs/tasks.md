@@ -27,7 +27,7 @@ Files: `README.md`
 ## T4 — Facts check test
 Files: `tools/judge-docs.test.mjs`
 
-- [ ] Banned words and token-like strings in `docs/KIRO.md` and the README section (R4.1, R4.2).
-- [ ] Required headings, line range, README links (R4.3).
-- [ ] `npm test` and `npm run build` both clean; `node tools/sync-readme-tests.mjs --check` exits 0.
-- [ ] Commit: `test(judge-docs-T4): facts check for judge docs`
+- [x] Banned words and token-like strings in `docs/KIRO.md` and the README section (R4.1, R4.2).
+- [x] Required headings, line range, README links (R4.3).
+- [x] `npm test` and `npm run build` both clean; `node tools/sync-readme-tests.mjs --check` exits 0.
+- [x] Commit: `test(judge-docs-T4): facts check for judge docs`
