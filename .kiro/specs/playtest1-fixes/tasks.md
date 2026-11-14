@@ -35,10 +35,10 @@ Files: `src/ui/layout.ts`
 
 ## T4 — Mirror and video verification
 Files: tests only (code only if a test fails)
-- [ ] Mirror consistency test (display, motion, card photo, 2P half).
-- [ ] Video draw test at quality levels 0–3.
-- [ ] `npm test` and `npm run build` both clean.
-- [ ] Commit: `test(playtest1-fixes-T4): mirror and full-resolution video checks`
+- [x] Mirror consistency test (`src/webcam/mirror.test.ts`: display, motion, card photo, 2P half, hit position). It passed with no code change.
+- [x] Video draw test (`src/game/loop.video.test.ts`): one full-size draw per tick at pinned high / med / low and under auto step-down. It passed with no code change.
+- [x] `npm test` and `npm run build` both clean.
+- [x] Commit: `test(playtest1-fixes-T4): mirror and full-resolution video checks`
 
 ## T5 — Docs
 Files: `README.md`, `docs/KIRO.md`
