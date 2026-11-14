@@ -24,6 +24,8 @@ export class MotionButton {
   private fillStartTime = 0
   private filling = false
   private lastMotionAt = Number.NEGATIVE_INFINITY
+  /** After a trigger (or `hold`) the button ignores motion until it has left the circle. */
+  private awaitRelease = false
 
   constructor(cx: number, cy: number, radius: number, label: string) {
     this.cx = cx
@@ -43,6 +45,13 @@ export class MotionButton {
     }
     const motionInside = inside >= MIN_MOTION_PIXELS
     if (motionInside) this.lastMotionAt = now
+    if (this.awaitRelease) {
+      if (motionInside || now - this.lastMotionAt <= IDLE_GRACE_MS) {
+        this.filling = false
+        return 'idle'
+      }
+      this.awaitRelease = false
+    }
     const active = motionInside || (this.filling && now - this.lastMotionAt <= IDLE_GRACE_MS)
 
     if (active) {
@@ -53,6 +62,7 @@ export class MotionButton {
       const elapsed = now - this.fillStartTime
       if (elapsed >= FILL_DURATION_MS) {
         this.filling = false
+        this.awaitRelease = true // one wave = one trigger (exorcist-card R1.2)
         return 'triggered'
       }
       return 'filling'
@@ -60,6 +70,19 @@ export class MotionButton {
       this.filling = false
       return 'idle'
     }
+  }
+
+  /** Like `update`, but while `live` is false motion is ignored and must leave the circle first. */
+  updateGated(now: number, live: boolean): 'idle' | 'filling' | 'triggered' {
+    if (!live) this.awaitRelease = true
+    return this.update(now)
+  }
+
+  /** Forgets any partial fill (screen changed under the button). */
+  reset(): void {
+    this.filling = false
+    this.awaitRelease = false
+    this.lastMotionAt = Number.NEGATIVE_INFINITY
   }
 
   fillProgress(now: number): number {
@@ -93,12 +116,14 @@ export class MotionButton {
 
     // Label
     ctx.fillStyle = '#ffd166'
-    ctx.font = `bold ${Math.round(this.radius * 0.28)}px sans-serif`
+    ctx.font = `bold ${Math.max(11, Math.round(this.radius * 0.28))}px sans-serif`
     ctx.textAlign = 'center'
     ctx.textBaseline = 'middle'
     ctx.shadowColor = '#ffd166'
     ctx.shadowBlur = 8
-    ctx.fillText(this.label, this.cx, this.cy)
+    const lines = this.label.split('\n')
+    const lh = Math.max(11, Math.round(this.radius * 0.28)) * 1.15
+    lines.forEach((ln, i) => ctx.fillText(ln, this.cx, this.cy + (i - (lines.length - 1) / 2) * lh))
 
     ctx.restore()
   }

@@ -44,6 +44,12 @@ import {
   advanceToNextStage,
   spawnBoss,
 } from './round'
+import { CardSession } from '../card/session'
+import { grabMirroredSnapshot, releaseSnapshot } from '../card/snapshot'
+import { composeCard } from '../card/draw'
+import { downloadCanvasPng } from '../card/download'
+import { CardPreview, cardKeyAction, offerHit, lockEndButtons } from '../ui/cardScreen'
+import type { CardAction } from '../ui/cardScreen'
 import { sfxLifeLost, sfxStageClear, startMusic, startTitleMusic, stopMusic, setMusicCombo } from '../audio/index'
 
 let rafId = 0
@@ -52,6 +58,31 @@ let rafId = 0
 // "Press Space". main.ts calls requestStart(); the start branch consumes it.
 let startRequested = false
 export function requestStart(): void { startRequested = true }
+
+// Exorcist Card input (exorcist-card R1): keys and clicks are queued by main.ts and
+// consumed on the game-over / victory screens only, so a stray key does nothing.
+type CardInput = { kind: 'key'; key: string } | { kind: 'click'; x: number; y: number }
+let cardInputs: CardInput[] = []
+let onEndScreen = false
+let cardOpen = false
+
+/** Forwards a key; returns true when the card flow wants it (caller may preventDefault). */
+export function handleCardKey(key: string, repeat = false): boolean {
+  if (repeat) return onEndScreen && cardKeyAction(key, cardOpen) !== null // held key: swallow, never re-trigger
+  if (!onEndScreen || cardKeyAction(key, cardOpen) === null) return false
+  cardInputs.push({ kind: 'key', key })
+  return true
+}
+
+/** True while the card preview covers the end screen. */
+export function isCardPreviewOpen(): boolean { return cardOpen }
+
+/** Forwards a click / tap in canvas pixels; returns true when it was queued. */
+export function handleCardPointer(x: number, y: number): boolean {
+  if (!onEndScreen) return false
+  cardInputs.push({ kind: 'click', x, y })
+  return true
+}
 
 /** hit-detection-fix T4: tell the player to hold still while we sample noise. */
 function drawCalibratingBanner(ctx: CanvasRenderingContext2D): void {
@@ -94,6 +125,56 @@ export async function startLoop(
   startRequested = false // ...nor one pressed during the 1 s calibration above
 
   let state: GameState = createInitialState(initialStage)
+
+  // Exorcist Card: snapshot + run stats live in memory only and die with the screen.
+  const session = new CardSession<HTMLCanvasElement, HTMLCanvasElement>({
+    grab: (w, h) => grabMirroredSnapshot(video, w, h),
+    releaseSnapshot,
+    compose: (data, photo) => composeCard(
+      data,
+      photo ? { source: photo, width: photo.width, height: photo.height } : null,
+    ),
+    releaseCard: releaseSnapshot,
+    download: (c) => downloadCanvasPng(c),
+  })
+  const preview = new CardPreview()
+  cardInputs = []
+  cardOpen = false
+  onEndScreen = false
+
+  function runCardAction(a: CardAction | 'open', now: number): void {
+    if (a === 'open') { if (session.open()) { preview.open(now); lockEndButtons(now) } }
+    else if (a === 'close') { session.close(); lockEndButtons(now) }
+    else if (a === 'toggle') session.togglePhoto()
+    else void session.save()
+  }
+
+  /** Applies queued keys / clicks. Returns nothing; state lives in `session`. */
+  function drainCardInputs(now: number): void {
+    const queue = cardInputs
+    cardInputs = []
+    for (const inp of queue) {
+      if (inp.kind === 'key') {
+        const a = cardKeyAction(inp.key, session.isOpen)
+        if (a) runCardAction(a, now)
+      } else if (session.isOpen) {
+        const a = preview.hit(inp.x, inp.y)
+        if (a) runCardAction(a, now)
+      } else if (offerHit(inp.x, inp.y)) {
+        runCardAction('open', now)
+      }
+    }
+    const st = session.takeStatus()
+    if (st) preview.setStatus(st === 'saved' ? 'Download started!' : "Couldn't save the card", now)
+  }
+
+  /** Renders the card preview over the end screen; true while it is open. */
+  function renderCardPreview(now: number): boolean {
+    if (!session.isOpen || !session.card) return false
+    const a = preview.render(gameCtx, now, session.card, session.noPhoto, session.hasPhoto)
+    if (a) runCardAction(a, now)
+    return true
+  }
   let lastTimestamp = 0
   let prevPhase = state.phase
 
@@ -111,6 +192,14 @@ export async function startLoop(
     const now = performance.now()
     const displayW = webcamCtx.canvas.width
     const displayH = webcamCtx.canvas.height
+
+    // Exorcist Card bookkeeping: run stats, snapshots at fun moments, discard when
+    // leaving the end screens (retry / menu / play again). Memory only.
+    session.observe(state, displayW, displayH)
+    onEndScreen = state.phase === 'gameover' || state.phase === 'victory'
+    if (onEndScreen) drainCardInputs(now)
+    else cardInputs = []
+    cardOpen = session.isOpen
 
     // Always draw webcam feed, then the haunted purple tint (spooky-skin R1.1)
     drawWebcamFrame(webcamCtx, video)
@@ -178,10 +267,13 @@ export async function startLoop(
       saveHighScore(state.highScore)
       state = tickEffects(state, deltaMs)
       renderFrame(gameCtx, state, now)
-      renderGameOver(gameCtx, state, now,
-        () => { state = retryStage(state) },
-        () => { state = createInitialState(1) },
-      )
+      if (!renderCardPreview(now)) {
+        renderGameOver(gameCtx, state, now,
+          () => { state = retryStage(state) },
+          () => { state = createInitialState(1) },
+          () => runCardAction('open', now),
+        )
+      }
       prevCtx.drawImage(currentCanvas, 0, 0)
       rafId = requestAnimationFrame(tick)
       return
@@ -198,10 +290,13 @@ export async function startLoop(
       }
       state = tickEffects(state, deltaMs)
       renderFrame(gameCtx, state, now)
-      renderVictory(gameCtx, state, now,
-        () => { state = startGame(createInitialState(1)) },
-        () => { state = createInitialState(1) },
-      )
+      if (!renderCardPreview(now)) {
+        renderVictory(gameCtx, state, now,
+          () => { state = startGame(createInitialState(1)) },
+          () => { state = createInitialState(1) },
+          () => runCardAction('open', now),
+        )
+      }
       prevCtx.drawImage(currentCanvas, 0, 0)
       rafId = requestAnimationFrame(tick)
       return
@@ -294,11 +389,15 @@ export async function startLoop(
 
   rafId = requestAnimationFrame(tick)
 
-  return () => {
-    if (rafId) { cancelAnimationFrame(rafId); rafId = 0 }
-  }
+  resetSession = () => session.reset()
+  return stopLoop
 }
 
+let resetSession: (() => void) | null = null
+
 export function stopLoop(): void {
+  resetSession?.(); resetSession = null // the snapshot must not outlive the loop
+  onEndScreen = false
+  cardOpen = false
   if (rafId) { cancelAnimationFrame(rafId); rafId = 0 }
 }

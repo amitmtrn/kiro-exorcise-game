@@ -4,7 +4,7 @@
 
 import './style.css'
 import { initWebcam, stopWebcam } from './webcam/capture'
-import { startLoop, requestStart } from './game/loop'
+import { startLoop, requestStart, handleCardKey, handleCardPointer, isCardPreviewOpen } from './game/loop'
 import { showCameraDenied, classifyCameraError, runOnboarding } from './ui/onboarding'
 import { createOnboarding, onboardingReducer, hasSeenOnboarding, getLocalStorage } from './game/onboarding'
 import { toggleDebug } from './game/render'
@@ -45,6 +45,10 @@ installAudioUnlock({
 document.addEventListener('keydown', (e) => {
   if (e.key === 'd' || e.key === 'D') toggleDebug()
   if (e.key === 'm' || e.key === 'M') toggleMute()
+  // Exorcist Card keys (C / S / N / Enter / Esc) only act on the game-over and victory screens.
+  if ((e.target as HTMLElement | null)?.tagName !== 'BUTTON' && !e.ctrlKey && !e.metaKey && !e.altKey) {
+    if (handleCardKey(e.key, e.repeat)) e.preventDefault()
+  }
   if (e.key === ' ' || e.code === 'Space') {
     // Space on a focused button (e.g. "Try again") activates that button; it must not also start the game.
     if ((e.target as HTMLElement | null)?.tagName === 'BUTTON') return
@@ -55,6 +59,8 @@ document.addEventListener('keydown', (e) => {
 // Tap / click on the HUD mute button (top-right) toggles audio too.
 // Canvas pixel size equals its CSS size, so client coords map 1:1.
 gameCanvas.addEventListener('pointerdown', (e) => {
+  handleCardPointer(e.clientX, e.clientY) // card offer / preview buttons (end screens only)
+  if (isCardPreviewOpen()) return // the preview covers the HUD, so its mute button is not clickable
   const r = muteButtonRect(gameCanvas.width, hudFontSize(gameCanvas.width))
   if (e.clientX >= r.x && e.clientX <= r.x + r.w && e.clientY >= r.y && e.clientY <= r.y + r.h) {
     toggleMute()
