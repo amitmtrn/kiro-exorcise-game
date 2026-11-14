@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 
-const h = vi.hoisted(() => ({ phase: 'gameover' as string, sessions: [] as unknown[], badges: [] as Array<string | undefined> }))
+const h = vi.hoisted(() => ({ phase: 'gameover' as string, sessions: [] as unknown[], badges: [] as Array<string | undefined>, toSummary: false }))
 
 vi.mock('../webcam/capture', () => ({ drawWebcamFrame: vi.fn() }))
 vi.mock('./atmosphere', () => ({ drawWebcamTint: vi.fn() }))
@@ -23,7 +23,8 @@ vi.mock('../audio/index', () => ({
 }))
 vi.mock('./state', async (orig) => {
   const m = await orig<typeof import('./state')>()
-  return { ...m, createInitialState: (...a: Parameters<typeof m.createInitialState>) => ({ ...m.createInitialState(...a), phase: h.phase }) }
+  return { ...m, createInitialState: (...a: Parameters<typeof m.createInitialState>) => ({ ...m.createInitialState(...a), phase: h.phase }),
+    tickTimer: (...a: Parameters<typeof m.tickTimer>) => (h.toSummary ? { ...a[0], phase: 'summary' as const } : m.tickTimer(...a)) }
 })
 const grab = vi.hoisted(() => ({ calls: 0 }))
 vi.mock('../card/snapshot', () => ({
@@ -131,6 +132,25 @@ describe('high score storage on end screens (more-content R8.4)', () => {
       stop()
     })
   }
+})
+
+describe('high score storage on a stage clear (more-content R8.4)', () => {
+  it('playing → summary writes the best score exactly once, and nothing on later frames', async () => {
+    h.phase = 'playing'
+    h.toSummary = true
+    const writes: string[] = []
+    vi.stubGlobal('localStorage', { getItem: () => null, setItem: (k: string) => { writes.push(k) } })
+    const stop = await startLoop({} as HTMLVideoElement, ctx(), ctx())
+    frame(16)
+    h.toSummary = false
+    frame(32)
+    const best = () => writes.filter((k) => k === 'exorcise-highscore').length
+    expect(best()).toBe(1)
+    const total = writes.length
+    for (let t = 48; t <= 160; t += 16) frame(t)
+    expect(writes.length).toBe(total)
+    stop()
+  })
 })
 
 describe('finale badge (more-content R5.6)', () => {

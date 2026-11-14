@@ -857,6 +857,7 @@ export async function startLoop(
         try { startMusic(state.stage) } catch { /* ignore */ }
       } else if (state.phase === 'summary') {
         try { sfxStageClear(); stopMusic() } catch { /* ignore */ }
+        saveHighScore(state.highScore) // best score stored once per stage clear, so a closed tab keeps it
       } else if (state.phase === 'gameover') {
         try { stopMusic() } catch { /* ignore */ }
       }

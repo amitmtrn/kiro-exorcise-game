@@ -138,7 +138,7 @@
 - [x] R12.1: stale seed 6 docs fixed to 5 (`tools/motion-harness/README.md`, `.kiro/specs/demo-mode/design.md`).
 - [x] R1.10: king-summoned wisp pair clamps so the bodies (not only centres) stay inside the area or half; property test extended.
 - [x] R2.3: pair banish keeps the partner in the enemy list if the phase is `gameover` after the first banish (defensive; no reachable path, so no test).
-- [x] Credits row filled: After more-content 777.68 (also the TL;DR row and README headline); test counts 1706.
+- [x] Credits row filled: After more-content 777.68 (also the TL;DR row and README headline); test counts 1727 (README / KIRO.md).
 
 ## T17 — Review fixes (round 6)
 - [x] R5.3 / R1.9: stage-6 title card no longer overlaps the countdown and subtitle; layout test at 640x360 and 1280x720 for text scales 1, 1.25, 1.5.
@@ -158,3 +158,8 @@
 - [x] R2.2 / R2.4: the twin-wisp ring is one monotonically shrinking ring over the whole `TWIN_WINDOW_MS` (`wispRingFraction`), blinking only while merging; 3 tests pin the fraction (full at start, no refill at merge, monotonic).
 - [x] Cleanup: `drawMirror` / `drawBlink` no longer take an unused `now`.
 - [ ] T11 stays open (needs a real webcam); also check the title high-score table against the heading at 640x360.
+
+## T20 — Review fixes (round 9)
+- [x] R8.4: the 1P summary screen stores the best score once on entering it (the phase-transition hook calls `saveHighScore`); the T18 line above relied on this, and a later cleanup had dropped it. Loop test: a playing → summary transition writes `exorcise-highscore` exactly once and nothing on later frames.
+- [x] R2.1: wisp partner lookup requires a defined `pairId` (matches `reach.ts` and `driver.ts`); test: two wisps without `pairId` do not pair.
+- [x] Docs: T16 test count corrected to match README.
