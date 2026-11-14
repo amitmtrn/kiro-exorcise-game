@@ -177,7 +177,8 @@ export async function startLoop(
       photo ? { source: photo, width: photo.width, height: photo.height } : null,
     ),
     releaseCard: releaseSnapshot,
-    download: demo ? async () => true : (c) => downloadCanvasPng(c),
+    // demo: nothing is written, so the save must never report "saved"
+    download: demo ? async () => false : (c) => downloadCanvasPng(c),
     ...(demo ? { extra: () => ({ badge: 'DEMO' }) } : {}),
   })
   const preview = new CardPreview()
@@ -268,7 +269,8 @@ export async function startLoop(
   let twoAction: 'next' | 'again' | 'menu' | null = null
 
   /** Start a game in `mode` (remembered for the session). */
-  function begin(mode: PlayerMode): void {
+  function begin(requested: PlayerMode): void {
+    const mode: PlayerMode = demo ? 1 : requested // the attract mode has no camera for a 2P split: always one player
     if (!demo) setPlayerMode(mode) // the attract mode must not overwrite the session's remembered mode (R7.1)
     gameOverVisible = false
     if (mode === 2) {

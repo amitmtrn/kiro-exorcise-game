@@ -11,6 +11,7 @@ const h = vi.hoisted(() => ({
   cards: [] as Array<{ badge?: string; photo: boolean; score: number }>,
   drawn: [] as string[],
   playAgain: null as null | (() => void),
+  onStart: null as null | ((mode: 1 | 2) => void),
 }))
 
 // The real renderer runs (drawing into a recording proxy), so the run consumes randomness exactly as in the browser.
@@ -28,6 +29,10 @@ vi.mock('../ui/screens', async (orig) => {
   const m = await orig<typeof import('../ui/screens')>()
   return {
     ...m,
+    renderStartScreen: (...a: unknown[]) => {
+      h.onStart = a[3] as (mode: 1 | 2) => void
+      return (m.renderStartScreen as (...x: unknown[]) => void)(...a)
+    },
     renderVictory: (...a: unknown[]) => {
       h.playAgain = a[3] as () => void
       return (m.renderVictory as (...x: unknown[]) => void)(...a)
@@ -87,7 +92,7 @@ const net = { fetch: vi.fn(), xhr: vi.fn(), beacon: vi.fn(), gum: vi.fn(), setIt
 
 beforeEach(() => {
   rafQueue = []
-  h.state = null; h.playAgain = null; h.skullHits = 0; h.cards = []; h.drawn = []
+  h.state = null; h.playAgain = null; h.onStart = null; h.skullHits = 0; h.cards = []; h.drawn = []
   Object.values(net).forEach((f) => f.mockClear())
   vi.stubGlobal('document', { createElement: () => canvas() })
   vi.stubGlobal('performance', { now: () => 0 })
@@ -270,6 +275,21 @@ describe('full demo run, headless (demo-mode R4, R5, R6)', () => {
       for (let i = 0; i < 5; i++) { ts += 1000 / 60; const q = rafQueue; rafQueue = []; q.forEach((f) => f(ts)) }
       expect(h.state?.phase).not.toBe('victory')
       expect(h.state?.stage).toBe(5)
+    } finally { stopLoop(); rt.dispose() }
+  }, 60_000)
+
+  it('a 2 PLAYERS start request in demo mode plays one player and keeps the remembered mode (R7.1)', async () => {
+    const rt = new DemoRuntime({ seed: DEMO.defaultSeed, stage: 1, speed: DEMO.timeScale, w: W, h: H })
+    await startLoop(null, ctx(), ctx(true), 1, { demo: rt })
+    try {
+      let ts = 0
+      const tick = () => { ts += 1000 / 60; const q = rafQueue; rafQueue = []; q.forEach((f) => f(ts)) }
+      for (let i = 0; i < 5; i++) tick()
+      expect(h.onStart).not.toBeNull()
+      h.onStart!(2)
+      for (let i = 0; i < 5; i++) tick()
+      expect(h.state?.phase).not.toBe('start') // a one-player run began (stage title, then play)
+      expect(getPlayerMode()).toBe(1)
     } finally { stopLoop(); rt.dispose() }
   }, 60_000)
 
