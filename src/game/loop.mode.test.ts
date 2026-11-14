@@ -10,6 +10,7 @@ const h = vi.hoisted(() => ({
   finalCalls: 0,
   press: null as null | 'next' | 'again' | 'menu',
   noSim: false,
+  fireStart: null as null | 1 | 2,
 }))
 vi.mock('./step', async (orig) => {
   const a = await orig<typeof import('./step')>()
@@ -31,13 +32,13 @@ vi.mock('../ui/hud', () => ({
   createHudPulse: () => ({ lastCombo: 1, start: 0 }), drawMuteButton: vi.fn(), muteButtonRect2P: () => ({ x: 0, y: 0, w: 1, h: 1 }),
 }))
 vi.mock('../ui/splitscreen', () => ({
-  drawDivider: vi.fn(), drawSeatOverlay: vi.fn(),
+  drawDivider: vi.fn(), drawSeatOverlay: vi.fn(), FINAL_INPUT_DELAY_MS: 1500,
   renderTwoPlayerSummary: (_c: unknown, _t: unknown, _n: unknown, next: () => void) => { h.next = next; if (h.press === 'next') { h.press = null; next() } },
   renderTwoPlayerFinal: (_c: unknown, _t: unknown, _n: unknown, again: () => void, menu: () => void) => { h.again = again; h.menu = menu; h.finalCalls++; if (h.press === 'again') { h.press = null; again() } else if (h.press === 'menu') { h.press = null; menu() } },
   resetFinalScreen: vi.fn(),
 }))
 vi.mock('../ui/screens', () => ({
-  renderStartScreen: (_c: unknown, _s: unknown, _n: unknown, cb: (m: 1 | 2) => void) => { h.onStart = cb }, renderStageTitle: vi.fn(), renderSummary: vi.fn(),
+  renderStartScreen: (_c: unknown, _s: unknown, _n: unknown, cb: (m: 1 | 2) => void) => { h.onStart = cb; if (h.fireStart) { const m = h.fireStart; h.fireStart = null; cb(m) } }, renderStageTitle: vi.fn(), renderSummary: vi.fn(),
   renderGameOver: vi.fn(), renderVictory: vi.fn(), resetVictoryScreen: vi.fn(), resetStartScreen: vi.fn(),
 }))
 vi.mock('../audio/index', () => ({
@@ -49,7 +50,15 @@ import { startLoop, requestStart } from './loop'
 import { getPlayerMode, resetPlayerMode } from './playerMode'
 
 function canvas() {
-  return { width: 4, height: 4, getContext: () => ({ drawImage() {}, clearRect() {}, getImageData: () => ({ data: new Uint8ClampedArray(64) }) }) }
+  const base: Record<string, unknown> = { drawImage() {}, clearRect() {}, getImageData: () => ({ data: new Uint8ClampedArray(64) }) }
+  const c = {
+    width: 4, height: 4,
+    getContext: () => new Proxy(base, { // any other 2D call (the per-seat card layers draw buttons) is a no-op
+      get: (t, k: string) => (k === 'canvas' ? c : k in t ? t[k] : () => undefined),
+      set: () => true,
+    }),
+  }
+  return c
 }
 function ctx(): CanvasRenderingContext2D {
   return {
@@ -63,7 +72,7 @@ function frame(ts: number): void { const q = rafQueue; rafQueue = []; q.forEach(
 beforeEach(() => {
   resetPlayerMode()
   h.onStart = null
-  h.next = null; h.again = null; h.menu = null; h.finalCalls = 0; h.press = null; h.noSim = false
+  h.next = null; h.again = null; h.menu = null; h.finalCalls = 0; h.press = null; h.noSim = false; h.fireStart = null
   h.phases.length = 0
   h.calibrate = async () => {}
   rafQueue = []
@@ -130,6 +139,19 @@ describe('mode selection on the start screen (two-player R6)', () => {
 })
 
 describe('two-player entry (two-player R6, R7)', () => {
+  it('the 2 PLAYERS button and a pending Space / 1 in the same tick start one 2P game, not a 1P one too', async () => {
+    const stop = await startLoop({} as HTMLVideoElement, ctx(), ctx())
+    frame(16)
+    h.fireStart = 2
+    requestStart(1) // key request lands in the same tick as the motion button
+    frame(32)
+    expect(getPlayerMode()).toBe(2) // begin(1) would have flipped it back to 1
+    const before = h.phases.length
+    frame(48)
+    expect(h.phases.slice(before)).toEqual(['stageTitle', 'stageTitle'])
+    stop()
+  })
+
   it('2 PLAYERS renders two seats per tick (title cards) instead of the 1P state machine', async () => {
     const stop = await startLoop({} as HTMLVideoElement, ctx(), ctx())
     frame(16)

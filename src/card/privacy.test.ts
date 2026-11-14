@@ -3,7 +3,7 @@ import { describe, it, expect } from 'vitest'
 import { PRIVACY_LINE } from '../game/onboarding'
 
 const raw = import.meta.glob<string>(
-  ['./*.ts', '!./*.test.ts', '../ui/cardScreen.ts', '../game/rank.ts', '../game/runStats.ts'],
+  ['./*.ts', '!./*.test.ts', '../ui/cardScreen.ts', '../ui/seatCard.ts', '../game/rank.ts', '../game/runStats.ts'],
   { query: '?raw', import: 'default', eager: true })
 const sources = Object.entries(raw)
 
@@ -14,7 +14,7 @@ describe('exorcist card privacy', () => {
   it('has source files to check', () => {
     expect(sources.length).toBeGreaterThanOrEqual(4)
     const names = sources.map(([f]) => f)
-    for (const f of ['../ui/cardScreen.ts', '../game/rank.ts', '../game/runStats.ts']) expect(names).toContain(f)
+    for (const f of ['../ui/cardScreen.ts', '../ui/seatCard.ts', '../game/rank.ts', '../game/runStats.ts', './halfSnapshot.ts', './twoPlayerCard.ts']) expect(names).toContain(f)
   })
 
   it.each(sources)('%s uses no network or storage API', (_f, src) => {

@@ -228,8 +228,9 @@ players hit — it needs cross-half collision, the thing R1.4 forbids.
 - `isTwoPlayerActive` is cleared immediately on MAIN MENU and at `startLoop`.
 
 ## Interaction with the exorcist card
-Merged with `origin/main`: the exorcist card is offered in 1P only. The 2P end screen shows
-both scores and the winner / tie with its own buttons and no card offer. While a 2P game is
-on screen the loop does not run card bookkeeping (no run stats, no snapshot), and card keys
-(C / S / N / Enter / Esc) and clicks are ignored. The mute tap target follows
-`isTwoPlayerActive()` as before. A per-player 2P card is left to a later spec.
+Merged with `origin/main`, then extended by `two-player-card/`: the 1P card flow is untouched (the 1P `CardSession`
+is never fed in 2P, and card keys / 1P card clicks are ignored). The 2P end screen shows both scores and the
+winner / tie with PLAY AGAIN / MAIN MENU (drawn at `0.70 H`, dimmed and inactive while a card preview is open or
+just changed) plus, in each half, an "EXORCIST CARD" offer that makes that player's own card from their own half.
+The mute tap target follows `isTwoPlayerActive()` as before and wins over a card button under it. See
+`.kiro/specs/two-player-card/` for the per-player snapshot, routing and privacy rules.

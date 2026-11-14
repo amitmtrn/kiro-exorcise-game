@@ -11,7 +11,7 @@ import { TITLE_FONT_FAMILY } from './fonts'
 import { SUMMARY_AUTO_ADVANCE_MS } from '../game/state'
 import type { Seat } from '../game/halves'
 
-const FINAL_INPUT_DELAY_MS = 1500
+export const FINAL_INPUT_DELAY_MS = 1500
 const FINAL_FADE_MS = 400
 
 let nextBtn: MotionButton | null = null
@@ -133,6 +133,8 @@ export function renderTwoPlayerSummary(
 /** End screen: both scores, the winner (or tie), PLAY AGAIN / MAIN MENU. */
 export function renderTwoPlayerFinal(
   ctx: CanvasRenderingContext2D, t: TwoPlayerState, now: number, onAgain: () => void, onMenu: () => void,
+  /** False while a card preview is open / just changed: the buttons are dimmed and ignore motion (two-player-card R1.7). */
+  buttonsLive = true,
 ): void {
   const { width: W, height: H } = ctx.canvas
   if (finalShownAt === null) finalShownAt = now
@@ -175,14 +177,17 @@ export function renderTwoPlayerFinal(
   })
 
   const r = clamp(W / 9, 48, 76)
-  if (!againBtn || againBtn.radius !== r) againBtn = new MotionButton(W * 0.35, H * 0.78, r, 'PLAY AGAIN')
-  else { againBtn.cx = W * 0.35; againBtn.cy = H * 0.78 }
-  if (!menuBtn || menuBtn.radius !== r) menuBtn = new MotionButton(W * 0.65, H * 0.78, r, 'MAIN MENU')
-  else { menuBtn.cx = W * 0.65; menuBtn.cy = H * 0.78 }
+  const by = H * 0.7 // above the per-player card offers at the bottom of each half
+  if (!againBtn || againBtn.radius !== r) againBtn = new MotionButton(W * 0.35, by, r, 'PLAY AGAIN')
+  else { againBtn.cx = W * 0.35; againBtn.cy = by }
+  if (!menuBtn || menuBtn.radius !== r) menuBtn = new MotionButton(W * 0.65, by, r, 'MAIN MENU')
+  else { menuBtn.cx = W * 0.65; menuBtn.cy = by }
   const live = el >= FINAL_INPUT_DELAY_MS
-  const r1 = live ? againBtn.update(now) : null
+  const gate = live && buttonsLive
+  if (!buttonsLive) ctx.globalAlpha = 0.35
+  const r1 = live ? againBtn.updateGated(now, gate) : null
   againBtn.render(ctx, now)
-  const r2 = live ? menuBtn.update(now) : null
+  const r2 = live ? menuBtn.updateGated(now, gate) : null
   menuBtn.render(ctx, now)
   ctx.restore()
 

@@ -4,7 +4,7 @@
 
 import './style.css'
 import { initWebcam, stopWebcam } from './webcam/capture'
-import { startLoop, requestStart, handleCardKey, handleCardPointer, isCardPreviewOpen } from './game/loop'
+import { startLoop, requestStart, handleCardKey, handleCardPointer, handleSeatCardPointer, isCardPreviewOpen, isTwoPlayerActive } from './game/loop'
 import { showCameraDenied, classifyCameraError, runOnboarding } from './ui/onboarding'
 import { createOnboarding, onboardingReducer, hasSeenOnboarding, getLocalStorage } from './game/onboarding'
 import { toggleDebug } from './game/render'
@@ -13,7 +13,6 @@ import { installAudioUnlock } from './audio/unlock'
 import { modeForKey } from './game/playerMode'
 import { loadTitleFont } from './ui/fonts'
 import { hudFontSize, muteButtonRect, muteButtonRect2P } from './ui/hud'
-import { isTwoPlayerActive } from './game/loop'
 
 const webcamCanvas = document.getElementById('webcam-canvas') as HTMLCanvasElement
 const gameCanvas   = document.getElementById('game-canvas') as HTMLCanvasElement
@@ -50,7 +49,7 @@ document.addEventListener('keydown', (e) => {
   const pickedMode = modeForKey(e.key)
   if (pickedMode !== null && !e.repeat) requestStart(pickedMode) // keys 1 / 2 on the start screen
   // Exorcist Card keys (C / S / N / Enter / Esc) only act on the game-over and victory screens.
-  if ((e.target as HTMLElement | null)?.tagName !== 'BUTTON' && !e.ctrlKey && !e.metaKey && !e.altKey) {
+  if (!isTwoPlayerActive() && (e.target as HTMLElement | null)?.tagName !== 'BUTTON' && !e.ctrlKey && !e.metaKey && !e.altKey) {
     if (handleCardKey(e.key, e.repeat)) e.preventDefault()
   }
   if (e.key === ' ' || e.code === 'Space') {
@@ -72,8 +71,10 @@ gameCanvas.addEventListener('pointerdown', (e) => {
   }
   const r = twoP ? muteButtonRect2P(gameCanvas.width, fs) : muteButtonRect(gameCanvas.width, fs)
   if (e.clientX >= r.x && e.clientX <= r.x + r.w && e.clientY >= r.y && e.clientY <= r.y + r.h) {
-    toggleMute()
+    toggleMute() // the shared mute button is drawn above the card layers, so it wins
+    return
   }
+  if (twoP) handleSeatCardPointer(e.clientX, e.clientY) // per-player card of the half that was clicked (2P end screen)
 })
 
 // Module-level so a retry (camera denied, or lost mid-onboarding) resumes the same state.

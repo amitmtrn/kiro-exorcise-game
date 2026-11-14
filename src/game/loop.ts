@@ -22,8 +22,8 @@ import { tickCallouts } from './callouts'
 import { renderFrame } from './render'
 import { renderHUD, hudFontSize, HUD_FONT_FAMILY, createHudPulse, drawMuteButton, muteButtonRect2P } from '../ui/hud'
 import type { HudPulse } from '../ui/hud'
-import { drawDivider, drawSeatOverlay, renderTwoPlayerSummary, renderTwoPlayerFinal, resetFinalScreen, resetSummaryScreen } from '../ui/splitscreen'
-import { createTwoPlayer, tickTwoPlayer, advanceSession, seatStatus } from './twoPlayer'
+import { drawDivider, drawSeatOverlay, renderTwoPlayerSummary, renderTwoPlayerFinal, resetFinalScreen, resetSummaryScreen, FINAL_INPUT_DELAY_MS } from '../ui/splitscreen'
+import { createTwoPlayer, tickTwoPlayer, advanceSession, seatStatus, winnerOf } from './twoPlayer'
 import type { TwoPlayerState } from './twoPlayer'
 import { SEATS, halfOffset, halfWidth, displayPointsInHalf } from './halves'
 import type { Seat } from './halves'
@@ -46,9 +46,12 @@ import { resolveStartRequest, setPlayerMode } from './playerMode'
 import type { PlayerMode, StartRequest } from './playerMode'
 import { CardSession } from '../card/session'
 import { grabMirroredSnapshot, releaseSnapshot } from '../card/snapshot'
+import { grabHalfSnapshot } from '../card/halfSnapshot'
+import { badgeFor, cardFileName, seatLabel } from '../card/twoPlayerCard'
 import { composeCard } from '../card/draw'
 import { downloadCanvasPng } from '../card/download'
 import { CardPreview, cardKeyAction, offerHit, lockEndButtons } from '../ui/cardScreen'
+import { SeatCard, routeSeatClick } from '../ui/seatCard'
 import type { CardAction } from '../ui/cardScreen'
 import { sfxStageClear, startMusic, startTitleMusic, stopMusic, setMusicCombo } from '../audio/index'
 
@@ -86,6 +89,19 @@ export function isCardPreviewOpen(): boolean { return cardOpen }
 export function handleCardPointer(x: number, y: number): boolean {
   if (!onEndScreen) return false
   cardInputs.push({ kind: 'click', x, y })
+  return true
+}
+
+// Two-player cards (two-player-card): clicks on the 2P end screen are routed to the half that contains them.
+let seatCardsRef: Array<SeatCard<HTMLCanvasElement>> | null = null
+let twoFinal = false
+let seatClickW = 0
+
+/** Forwards a click / tap in canvas pixels on the 2P end screen; returns true when it was queued for a half. */
+export function handleSeatCardPointer(x: number, y: number): boolean {
+  if (!twoFinal || !seatCardsRef || seatClickW <= 0) return false
+  const r = routeSeatClick(x, y, seatClickW)
+  seatCardsRef[r.seat].queueClick(r.x, r.y)
   return true
 }
 
@@ -144,6 +160,34 @@ export async function startLoop(
     download: (c) => downloadCanvasPng(c),
   })
   const preview = new CardPreview()
+
+  // Two-player cards: one session, preview and offer per seat. Each sees only its own seat's state,
+  // its own half of the camera and its own half of the motion points. Memory only.
+  let twoNow: TwoPlayerState | null = null
+  const seatPoints: Array<ReturnType<typeof displayPointsInHalf>> = [[], []]
+  const seatSessions = SEATS.map((seat) => new CardSession<HTMLCanvasElement, HTMLCanvasElement>({
+    grab: (w, h) => grabHalfSnapshot(video, seat, w, h),
+    releaseSnapshot,
+    compose: (data, photo) => composeCard(
+      data,
+      photo ? { source: photo, width: photo.width, height: photo.height } : null,
+    ),
+    releaseCard: releaseSnapshot,
+    download: (c) => downloadCanvasPng(c, cardFileName(seat)),
+    extra: () => ({ playerLabel: seatLabel(seat), badge: twoNow ? badgeFor(winnerOf(twoNow), seat) : undefined }),
+  }))
+  const seatCards = SEATS.map((seat) => new SeatCard<HTMLCanvasElement>(seat, seatSessions[seat], () => seatPoints[seat]))
+  const cardCanvases: HTMLCanvasElement[] = []
+  let finalAt = 0
+  seatCardsRef = seatCards
+  twoFinal = false
+
+  /** Drops every 2P card: snapshots, run stats, previews, queued clicks. */
+  function resetSeatCards(): void {
+    for (const c of seatCards) c.reset()
+    for (const s of seatSessions) s.reset()
+    twoFinal = false
+  }
   cardInputs = []
   cardOpen = false
   onEndScreen = false
@@ -190,9 +234,9 @@ export async function startLoop(
   const halfCanvases: HTMLCanvasElement[] = []
   const pulses: HudPulse[] = [] // created on first use per seat
   const hudCanvases: HTMLCanvasElement[] = [] // transparent per-seat HUD layers, drawn above the divider
-  /** Action requested by a 2P screen button during a tick; applied after the tick returns (so it is not overwritten). */
   /** True while the start screen is the visible screen (entry detection for its lock-out). */
   let startVisible = false
+  /** Action requested by a 2P screen button during a tick; applied after the tick returns (so it is not overwritten). */
   let twoAction: 'next' | 'again' | 'menu' | null = null
 
   /** Start a game in `mode` (remembered for the session). */
@@ -207,8 +251,12 @@ export async function startLoop(
     }
   }
 
+  /** True once the 2 PLAYERS button (or key) created a session this tick. */
+  function twoStarted(): boolean { return two !== null }
+
   /** Back to the title screen from the two-player end screen. */
   function toMenu(): void {
+    resetSeatCards()
     two = null
     prevTwoPhase = null
     state = createInitialState(1)
@@ -239,6 +287,7 @@ export async function startLoop(
     cur: ImageData, prev: ImageData, frameIsNew: boolean): TwoPlayerState {
     const motion = t.phase === 'playing' ? { cur, prev, frameIsNew, now } : null
     t = tickTwoPlayer(t, deltaMs, W, H, motion)
+    twoNow = t
 
     // Phase hooks (music / sfx), once per transition
     if (prevTwoPhase !== t.phase) {
@@ -246,7 +295,7 @@ export async function startLoop(
         if (t.phase === 'playing') startMusic(t.stage)
         else if (t.phase === 'summary') { resetSummaryScreen(); sfxStageClear(); stopMusic() }
         else if (t.phase === 'final') {
-          resetFinalScreen(); stopMusic()
+          resetFinalScreen(); stopMusic(); finalAt = now
           if (t.seats.some((s) => s.phase !== 'gameover')) sfxStageClear() // no jingle when both are out
         }
       } catch { /* ignore */ }
@@ -283,10 +332,31 @@ export async function startLoop(
     if (t.phase === 'summary') {
       renderTwoPlayerSummary(gameCtx, t, now, () => { twoAction = 'next' })
     } else if (t.phase === 'final') {
+      // Per-player cards (two-player-card): each half draws its own offer / preview layer first, so the
+      // shared buttons can be gated by what the cards are doing; the layers are composited above the overlay.
+      twoFinal = true
+      seatClickW = W
+      const live = now - finalAt >= FINAL_INPUT_DELAY_MS
+      for (const seat of SEATS) {
+        const c = (cardCanvases[seat] ??= document.createElement('canvas'))
+        if (c.width !== hw) c.width = hw
+        if (c.height !== H) c.height = H
+        const cctx = c.getContext('2d')!
+        cctx.clearRect(0, 0, hw, H)
+        seatCards[seat].render(cctx, now, live)
+      }
+      const buttonsLive = !seatCards.some((c) => c.isOpen) && now >= Math.max(...seatCards.map((c) => c.lockedUntil))
       renderTwoPlayerFinal(gameCtx, t, now,
         () => { twoAction = 'again' },
         () => { twoAction = 'menu' },
+        buttonsLive,
       )
+      for (const seat of SEATS) gameCtx.drawImage(cardCanvases[seat], halfOffset(seat, W), 0)
+      if (seatCards.some((c) => c.isOpen)) drawDivider(gameCtx, hw)
+    }
+    if (t.phase !== 'final') {
+      twoFinal = false
+      for (const c of seatCards) c.closePreview() // previews exist only on the end screen
     }
     drawMuteButton(gameCtx, muteButtonRect2P(W, hudFontSize(W))) // above the overlays so it stays visible
     return t
@@ -301,7 +371,7 @@ export async function startLoop(
 
     // Exorcist Card bookkeeping: run stats, snapshots at fun moments, discard when
     // leaving the end screens (retry / menu / play again). Memory only.
-    // Not in two-player mode: the card is 1P-only for now (see the two-player design note).
+    // The 1P session is not fed in two-player mode: each seat has its own card session (see two-player-card).
     if (two) {
       onEndScreen = false
       cardInputs = []
@@ -334,12 +404,17 @@ export async function startLoop(
       startVisible = false
       twoPlayerActive = true
       twoAction = null
+      // Per-player highlights: each seat's own state feeds only that seat's card session.
+      for (const seat of SEATS) {
+        seatPoints[seat] = displayPointsInHalf(lastMotionPixels, seat, displayW)
+        seatSessions[seat].observe(two.seats[seat], displayW, displayH)
+      }
       two = tickTwo(two, deltaMs, now, displayW, displayH, currentData, prevData, frameIsNew)
       // Apply a button pressed during this tick *after* the tick result is stored.
       const action: typeof twoAction = twoAction
       twoAction = null
       if (action === 'next' && two.phase === 'summary') two = advanceSession(two, displayW, displayH)
-      else if (action === 'again') { two = createTwoPlayer(); prevTwoPhase = null }
+      else if (action === 'again') { resetSeatCards(); two = createTwoPlayer(); prevTwoPhase = null }
       else if (action === 'menu') toMenu()
       if (!two) twoPlayerActive = false
       startRequest = null // keys pressed during a 2P game must not leak to the start screen (R6.2)
@@ -355,7 +430,7 @@ export async function startLoop(
       renderFrame(gameCtx, state, now)
       renderStartScreen(gameCtx, state, now, (mode) => { begin(mode) })
       // Space / 1 / 2 fallback (only honoured while actually on the start screen)
-      if (startRequest !== null && state.phase === 'start') begin(resolveStartRequest(startRequest))
+      if (startRequest !== null && state.phase === 'start' && !twoStarted()) begin(resolveStartRequest(startRequest))
       startRequest = null
       prevCtx.drawImage(currentCanvas, 0, 0)
       rafId = requestAnimationFrame(tick)
@@ -486,7 +561,7 @@ export async function startLoop(
 
   rafId = requestAnimationFrame(tick)
 
-  resetSession = () => session.reset()
+  resetSession = () => { session.reset(); resetSeatCards(); seatCardsRef = null }
   return stopLoop
 }
 
@@ -496,5 +571,7 @@ export function stopLoop(): void {
   resetSession?.(); resetSession = null // the snapshot must not outlive the loop
   onEndScreen = false
   cardOpen = false
+  twoPlayerActive = false
+  twoFinal = false
   if (rafId) { cancelAnimationFrame(rafId); rafId = 0 }
 }

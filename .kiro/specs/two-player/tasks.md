@@ -104,5 +104,5 @@ Files: `src/game/halves.ts`, `src/game/loop.ts`, `src/game/twoPlayer.ts`, `src/u
 Files: `src/game/loop.ts`, `src/main.ts`, `src/ui/screens.ts`, `src/game/loop.card.test.ts`, `README.md`, both `design.md`
 
 - [x] Both features kept: 1P card offer on game over / victory, 2P split-screen end screen.
-- [x] Card is 1P only: no card bookkeeping, snapshot or input in 2P; test added.
+- [x] Card is 1P only: no card bookkeeping, snapshot or input in 2P; test added. (superseded: per-player cards, see `two-player-card/`)
 - [x] Decision recorded in both specs' `design.md`.

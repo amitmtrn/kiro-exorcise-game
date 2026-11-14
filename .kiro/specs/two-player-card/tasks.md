@@ -26,14 +26,14 @@ Files: `src/ui/motionButton.ts`, `src/ui/cardScreen.ts`, `src/ui/seatCard.ts`, t
 Files: `src/game/loop.ts`, `src/ui/splitscreen.ts`, `src/main.ts`, `src/card/privacy.test.ts`,
 `src/game/loop.card2p.test.ts`, `src/game/loop.card.test.ts`
 
-- [ ] Per-seat `CardSession` observed every 2P tick; offers and previews on the `final` screen; both previews at once.
-- [ ] Shared PLAY AGAIN / MAIN MENU gated while a preview is open or just changed (dimmed).
-- [ ] Snapshots discarded on PLAY AGAIN, MAIN MENU, `stopLoop`; previews closed outside `final`.
-- [ ] `main.ts` routes 2P clicks to `handleSeatCardPointer` (mute button wins).
-- [ ] Tests: 2P to `final`, independent open / save / close, file names, discard on retry / menu, privacy spies, 1P card unchanged, source grep includes the new files.
-- [ ] Update `exorcist-card/design.md` and `two-player/design.md` notes (the "1P only" restriction is removed).
-- [ ] `npm test` and `npm run build` both clean.
-- [ ] Commit: `feat(two-player-card-T3): per-player Exorcist Cards on the 2P end screen`
+- [x] Per-seat `CardSession` observed every 2P tick; offers and previews on the `final` screen; both previews at once.
+- [x] Shared PLAY AGAIN / MAIN MENU gated while a preview is open or just changed (dimmed).
+- [x] Snapshots discarded on PLAY AGAIN, MAIN MENU, `stopLoop`; previews closed outside `final`.
+- [x] `main.ts` routes 2P clicks to `handleSeatCardPointer` (mute button wins).
+- [x] Tests: 2P to `final`, independent open / save / close, file names, discard on retry / menu, privacy spies, 1P card unchanged, source grep includes the new files.
+- [x] Update `exorcist-card/design.md` and `two-player/design.md` notes (the "1P only" restriction is removed).
+- [x] `npm test` and `npm run build` both clean.
+- [x] Commit: `feat(two-player-card-T3): per-player Exorcist Cards on the 2P end screen`
 
 ## T4 — Review notes (NITs)
 Files: `src/main.ts`, `src/game/loop.ts`, `src/game/loop.card.test.ts`, `README.md`, `exorcist-card/design.md`
