@@ -42,7 +42,8 @@ function envelope(
   return g
 }
 
-function startVoice(ctx: AudioContext, out: AudioNode, v: Voice, t0: number): void {
+/** Starts a voice and returns its source node with the time it stops. */
+function startVoice(ctx: AudioContext, out: AudioNode, v: Voice, t0: number): { src: AudioScheduledSourceNode; end: number } {
   const t = t0 + v.at
   if (v.kind === 'tone') {
     const g = envelope(ctx, out, t, v.peak, v.attack, v.sustain, v.release)
@@ -52,8 +53,9 @@ function startVoice(ctx: AudioContext, out: AudioNode, v: Voice, t0: number): vo
     if (v.toHz !== undefined && v.glideSec) osc.frequency.exponentialRampToValueAtTime(v.toHz, t + v.glideSec)
     osc.connect(g)
     osc.start(t)
-    osc.stop(t + v.attack + v.sustain + v.release + (v.tail ?? 0.05))
-    return
+    const end = t + v.attack + v.sustain + v.release + (v.tail ?? 0.05)
+    osc.stop(end)
+    return { src: osc, end }
   }
   const bufLen = Math.ceil(ctx.sampleRate * v.dur)
   const buf = ctx.createBuffer(1, bufLen, ctx.sampleRate)
@@ -70,6 +72,7 @@ function startVoice(ctx: AudioContext, out: AudioNode, v: Voice, t0: number): vo
   filter.connect(g)
   src.start(t)
   src.stop(t + v.dur + 0.05)
+  return { src, end: t + v.dur + 0.05 }
 }
 
 /**
@@ -82,7 +85,14 @@ function play(id: SfxId, arg?: number): void {
   out.gain.value = SFX_GAIN[id]
   out.connect(getMasterGain())
   const t0 = now()
-  for (const v of recipeFor(id, arg)) startVoice(ctx, out, v, t0)
+  let last: { src: AudioScheduledSourceNode; end: number } | null = null
+  for (const v of recipeFor(id, arg)) {
+    const r = startVoice(ctx, out, v, t0)
+    if (!last || r.end >= last.end) last = r
+  }
+  // free the per-sound gain once its last voice has stopped
+  if (last) last.src.onended = () => out.disconnect()
+  else out.disconnect()
 }
 
 // ─── SFX functions ────────────────────────────────────────────────────────────

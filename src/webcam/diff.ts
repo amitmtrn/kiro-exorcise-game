@@ -2,7 +2,7 @@
  * Frame differencing — detects motion inside a hitbox by comparing luminance
  * values between the current and previous webcam frame.
  *
- * The motion canvas is fixed at MOTION_W × MOTION_H for performance.
+ * The motion canvas is MOTION_W × MOTION_H by default and smaller at lower quality levels (see grid.ts).
  * Hitbox coordinates from display space must be scaled with scaleHitbox()
  * before passing to computeFrameDiff.
  */
@@ -83,7 +83,7 @@ export function scaleHitbox(
  * @param currentData - Full-canvas ImageData for the current frame
  * @param prevData    - Full-canvas ImageData for the previous frame
  * @param hitbox      - Axis-aligned bounding box to check (motion canvas coords)
- * @param canvasWidth - Width of the motion canvas (use MOTION_W = 320)
+ * @param canvasWidth - Width of the motion canvas (the current motion grid width)
  */
 export function computeFrameDiff(
   currentData: ImageData,

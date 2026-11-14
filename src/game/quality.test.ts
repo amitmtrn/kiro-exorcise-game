@@ -17,9 +17,9 @@ describe('stepFrameBudget', () => {
   })
 
   it('steps down only after the average has been over 20 ms for 2 s', () => {
-    let s = run(createFrameBudget(), 30, 1000)
+    let s = run(createFrameBudget(), 25, 1000)
     expect(s.level).toBe(0) // average still rising / not yet 2 s over
-    s = run(s, 30, DOWN_AFTER_MS + 1500)
+    s = run(s, 25, DOWN_AFTER_MS + 1500)
     expect(s.level).toBe(1)
   })
 
@@ -35,7 +35,7 @@ describe('stepFrameBudget', () => {
 
   it('re-seeds the average after a change', () => {
     let s = createFrameBudget()
-    while (s.level === 0) s = stepFrameBudget(s, 30)
+    while (s.level === 0) s = stepFrameBudget(s, 25)
     expect(s.avgMs).toBe(RESEED_MS)
     expect(s.settleMs).toBe(SETTLE_MS)
   })
@@ -48,11 +48,26 @@ describe('stepFrameBudget', () => {
     expect(s.level).toBeLessThan(2)
   })
 
-  it('does nothing between 14 and 20 ms on a 120 Hz display', () => {
-    // fast display (frames well under 16.7 ms seen): uneven 14 / 20 ms intervals, average about 17 ms
-    let st: FrameBudgetState = { ...createFrameBudget(1), refMs: 8.33 }
-    for (let t = 0; t < 120_000; t += 34) { st = stepFrameBudget(st, 14); st = stepFrameBudget(st, 20) }
+  it('does nothing in the dead band between the up and down thresholds', () => {
+    // 16.7 / 25 ms intervals (a 60 Hz display, average 20.8 ms): above the 18.3 ms up threshold, below the 21.7 ms down threshold
+    let st: FrameBudgetState = createFrameBudget(1)
+    for (let t = 0; t < 120_000; t += 42) { st = stepFrameBudget(st, 16.67); st = stepFrameBudget(st, 25) }
     expect(st.level).toBe(1)
+  })
+
+  it('a steady 30 fps cap neither steps down nor flip-flops (R1.5)', () => {
+    expect(run(createFrameBudget(0), 33.33, 120_000).level).toBe(0)
+  })
+
+  it('a steady 40 ms (25 fps) machine is slow, not a display: it steps down', () => {
+    expect(run(createFrameBudget(0), 40, 20_000).level).toBeGreaterThan(0)
+  })
+
+  it('the refresh estimate falls with time constant 300 ms, whatever the frame rate', () => {
+    // 600 ms of 16 ms frames: the gap of 14 ms shrinks by exp(-2). Same span in 8 ms frames reaches the same gap fraction.
+    const gapAfter = (f: number) => { let s = { ...createFrameBudget(), refMs: 30 }; for (let t = 0; t < 600; t += f) s = stepFrameBudget(s, f); return (s.refMs - f) / (30 - f) }
+    expect(gapAfter(16)).toBeCloseTo(Math.exp(-2), 1)
+    expect(gapAfter(8)).toBeCloseTo(Math.exp(-2), 1)
   })
 
   it('steady frames at the 60 Hz refresh interval step back up (review fix)', () => {

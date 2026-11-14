@@ -45,9 +45,6 @@ const HIT_FRAMES_REQUIRED = 2
  */
 export let lastMotionPixels: Array<{ x: number; y: number }> = []
 
-/** Sampling stride of the motion mask (same value as diff.ts SAMPLE_STRIDE; kept local so mocks of diff stay valid). */
-export const GRID_STRIDE = 4
-
 /**
  * Publish the whole-frame motion mask in display space. On a duplicate camera
  * frame (mask.changed === false) the previous pixels are kept for readers that

@@ -90,3 +90,13 @@
 - [x] RF9: `MUSIC_VOICES` peaks come from `VOICE_PEAKS` in `music/voices.ts`. Equality test.
 - [x] `npm test` and `npm run build` both clean.
 - [x] Commit: `fix(playtest-polish): review fixes`
+
+## T13 — Review fixes (round 2)
+- [x] RF10 (should-fix): refresh estimate is time-based (300 ms time constant, creep per ms), snaps within 15 % of a vsync interval else 60 Hz. R1.1, R1.3, R1.5 and the design say so. A steady 30 fps cap keeps level 0 (no down-then-up); 40 ms steps down; jittered 60 Hz steps up; the property test now has no excluded band.
+- [x] RF11: R9.3 documents that the stage label is dropped when 16 px does not fit.
+- [x] RF12: wind-up pulses slow to a quarter with reduced flashing (R10.3); `pulseRate` test.
+- [x] RF13: removed the unused `GRID_STRIDE` and its test; `diff.ts` comments describe the variable grid.
+- [x] RF14: the per-sound SFX gain is disconnected when its last voice ends; test.
+- [x] RF15 (no change): `thinParticles` is per batch and all bursts are batched (`addParticles`); noted only.
+- [x] `npm test` and `npm run build` both clean.
+- [x] Commit: `fix(playtest-polish): review fixes round 2`

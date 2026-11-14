@@ -26,6 +26,9 @@ const P = getPalette
 
 // ─── Debug mode ───────────────────────────────────────────────────────────────
 let debugMode = false
+/** Wind-up pulses run at a quarter of their speed with reduced flashing on (R10.3: nothing pulses faster than 1 Hz). */
+export function pulseRate(): number { return getSettings().reducedFlash ? 0.25 : 1 }
+
 export function toggleDebug(): void { debugMode = !debugMode }
 
 // ─── Colours ──────────────────────────────────────────────────────────────────
@@ -321,7 +324,7 @@ function drawLunger(ctx: CanvasRenderingContext2D, enemy: Enemy, now: number): v
   // Not hittable yet while approaching: draw it faded (boss-phases R7.2)
   if (enemy.movePhase === 'approach') ctx.globalAlpha = 0.55
   // Scale up slightly during windup to telegraph the lunge
-  const scale = isWindup ? 1 + 0.3 * Math.sin(now / 60) : 1
+  const scale = isWindup ? 1 + 0.3 * Math.sin(now * pulseRate() / 60) : 1
   ctx.scale(scale, scale)
   ctx.shadowColor = P().lunger; ctx.shadowBlur = isWindup ? 20 : 10
   // Purple ghost variant
@@ -392,7 +395,7 @@ function drawBoss(ctx: CanvasRenderingContext2D, enemy: Enemy, now: number): voi
   // Wind-up telegraph (boss-phases R3.2): shake, orange glow, pulsing ring, "!"
   if (windup) {
     ctx.translate(Math.sin(now / 20) * 5, Math.cos(now / 27) * 3)
-    const pulse = 0.5 + 0.5 * Math.sin(now / 50)
+    const pulse = 0.5 + 0.5 * Math.sin(now * pulseRate() / 50)
     ctx.save()
     ctx.shadowBlur = 0
     ctx.strokeStyle = P().bossWindup
@@ -423,7 +426,7 @@ function drawBoss(ctx: CanvasRenderingContext2D, enemy: Enemy, now: number): voi
   }
 
   const glow = windup
-    ? 30 + Math.sin(now / 50) * 10
+    ? 30 + Math.sin(now * pulseRate() / 50) * 10
     : 14 + Math.sin(now / (enraged ? 180 : 400)) * 6
   ctx.shadowColor = aura; ctx.shadowBlur = glow
   // Enlarged ghost

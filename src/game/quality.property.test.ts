@@ -1,4 +1,4 @@
-import { describe, it } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import fc from 'fast-check'
 import { createFrameBudget, stepFrameBudget, SETTLE_MS, type FrameBudgetState } from './quality'
 
@@ -23,25 +23,31 @@ describe('frame budget properties', () => {
     }))
   })
 
-  // A steady 30.3–36.7 ms is what a 30 Hz-capped display looks like: the level may step down while the refresh
-  // estimate still says 60 Hz, then step back up once it says 30 Hz. Every other constant rate moves one way.
-  it('constant frame time moves the level in one direction only (outside the 30 Hz band)', () => {
-    const f30 = fc.double({ min: 2, max: 120, noNaN: true }).filter((f) => f < 30 || f > 37)
-    fc.assert(fc.property(f30, fc.integer({ min: 0, max: 3 }), (f, start) => {
+  it('constant frame time moves the level in one direction only (R1.5)', () => {
+    fc.assert(fc.property(fc.double({ min: 2, max: 120, noNaN: true }), fc.integer({ min: 0, max: 3 }), (f, start) => {
       const { changes } = levels(f, 120_000, start)
       const dirs = new Set(changes.map((c) => Math.sign(c.to - c.from)))
       return dirs.size <= 1
-    }), { numRuns: 60 })
+    }), { numRuns: 200 })
   })
 
-  it('constant frame time in the 30 Hz band changes direction at most once', () => {
-    fc.assert(fc.property(fc.double({ min: 30, max: 37, noNaN: true }), fc.integer({ min: 0, max: 3 }), (f, start) => {
-      const { changes } = levels(f, 120_000, start)
-      const d = changes.map((c) => Math.sign(c.to - c.from))
-      let flips = 0
-      for (let i = 1; i < d.length; i++) if (d[i] !== d[i - 1]) flips++
-      return flips <= 1
-    }), { numRuns: 60 })
+  it('a steady 30 fps cap never steps down from level 0', () => {
+    fc.assert(fc.property(fc.double({ min: 30, max: 36, noNaN: true }), (f) => levels(f, 120_000, 0).changes.length === 0), { numRuns: 60 })
+  })
+
+  it('60 Hz with frame-time jitter of up to +-4 ms still steps back up', () => {
+    fc.assert(fc.property(fc.double({ min: 0, max: 4, noNaN: true }), fc.integer({ min: 1, max: 2 ** 30 }), (j, seed0) => {
+      let seed = seed0
+      const rnd = () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647 }
+      let s = createFrameBudget(3)
+      for (let t = 0; t < 60_000;) { const d = 16.67 + (rnd() * 2 - 1) * j; s = stepFrameBudget(s, d); t += d }
+      return s.level === 0
+    }), { numRuns: 40 })
+  })
+
+  it('the same wall-clock span in 8 ms or 32 ms steps gives the same level and refresh class (R1.1)', () => {
+    const run = (f: number) => { let s = createFrameBudget(3); for (let t = 0; t < 40_000; t += f) s = stepFrameBudget(s, f); return s.level }
+    expect(run(32)).toBe(run(8))
   })
 
   it('no two changes closer than the settle time', () => {
@@ -62,11 +68,12 @@ describe('frame budget properties', () => {
   })
 
   it('reaction time is set by elapsed ms, not frame count', () => {
-    fc.assert(fc.property(fc.double({ min: 24, max: 100, noNaN: true }), (f) => {
+    // 29–38.3 ms is indistinguishable from a 30 Hz display and does not step down (R1.3)
+    fc.assert(fc.property(fc.oneof(fc.double({ min: 24, max: 28, noNaN: true }), fc.double({ min: 39, max: 100, noNaN: true })), (f) => {
       let s = createFrameBudget(); let t = 0
       while (s.level === 0 && t < 30_000) { s = stepFrameBudget(s, f); t += f }
-      // average needs < ~1.5 s to cross 20 ms from 16 ms, plus 2 s over budget, plus one frame
-      return s.level === 1 && t <= 2000 + 1500 + f
+      // average needs < ~1.5 s to cross 20 ms from 16 ms, 2 s over budget, up to 2.5 s for the refresh estimate to pass 30 Hz, one frame
+      return s.level === 1 && t <= 2000 + 1500 + 2500 + f
     }))
     fc.assert(fc.property(fc.double({ min: 3, max: 12, noNaN: true }), (f) => {
       let s = createFrameBudget(1); let t = 0

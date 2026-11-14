@@ -36,8 +36,8 @@ lockouts and the 650 ms dwell (`motion-ui-ergonomics/`), duplicate-frame handlin
 
 **R1.1** A pure controller (`FrameBudget`) receives the elapsed time of every
 frame (`deltaMs`) and keeps a **time-weighted rolling average** of frame time
-(exponential, time constant 1000 ms). No count of frames and no per-frame constant
-is used anywhere in it: feeding the same wall-clock span in 8 ms or 32 ms steps
+(exponential, time constant 1000 ms) and a refresh estimate (time constant 300 ms).
+No count of frames and no per-frame constant is used anywhere in it: feeding the same wall-clock span in 8 ms or 32 ms steps
 gives the same decisions.
 
 **R1.2** Quality levels, cumulative, `0` is full quality:
@@ -49,15 +49,19 @@ gives the same decisions.
 | 2 | lite diff | motion-diff grid 160 × 90 |
 | 3 | minimal | motion-diff grid 96 × 54, fog and candle flicker off |
 
-**R1.3** Step down one level when the average stays above **20 ms** for
-**2000 ms** of accumulated time. Step up one level when the average stays below
-**14 ms** for **6000 ms**. Between 14 and 20 ms nothing happens. Both
-thresholds are relative to the display: the monitor keeps an estimate of the
-refresh interval (the fastest recent frame interval, snapped to 120 / 60 / 30 Hz;
-it starts at 60 Hz) and uses `max(20, 1.3 × refresh)` for the step down and
-`max(14, 1.1 × refresh)` for the step up. A 60 Hz display (16.7 ms intervals) and
-a 30 fps-capped browser can therefore step back up; on a 120 Hz display the
-values are the plain 20 / 14 ms. (Review fix RF1.)
+**R1.3** Step down one level when the average stays above the down threshold
+for **2000 ms** of accumulated time. Step up one level when the average stays below
+the up threshold for **6000 ms**. Between the two nothing happens. Both thresholds
+are relative to the display: the monitor keeps an estimate of the refresh interval
+(it starts at 60 Hz; it falls toward a faster frame interval with a **300 ms time
+constant** and otherwise rises by at most 1 ms per 100 ms, never above the frame
+interval). The estimate is snapped to the 120 / 60 / 30 Hz interval it is within
+**15 %** of, else to 60 Hz. The thresholds are `max(20, 1.3 × refresh)` down and
+`max(14, 1.1 × refresh)` up. A 60 Hz display (16.7 ms intervals, also with ±4 ms
+jitter) and a 30 fps-capped browser can therefore step back up; on a 120 Hz display
+the values are the plain 20 / 14 ms. A steady 28 ms or 40 ms stream is a slow
+machine, not a display, and steps down. A steady frame time of about 29–38 ms is
+treated as a 30 Hz cap and does not step down. (Review fixes RF1, RF10.)
 
 **R1.4** Hysteresis: after any change no further change happens for
 **3000 ms** (settle time); the average is re-seeded to the middle of the band so
@@ -65,8 +69,11 @@ the old, stale value does not trigger the next step. A step up that is followed
 by a step down within **30 s** doubles the step-up wait (up to 4×), so a machine
 sitting right on the border settles instead of flip-flopping.
 
-**R1.5** For a constant frame time the level moves in one direction only (never
-down then up, or up then down), and always stays within 0–3.
+**R1.5** For any constant frame time the level moves in one direction only (never
+down then up, or up then down), and always stays within 0–3. A constant 30 fps
+cap (29–38 ms) therefore keeps level 0. (Changes of the frame time caused by a level
+change itself are not constant-frame-time input; the up-wait penalty of R1.4 limits
+such oscillation.)
 
 **R1.6** Frames longer than **250 ms** (tab hidden, debugger pause) are ignored,
 not counted as slow.
@@ -230,7 +237,8 @@ smaller than the **minimum font sizes** (HUD 16 px, menu text 12 px, call-outs
 
 **R9.3** Bigger text applies to the one-player HUD and screens, call-outs, score pops, the onboarding
 caption and the CSS text (onboarding, camera help). With a scale above 1 the stage label shrinks (never below
-16 px) to stay between the hearts and the timer, and the score / combo pulse is reduced where the two would
+16 px) to stay between the hearts and the timer and is not drawn when even 16 px does not fit (always the case in the
+two-player halves of a 640-wide canvas), and the score / combo pulse is reduced where the two would
 collide. The two-player split-screen end screens keep their size: they are laid out around per-half buttons and
 are not rescaled by this spec. Button labels are fitted to their circle and are not scaled. The two-player
 in-game half HUDs are scaled; the right half's player label starts right of the shared mute button, which
@@ -251,7 +259,9 @@ would be the 4th in the window. A property test samples the produced brightness
 waveform at 1 ms and checks the rule for random request streams.
 
 **R10.3** There is no lightning or strobe effect in the game today; the timer's
-low-time blink (1 Hz) is within the limit and is covered by the flash-rate test.
+low-time blink (1 Hz) is within the limit and is covered by the flash-rate test. The
+lunger and boss wind-up pulses run at a quarter of their speed (at most 1 Hz) with
+reduced flashing on.
 
 ### R11 — Privacy
 

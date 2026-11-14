@@ -32,18 +32,22 @@ export const RESEED_MS = 17
 /** The thresholds scale with the display's refresh interval so a 60 Hz or 30 fps-capped display can step up. */
 export const REF_DOWN_FACTOR = 1.3
 export const REF_UP_FACTOR = 1.1
-/** How fast the refresh estimate may rise when no faster frame is seen, ms per ms (+1 ms per 2 s). */
-export const REF_CREEP = 0.0005
-/** Fraction of the gap closed per faster frame: one short interval (jitter) barely moves the estimate. */
-export const REF_FOLLOW = 0.05
+/** How fast the refresh estimate may rise when no faster frame is seen, ms per ms (+1 ms per 100 ms). */
+export const REF_CREEP = 0.01
+/** Time constant of the estimate's fall toward a faster frame interval (time-based, like the average). */
+export const REF_TAU_MS = 300
 /** The estimate starts at 60 Hz. */
 export const REF_START_MS = 16.67
 /** Vsync intervals a display can plausibly run at: 120, 60 and 30 Hz. A steady 28 ms is a slow machine, not a 36 Hz display. */
 export const VSYNC_MS: readonly number[] = [8.33, 16.67, 33.33]
-/** The largest plausible vsync interval at or below 1.1 x the fastest recent frame. */
+const SNAP_MARGIN = 1.15
+/**
+ * The vsync interval the estimate is within 15 % of (the largest such), else 60 Hz. A steady 28 ms or 40 ms is a slow
+ * machine, not a 36 Hz or 25 Hz display, so it keeps the 60 Hz thresholds and steps down.
+ */
 export function snapRefMs(refMs: number): number {
-  let best = VSYNC_MS[0]
-  for (const v of VSYNC_MS) if (v <= refMs * 1.1) best = v
+  let best = REF_START_MS
+  for (const v of VSYNC_MS) if (v <= refMs * SNAP_MARGIN && refMs <= v * SNAP_MARGIN) best = v
   return best
 }
 export function downThresholdMs(refMs: number): number { return Math.max(BUDGET_DOWN_MS, snapRefMs(refMs) * REF_DOWN_FACTOR) }
@@ -71,7 +75,7 @@ export function stepFrameBudget(s: FrameBudgetState, deltaMs: number): FrameBudg
   if (!Number.isFinite(deltaMs) || deltaMs <= 0 || deltaMs > IGNORE_ABOVE_MS) return s
   const avgMs = s.avgMs + (deltaMs - s.avgMs) * (1 - Math.exp(-deltaMs / AVG_TAU_MS))
   const sinceUpMs = s.sinceUpMs + deltaMs
-  const refMs = deltaMs < s.refMs ? s.refMs + (deltaMs - s.refMs) * REF_FOLLOW : Math.min(deltaMs, s.refMs + deltaMs * REF_CREEP)
+  const refMs = deltaMs < s.refMs ? s.refMs + (deltaMs - s.refMs) * (1 - Math.exp(-deltaMs / REF_TAU_MS)) : Math.min(deltaMs, s.refMs + deltaMs * REF_CREEP)
   s = { ...s, refMs }
   if (s.settleMs > 0) {
     return { ...s, avgMs, sinceUpMs, settleMs: Math.max(0, s.settleMs - deltaMs), overMs: 0, underMs: 0 }
