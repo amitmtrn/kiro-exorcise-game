@@ -9,7 +9,6 @@ import {
   setEnemies,
   STAGE_TITLE_DURATION_MS,
   SUMMARY_AUTO_ADVANCE_MS,
-  saveHighScore,
 } from './state'
 import { STAGES } from './stages'
 import { BONUS_ROUND } from './waves'
@@ -69,11 +68,6 @@ export function tickRound(
       }
       return { ...state, summaryShownMs }
     }
-
-    case 'victory':
-    case 'gameover':
-      saveHighScore(state.highScore)
-      return state
 
     default:
       return state

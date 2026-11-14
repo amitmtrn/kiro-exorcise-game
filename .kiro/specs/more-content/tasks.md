@@ -154,3 +154,4 @@
 
 ## T19 — Review fixes (round 8)
 - [x] R8.4: `saveHighScore` runs once on entering victory (the duplicate call in the entry hook is gone); the entry-frame test counts one write.
+- [x] R8.4: `tickRound` no longer saves the high score in victory / gameover (dead path, the loop stores it once on entry); the round test now pins that it writes nothing.

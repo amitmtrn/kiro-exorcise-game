@@ -110,11 +110,11 @@ describe('advanceToNextStage', () => {
 describe('tickRound — victory', () => {
   afterEach(() => { vi.unstubAllGlobals() })
 
-  it('stays in victory and saves the high score', () => {
+  it('stays in victory and writes nothing (the loop stores the score once on entry)', () => {
     const setItem = vi.fn()
     vi.stubGlobal('localStorage', { getItem: () => null, setItem })
     const s = gs({ phase: 'victory', stage: 6, score: 4200, highScore: 4200 })
     expect(tickRound(s, 16, W, H).phase).toBe('victory')
-    expect(setItem).toHaveBeenCalledWith('exorcise-highscore', '4200')
+    expect(setItem).not.toHaveBeenCalled()
   })
 })
