@@ -100,3 +100,13 @@ describe('callout lifecycle', () => {
     expect([...alphas].sort((a, b) => b - a)).toEqual(alphas)
   })
 })
+
+describe('tips are exempt from the combo call-out cap (more-content R5.4)', () => {
+  it('a combo call-out never evicts a tip, even with a cap of 1', () => {
+    const tip = { ...makeCallout(500, 400, { text: 'tip', kind: 'tip' }, 1000, 800), lifeMs: 1800 }
+    let list = addCallout([], tip)
+    for (let i = 0; i < 5; i++) list = addCallout(list, makeCallout(500, 400, { text: `c${i}`, kind: 'praise' }, 1000, 800))
+    expect(list).toContain(tip)
+    expect(list.filter((c) => c.kind !== 'tip').length).toBeLessThanOrEqual(3)
+  })
+})
