@@ -258,8 +258,12 @@ the player's own row.
   table and a fresh lock-out. Keyboard: `main.ts` forwards keys through
   `handleNameKey` before its other key handling, so M / D / C type letters while the
   name screen is open (the mute button still works); card keys and clicks wait.
-- 2P `final`: both seats recorded; each qualifying seat gets its own `NameEntry`;
-  `renderTwoPlayerFinal` is drawn once both are done.
+- 2P `final`: on entry (`onTwoPlayerEnd`) both seats are recorded; each qualifying
+  seat gets its own `NameEntry` and `NameScreen(seat, seatSources[seat])`, drawn into
+  that half's card layer (`runSeatNames`). A seat with nothing to name shows "Waiting
+  for the other player…". The cards and `renderTwoPlayerFinal` appear once both are
+  done, with a fresh lock-out (`finalAt`, `resetFinalScreen`). Seat-card clicks are
+  ignored meanwhile.
 - Retry / Play again / Menu clear the pending entry.
 - Demo: `begin()` already switches persistence off; the recording call is a
   no-op and the name screen is not shown when `demo` is set.

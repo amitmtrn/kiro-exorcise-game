@@ -63,10 +63,10 @@
 - [x] Commit: `feat(more-content-T7): name screen and high-score table on title and end screens`
 
 ## T8 — Two-player names
-- [ ] `loop.ts` 2P final: record both seats with `mode: "2P"`, per-seat `NameEntry`, per-half name screens with the half's motion points, final buttons after both are done; keyboard edits P1.
-- [ ] Tests: both seats recorded with their own stage, independent entries, one half done does not end the other, buttons appear after both.
-- [ ] `npm test` and `npm run build` both clean.
-- [ ] Commit: `feat(more-content-T8): per-player name entry in two-player games`
+- [x] `loop.ts` 2P final: record both seats with `mode: "2P"`, per-seat `NameEntry`, per-half name screens with the half's motion points, final buttons after both are done; keyboard edits P1.
+- [x] Tests: both seats recorded with their own stage, independent entries, one half done does not end the other, buttons appear after both.
+- [x] `npm test` and `npm run build` both clean.
+- [x] Commit: `feat(more-content-T8): per-player name entry in two-player games`
 
 ## T9 — Demo mode and balance check
 - [ ] Demo driver: respects variant vulnerability, hits both wisps inside the window.

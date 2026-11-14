@@ -135,6 +135,7 @@ let seatClickW = 0
 
 /** Forwards a click / tap in canvas pixels on the 2P end screen; returns true when it was queued for a half. */
 export function handleSeatCardPointer(x: number, y: number): boolean {
+  if (nameActive) return false
   if (!twoFinal || !seatCardsRef || seatClickW <= 0) return false
   const r = routeSeatClick(x, y, seatClickW)
   seatCardsRef[r.seat].queueClick(r.x, r.y)
@@ -283,6 +284,58 @@ export async function startLoop(
   /** Each half's motion points for its own copies of the shared buttons. */
   const seatSources: [() => typeof seatPoints[0], () => typeof seatPoints[0]] = [() => seatPoints[0], () => seatPoints[1]]
   let finalAt = 0
+  // Two-player names (more-content R11): one entry and one name screen per half, driven by that half's points only.
+  const seatNames: Array<{ id: string; entry: NameEntry; info: NameInfo } | null> = [null, null]
+  const seatNameScreens = SEATS.map((seat) => new NameScreen(seat, seatSources[seat]))
+  /** True while either half still has an open name screen. */
+  const namesOpen2P = (): boolean => seatNames.some((n) => n !== null && !n.entry.done)
+
+  /** The 2P game ended: record every seat that scored (mode 2P, its own stage) and open its name screen. */
+  function onTwoPlayerEnd(t: TwoPlayerState, now: number): void {
+    for (const seat of SEATS) {
+      seatNames[seat] = null
+      const s = t.seats[seat]
+      const r = recordScore({ score: s.score, stage: s.stage, mode: '2P' })
+      if (!r) continue
+      seatNames[seat] = { id: r.entry.id, entry: newNameEntry(r.entry.name, now), info: { score: r.entry.score, rank: r.rank } }
+      seatNameScreens[seat].reset()
+    }
+    nameKeys = []
+    scoreTable = loadTable()
+  }
+
+  /** Runs both halves' name screens for this frame (keyboard edits P1); true while the end buttons must wait. */
+  function runSeatNames(now: number, W: number, H: number): boolean {
+    if (!namesOpen2P()) { nameActive = false; return false }
+    const hw = halfWidth(W)
+    for (const seat of SEATS) {
+      const n = seatNames[seat]
+      const c = (cardCanvases[seat] ??= document.createElement('canvas'))
+      if (c.width !== hw) c.width = hw
+      if (c.height !== H) c.height = H
+      const cctx = c.getContext('2d')!
+      cctx.clearRect(0, 0, hw, H)
+      let e = n ? n.entry : { ...newNameEntry('', now), done: true }
+      if (n && seat === 0) { for (const k of nameKeys) e = nameKey(e, k, now) ?? e }
+      if (n) e = tickNameEntry(e, now)
+      if (!e.done) {
+        const a = seatNameScreens[seat].render(cctx, e, now, n!.info)
+        if (a) e = a.kind === 'ok' ? confirm(e, now) : pickStep(e, a.dir, now)
+      }
+      if (n && e.done && !n.entry.done) renameStored(n.id, finalName(e))
+      if (n) seatNames[seat] = { ...n, entry: e }
+      if (e.done) seatNameScreens[seat].render(cctx, e, now, n?.info ?? { score: 0, rank: 0 }) // "waiting for the other player"
+      gameCtx.drawImage(c, halfOffset(seat, W), 0)
+    }
+    nameKeys = []
+    if (namesOpen2P()) { nameActive = true; return true }
+    // Both halves done: fresh lock-out for the shared end buttons and the cards.
+    nameActive = false
+    scoreTable = loadTable()
+    finalAt = now
+    resetFinalScreen()
+    return false
+  }
   /** Per seat: a boss was on that seat's field at the previous tick (so its disappearance means it was defeated). */
   const seatHadBoss: [boolean, boolean] = [false, false]
   seatCardsRef = seatCards
@@ -376,6 +429,8 @@ export async function startLoop(
   /** Back to the title screen from the two-player end screen. */
   function toMenu(): void {
     resetSeatCards()
+    seatNames[0] = seatNames[1] = null
+    nameActive = false
     gameOverVisible = false
     two = null
     prevTwoPhase = null
@@ -411,7 +466,7 @@ export async function startLoop(
 
     // Phase hooks (music / sfx), once per transition
     if (prevTwoPhase !== t.phase) {
-      if (t.phase === 'final') finalAt = now // before any audio call, so a throwing one cannot leave the lock-out stale
+      if (t.phase === 'final') { finalAt = now; onTwoPlayerEnd(t, now) } // before any audio call, so a throwing one cannot leave the lock-out stale
       try {
         if (t.phase === 'playing') startMusic(t.stage)
         else if (t.phase === 'summary') { resetSummaryScreen(); sfxStageClear(); stopMusic() }
@@ -453,6 +508,9 @@ export async function startLoop(
 
     if (t.phase === 'summary') {
       renderTwoPlayerSummary(gameCtx, t, now, () => { twoAction = 'next' }, seatSources)
+    } else if (t.phase === 'final' && runSeatNames(now, W, H)) {
+      // Name entry first (more-content R11.2): the cards and the shared buttons wait until both halves are done.
+      twoFinal = false
     } else if (t.phase === 'final') {
       // Per-player cards (two-player-card): each half draws its own offer / preview layer first, so the
       // shared buttons can be gated by what the cards are doing; the layers are composited above the overlay.
@@ -603,7 +661,7 @@ export async function startLoop(
       const action: typeof twoAction = twoAction
       twoAction = null
       if (action === 'next' && two.phase === 'summary') two = advanceSession(two, displayW, displayH)
-      else if (action === 'again') { resetSeatCards(); two = createTwoPlayer(); prevTwoPhase = null }
+      else if (action === 'again') { resetSeatCards(); seatNames[0] = seatNames[1] = null; two = createTwoPlayer(); prevTwoPhase = null }
       else if (action === 'menu') toMenu()
       if (!two) twoPlayerActive = false
       startRequest = null // keys pressed during a 2P game must not leak to the start screen (R6.2)
