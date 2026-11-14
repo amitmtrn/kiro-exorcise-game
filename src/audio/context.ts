@@ -29,7 +29,6 @@ export function getAudioContext(): AudioContext {
   if (!ctx) {
     ctx = new AudioContext()
     masterGain = buildMasterBus(ctx).input // master gain → compressor → limiter → destination
-    masterGain.gain.value = muted ? 0 : volume
     volume = loadVolume()
     masterGain.gain.value = muted ? 0 : volume
   }
