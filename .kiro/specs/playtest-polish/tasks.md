@@ -33,10 +33,10 @@
 - [x] Commit: `feat(playtest-polish-T4): procedural SFX recipes and loudness table`
 
 ## T5 — Master bus
-- [ ] Create `src/audio/bus.ts` (constants, `buildMasterBus`); `context.ts` builds it; `music.ts` routes through the music gain.
-- [ ] Tests (fake context): every source connects to the master gain, nothing but the limiter connects to the destination, compressor and limiter settings, mute and volume through the master gain, fallback without compressors.
-- [ ] `npm test` and `npm run build` both clean.
-- [ ] Commit: `feat(playtest-polish-T5): master bus with compressor and limiter`
+- [x] Create `src/audio/bus.ts` (constants, `buildMasterBus`); `context.ts` builds it; `music.ts` routes through the music gain.
+- [x] Tests (fake context): every source connects to the master gain, nothing but the limiter connects to the destination, compressor and limiter settings, mute and volume through the master gain, fallback without compressors.
+- [x] `npm test` and `npm run build` both clean.
+- [x] Commit: `feat(playtest-polish-T5): master bus with compressor and limiter`
 
 ## T6 — Colour maths and palette
 - [ ] Create `src/ui/cvd.ts` (Lab, ΔE76, ΔE2000, Machado matrices) and `src/ui/palette.ts` (default and Okabe-Ito).
