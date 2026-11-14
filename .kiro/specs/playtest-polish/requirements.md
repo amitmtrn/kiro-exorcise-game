@@ -127,7 +127,8 @@ minimum size of 12 % of the canvas width, `computeFrameDiff` reports a hit at
 **R3.3** The debug overlay (`D`) shows the quality level and mode (`auto` or
 pinned), the average frame time in ms and the diff resolution. The average is
 tracked in every mode, also with a pinned `?quality=`; only auto mode applies a
-level change.
+level change. A pinned mode tracks the plain rolling average only (`trackFrameAverage`):
+no step, no re-seed and no settle time, so the shown average never snaps.
 
 **R3.4** Level 1+ thins newly spawned particles (every 2nd kept) and caps
 call-outs at 1; level 3 stops drawing fog and draws candle glow without

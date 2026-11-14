@@ -101,6 +101,18 @@ export function stepFrameBudget(s: FrameBudgetState, deltaMs: number): FrameBudg
   return { ...s, avgMs, overMs, underMs, sinceUpMs }
 }
 
+/**
+ * Pinned mode (`?quality=`): only the rolling average and the refresh estimate advance (for the debug overlay).
+ * The level, the counters and the settle time are untouched, and the average is never re-seeded. Pure.
+ */
+export function trackFrameAverage(s: FrameBudgetState, deltaMs: number): FrameBudgetState {
+  if (!Number.isFinite(deltaMs) || deltaMs <= 0 || deltaMs > IGNORE_ABOVE_MS) return s
+  const avgMs = s.avgMs + (deltaMs - s.avgMs) * (1 - Math.exp(-deltaMs / AVG_TAU_MS))
+  const refMs = deltaMs < s.refMs ? s.refMs + (deltaMs - s.refMs) * (1 - Math.exp(-deltaMs / REF_TAU_MS)) : Math.min(deltaMs, s.refMs + deltaMs * REF_CREEP)
+  const fastMs = deltaMs < FAST_FRAME_MS ? Math.min(SEEN_FAST_MS, s.fastMs + deltaMs) : s.fastMs
+  return { ...s, avgMs, refMs, fastMs }
+}
+
 // ─── URL override ────────────────────────────────────────────────────────────
 
 /** `?quality=low|med|high|auto`; anything else is `auto`. */

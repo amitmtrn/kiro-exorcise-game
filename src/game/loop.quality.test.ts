@@ -34,7 +34,7 @@ vi.mock('../audio/index', () => ({
 }))
 
 import { startLoop, stopLoop } from './loop'
-import { configureQuality, resetQuality, getQuality } from './quality'
+import { configureQuality, resetQuality, getQuality, getQualityInfo } from './quality'
 import { getMotionGrid, resetMotionGrid } from '../webcam/grid'
 import { DemoRuntime } from '../demo/runtime'
 
@@ -104,6 +104,16 @@ describe('auto quality in the loop', () => {
     run(0, 60, 20_000)
     expect(getQuality()).toBe(0)
     expect(getMotionGrid().w).toBe(320)
+  })
+
+  it('a pinned level tracks the plain average: no re-seed snaps (R3.3)', async () => {
+    configureQuality('high') // slow machine, pinned high
+    await startLoop({} as HTMLVideoElement, ctx(), ctx())
+    const avgs: number[] = []
+    let ts = 0
+    for (let i = 0; i < 40; i++) { ts = run(ts, 40, 500); avgs.push(getQualityInfo().avgMs) }
+    for (let i = 1; i < avgs.length; i++) expect(avgs[i]).toBeGreaterThanOrEqual(avgs[i - 1] - 1e-9)
+    expect(avgs[avgs.length - 1]).toBeGreaterThan(38)
   })
 
   it('?quality=low starts on the 96 x 54 grid', async () => {

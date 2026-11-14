@@ -7,7 +7,7 @@ import { drawWebcamTint } from './atmosphere'
 import { captureFrame, calibrateDiffThreshold, computeMotionMask } from '../webcam/diff'
 import { getMotionGrid, setMotionGrid, resetMotionGrid, gridForLevel } from '../webcam/grid'
 import {
-  createFrameBudget, stepFrameBudget, getQuality, setQualityLevel, setQualityAvg, getQualityInfo, resetQuality,
+  createFrameBudget, stepFrameBudget, trackFrameAverage, getQuality, setQualityLevel, setQualityAvg, getQualityInfo, resetQuality,
 } from './quality'
 import {
   createInitialState,
@@ -469,11 +469,10 @@ export async function startLoop(
     let gridChanged = false
     if (!demo) {
       // The average is tracked in every mode (the debug overlay shows it); only auto mode applies the level.
-      const next = stepFrameBudget({ ...budget, level: getQuality() }, rawMs)
       if (getQualityInfo().mode === 'auto') {
-        budget = next
+        budget = stepFrameBudget({ ...budget, level: getQuality() }, rawMs)
         setQualityLevel(budget.level)
-      } else budget = { ...next, level: budget.level }
+      } else budget = trackFrameAverage(budget, rawMs) // pinned: plain average only, no level change, re-seed or settle
       setQualityAvg(budget.avgMs)
       if (setMotionGrid(gridForLevel(getQuality()))) {
         const g = getMotionGrid()

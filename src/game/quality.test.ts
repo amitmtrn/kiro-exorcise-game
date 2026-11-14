@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import {
   createFrameBudget, stepFrameBudget, parseQualityMode, levelForMode, configureQuality, resetQuality,
   getQuality, getQualityInfo, thinParticles, calloutCap, atmosphereOn,
-  DOWN_AFTER_MS, UP_AFTER_MS, SETTLE_MS, IGNORE_ABOVE_MS, reseedMs, downThresholdMs, upThresholdMs, SEEN_FAST_MS,
+  DOWN_AFTER_MS, UP_AFTER_MS, SETTLE_MS, IGNORE_ABOVE_MS, reseedMs, downThresholdMs, upThresholdMs, SEEN_FAST_MS, trackFrameAverage,
   type FrameBudgetState,
 } from './quality'
 
@@ -31,6 +31,17 @@ describe('stepFrameBudget', () => {
     s = { ...s, settleMs: SETTLE_MS, avgMs: 40 }
     s = run(s, 40, SETTLE_MS - 100)
     expect(s.level).toBe(level)
+  })
+
+  it('trackFrameAverage moves only the average and estimates: no level, counters, settle or re-seed', () => {
+    let s = { ...createFrameBudget(0), avgMs: 40 }
+    for (let i = 0; i < 600; i++) s = trackFrameAverage(s, 16.67)
+    expect(s.level).toBe(0)
+    expect(s.overMs).toBe(0)
+    expect(s.settleMs).toBe(0)
+    expect(s.avgMs).toBeLessThan(40)
+    expect(s.avgMs).toBeGreaterThan(16)
+    expect(trackFrameAverage(s, 500)).toBe(s)
   })
 
   it('re-seeds the average after a change', () => {

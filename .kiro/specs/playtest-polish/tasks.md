@@ -113,7 +113,7 @@
 ## T15 — Review fixes (round 4)
 - [x] RF20 (nit 4 + 5): once the session has spent 1 s in frames < 25 ms, the 30 Hz band is no longer snapped to, so a 60 → 30 fps drop steps down; re-seed to the mean of the current thresholds (`reseedMs`). R1.3–R1.5 and design updated; sim, unit and property tests.
 - [ ] RF21 (should-fix 1 + nit 7): README benchmark table regenerated; the bench asserts the mask sample count per grid and that level 3 is not the most expensive analysis step.
-- [ ] RF22 (should-fix 2): a pinned `?quality=` tracks the plain average only (no re-seed / settle); loop test.
+- [x] RF22 (should-fix 2): a pinned `?quality=` tracks the plain average only (no re-seed / settle); loop test.
 - [ ] RF23 (should-fix 3): reduced-flash onset budget is shared by both two-player halves (R10.2); test of the two-half sum.
 - [ ] RF24 (nit 6): `docs/KIRO.md` edit kept; the out-of-scope line in requirements.md dropped.
 - [ ] RF25 (nit 8): redundant first master-gain assignment removed in `audio/context.ts`.
