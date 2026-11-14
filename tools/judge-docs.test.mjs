@@ -86,10 +86,10 @@ describe('docs structure', () => {
     expect(kiro).toMatch(/\| Unit and property tests \| 1120 passed, 0 failed, 0 skipped at PR #5; 1286 passed, 0 failed, 0 skipped on this branch after merging main/)
     expect(kiro).toMatch(/\| #5 \| motion-ui-ergonomics \| 1120 \|/)
     expect(kiro).toMatch(/\| #6 \| demo-mode \| 1254 \|/)
-    expect(kiro).toMatch(/\| #7 \(open\) \| judge-docs .* \| 1286 \|/)
+    expect(kiro).toMatch(/\| #7 \| judge-docs .* \| 1286 \|/)
     expect(kiro).toContain('536.22')
     expect(kiro).not.toContain('534.' + '66')
-    expect(kiro).not.toMatch(/open PR #6|not on main/)
+    expect(kiro).not.toMatch(/open PR #6|not on main|#7 \(open\)/)
   })
   it('the per-spec commit list reconciles with the headline 89', () => {
     expect(kiro).toContain('| 89 |')

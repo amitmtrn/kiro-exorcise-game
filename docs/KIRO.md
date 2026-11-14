@@ -14,7 +14,7 @@ reproducible: `git checkout df26f4d` and run the same command.
 
 | What | Number | How to check |
 |---|---|---|
-| Specs (requirements + design + tasks each) | 20 before this one, 21 with `judge-docs` | `ls .kiro/specs` |
+| Specs (requirements + design + tasks each) | 20 at PR #5; 22 now (`demo-mode` and `judge-docs` added) | `ls .kiro/specs` |
 | Ticked task checkboxes | 805 | `cat .kiro/specs/*/tasks.md \| grep -c '^- \[x\]'` |
 | Unticked task checkboxes | 103 (49 are in `boss-combo`, superseded by `stages`; the rest are manual checks such as webcam playthroughs) | `grep -c '^- \[ \]'` per file |
 | Commits | 175 | `git rev-list --count df26f4d` |
@@ -27,11 +27,9 @@ reproducible: `git checkout df26f4d` and run the same command.
 | Steering files | 3, 233 lines | `wc -l .kiro/steering/*.md` |
 | Custom agents | 1 (`balancer`) | `ls .kiro/agents` |
 | MCP servers | 1 (`motion-harness`, local stdio, 2 tools) | `.kiro/settings/mcp.json` |
-| Pull requests | 6 merged (#1 to #6), 1 open (#7, this one) | (log) |
+| Pull requests | 6 merged (#1 to #6), 1 more (#7) adds this write-up | (log) |
 | Kiro credits | 536.22 of a 4000 bonus pool, after the `judge-docs` spec and its review fixes | (log) |
 | Kiro app | Kiro CLI 3.3.0 only | (log) |
-
-Test counts per PR are in "Test count history" below.
 
 ## How Kiro was used
 
@@ -412,7 +410,7 @@ hip-to-shin height (72 to 92 % of the frame) to raised-hand zones (19 to 39 %) (
 | #4 | two-player-card | 1045 |
 | #5 | motion-ui-ergonomics | 1120 |
 | #6 | demo-mode | 1254 |
-| #7 (open) | judge-docs (this PR, after merging main) | 1286 |
+| #7 | judge-docs (this write-up, after merging main) | 1286 |
 
 0 failed and 0 skipped at each point (log).
 
@@ -437,7 +435,6 @@ Cumulative Kiro `/usage`, from a bonus pool of 4000 (log):
 Largest steps: demo-mode (about 189) and motion-ui-ergonomics (about 70, plus 8).
 
 ## Demo mode
-
 Demo mode is merged (PR #6, merge commit 46d9551). Open the game with `?demo=1&seed=5`:
 no camera is used, the run is deterministic for a given seed, and it is meant for filming.
 

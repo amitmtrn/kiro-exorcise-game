@@ -87,9 +87,8 @@ paths, nothing outside the repo.
 
 ## R4 — Facts check test
 
-**R4.1** A Vitest test fails if `docs/KIRO.md`, or the new README section,
-mentions either banned name of the inspiring game (case-insensitive; the names are listed in the test, not here). Existing README lines outside
-the section may keep them.
+**R4.1** A Vitest test fails if `docs/KIRO.md`, or the whole `README.md`,
+mentions either banned name of the inspiring game (case-insensitive; the names are listed in the test, not here). `package.json` and `.kiro/steering/*.md` are scanned too.
 
 **R4.2** The same test fails if either text contains a token-like string
 (`ghp_`, `github_pat_`, `sk-`).

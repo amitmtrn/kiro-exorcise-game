@@ -38,5 +38,5 @@ Kiro IDE (Powers panel → Import power from a folder) is untested.
 ## Facts check test
 Reads `docs/KIRO.md` and the README section between the heading
 `## Built with Kiro (for judges)` and the next `## ` heading. Regexes:
-the banned-name regex (the two names of the game this one was inspired by, matched case-insensitively) and `/ghp_|github_pat_|\bsk-/i`. The README outside the
-section is not scanned for the banned words.
+the banned-name regex (the two names of the game this one was inspired by, matched case-insensitively) and `/ghp_|github_pat_|\bsk-/i`. The banned names are
+checked in `docs/KIRO.md`, the whole `README.md`, `package.json` and `.kiro/steering/*.md`; the token check covers `docs/KIRO.md` and the README section.
