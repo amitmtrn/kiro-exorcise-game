@@ -86,6 +86,21 @@ describe('aiming (R4.2, R4.3)', () => {
     for (let i = 1; i < path.length; i++) expect(dist(path[i], path[i - 1])).toBeLessThanOrEqual((MAX_HAND_SPEED_H * H * DT) / 1000 + 1e-6)
   })
 
+  it('a resize mid-move drops the move and keeps the hand inside the new canvas', () => {
+    const d = new DemoDriver(5)
+    const e = [ghost('a', 1100, 600)]
+    run(d, 15, () => view({ enemies: e }))
+    expect(d.mode).not.toBe('hold')
+    const before = { ...d.hand }
+    const small = view({ enemies: [], w: 640, h: 360 })
+    const p = d.update(DT, small)
+    // Scaled with the canvas (then at most one idle tick of motion), not left at the old pixel position
+    expect(p.x).toBeLessThanOrEqual(640)
+    expect(p.y).toBeLessThanOrEqual(360)
+    expect(dist(p, { x: before.x / 2, y: before.y / 2 })).toBeLessThan(20)
+    expect(d.mode).toBe('hold')
+  })
+
   it('a resting hand does not move at all', () => {
     const d = new DemoDriver(5)
     const path = run(d, 20, () => view({ enemies: [] }))

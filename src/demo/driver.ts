@@ -229,6 +229,9 @@ export class DemoDriver {
   private lastSwipe: { id: string; hits: number } | null = null
   private lastEnemies: readonly Enemy[] = []
   private restUntil = 0
+  /** Display size of the previous tick: a change drops the current move (its closure holds pixel positions). */
+  private viewW = 0
+  private viewH = 0
 
   constructor(private seed: number, w = 1280, h = 720) {
     this.rng = mulberry32(seed)
@@ -274,6 +277,17 @@ export class DemoDriver {
     this.t += dt
     this.lastTickMs = dt
     const R = handRadius(view.h)
+
+    // A resized canvas: the current move's closure points at old pixel positions. Drop it, keep the hand at the same relative spot.
+    if (this.viewW > 0 && (view.w !== this.viewW || view.h !== this.viewH)) {
+      this.hand = { x: (this.hand.x * view.w) / this.viewW, y: (this.hand.y * view.h) / this.viewH }
+      this.move = null
+      this.press = 'idle'
+      this.restUntil = 0
+      this.holdMs = 0
+    }
+    this.viewW = view.w
+    this.viewH = view.h
 
     // Run boundaries first, so the run's random stream starts before anything is drawn from it.
     if (view.phase === 'start' && this.runStarted) this.reset()
