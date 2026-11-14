@@ -50,9 +50,9 @@ Files: `src/main.ts`, `src/game/loop.ts`, `src/game/loop.card.test.ts`, `README.
 - [x] Commit: `fix(two-player-card-T4): review nits`
 
 ## T5 — Docs
-- [ ] README: spec row and count, 2P card paragraph, controls, file layout, test count.
-- [ ] `npm test` and `npm run build` both clean.
-- [ ] Commit: `docs(two-player-card-T5): README`
+- [x] README: spec row and count, 2P card paragraph, controls, file layout, test count.
+- [x] `npm test` and `npm run build` both clean.
+- [x] Commit: `docs(two-player-card-T5): README`
 
 ## T6 — Manual smoke test (two people, webcam)
 - [ ] Finish a 2P game: each half shows an EXORCIST CARD button; waving in one half never moves the other half's buttons.
