@@ -42,9 +42,9 @@ Files: tests only (code only if a test fails)
 
 ## T5 — Docs
 Files: `README.md`, `docs/KIRO.md`
-- [ ] README controls and name-entry text, spec table, tree, counts; `docs/KIRO.md` spec list, counts; credits row `After playtest1-fixes` (figure left for the operator, the 802.22 row stays).
-- [ ] `tools/judge-docs.test.mjs` passes; `npm test` and `npm run build` clean.
-- [ ] Commit: `docs(playtest1-fixes-T5): README controls, spec list and counts`
+- [x] README controls and name-entry text, spec table, tree, counts; `docs/KIRO.md` spec list, counts; credits row `After playtest1-fixes` (figure left for the operator, the 802.22 row stays).
+- [x] `tools/judge-docs.test.mjs` passes; `npm test` and `npm run build` clean.
+- [x] Commit: `docs(playtest1-fixes-T5): README controls, spec list and counts`
 
 ## T6 — Manual: webcam replay
 - [ ] Let three enemies arrive at once on stage 3: one heart goes, the hearts shake, a second loss waits 1 s.

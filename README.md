@@ -14,7 +14,7 @@ Ghosts and bats fly in from the dark edges of the screen toward your webcam imag
 - **20 specs** at PR #5 in [`.kiro/specs`](.kiro/specs) (requirements, design, tasks): 805 ticked task checkboxes, 89 commits named after a task (`<type>(<spec>-T<n>)`).
 - **3 steering files** in [`.kiro/steering`](.kiro/steering), **5 hooks** in [`.kiro/hooks`](.kiro/hooks), **1 custom agent** (`balancer`) and **1 local MCP server** (`motion-harness`, stdio only, no network).
 - **1120 tests** at PR #5, 0 failed, 0 skipped; **119 property tests** (`fc.assert`) in 31 files, both at PR #5 (df26f4d). A property found a spawner-cap bug that unit tests had missed (BUG-1), and four more bugs got regression properties.
-- **One PR per feature from #2 on** (#1 bundled the P0/P1 specs): #1 to #9 merged (#6 is demo mode, merge commit 46d9551; #7 is the judge write-up, merge commit 7575a07; #8 is playtest-polish, merge commit 1156313; #9 is more-content, merge commit f0e1d20). Test count by PR: 806, 912, 994, 1045, 1120, 1254, 1291; #8 playtest-polish: 1515; #9 more-content: 1728; ci-timeout (this branch): 1741.
+- **One PR per feature from #2 on** (#1 bundled the P0/P1 specs): #1 to #9 merged (#6 is demo mode, merge commit 46d9551; #7 is the judge write-up, merge commit 7575a07; #8 is playtest-polish, merge commit 1156313; #9 is more-content, merge commit f0e1d20). Test count by PR: 806, 912, 994, 1045, 1120, 1254, 1291; #8 playtest-polish: 1515; #9 more-content: 1728; ci-timeout: 1741; playtest1-fixes (this branch): 1850.
 - **802.22 Kiro credits** used after the ci-timeout spec (bonus pool of 4000).
 - **Read the full write-up: [docs/KIRO.md](docs/KIRO.md).** Local power: [`.kiro/powers/exorcise-motion-harness`](.kiro/powers/exorcise-motion-harness).
 - **Live demo:** <https://amitmtrn.github.io/kiro-exorcise-game/>
@@ -36,7 +36,7 @@ npm run dev
 
 | Command | What it does |
 |---|---|
-| `npm test` | Run all 1741 unit tests (Vitest) |
+| `npm test` | Run all 1850 unit tests (Vitest) |
 | `npm run build` | Production build → `dist/` |
 | `npm run preview` | Preview the production build locally |
 
@@ -57,7 +57,7 @@ Six stages of 45 to 60 seconds, each with its own enemy mix and music. Stage 5 i
 - **Blink Ghost** ◆ (stage 6) — solid for 2.1 s (◆, solid outline), then ethereal for 1.9 s (◇, dashed outline, see-through), on a steady 4 s rhythm with a 0.5 s fade before each change. Swats only count while it is solid.
 - **The Hollow King** (stage 6 finale) — a crowned giant ghost that enters 22 s into the stage after a "THE HOLLOW KING!" warning. It uses the stage-5 boss rules (10 hits, three phases, shielded between attacks) with longer wind-ups (0.7 s / 0.45 s), slower lunges, and the new ghosts as minions. Beat it to win the game (+2000 bonus) and see your total score.
 - Every new ghost changes state only after a visible telegraph of at least 0.4 s, has its own icon and outline in both palettes (not just a colour), never spawns next to a Cursed Skull, and follows the reduced-flashing setting. The stage-6 title card shows a hint line for each.
-- 3 lives. Consecutive hits build a **combo multiplier** (×2 at 3 hits, ×3 at 6, ×4 at 10+; an enemy reaching the centre resets it) and the screen shakes from a 3-hit streak. Enemies move at the same real-time speed on any display refresh rate and scale with screen height; the Cursed Skull leaves after 4 s. A stage-clear screen rates you with stars, and your high score is saved locally.
+- 3 lives. One hit or miss costs one heart: ghosts that arrive together, or a skull right after, cost one heart, and a second loss within 1 s is ignored. The hearts shake when one is lost. The last heart freezes the scene for a second, then GAME OVER shows. Consecutive hits build a **combo multiplier** (×2 at 3 hits, ×3 at 6, ×4 at 10+; an enemy reaching the centre resets it) and the screen shakes from a 3-hit streak. Enemies move at the same real-time speed on any display refresh rate and scale with screen height; the Cursed Skull leaves after 4 s. A stage-clear screen rates you with stars, and your high score is saved locally.
 
 **Exorcist Card.** On the game-over and victory screens you can choose "📸 EXORCIST CARD" (wave, click or `C`) to make a trading card with a snapshot from your best moment (best combo or the boss defeat), a rank title from *Apprentice Exorcist* to *Grand Exorcist*, your score, best combo, stage and banish count. It is only made when you ask for it, drawn on a canvas on your device and saved with a normal download. The snapshot is kept in memory only, never stored or uploaded (no network request is made), and is dropped when you leave the screen or retry. A *no photo* silhouette variant is one button away.
 
@@ -80,7 +80,7 @@ Pick **1 PLAYER** or **2 PLAYERS** on the title screen (wave over a button, or p
 | `O` or the ⚙ button (bottom-left, title screen) | Open the settings panel: `↑` / `↓` select, `Enter` / `Space` / click change, `Esc` or `O` close. Keyboard and mouse / touch only (no wave button: the title's raised-hand zones are taken by 1 PLAYER and 2 PLAYERS) |
 | `G` (title screen) | Start the camera-free demo / attract mode; in demo mode any key (except `M`) or click returns to the normal game |
 | `C` (game over / victory, 1 PLAYER only) | Open the Exorcist Card preview; then `S` / `Enter` save, `N` photo ↔ silhouette, `Esc` close |
-| Wave over ◀ / ▶ / OK (name screen after a high score; each half has its own in 2 PLAYERS) | ◀ / ▶ pick a letter (the first press starts a new name at `A`), OK moves to the next of 3 letters and saves on the last. Doing nothing keeps the generated name (saved after 10 s) |
+| Wave over OK / ◀ / ▶ (name screen after a high score; each half has its own in 2 PLAYERS) | **OK saves the name as shown, at once.** ◀ / ▶ change the highlighted letter in place (the cursor moves to the next of the first 3 letters by itself 1.5 s after the last press). Doing nothing keeps the generated name (saved after 10 s) |
 | Type `A`–`Z`, `0`–`9`, `-`, `Backspace`, `Enter` (name screen; P1 in 2 PLAYERS) | Type a name of up to 8 characters, `Enter` saves. While the name screen is open these keys type (so `M`, `D`, `C` do not mute, debug or open the card; the 🔊 button still works) |
 
 ### Demo / attract mode (no camera)
@@ -98,7 +98,7 @@ Open the game with `?demo=1` (for example `http://localhost:5173/kiro-exorcise-g
 
 ### High scores
 
-The game keeps a **top-10 table** in `localStorage` (key `exorcise-highscores`): name, score, stage reached, date and 1P / 2P, nothing else (never video or images). A finished run that makes the table is saved at once under a generated spooky name such as `GHOST-7F`, then a name screen lets you change it with the ◀ / OK / ▶ motion buttons (raised-hand zones, like every other button) the keyboard, or a click / tap on the buttons. In 2 PLAYERS each player gets their own name screen in their own half, at the same time, and both entries are marked 2P. The title screen shows the table (two pages of 5, switching every 4 s) and the game-over and victory screens show the top 5 with your entry highlighted. An older saved single high score is moved into the table once as `OLD-BEST`. Demo mode reads and writes nothing. Spec: `.kiro/specs/more-content/`.
+The game keeps a **top-10 table** in `localStorage` (key `exorcise-highscores`): name, score, stage reached, date and 1P / 2P, nothing else (never video or images). A finished run that makes the table is saved at once under a generated spooky name such as `GHOST-7F`, then, 1.5 s after the GAME OVER or YOU WIN screen appeared, a name screen lets you keep it with the big OK, change the highlighted letter with ◀ / ▶ (raised-hand motion buttons like every other button), type a name and press Enter, or click / tap the buttons. When a hand covers two neighbouring buttons, the one it covers most gets the press. In 2 PLAYERS each player gets their own name screen in their own half, at the same time, and both entries are marked 2P. The title screen shows the table (two pages of 5, switching every 4 s) and the game-over and victory screens show the top 5 with your entry highlighted. An older saved single high score is moved into the table once as `OLD-BEST`. Demo mode reads and writes nothing. Spec: `.kiro/specs/more-content/`.
 
 ### Settings, URL parameters and quality
 
@@ -180,10 +180,11 @@ Every feature was planned as a Kiro spec before implementation:
 | `judge-docs/` | Judge-facing Kiro write-up (`docs/KIRO.md`), README section, local `exorcise-motion-harness` power, facts-check test |
 | `more-content/` | Three new ghosts (twin wisps, mirror ghost, blink ghost) with telegraphed state machines and fairness property tests, stage 6 "The Midnight Finale" with the Hollow King and its own music, local top-10 high scores with motion-button name entry (1P and per half in 2P) |
 | `ci-timeout/` | Fix the deploy workflow's `npm test` timeout: faster R1.5 frame-budget property with fixed 120 s edge examples, explicit timeouts for the legitimately long tests, Node 22 in `deploy.yml` |
+| `playtest1-fixes/` | First real-webcam playtest: one heart per hit or miss with a 1 s grace, visible heart loss, a death transition and GAME OVER before the name screen; the strongest-covered motion button wins; OK saves the name; card buttons clear of the card; mirror and full-resolution video checks |
 
 Each spec has `requirements.md`, `design.md`, and `tasks.md`. Writing requirements and design before tasks surfaced design gaps (e.g. skull penalty rules, hitbox coordinate system, mirror parity bug) that would have been painful to fix mid-implementation.
 
-All twenty-five specs are implemented. Every task in `tasks.md` is ticked except the manual smoke tests (a webcam playthrough, a two-person split-screen playthrough, the music-v2 listening test, a demo-mode browser check, the more-content webcam check, enabling GitHub Pages in the repo settings), and `boss-combo/` carries a status note explaining it was superseded by `stages/`.
+All twenty-six specs are implemented. Every task in `tasks.md` is ticked except the manual smoke tests (a webcam playthrough, a two-person split-screen playthrough, the music-v2 listening test, a demo-mode browser check, the more-content webcam check, enabling GitHub Pages in the repo settings), and `boss-combo/` carries a status note explaining it was superseded by `stages/`.
 
 ### Kiro hooks (`.kiro/hooks/`)
 Standalone `v1` hook files, loaded by Kiro IDE and Kiro CLI V3. Spec: `.kiro/specs/hooks/`.
@@ -339,6 +340,7 @@ src/
     judge-docs/         Judge-facing write-up and README spec
     more-content/       New ghosts, stage 6 finale, local high scores spec
     ci-timeout/         Test timeouts and Node 22 for the deploy workflow spec
+    playtest1-fixes/    First playtest: hearts, motion buttons, name entry, card spec
   powers/               exorcise-motion-harness Kiro power
   settings/mcp.json     Workspace MCP registration (motion-harness, stdio, relative path)
   agents/balancer.json  Report-only playtest-tuner agent
