@@ -48,8 +48,15 @@ describe('stepFrameBudget', () => {
     expect(s.level).toBeLessThan(2)
   })
 
-  it('does nothing between 14 and 20 ms', () => {
-    expect(run(createFrameBudget(1), 17, 120_000).level).toBe(1)
+  it('does nothing between 14 and 20 ms on a 120 Hz display', () => {
+    // fast display (frames well under 16.7 ms seen): uneven 14 / 20 ms intervals, average about 17 ms
+    let st: FrameBudgetState = { ...createFrameBudget(1), refMs: 8.33 }
+    for (let t = 0; t < 120_000; t += 34) { st = stepFrameBudget(st, 14); st = stepFrameBudget(st, 20) }
+    expect(st.level).toBe(1)
+  })
+
+  it('steady frames at the 60 Hz refresh interval step back up (review fix)', () => {
+    expect(run(createFrameBudget(1), 17, 120_000).level).toBe(0)
   })
 
   it('never goes below 0 or above 3', () => {

@@ -198,3 +198,20 @@ describe('renderFrame with reduced flashing (R10.1)', () => {
     for (const a of r.flashRects) expect(a).toBeLessThanOrEqual(0.15)
   })
 })
+
+describe('overlayAlpha when the clock goes backwards (review fix)', () => {
+  it('a flash after a later (demo) clock still shows, and a stale tint is dropped', () => {
+    initSettings({ storage: null, search: '', reducedMotion: false })
+    const key = {}
+    const DEMO = 2 ** 40
+    overlayAlpha(key, DEMO + 300, DEMO, true) // demo left mid-flash
+    expect(overlayAlpha(key, DEMO + 300, DEMO + 50, true)).toBeGreaterThan(0)
+    // real clock: no flash running, the tint is gone
+    expect(overlayAlpha(key, 0, 1000, true)).toBe(0)
+    // a new penalty flash shows on the real clock
+    let peak = 0
+    for (let t = 2000; t < 2300; t += 10) peak = Math.max(peak, overlayAlpha(key, 2300, t, true))
+    expect(peak).toBeGreaterThan(0)
+    resetSettings()
+  })
+})

@@ -65,15 +65,25 @@ function filter(ctx: AudioContext, type: BiquadFilterType, freq: number, out: Au
   return f
 }
 
+/** Worst-case peak gain of each voice at music gain 1 (the sum is the 0 dBFS stack in `audio/recipes.ts`). */
+export const VOICE_PEAKS = {
+  bass: 0.18,
+  kickAccent: 0.34, kick: 0.28,
+  snareAccent: 0.2, snare: 0.15, snareTone: 0.08,
+  hatAccent: 0.11, hat: 0.07,
+  lead: 0.12, leadHeadroom: 1.25, // the detuned square layer adds up to 25 %
+  arp: 0.07,
+} as const
+
 export function playBass(ctx: AudioContext, dest: AudioNode, t: number, midi: number, durSec: number): void {
   const end = t + Math.max(0.08, durSec)
-  const g = env(ctx, dest, t, 0.18, 0.01, t + (end - t) * 0.6, end)
+  const g = env(ctx, dest, t, VOICE_PEAKS.bass, 0.01, t + (end - t) * 0.6, end)
   const f = filter(ctx, 'lowpass', 420, g)
   osc(ctx, 'sawtooth', midiToHz(midi), t, end + 0.02, f)
 }
 
 export function playKick(ctx: AudioContext, dest: AudioNode, t: number, accent: boolean): void {
-  const peak = accent ? 0.34 : 0.28
+  const peak = accent ? VOICE_PEAKS.kickAccent : VOICE_PEAKS.kick
   const g = ctx.createGain()
   g.gain.setValueAtTime(peak, t)
   g.gain.exponentialRampToValueAtTime(0.001, t + 0.2)
@@ -86,24 +96,24 @@ export function playKick(ctx: AudioContext, dest: AudioNode, t: number, accent: 
 }
 
 export function playSnare(ctx: AudioContext, dest: AudioNode, t: number, accent: boolean): void {
-  const peak = accent ? 0.2 : 0.15
+  const peak = accent ? VOICE_PEAKS.snareAccent : VOICE_PEAKS.snare
   const g = env(ctx, dest, t, peak, 0.002, t + 0.03, t + 0.16)
   const bp = filter(ctx, 'bandpass', 1800, g, 0.8)
   noise(ctx, t, t + 0.17, bp)
-  const tg = env(ctx, dest, t, 0.08, 0.002, t + 0.02, t + 0.1)
+  const tg = env(ctx, dest, t, VOICE_PEAKS.snareTone, 0.002, t + 0.02, t + 0.1)
   osc(ctx, 'triangle', 190, t, t + 0.11, tg)
 }
 
 export function playHat(ctx: AudioContext, dest: AudioNode, t: number, accent: boolean): void {
   const len = accent ? 0.09 : 0.04
-  const g = env(ctx, dest, t, accent ? 0.11 : 0.07, 0.001, t + 0.005, t + len)
+  const g = env(ctx, dest, t, accent ? VOICE_PEAKS.hatAccent : VOICE_PEAKS.hat, 0.001, t + 0.005, t + len)
   const hp = filter(ctx, 'highpass', 7000, g)
   noise(ctx, t, t + len + 0.01, hp)
 }
 
 export function playLead(ctx: AudioContext, dest: AudioNode, t: number, midi: number, durSec: number): void {
   const end = t + Math.max(0.1, durSec * 0.95)
-  const g = env(ctx, dest, t, 0.12, 0.015, t + (end - t) * 0.85, end)
+  const g = env(ctx, dest, t, VOICE_PEAKS.lead, 0.015, t + (end - t) * 0.85, end)
   const f = filter(ctx, 'lowpass', 2200, g)
   const hz = midiToHz(midi)
   osc(ctx, 'triangle', hz, t, end + 0.02, f)
@@ -116,6 +126,6 @@ export function playLead(ctx: AudioContext, dest: AudioNode, t: number, midi: nu
 
 export function playArp(ctx: AudioContext, dest: AudioNode, t: number, midi: number): void {
   const end = t + 0.1
-  const g = env(ctx, dest, t, 0.07, 0.004, t + 0.01, end)
+  const g = env(ctx, dest, t, VOICE_PEAKS.arp, 0.004, t + 0.01, end)
   osc(ctx, 'triangle', midiToHz(midi), t, end + 0.02, g)
 }

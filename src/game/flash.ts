@@ -126,6 +126,8 @@ export function overlayAlpha(key: object, flashEndTime: number, now: number, red
   if (!reduced) return now < flashEndTime ? NORMAL_ALPHA : 0
   let slot = slots.get(key)
   if (!slot) { slot = { sched: createFlashScheduler(), seenEnd: 0 }; slots.set(key, slot) }
+  if (now < slot.sched.at) slot = { sched: createFlashScheduler(), seenEnd: 0 } // clock went backwards (demo clock -> real clock)
+  slots.set(key, slot)
   if (flashEndTime !== slot.seenEnd) {
     slot.seenEnd = flashEndTime
     if (flashEndTime > now) slot.sched = requestFlash(slot.sched, now, flashEndTime - now, NORMAL_ALPHA)

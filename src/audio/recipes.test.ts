@@ -2,9 +2,10 @@ import { describe, it, expect } from 'vitest'
 import fc from 'fast-check'
 import {
   SFX_IDS, SFX_GAIN, MUSIC_GAIN, renderRecipe, rawLevel, gainFor, measure, toDb,
-  estimateMusicLevel, musicGainFor, recipeFor, recipeSeconds, comboFreq,
+  estimateMusicLevel, musicGainFor, MUSIC_VOICES, recipeFor, recipeSeconds, comboFreq,
   TARGET_RMS_DB, PEAK_CEIL_DB, MUSIC_BELOW_SFX_DB, COMBO_TIERS, type SfxId,
 } from './recipes'
+import { VOICE_PEAKS } from './music/voices'
 
 const SR = 22050
 
@@ -97,5 +98,17 @@ describe('stacked worst case under 0 dBFS before the limiter (R6.2)', () => {
       fc.constantFrom(...COMBO_TIERS),
       (ids, offs, tier) => mixPeak(ids.map((id, i) => ({ id, arg: tier, offsetMs: offs[i] }))) + music < 1,
     ), { numRuns: 120 })
+  })
+})
+
+describe('MUSIC_VOICES peaks come from the voices (review fix)', () => {
+  it('match VOICE_PEAKS', () => {
+    const peak = (n: string) => MUSIC_VOICES.find((v) => v.name === n)!.peak
+    expect(peak('bass')).toBe(VOICE_PEAKS.bass)
+    expect(peak('kick')).toBe(VOICE_PEAKS.kickAccent)
+    expect(peak('snare')).toBeCloseTo(VOICE_PEAKS.snareAccent + VOICE_PEAKS.snareTone, 10)
+    expect(peak('hat')).toBe(VOICE_PEAKS.hatAccent)
+    expect(peak('lead')).toBeCloseTo(VOICE_PEAKS.lead * VOICE_PEAKS.leadHeadroom, 10)
+    expect(peak('arp')).toBe(VOICE_PEAKS.arp)
   })
 })

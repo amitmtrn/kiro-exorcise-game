@@ -29,6 +29,25 @@ export const FLIP_WINDOW_MS = 30_000
 export const MAX_UP_PENALTY = 4
 /** The average is re-seeded here after a change (middle of the 14–20 ms band). */
 export const RESEED_MS = 17
+/** The thresholds scale with the display's refresh interval so a 60 Hz or 30 fps-capped display can step up. */
+export const REF_DOWN_FACTOR = 1.3
+export const REF_UP_FACTOR = 1.1
+/** How fast the refresh estimate may rise when no faster frame is seen, ms per ms (+1 ms per 2 s). */
+export const REF_CREEP = 0.0005
+/** Fraction of the gap closed per faster frame: one short interval (jitter) barely moves the estimate. */
+export const REF_FOLLOW = 0.05
+/** The estimate starts at 60 Hz. */
+export const REF_START_MS = 16.67
+/** Vsync intervals a display can plausibly run at: 120, 60 and 30 Hz. A steady 28 ms is a slow machine, not a 36 Hz display. */
+export const VSYNC_MS: readonly number[] = [8.33, 16.67, 33.33]
+/** The largest plausible vsync interval at or below 1.1 x the fastest recent frame. */
+export function snapRefMs(refMs: number): number {
+  let best = VSYNC_MS[0]
+  for (const v of VSYNC_MS) if (v <= refMs * 1.1) best = v
+  return best
+}
+export function downThresholdMs(refMs: number): number { return Math.max(BUDGET_DOWN_MS, snapRefMs(refMs) * REF_DOWN_FACTOR) }
+export function upThresholdMs(refMs: number): number { return Math.max(BUDGET_UP_MS, snapRefMs(refMs) * REF_UP_FACTOR) }
 
 export interface FrameBudgetState {
   level: QualityLevel
@@ -39,10 +58,12 @@ export interface FrameBudgetState {
   settleMs: number
   sinceUpMs: number
   upPenalty: number
+  /** Display refresh interval estimate: the fastest recent frame interval, creeping up slowly. */
+  refMs: number
 }
 
 export function createFrameBudget(level: QualityLevel = 0): FrameBudgetState {
-  return { level, avgMs: 16, overMs: 0, underMs: 0, settleMs: 0, sinceUpMs: Number.POSITIVE_INFINITY, upPenalty: 1 }
+  return { level, avgMs: 16, overMs: 0, underMs: 0, settleMs: 0, sinceUpMs: Number.POSITIVE_INFINITY, upPenalty: 1, refMs: REF_START_MS }
 }
 
 /** Advances the controller by one frame of `deltaMs`. Pure. */
@@ -50,17 +71,19 @@ export function stepFrameBudget(s: FrameBudgetState, deltaMs: number): FrameBudg
   if (!Number.isFinite(deltaMs) || deltaMs <= 0 || deltaMs > IGNORE_ABOVE_MS) return s
   const avgMs = s.avgMs + (deltaMs - s.avgMs) * (1 - Math.exp(-deltaMs / AVG_TAU_MS))
   const sinceUpMs = s.sinceUpMs + deltaMs
+  const refMs = deltaMs < s.refMs ? s.refMs + (deltaMs - s.refMs) * REF_FOLLOW : Math.min(deltaMs, s.refMs + deltaMs * REF_CREEP)
+  s = { ...s, refMs }
   if (s.settleMs > 0) {
     return { ...s, avgMs, sinceUpMs, settleMs: Math.max(0, s.settleMs - deltaMs), overMs: 0, underMs: 0 }
   }
-  const overMs = avgMs > BUDGET_DOWN_MS ? s.overMs + deltaMs : 0
-  const underMs = avgMs < BUDGET_UP_MS ? s.underMs + deltaMs : 0
+  const overMs = avgMs > downThresholdMs(refMs) ? s.overMs + deltaMs : 0
+  const underMs = avgMs < upThresholdMs(refMs) ? s.underMs + deltaMs : 0
   if (overMs >= DOWN_AFTER_MS && s.level < MAX_LEVEL) {
     const upPenalty = sinceUpMs < FLIP_WINDOW_MS ? Math.min(MAX_UP_PENALTY, s.upPenalty * 2) : 1
-    return { level: (s.level + 1) as QualityLevel, avgMs: RESEED_MS, overMs: 0, underMs: 0, settleMs: SETTLE_MS, sinceUpMs, upPenalty }
+    return { level: (s.level + 1) as QualityLevel, avgMs: RESEED_MS, overMs: 0, underMs: 0, settleMs: SETTLE_MS, sinceUpMs, upPenalty, refMs }
   }
   if (underMs >= UP_AFTER_MS * s.upPenalty && s.level > 0) {
-    return { level: (s.level - 1) as QualityLevel, avgMs: RESEED_MS, overMs: 0, underMs: 0, settleMs: SETTLE_MS, sinceUpMs: 0, upPenalty: s.upPenalty }
+    return { level: (s.level - 1) as QualityLevel, avgMs: RESEED_MS, overMs: 0, underMs: 0, settleMs: SETTLE_MS, sinceUpMs: 0, upPenalty: s.upPenalty, refMs }
   }
   return { ...s, avgMs, overMs, underMs, sinceUpMs }
 }

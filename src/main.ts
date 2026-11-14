@@ -84,7 +84,7 @@ installAudioUnlock({
 // Demo keys run first (registered before the normal handler). Any key leaves demo mode except the passive ones;
 // `G` on the normal title screen starts it. The audio-unlock listener on window still sees the key.
 document.addEventListener('keydown', (e) => {
-  const route = routeDemoKey(e, { demoOn: demo !== null || demoBooting, onTitle: isStartScreenVisible(), msSinceLeft: performance.now() - leftDemoAt })
+  const route = routeDemoKey(e, { demoOn: demo !== null || demoBooting, onTitle: isStartScreenVisible() && !isPanelOpen(), msSinceLeft: performance.now() - leftDemoAt })
   if (route === 'pass') return
   consumedKeys.add(e)
   e.preventDefault()
@@ -104,7 +104,12 @@ document.addEventListener('keydown', (e) => {
   // In demo mode only a plain M (mute) reaches the game: the other passive keys (chords, F-keys) do nothing here.
   if ((demo !== null || demoBooting) && !((e.key === 'm' || e.key === 'M') && !e.ctrlKey && !e.metaKey && !e.altKey)) return
   // Settings panel: O opens it on the title screen; while it is open it takes every key.
-  if (isPanelOpen()) { handlePanelKey(e.key); e.preventDefault(); return }
+  if (isPanelOpen()) {
+    // Browser shortcuts (reload, zoom, devtools, fullscreen, Tab) still work with the panel open.
+    const browserKey = e.ctrlKey || e.metaKey || e.altKey || /^F\d{1,2}$/.test(e.key) || e.key === 'Tab'
+    if (!browserKey) { handlePanelKey(e.key, e.repeat); e.preventDefault() }
+    return
+  }
   if ((e.key === 'o' || e.key === 'O') && !e.repeat && !e.ctrlKey && !e.metaKey && !e.altKey && isStartScreenVisible()) {
     openPanel(); e.preventDefault(); return
   }

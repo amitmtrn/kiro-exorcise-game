@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import {
   gearRect, panelRect, rowRect, panelFontPx, panelKey, rowLabel, handlePanelKey, handlePanelPointer, isPanelOpen,
-  openPanel, closePanel, panelFocus, inRect, PANEL_ROW_COUNT, ROW_CB, ROW_TEXT, ROW_FLASH, ROW_CLOSE,
+  openPanel, closePanel, panelFocus, fitFontPx, inRect, PANEL_ROW_COUNT, ROW_CB, ROW_TEXT, ROW_FLASH, ROW_CLOSE,
 } from './settingsPanel'
 import { buttonLayout, circleRect, muteRectOf, rectsOverlap, soundHintRect, textRects, RING_OUTSET } from './layout'
 import { initSettings, getSettings, resetSettings, updateSettings } from '../settings/runtime'
@@ -114,4 +114,23 @@ describe('geometry (R7.2)', () => {
       expect(inRect(g, g.x + g.w / 2, g.y + g.h / 2)).toBe(true)
     })
   }
+})
+
+describe('review fixes', () => {
+  it('auto-repeat does not activate a row or close the panel', () => {
+    openPanel()
+    const before = JSON.stringify(getSettings())
+    expect(handlePanelKey(' ', true)).toBe(true)
+    expect(JSON.stringify(getSettings())).toBe(before)
+    handlePanelKey('o', true)
+    expect(isPanelOpen()).toBe(true)
+    handlePanelKey('o', false)
+    expect(isPanelOpen()).toBe(false)
+  })
+  it('fitFontPx shrinks text that is too wide and never grows it', () => {
+    expect(fitFontPx(30, 380, 300)).toBeLessThan(30)
+    expect(Math.round(380 * fitFontPx(30, 380, 300) / 30)).toBeLessThanOrEqual(300)
+    expect(fitFontPx(30, 200, 300)).toBe(30)
+    expect(fitFontPx(30, 0, 300)).toBe(30)
+  })
 })

@@ -84,6 +84,17 @@ function drawHudText(
   ctx.restore()
 }
 
+/**
+ * Left edge of the player label. In a two-player half (no own mute button) the right half's label is pushed
+ * clear of the shared mute button, which straddles the seam (half x = -size/2 .. size/2).
+ */
+export function labelX(W: number, showMute: boolean, label: string, scale: number = getSettings().textScale): number {
+  const pad = 20
+  if (showMute || label !== 'P2') return pad
+  const size = Math.round(hudFontSize(W * 2, scale) * 1.1)
+  return Math.max(pad, Math.ceil(size / 2) + 8)
+}
+
 export function renderHUD(ctx: CanvasRenderingContext2D, state: GameState, now: number, opts: HudOpts = {}): void {
   const pulseState = opts.pulse ?? defaultPulse
   if (state.phase !== 'playing') {
@@ -160,7 +171,7 @@ export function renderHUD(ctx: CanvasRenderingContext2D, state: GameState, now: 
     const cb = getSettings().cb
     const mark = cb ? (opts.label === 'P2' ? '■ ' : '● ') : ''
     const labelColor = cb ? (opts.label === 'P2' ? pal.p2 : pal.p1) : pal.ghost
-    drawHudText(ctx, mark + opts.label, pad, pad + fontSize + 4, labelColor, {
+    drawHudText(ctx, mark + opts.label, labelX(W, opts.showMute !== false, opts.label), pad + fontSize + 4, labelColor, {
       font: font(Math.round(fontSize * 0.6), '600'), glow: 8,
     })
   }

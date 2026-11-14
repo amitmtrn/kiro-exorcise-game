@@ -3,6 +3,8 @@
  * `renderRecipe` renders the same recipe offline to samples so peak and RMS can be measured and
  * the per-sound gain table verified without a browser. No audio files: everything is synthesised.
  */
+import { VOICE_PEAKS } from './music/voices'
+
 
 export const SFX_IDS = ['ghostHit', 'batHit', 'skullHit', 'lifeLost', 'combo', 'stageClear', 'bossHit', 'bossDefeated'] as const
 export type SfxId = (typeof SFX_IDS)[number]
@@ -205,12 +207,12 @@ export function rawLevel(id: SfxId, sampleRate = 22050): Level {
  * RMS adds incoherently (sum of squares); the worst-case peak is the plain sum of voice peaks.
  */
 export const MUSIC_VOICES: ReadonlyArray<{ name: string; peak: number; rmsFactor: number; duty: number }> = [
-  { name: 'bass', peak: 0.18, rmsFactor: 0.5, duty: 0.7 },
-  { name: 'kick', peak: 0.34, rmsFactor: 0.71, duty: 0.25 },
-  { name: 'snare', peak: 0.2 + 0.08, rmsFactor: 0.35, duty: 0.15 },
-  { name: 'hat', peak: 0.11, rmsFactor: 0.5, duty: 0.16 },
-  { name: 'lead', peak: 0.12 * 1.25, rmsFactor: 0.5, duty: 0.85 },
-  { name: 'arp', peak: 0.07, rmsFactor: 0.58, duty: 0.5 },
+  { name: 'bass', peak: VOICE_PEAKS.bass, rmsFactor: 0.5, duty: 0.7 },
+  { name: 'kick', peak: VOICE_PEAKS.kickAccent, rmsFactor: 0.71, duty: 0.25 },
+  { name: 'snare', peak: VOICE_PEAKS.snareAccent + VOICE_PEAKS.snareTone, rmsFactor: 0.35, duty: 0.15 },
+  { name: 'hat', peak: VOICE_PEAKS.hatAccent, rmsFactor: 0.5, duty: 0.16 },
+  { name: 'lead', peak: VOICE_PEAKS.lead * VOICE_PEAKS.leadHeadroom, rmsFactor: 0.5, duty: 0.85 },
+  { name: 'arp', peak: VOICE_PEAKS.arp, rmsFactor: 0.58, duty: 0.5 },
 ]
 
 /** Estimated music level at music gain 1. */

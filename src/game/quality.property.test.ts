@@ -23,11 +23,24 @@ describe('frame budget properties', () => {
     }))
   })
 
-  it('constant frame time moves the level in one direction only', () => {
-    fc.assert(fc.property(fc.double({ min: 2, max: 120, noNaN: true }), fc.integer({ min: 0, max: 3 }), (f, start) => {
+  // A steady 30.3–36.7 ms is what a 30 Hz-capped display looks like: the level may step down while the refresh
+  // estimate still says 60 Hz, then step back up once it says 30 Hz. Every other constant rate moves one way.
+  it('constant frame time moves the level in one direction only (outside the 30 Hz band)', () => {
+    const f30 = fc.double({ min: 2, max: 120, noNaN: true }).filter((f) => f < 30 || f > 37)
+    fc.assert(fc.property(f30, fc.integer({ min: 0, max: 3 }), (f, start) => {
       const { changes } = levels(f, 120_000, start)
       const dirs = new Set(changes.map((c) => Math.sign(c.to - c.from)))
       return dirs.size <= 1
+    }), { numRuns: 60 })
+  })
+
+  it('constant frame time in the 30 Hz band changes direction at most once', () => {
+    fc.assert(fc.property(fc.double({ min: 30, max: 37, noNaN: true }), fc.integer({ min: 0, max: 3 }), (f, start) => {
+      const { changes } = levels(f, 120_000, start)
+      const d = changes.map((c) => Math.sign(c.to - c.from))
+      let flips = 0
+      for (let i = 1; i < d.length; i++) if (d[i] !== d[i - 1]) flips++
+      return flips <= 1
     }), { numRuns: 60 })
   })
 

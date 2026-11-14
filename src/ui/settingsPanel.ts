@@ -58,6 +58,12 @@ export function inRect(r: Rect, x: number, y: number): boolean {
   return x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h
 }
 
+/** Font px that makes text of `widthAtFont` (measured at `font`) fit `avail`; never grows, floor 10. */
+export function fitFontPx(font: number, widthAtFont: number, avail: number): number {
+  if (!(widthAtFont > avail) || !(avail > 0)) return font
+  return Math.max(10, Math.floor(font * avail / widthAtFont))
+}
+
 export type PanelKey = 'up' | 'down' | 'activate' | 'close'
 export function panelKey(key: string): PanelKey | null {
   switch (key) {
@@ -89,8 +95,9 @@ export function activateRow(row: number): void {
 }
 
 /** Keyboard while the panel is open. Always consumes (returns true) so nothing leaks to the title screen. */
-export function handlePanelKey(key: string): boolean {
+export function handlePanelKey(key: string, repeat = false): boolean {
   const k = panelKey(key)
+  if (repeat && (k === 'activate' || k === 'close')) return true // holding a key must not toggle or close
   if (k === 'up') focus = (focus + PANEL_ROW_COUNT - 1) % PANEL_ROW_COUNT
   else if (k === 'down') focus = (focus + 1) % PANEL_ROW_COUNT
   else if (k === 'activate') activateRow(focus)
@@ -158,9 +165,12 @@ export function renderSettingsPanel(ctx: CanvasRenderingContext2D): void {
       ctx.beginPath(); ctx.roundRect(r.x, r.y, r.w, r.h, 8); ctx.fill()
       ctx.strokeStyle = '#ffd166'; ctx.lineWidth = 2; ctx.stroke()
     }
+    const label = rowLabel(i, s)
     ctx.font = `${font}px ${HUD_FONT_FAMILY}`
+    const px = fitFontPx(font, ctx.measureText?.(label)?.width ?? 0, r.w - font * 0.8)
+    if (px !== font) ctx.font = `${px}px ${HUD_FONT_FAMILY}`
     ctx.fillStyle = '#e8e8f0'
-    ctx.fillText(rowLabel(i, s), r.x + font * 0.4, r.y + r.h / 2)
+    ctx.fillText(label, r.x + font * 0.4, r.y + r.h / 2)
   }
   ctx.restore()
 }

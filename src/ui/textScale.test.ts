@@ -4,7 +4,8 @@ import {
   hudLayout, calloutPx, scaled, MIN_HUD_PX, MIN_CALLOUT_PX, MIN_MENU_PX, GLYPH_EM,
 } from './textScale'
 import { hudFontSize } from './muteRect'
-import { renderHUD, createHudPulse } from './hud'
+import { renderHUD, createHudPulse, labelX } from './hud'
+import { muteButtonRect2P } from './muteRect'
 import {
   renderStartScreen, renderGameOver, renderVictory, renderSummary, renderStageTitle,
   resetStartScreen, resetGameOverScreen, resetVictoryScreen,
@@ -208,4 +209,22 @@ describe('raised-hand rules still hold with bigger text (motion-ui-ergonomics R1
       }
     }
   })
+})
+
+describe('two-player half HUD label vs the shared mute button (review fix)', () => {
+  for (const [W, H] of SIZES) for (const scale of TEXT_SCALES) {
+    it(`P1 and P2 labels clear the mute button at ${W}x${H}, ${scale}x`, () => {
+      setScale(scale)
+      const full = W
+      const hw = full / 2
+      const fs = hudFontSize(hw, scale)
+      const labelPx = Math.round(fs * 0.6)
+      const mute = muteButtonRect2P(full, hudFontSize(full, scale))
+      for (const [label, off] of [['P1', 0], ['P2', hw]] as const) {
+        const x = off + labelX(hw, false, label, scale)
+        const r = { x, y: 20 + fs + 4, w: (2 + label.length) * labelPx * GLYPH_EM, h: labelPx }
+        expect(rectsOverlap(r, mute), `${label}`).toBe(false)
+      }
+    })
+  }
 })

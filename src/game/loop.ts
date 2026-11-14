@@ -464,11 +464,13 @@ export async function startLoop(
     // a pinned level (?quality=) never moves. A new grid size runs the change protocol below.
     let gridChanged = false
     if (!demo) {
+      // The average is tracked in every mode (the debug overlay shows it); only auto mode applies the level.
+      const next = stepFrameBudget({ ...budget, level: getQuality() }, rawMs)
       if (getQualityInfo().mode === 'auto') {
-        budget = stepFrameBudget({ ...budget, level: getQuality() }, rawMs)
+        budget = next
         setQualityLevel(budget.level)
-        setQualityAvg(budget.avgMs)
-      }
+      } else budget = { ...next, level: budget.level }
+      setQualityAvg(budget.avgMs)
       if (setMotionGrid(gridForLevel(getQuality()))) {
         const g = getMotionGrid()
         currentCanvas.width = g.w; currentCanvas.height = g.h

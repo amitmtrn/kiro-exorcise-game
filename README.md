@@ -25,7 +25,7 @@ npm run dev
 
 | Command | What it does |
 |---|---|
-| `npm test` | Run all 1443 unit tests (Vitest) |
+| `npm test` | Run all 1458 unit tests (Vitest) |
 | `npm run build` | Production build → `dist/` |
 | `npm run preview` | Preview the production build locally |
 
@@ -90,7 +90,7 @@ Open the settings panel on the title screen with `O` or the ⚙ button. Settings
 
 URL parameters win over stored values for that visit; a change in the panel replaces the parameter for that setting. The privacy line is unchanged: **Your video stays on your device. Nothing is uploaded.**
 
-**Quality (`?quality=low|med|high|auto`, default `auto`).** The game watches the frame time (rolling average, time constant 1 s) and steps down one level when it stays above 20 ms for 2 s, back up when it stays below 14 ms for 6 s, with a 3 s settle time and a longer wait after a quick down-up-down so it never flip-flops. `high` pins level 0, `med` level 2, `low` level 3. Demo mode always runs at level 0.
+**Quality (`?quality=low|med|high|auto`, default `auto`).** The game watches the frame time (rolling average, time constant 1 s) and steps down one level when it stays above 20 ms for 2 s, back up when it stays below 14 ms for 6 s (both limits scale with the display's refresh rate, so a 60 Hz screen or a 30 fps-capped browser can step back up), with a 3 s settle time and a longer wait after a quick down-up-down so it never flip-flops. `high` pins level 0, `med` level 2, `low` level 3. Demo mode always runs at level 0.
 
 | Level | What changes |
 |---|---|
