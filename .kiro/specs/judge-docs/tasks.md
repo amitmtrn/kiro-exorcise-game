@@ -3,10 +3,10 @@
 ## T1 — Local power
 Files: `.kiro/powers/exorcise-motion-harness/**`, `tools/power-manifest.test.mjs`
 
-- [ ] `plugin.json`, `mcp.json`, `skills/run-harness/SKILL.md`, `skills/balance-stage/SKILL.md` (R3.1–R3.3).
-- [ ] `tools/power-manifest.test.mjs`: manifest fields, skill front matter, `mcp.json` local-only (command `node`, no URL keys, no `env`, relative args) and equal to `.kiro/settings/mcp.json` (R3.4).
-- [ ] `npm test` and `npm run build` both clean.
-- [ ] Commit: `feat(judge-docs-T1): local motion-harness power with manifest test`
+- [x] `plugin.json`, `mcp.json`, `skills/run-harness/SKILL.md`, `skills/balance-stage/SKILL.md` (R3.1–R3.3).
+- [x] `tools/power-manifest.test.mjs`: manifest fields, skill front matter, `mcp.json` local-only (command `node`, no URL keys, no `env`, relative args) and equal to `.kiro/settings/mcp.json` (R3.4).
+- [x] `npm test` and `npm run build` both clean.
+- [x] Commit: `feat(judge-docs-T1): local motion-harness power with manifest test`
 
 ## T2 — docs/KIRO.md
 Files: `docs/KIRO.md`
