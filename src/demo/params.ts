@@ -36,14 +36,14 @@ export interface DemoParams {
 
 /** Parses a non-negative integer; anything else (empty, junk, negative, fractional) is null. */
 function intParam(v: string | null): number | null {
-  if (v === null || !/^\d{1,9}$/.test(v.trim())) return null
-  return Number(v.trim())
+  if (v === null || !/^\d{1,9}$/.test(v)) return null
+  return Number(v)
 }
 
 /** Parses a plain decimal number (`2`, `1.5`); hex, exponent, signs and junk are null. */
 function decimalParam(v: string | null): number | null {
-  if (v === null || !/^\d{1,3}(\.\d{1,6})?$/.test(v.trim())) return null
-  return Number(v.trim())
+  if (v === null || !/^\d{1,3}(\.\d{1,6})?$/.test(v)) return null
+  return Number(v)
 }
 
 /** Reads `?demo=1&seed=N&stage=N&speed=N`. Missing or invalid values fall back to the defaults. */
@@ -71,6 +71,8 @@ export interface KeyLike {
 }
 
 const MODIFIER_KEYS = new Set(['Shift', 'Control', 'Alt', 'Meta', 'AltGraph', 'CapsLock'])
+/** Screenshot, media and volume keys belong to the OS (a filming tool needs them). */
+const SYSTEM_KEY = /^(PrintScreen|Audio\w+|Media\w+)$/
 const FUNCTION_KEY = /^F([1-9]|1[0-2])$/
 
 /**
@@ -81,7 +83,7 @@ const FUNCTION_KEY = /^F([1-9]|1[0-2])$/
 export function demoKeyAction(e: KeyLike): DemoKeyAction {
   const plain = !e.ctrlKey && !e.metaKey && !e.altKey
   if (plain && e.key.toLowerCase() === DEMO_TOGGLE_KEY) return 'toggle'
-  if (MODIFIER_KEYS.has(e.key) || FUNCTION_KEY.test(e.key) || !plain) return 'ignore'
+  if (MODIFIER_KEYS.has(e.key) || FUNCTION_KEY.test(e.key) || SYSTEM_KEY.test(e.key) || !plain) return 'ignore'
   if (plain && (e.key === 'm' || e.key === 'M')) return 'ignore'
   return 'exit'
 }

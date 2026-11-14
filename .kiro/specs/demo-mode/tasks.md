@@ -60,7 +60,7 @@ Files: `README.md`, `tools/motion-harness/README.md`, `tools/motion-harness/run.
 
 - [x] README: Demo mode section (URL parameters, `G`, how to record, sound tip), spec table row, spec count and test count.
 - [x] Motion harness README: "Recording the demo" (`?demo=1&seed=5`, window size, screen recorder tips, re-takes).
-- [x] `run.sh demo` (`SEED=`): headless Chrome without fake-camera flags on `?demo=1&seed=N`; `drive.mjs` counts `getUserMedia` / fetch / XHR / `sendBeacon` from the first script and reports `cardAtMs`. Ran once: 0 calls, card after ~137 s. The MCP `run_harness` tool keeps its two modes.
+- [x] `run.sh demo` (`SEED=`): headless Chrome without fake-camera flags on `?demo=1&seed=N`; `drive.mjs` counts `getUserMedia` / fetch / XHR / `sendBeacon` from the first script and reports `cardAtMs`. First measured with seed 7 (0 calls, card after ~137 s); re-measured with seed 5 in T11 (0 calls, card at ~137.5 s). The MCP `run_harness` tool keeps its two modes.
 - [x] `npm test` and `npm run build` both clean.
 - [x] Commit: `docs(demo-mode-T7): README and harness notes for recording the demo`
 
@@ -97,3 +97,14 @@ Files: `src/demo/params.ts`, `src/demo/driver.ts`, `src/main.ts`, `tools/motion-
 - [x] Sound hint is restored on leaving demo.
 - [x] `npm test` and `npm run build` both clean.
 - [x] Commits: `fix(demo-mode): ...`
+
+## T11 — Review fixes (round 3)
+Files: `tools/motion-harness/run.sh` + README, `src/demo/params.ts`, `src/game/loop.ts`, tests, spec docs
+
+- [x] `run.sh demo` defaults to `SEED=5` (comment too); harness README example uses seed 5; T7 note re-measured.
+- [x] `speed=+3` / `seed=+9` / `seed=%209` fall back to the defaults (no `.trim()`); params test (R1.1).
+- [x] The attract mode no longer overwrites the remembered player mode (`begin()` skips `setPlayerMode` in demo); sim test (R7.1).
+- [x] Passive key set aligned: R1.4 lists `AltGraph` / `CapsLock`, and `PrintScreen` and media / volume keys are now passive; tests.
+- [x] R4.8 documents that RETRY does not re-seed the driver; design.md notes the per-tick hand trail.
+- [x] `npm test` and `npm run build` both clean.
+- [x] Commit: `fix(demo-mode): ...`

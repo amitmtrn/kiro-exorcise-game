@@ -41,6 +41,7 @@ vi.mock('../card/draw', () => ({
 import { startLoop, stopLoop, isCardPreviewOpen } from '../game/loop'
 import { DemoRuntime } from './runtime'
 import { DEMO } from './params'
+import { getPlayerMode, setPlayerMode, resetPlayerMode } from '../game/playerMode'
 import type { GamePhase } from '../game/state'
 
 let W = 1280, H = 720
@@ -209,6 +210,15 @@ describe('full demo run, headless (demo-mode R4, R5, R6)', () => {
     expect(run.victoryScores[1]).toBe(run.victoryScores[0])
     expect(run.gameOvers).toBe(0)
   }, 120_000)
+
+  it('the attract mode leaves the remembered player mode alone (R7.1)', async () => {
+    setPlayerMode(2)
+    try {
+      const run = await simulate(DEMO.defaultSeed, 1, 600, 5)
+      expect(run.phases.has('playing')).toBe(true)
+      expect(getPlayerMode()).toBe(2)
+    } finally { resetPlayerMode() }
+  }, 60_000)
 
   it('another seed plays a different run', async () => {
     const a = await simulate(DEMO.defaultSeed)

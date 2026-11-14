@@ -114,7 +114,7 @@ are pre-checked by sampling the path every `u = 1/16` against the same rule infl
 the skull travel up to that sample's time; failing that the other bend is tried, then the
 target is skipped for 400 ms.
 
-**Misses and velocity.** A deliberate miss also needs `timeToThreatMs(e) > MISS_SAFE_MS` (3000 ms), so a miss plus the re-swipe always fits before the enemy could cost a life (R4.4). The enemy velocity estimate used for the aim lead is an exponential average with a fixed time constant (`VELOCITY_TAU_MS` = 24 ms), so the lead does not depend on `speed`. The hand trail fade in `runtime.ts` is per tick (cosmetic).
+**Misses and velocity.** A deliberate miss also needs `timeToThreatMs(e) > MISS_SAFE_MS` (3000 ms), so a miss plus the re-swipe always fits before the enemy could cost a life (R4.4). The enemy velocity estimate used for the aim lead is an exponential average with a fixed time constant (`VELOCITY_TAU_MS` = 24 ms), so the lead does not depend on `speed`. The hand trail in `runtime.ts` grows and fades per processed tick, not per `deltaMs`, so its visible length differs between `speed=1` and `speed=3` (cosmetic, accepted).
 
 **Urgency.** `timeToThreatMs(e)` estimates when an enemy costs a life: scripted paths and
 drops from the remaining path time, lungers from approach + 600 ms wind-up + lunge, others from

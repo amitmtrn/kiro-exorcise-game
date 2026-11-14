@@ -14,7 +14,7 @@ for weeks (see `.kiro/specs/hit-detection-fix/design.md`, "camera frame rate").
 ```bash
 tools/motion-harness/run.sh sweep 55
 tools/motion-harness/run.sh wave 30
-SEED=7 tools/motion-harness/run.sh demo 170
+SEED=5 tools/motion-harness/run.sh demo 170
 ```
 
 The video is 320×180 @ 30 fps on purpose: it reproduces the real-world case of

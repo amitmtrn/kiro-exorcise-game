@@ -269,7 +269,7 @@ export async function startLoop(
 
   /** Start a game in `mode` (remembered for the session). */
   function begin(mode: PlayerMode): void {
-    setPlayerMode(mode)
+    if (!demo) setPlayerMode(mode) // the attract mode must not overwrite the session's remembered mode (R7.1)
     gameOverVisible = false
     if (mode === 2) {
       two = createTwoPlayer()

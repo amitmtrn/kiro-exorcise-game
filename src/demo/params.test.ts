@@ -23,6 +23,11 @@ describe('parseDemoParams (demo-mode R1.1)', () => {
     expect(parseDemoParams('?demo=1&seed=7').seed).toBe(7)
     expect(parseDemoParams('?demo=1&speed=').speed).toBe(DEMO.timeScale)
   })
+  it('rejects a literal + sign: a raw `+` in a query decodes to a space (R1.1)', () => {
+    expect(parseDemoParams('?demo=1&speed=+3').speed).toBe(DEMO.timeScale)
+    expect(parseDemoParams('?demo=1&seed=+9').seed).toBe(DEMO.defaultSeed)
+    expect(parseDemoParams('?demo=1&seed=%209').seed).toBe(DEMO.defaultSeed)
+  })
   it('accepts speed 1..3 (decimals allowed)', () => {
     expect(parseDemoParams('?demo=1&speed=1').speed).toBe(1)
     expect(parseDemoParams('?demo=1&speed=1.5').speed).toBe(1.5)
@@ -55,7 +60,7 @@ describe('demoKeyAction (demo-mode R1.2–R1.4)', () => {
     expect(demoKeyAction({ key: 'F' })).toBe('exit')
   })
   it('bare modifiers and M are passive', () => {
-    for (const key of ['Shift', 'Control', 'Alt', 'Meta', 'm', 'M']) expect(demoKeyAction({ key })).toBe('ignore')
+    for (const key of ['Shift', 'Control', 'Alt', 'AltGraph', 'CapsLock', 'Meta', 'm', 'M', 'PrintScreen', 'AudioVolumeUp', 'MediaPlayPause']) expect(demoKeyAction({ key })).toBe('ignore')
   })
   it('every other key leaves demo mode', () => {
     for (const key of [' ', 'Enter', 'Escape', 'd', 'c', '1', '2', 'x', 'ArrowUp']) expect(demoKeyAction({ key })).toBe('exit')

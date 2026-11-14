@@ -38,7 +38,8 @@ while demo is on are ignored, so a held `G` enters demo and stays.
 screen. Loading with `?demo=0` is the same normal game as no parameter.
 
 **R1.4** Passive keys do not leave demo mode: bare modifier keys (`Shift`,
-`Control`, `Alt`, `Meta`), `M` / `m` (mute), the function keys `F1`–`F12`, and any
+`Control`, `Alt`, `AltGraph`, `Meta`, `CapsLock`), `M` / `m` (mute), the function keys
+`F1`–`F12`, `PrintScreen` and the media / volume keys (`Media*`, `Audio*`), and any
 chord with Ctrl, Meta (Cmd) or Alt (including Ctrl+G). These belong to the browser
 (reload, full screen, dev tools, tab switching): their default action is not
 prevented, so reloading a demo page by keyboard reloads the demo, and `F11` gives a
@@ -146,7 +147,9 @@ loop cannot stall on the victory screen.
 Summary: NEXT. Victory: wait ~2.5 s, press EXORCIST CARD, hold the preview ~4.5 s,
 press CLOSE, press MAIN MENU. Game over (only if a run fails): RETRY. Title again:
 wait ~3 s, then 1 PLAYER with the driver re-seeded, so every loop plays the identical
-run (attract loop).
+run (attract loop). After a game over, RETRY neither re-seeds the driver nor resets its clock (the
+random stream just keeps running), so a retry plays a different but still deterministic game;
+only the return to the title restarts the identical run.
 
 ---
 
@@ -207,7 +210,7 @@ demo mode restores both.
 ## R7 — Constraints
 
 **R7.1** Normal mode is unchanged: with no demo parameter and no `G` press the game
-behaves as before, and every existing test passes unmodified. `loop.ts` changes are
+behaves as before (the remembered player mode is not touched by the attract mode), and every existing test passes unmodified. `loop.ts` changes are
 confined to the demo branch and a wrapper; `STAGES`, `collision.ts`,
 `motionButton.ts`, `screens.ts` and `state.ts` reducers are not changed (the only
 `state.ts` change is the persistence switch of R6.4, default on). `sfx.ts` takes its
