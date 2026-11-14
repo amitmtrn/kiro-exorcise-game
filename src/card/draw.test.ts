@@ -85,3 +85,16 @@ describe('composeCard', () => {
     expect(calls.length).toBeGreaterThan(10)
   })
 })
+
+describe('drawCard two-player chips (two-player-card R3.2, R3.3)', () => {
+  const texts = (calls: Array<[string, unknown[]]>) => calls.filter(([n]) => n === 'fillText').map(([, a]) => a[0])
+  it('draws the label and badge only when given', () => {
+    const plain = recorder()
+    drawCard(plain.ctx, 600, 840, data, null)
+    expect(texts(plain.calls)).not.toContain('P1')
+    expect(texts(plain.calls)).not.toContain('WINNER')
+    const two = recorder()
+    drawCard(two.ctx, 600, 840, { ...data, playerLabel: 'P1', badge: 'WINNER' }, null)
+    expect(texts(two.calls)).toEqual(expect.arrayContaining(['P1', 'WINNER', 'EXORCIST']))
+  })
+})

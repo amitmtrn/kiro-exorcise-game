@@ -55,6 +55,22 @@ describe('card layout (properties)', () => {
     ), { numRuns: 200 })
   })
 
+  it('the two-player label and badge stay inside the card for any text', () => {
+    fc.assert(fc.property(
+      fc.integer({ min: MIN_CARD_W, max: 3000 }),
+      fc.integer({ min: MIN_CARD_H, max: 3000 }),
+      anyText, anyText,
+      (w, h, label, badge) => {
+        const L = layoutCard(w, h, buildCardTexts({
+          score: 1, bestCombo: 1, stage: 1, stageCount: 5, banished: 0, rank: 'r', playerLabel: label || 'P1', badge: badge || 'TIE',
+        }))
+        expect(textInside(L.playerLabel!, w, h)).toBe(true)
+        expect(textInside(L.badge!, w, h)).toBe(true)
+        expect(textInside({ ...L.playerLabel! }, L.photo.x + L.photo.w, h)).toBe(true)
+      },
+    ), { numRuns: 200 })
+  })
+
   it('fitText output always fits maxW', () => {
     fc.assert(fc.property(anyText, fc.double({ min: 0, max: 2000, noNaN: true }), fc.double({ min: 4, max: 200, noNaN: true }), (text, maxW, base) => {
       const r = fitText(text, maxW, base, Math.min(10, base))

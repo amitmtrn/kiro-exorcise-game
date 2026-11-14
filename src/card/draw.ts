@@ -4,7 +4,7 @@
  */
 
 import { TITLE_FONT_FAMILY } from '../ui/fonts'
-import { buildCardTexts, coverRect, layoutCard } from './layout'
+import { buildCardTexts, coverRect, estimateWidth, layoutCard } from './layout'
 import type { CardData, Rect, TextBox } from './layout'
 
 /** A snapshot to paint: any canvas-like image source with its pixel size. */
@@ -73,6 +73,25 @@ function drawText(ctx: CanvasRenderingContext2D, t: TextBox, font: string): void
   ctx.textBaseline = 'middle'
   // maxWidth squeezes the text if the real font is wider than the layout estimate.
   ctx.fillText(t.text, t.x, t.y, t.maxW)
+}
+
+/** A rounded chip behind a text box (label / badge on the photo). */
+function drawChip(ctx: CanvasRenderingContext2D, t: TextBox, fill: string, stroke: string, text: string): void {
+  if (!t.text) return
+  const wText = estimateWidth(t.text, t.px)
+  const padX = t.px * 0.5
+  const x = t.align === 'left' ? t.x - padX : t.x - wText - padX
+  const r: Rect = { x, y: t.y - t.px * 0.7, w: wText + padX * 2, h: t.px * 1.4 }
+  ctx.save()
+  roundRectPath(ctx, r, t.px * 0.5)
+  ctx.fillStyle = fill
+  ctx.fill()
+  ctx.strokeStyle = stroke
+  ctx.lineWidth = Math.max(1.5, t.px * 0.08)
+  ctx.stroke()
+  ctx.fillStyle = text
+  drawText(ctx, t, 'sans-serif')
+  ctx.restore()
 }
 
 /** Head-and-shoulders silhouette for the "no photo" variant. */
@@ -159,6 +178,10 @@ export function drawCard(
   ctx.lineWidth = Math.max(1.5, w * 0.003)
   roundRectPath(ctx, L.frameInner, w * 0.04)
   ctx.stroke()
+
+  // Two-player chips: player label (dark pill) and winner / tie ribbon
+  if (L.playerLabel) drawChip(ctx, L.playerLabel, 'rgba(13,0,20,0.75)', COLORS.yellow, COLORS.ghost)
+  if (L.badge) drawChip(ctx, L.badge, COLORS.orange, COLORS.yellow, COLORS.midnight)
 
   // Cobwebs in the corners, bats on the title band
   ctx.strokeStyle = 'rgba(232,232,240,0.35)'
