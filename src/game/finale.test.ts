@@ -67,6 +67,14 @@ describe('scripted new ghosts (R5.2)', () => {
     expect(late.variantIndex).toBe(1)
     expect(late.enemies.filter((e) => e.type === 'wisp')).toHaveLength(0)
   })
+  it('skips a blocked wisp pair so the blink due at the same time still spawns', () => {
+    const four = Array.from({ length: 4 }, (_, i) => makeEnemy({ id: 'g' + i, type: 'ghost', x: 0, y: 0, targetX: 0, targetY: 0, speed: 0.1, hitbox: { x: 0, y: 0, w: 1, h: 1 } }))
+    const s = withSeededRandom(4, () => tickSpawners(at6(14_000, { enemies: four, variantIndex: 3 }), 16, W, H))
+    expect(s.enemies.filter((e) => e.type === 'wisp')).toHaveLength(0)
+    expect(s.enemies.filter((e) => e.type === 'blink')).toHaveLength(1)
+    expect(s.variantIndex).toBe(3) // the wisp pair is still pending
+    expect(s.variantDone).toEqual([4])
+  })
   it('shows a tip only once per type', () => {
     let s = at6(0)
     s = withTip(s, 'blink', 100, 100, W, H)

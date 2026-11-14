@@ -133,6 +133,7 @@ export interface GameState {
   bossActive: boolean     // the stage boss (stage 5 boss or stage 6 Hollow King) has spawned
   waveIndex: number       // next scripted wave event to fire (waves spec)
   variantIndex: number    // next scripted new-ghost event (more-content)
+  variantDone: number[]   // scripted new-ghost events past variantIndex that already fired (a blocked one is skipped, not waited on)
   seenVariants: string[]  // new-ghost types whose tip call-out already showed this stage
   bonus: boolean          // playing the bonus round after the stage's summary (waves spec)
   shakeFrames: number     // spooky-skin R4.1 — frames of screen shake remaining
@@ -240,6 +241,7 @@ export function createInitialState(stage = 1): GameState {
     bossActive: false,
     waveIndex: 0,
     variantIndex: 0,
+    variantDone: [],
     seenVariants: [],
     bonus: false,
     shakeFrames: 0,

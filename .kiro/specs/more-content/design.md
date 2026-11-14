@@ -111,7 +111,9 @@ consumes `stageCfg.variantEvents` (`{ atMs, kind }`) like `waveEvents` (clock =
 elapsed stage time; a wisp pair needs two free slots, anything else one). An event
 that waits for a slot or a safe point is dropped once it is more than
 `VARIANT_DEFER_MAX_MS` (3 s) late, so nothing scripted arrives near the boss
-entrance.
+entrance. A blocked event never holds back the other due events: it is skipped
+and retried each tick, and `variantDone` records events that fired out of order
+(`variantIndex` is the first event not yet done).
 
 ## Stage 6 and the finale
 
@@ -136,7 +138,7 @@ checkpoint (retry restarts the stage), and the difficulty ramp stays monotone
 
 Rules in `tickSpawners`: stage 6 events fire when `atMs ≤ elapsed`; the skull
 timer is ignored once `elapsed ≥ bossAtMs − 7000`; a second event at the same
-time waits for a free slot (cap 5).
+time waits for a free slot (cap 5) without blocking the others.
 
 ### Finale boss
 

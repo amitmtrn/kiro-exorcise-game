@@ -117,20 +117,26 @@ export function tickSpawners(
   // arrives late in the stage. A spawn with no safe edge point waits for the next tick.
   let next0 = state
   let variantIndex = state.variantIndex
+  let variantDone = state.variantDone
   const vEvents = bonus ? undefined : stageCfg.variantEvents
   if (vEvents) {
-    while (variantIndex < vEvents.length && vEvents[variantIndex].atMs <= elapsed) {
-      const ev = vEvents[variantIndex]
-      if (elapsed - ev.atMs > VARIANT_DEFER_MAX_MS) { variantIndex++; continue }
+    // A due event that cannot fit (no free slots, no safe edge point) is skipped for now and retried on
+    // later ticks; it never holds back the other due events, and is dropped after VARIANT_DEFER_MAX_MS.
+    for (let i = variantIndex; i < vEvents.length && vEvents[i].atMs <= elapsed; i++) {
+      if (variantDone.includes(i)) continue
+      const ev = vEvents[i]
+      if (elapsed - ev.atMs > VARIANT_DEFER_MAX_MS) { variantDone = [...variantDone, i]; continue }
       const need = ev.kind === 'wisp' ? 2 : 1
-      if (max - nonBossCount < need) break
+      if (max - nonBossCount < need) continue
       const made = spawnVariant(ev.kind, canvasW, canvasH, enemies.filter((e) => e.type === 'skull'))
-      if (!made) break
+      if (!made) continue
       enemies = [...enemies, ...made]
       nonBossCount += made.length
       next0 = withTip(next0, ev.kind, made[0].x, made[0].y, canvasW, canvasH)
-      variantIndex++
+      variantDone = [...variantDone, i]
     }
+    while (variantDone.includes(variantIndex)) variantIndex++
+    variantDone = variantDone.filter((i) => i >= variantIndex)
   }
   // The skull stays away from the finale boss entrance (R5.2).
   const skullQuiet = !bonus && !!stageCfg.finale && elapsed >= stageCfg.finale.bossAtMs - stageCfg.finale.skullQuietMs
@@ -186,7 +192,7 @@ export function tickSpawners(
 
   let next = setSpawnTimers(next0, timers)
   next = setEnemies(next, enemies)
-  if (variantIndex !== next.variantIndex) next = { ...next, variantIndex }
+  if (variantIndex !== next.variantIndex || variantDone !== state.variantDone) next = { ...next, variantIndex, variantDone }
   return waveIndex === next.waveIndex ? next : { ...next, waveIndex }
 }
 

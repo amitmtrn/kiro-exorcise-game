@@ -51,6 +51,7 @@ export function tickRound(
           bossActive: false,
           waveIndex: 0,
           variantIndex: 0,
+          variantDone: [],
           seenVariants: [],
         }
       }
