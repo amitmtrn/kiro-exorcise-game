@@ -50,6 +50,8 @@ export function tickRound(
           stageMissed: 0,
           bossActive: false,
           waveIndex: 0,
+          variantIndex: 0,
+          seenVariants: [],
         }
       }
       return { ...state, stageTitleMs }
