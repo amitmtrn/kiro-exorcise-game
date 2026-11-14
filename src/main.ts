@@ -9,7 +9,7 @@ import { startLoop, stopLoop, requestStart, handleCardKey, handleCardPointer, ha
 import { showCameraDenied, classifyCameraError, runOnboarding } from './ui/onboarding'
 import { createOnboarding, onboardingReducer, hasSeenOnboarding, getLocalStorage } from './game/onboarding'
 import { toggleDebug } from './game/render'
-import { toggleMute, getAudioContext } from './audio/index'
+import { toggleMute, getAudioContext, stopMusic } from './audio/index'
 import { installAudioUnlock } from './audio/unlock'
 import { modeForKey } from './game/playerMode'
 import { loadTitleFont } from './ui/fonts'
@@ -37,6 +37,8 @@ const gameCtx   = gameCanvas.getContext('2d')!
 
 // Demo mode (demo-mode spec): a camera-free scripted run for filming. `demo` is non-null while it is on.
 let demo: DemoRuntime | null = null
+/** Set once demo mode was left: later boots (camera retry) are normal whatever the URL says. */
+let demoLeft = false
 /** The camera of the normal game currently on screen (released when demo mode takes over). */
 let activeVideo: HTMLVideoElement | null = null
 /** Key events the demo handler already used: the normal key handler skips them. */
@@ -84,6 +86,8 @@ window.addEventListener('pointerdown', (e) => {
 
 document.addEventListener('keydown', (e) => {
   if (consumedKeys.has(e)) return
+  // In demo mode only a plain M (mute) reaches the game: the other passive keys (chords, F-keys) do nothing here.
+  if (demo !== null && !((e.key === 'm' || e.key === 'M') && !e.ctrlKey && !e.metaKey && !e.altKey)) return
   if (e.key === 'd' || e.key === 'D') toggleDebug()
   if (e.key === 'm' || e.key === 'M') toggleMute()
   const pickedMode = modeForKey(e.key)
@@ -156,9 +160,11 @@ function leaveDemo(): void {
   const rt = demo
   if (!rt) return
   demo = null
+  demoLeft = true
   stopLoop()
   rt.dispose()
   leftDemoAt = performance.now()
+  stopMusic() // the demo's stage or boss track must not play over the camera prompt
   webcamCtx.clearRect(0, 0, webcamCanvas.width, webcamCanvas.height)
   gameCtx.clearRect(0, 0, gameCanvas.width, gameCanvas.height)
   try { history.replaceState(null, '', urlWithoutDemo()) } catch { /* ignore */ }
@@ -166,7 +172,8 @@ function leaveDemo(): void {
 }
 
 async function boot(): Promise<void> {
-  const params = parseDemoParams(location.search)
+  // After leaving demo the URL is ignored: the normal game starts even if `replaceState` failed.
+  const params = parseDemoParams(demoLeft ? '' : location.search)
   if (params.demo) { await bootDemo(params); return }
 
   // Start the font load alongside the permission prompt instead of delaying it.

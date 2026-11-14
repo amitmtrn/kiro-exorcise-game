@@ -101,6 +101,11 @@ function setup(search: string) {
     for (const l of docL.filter((x) => x.type === 'keydown')) l.fn(ev)
     return ev
   }
+  const keyWith = (k: string, mods: Partial<{ ctrlKey: boolean; metaKey: boolean; altKey: boolean }>) => {
+    const ev = { key: k, code: '', repeat: false, ctrlKey: false, metaKey: false, altKey: false, ...mods, target: null, preventDefault: vi.fn() }
+    for (const l of docL.filter((x) => x.type === 'keydown')) l.fn(ev)
+    return ev
+  }
   /** A click: window capture listeners first; stopPropagation stops the canvas handler. */
   const click = (x: number, y: number) => {
     let stopped = false
@@ -109,7 +114,7 @@ function setup(search: string) {
     if (!stopped) for (const l of canvasL.filter((x) => x.type === 'pointerdown')) l.fn(ev)
     return stopped
   }
-  return { drawn, storage, net, frames, key, click, loc, gameCanvas }
+  return { drawn, storage, net, frames, key, keyWith, click, loc, gameCanvas }
 }
 
 const flush = async () => { for (let i = 0; i < 10; i++) await Promise.resolve() }
@@ -158,7 +163,58 @@ describe('?demo=1 (demo-mode R1.1, R2)', () => {
   })
 })
 
+describe('browser keys keep demo mode (R1.4)', () => {
+  it('F5, F11, F12 and Ctrl / Cmd chords neither leave demo nor are swallowed', async () => {
+    const env = setup('?demo=1&seed=7&stage=2')
+    await import('../main')
+    await flush()
+    env.frames(10)
+    const chords: Array<[string, Partial<{ ctrlKey: boolean; metaKey: boolean }>]> = [
+      ['F5', {}], ['F11', {}], ['F12', {}], ['r', { ctrlKey: true }], ['r', { metaKey: true }], ['1', { ctrlKey: true }],
+    ]
+    for (const [k, mods] of chords) {
+      const ev = env.keyWith(k, mods)
+      expect(ev.preventDefault, `${k} ${JSON.stringify(mods)}`).not.toHaveBeenCalled()
+    }
+    await flush()
+    env.frames(10)
+    expect(env.loc.search).toBe('?demo=1&seed=7&stage=2') // a reload stays in demo
+    expect(m.initWebcam).not.toHaveBeenCalled()
+    expect(m.toggleMute).not.toHaveBeenCalled()
+    env.drawn.length = 0
+    env.frames(5)
+    expect(env.drawn).toContain('DEMO')
+  })
+})
+
 describe('leaving demo mode (R1.3, R1.5)', () => {
+  it('stops the demo music', async () => {
+    const env = setup('?demo=1')
+    await import('../main')
+    await flush()
+    env.frames(10)
+    const audio = await import('../audio/index')
+    vi.mocked(audio.stopMusic).mockClear()
+    env.key('x')
+    await flush()
+    expect(audio.stopMusic).toHaveBeenCalled()
+  })
+
+  it('leaves for good even when history.replaceState fails', async () => {
+    const env = setup('?demo=1&seed=7')
+    ;(history.replaceState as ReturnType<typeof vi.fn>).mockImplementation(() => { throw new Error('denied') })
+    await import('../main')
+    await flush()
+    env.frames(10)
+    env.key('x')
+    await flush()
+    expect(env.loc.search).toBe('?demo=1&seed=7') // the URL is unchanged...
+    expect(m.initWebcam).toHaveBeenCalledTimes(1) // ...but the normal flow runs
+    env.drawn.length = 0
+    env.frames(10)
+    expect(env.drawn).not.toContain('DEMO')
+  })
+
   it('any other key leaves: the key is used up, the clock and Math.random are restored, the normal flow asks for the camera', async () => {
     const env = setup('?demo=1&seed=7')
     await import('../main')
