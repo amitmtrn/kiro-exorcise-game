@@ -3,11 +3,11 @@
 ## T1 — Parameters, key rules, persistence switch
 Files: `src/demo/params.ts`, `src/demo/rng.ts`, `src/game/state.ts`, `src/demo/params.test.ts`, `src/demo/state.persist.test.ts`
 
-- [ ] `params.ts`: `DEMO` config, `parseDemoParams`, `DEMO_TOGGLE_KEY`, `demoKeyAction`; `rng.ts`: `mulberry32`.
-- [ ] `state.ts`: `setHighScorePersistence(on)`; when off `saveHighScore` writes nothing and `loadHighScore` returns 0 (default on, behaviour unchanged).
-- [ ] Unit tests: parameter parsing and clamping, key table, persistence on / off / restored.
-- [ ] `npm test` and `npm run build` both clean.
-- [ ] Commit: `feat(demo-mode-T1): demo parameters, key rules and score-persistence switch`
+- [x] `params.ts`: `DEMO` config, `parseDemoParams`, `DEMO_TOGGLE_KEY`, `demoKeyAction`; `rng.ts`: `mulberry32`.
+- [x] `state.ts`: `setHighScorePersistence(on)`; when off `saveHighScore` writes nothing and `loadHighScore` returns 0 (default on, behaviour unchanged).
+- [x] Unit tests: parameter parsing and clamping, key table, persistence on / off / restored.
+- [x] `npm test` and `npm run build` both clean.
+- [x] Commit: `feat(demo-mode-T1): demo parameters, key rules and score-persistence switch`
 
 ## T2 — Synthetic camera
 Files: `src/demo/camera.ts`, `src/demo/camera.test.ts`

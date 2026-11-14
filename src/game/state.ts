@@ -167,7 +167,12 @@ export function makeEnemy(partial: Partial<Enemy> & Pick<Enemy, 'id' | 'type' | 
 
 // ─── Initial state ────────────────────────────────────────────────────────────
 
+/** Demo mode turns this off: demo scores must never reach localStorage (demo-mode R6.4). */
+let persistHighScore = true
+export function setHighScorePersistence(on: boolean): void { persistHighScore = on }
+
 export function loadHighScore(): number {
+  if (!persistHighScore) return 0
   try {
     return parseInt(localStorage.getItem('exorcise-highscore') ?? '0', 10) || 0
   } catch {
@@ -176,6 +181,7 @@ export function loadHighScore(): number {
 }
 
 export function saveHighScore(score: number): void {
+  if (!persistHighScore) return
   try {
     localStorage.setItem('exorcise-highscore', String(score))
   } catch { /* ignore */ }
