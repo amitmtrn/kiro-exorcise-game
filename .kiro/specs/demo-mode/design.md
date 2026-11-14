@@ -36,7 +36,7 @@ export const DEMO = {
   maxGapMs: 100,       // one frame gap counts for at most this much real time; longer gaps clear the bank
   timeScale: 2,        // game / driver / clock advance stepMs * scale per processed tick
   frameMs: 1000 / 30,  // synthetic camera frame interval (demo time)
-  defaultSeed: 6,        // was 5 until more-content (stage 6 made 5 lose one 960×540 take)
+  defaultSeed: 5,
   handRadiusH: 0.055,  // hand disc radius as a fraction of the canvas height (clamped 36..60 px:
                        // two discs must cover 15 % of the fixed-size 192 px boss hitbox on small canvases)
 }

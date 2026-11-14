@@ -135,3 +135,4 @@
 
 ## T16 — Review fixes (round 5)
 - [x] R8.4: no phantom OLD-BEST. `saveHighScore` calls `ensureTable()` first (migrates an older build's score, else stores `[]`); tests: fresh storage → stage clear → next stage → game over gives one row, older-build score still migrates.
+- [x] R12.1: stale seed 6 docs fixed to 5 (`tools/motion-harness/README.md`, `.kiro/specs/demo-mode/design.md`).

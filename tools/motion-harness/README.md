@@ -8,7 +8,7 @@ for weeks (see `.kiro/specs/hit-detection-fix/design.md`, "camera frame rate").
 | Mode | Video | Expectation |
 |---|---|---|
 | `sweep` | textured background with sensor noise; a hand-sized blob sweeps through the vertical centre band | Space starts the game; `hits` climbs; a score is saved at the stage summary |
-| `demo` | **no camera at all**: opens `?demo=1&seed=$SEED` (default 6) without fake-camera flags; the scripted ghost hand plays | `calls.getUserMedia`, `fetch`, `xhr`, `sendBeacon` stay 0; `cardAtMs` (real ms until the Exorcist Card preview opened) becomes ≥ 0 after about 2.5 min; `highScoreSaved` stays `null` |
+| `demo` | **no camera at all**: opens `?demo=1&seed=$SEED` (default 5) without fake-camera flags; the scripted ghost hand plays | `calls.getUserMedia`, `fetch`, `xhr`, `sendBeacon` stay 0; `cardAtMs` (real ms until the Exorcist Card preview opened) becomes ≥ 0 after about 2.5 min; `highScoreSaved` stays `null` |
 | `wave` | same background; a textured hand waves over the 1 PLAYER button (30 % from the left, raised-hand zone) in 2 s bursts with 1 s gaps (the start screen's release latch needs the hand to leave once); the driver clicks the onboarding Skip | **no keypress**; `firstPlayAtMs` becomes ≥ 0 within a few seconds |
 
 ```bash
