@@ -26,7 +26,7 @@ reproducible: `git checkout df26f4d` and run the same command.
 | Custom agents | 1 (`balancer`) | `ls .kiro/agents` |
 | MCP servers | 1 (`motion-harness`, local stdio, 2 tools) | `.kiro/settings/mcp.json` |
 | Pull requests | 11 merged (#1 to #11; #7 is the judge write-up, #8 is playtest-polish, #9 is more-content, #10 is ci-timeout, merge commit 8462694, #11 is playtest1-fixes, merge commit fce349d); `playtest2-fixes` is on this branch | (log) |
-| Kiro credits | 868.84 of 4000, after the playtest1-fixes spec (PR #11) | (log) |
+| Kiro credits | 928.32 of 4000, after the playtest2-fixes spec (PR #12) | (log) |
 | Kiro app | Kiro CLI 3.3.0 only | (log) |
 
 ## How Kiro was used
@@ -411,7 +411,7 @@ hip-to-shin height (72 to 92 % of the frame) to raised-hand zones (19 to 39 %) (
 | #9 | more-content (new ghosts, stage 6 finale, local high scores) | 1728 |
 | #10 | ci-timeout (test timeouts, Node 22 deploy) | 1741 |
 | #11 | playtest1-fixes (first real-webcam playtest bugs: hearts, motion buttons, name entry, card) | 1853 |
-| playtest2-fixes (this branch) | second real-webcam playtest bugs (arrival telegraph, skull zones and grace, game-over and countdown sounds) | 1887 |
+| playtest2-fixes (PR #12, this branch) | second real-webcam playtest bugs (arrival telegraph, skull zones and grace, game-over and countdown sounds) | 1887 |
 
 0 failed and 0 skipped at each point (log).
 
@@ -436,7 +436,7 @@ Cumulative Kiro `/usage`, from a bonus pool of 4000 (log):
 | After more-content, including all its review fixes | 795.43 |
 | After ci-timeout | 802.22 |
 | After playtest1-fixes (PR #11) | 868.84 |
-| After playtest2-fixes | (the operator fills in the new figure) |
+| After playtest2-fixes (PR #12) | 928.32 |
 
 Largest steps: demo-mode (about 189) and motion-ui-ergonomics (about 70, plus 8).
 
