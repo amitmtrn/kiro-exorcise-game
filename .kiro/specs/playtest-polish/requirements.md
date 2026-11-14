@@ -15,7 +15,7 @@ groups:
 
 Out of scope: balance, scoring, spawn rates, stage content, the motion-button
 layout (`motion-ui-ergonomics/`), the exorcist card content, new audio files,
-new runtime dependencies, network access, `docs/KIRO.md` (another PR).
+new runtime dependencies, network access.
 
 **Unchanged unless a requirement below says so:** normal gameplay feel, balance,
 motion-button layout, and demo-mode determinism. With default settings, quality

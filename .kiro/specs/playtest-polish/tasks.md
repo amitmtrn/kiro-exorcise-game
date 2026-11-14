@@ -115,7 +115,7 @@
 - [x] RF21 (should-fix 1 + nit 7): README benchmark table regenerated; the bench asserts the mask sample count per grid and that level 3 is not the most expensive analysis step.
 - [x] RF22 (should-fix 2): a pinned `?quality=` tracks the plain average only (no re-seed / settle); loop test.
 - [x] RF23 (should-fix 3): reduced-flash onset budget is shared by both two-player halves (R10.2); test of the two-half sum.
-- [ ] RF24 (nit 6): `docs/KIRO.md` edit kept; the out-of-scope line in requirements.md dropped.
+- [x] RF24 (nit 6): `docs/KIRO.md` edit kept; the out-of-scope line in requirements.md dropped.
 - [ ] RF25 (nit 8): redundant first master-gain assignment removed in `audio/context.ts`.
 - [ ] `npm test` and `npm run build` both clean.
 - [ ] Commits: `fix(playtest-polish): ...` one per fix
