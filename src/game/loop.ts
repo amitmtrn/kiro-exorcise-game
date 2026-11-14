@@ -210,6 +210,7 @@ export async function startLoop(
   const nameScreen = new NameScreen()
   nameKeys = []
   nameActive = false
+  nameKeysBlocked = false
 
   /** A 1P run ended (game over or victory): record it with a generated name and open the name screen. */
   function onRunEnd(now: number): void {
@@ -851,6 +852,7 @@ let activeDemo: DemoRuntime | null = null
 export function stopLoop(): void {
   resetSession?.(); resetSession = null // the snapshot must not outlive the loop
   nameActive = false
+  nameKeysBlocked = false
   nameKeys = []
   activeDemo?.dispose(); activeDemo = null
   onEndScreen = false
