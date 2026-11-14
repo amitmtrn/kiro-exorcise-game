@@ -30,11 +30,11 @@ Files: `src/demo/driver.ts`, `src/demo/driver.test.ts`, `src/demo/driver.propert
 ## T4 — Overlay art and runtime
 Files: `src/demo/overlay.ts`, `src/demo/runtime.ts`, `src/demo/overlay.test.ts`, `src/demo/runtime.test.ts`
 
-- [ ] `overlay.ts`: backdrop, ghost-hand cursor with trail, DEMO badge + caption, placeholder portrait (canvas only).
-- [ ] `runtime.ts`: fixed step with frame skipping, demo clock and seeded `Math.random` (installed and restored by `dispose()`), `frame(view)`.
-- [ ] Unit tests: badge text, cursor and portrait draw calls, step / skip, clock and random patched then restored, same seed same random stream.
-- [ ] `npm test` and `npm run build` both clean.
-- [ ] Commit: `feat(demo-mode-T4): demo overlay art and deterministic runtime`
+- [x] `overlay.ts`: backdrop, ghost-hand cursor with trail, DEMO badge + caption, placeholder portrait (canvas only).
+- [x] `runtime.ts`: fixed step with frame skipping, demo clock and seeded `Math.random` (installed and restored by `dispose()`), `frame(view)`.
+- [x] Unit tests: badge text, cursor and portrait draw calls, step / skip, clock and random patched then restored, same seed same random stream.
+- [x] `npm test` and `npm run build` both clean.
+- [x] Commit: `feat(demo-mode-T4): demo overlay art and deterministic runtime`
 
 ## T5 — Loop and main wiring
 Files: `src/game/loop.ts`, `src/main.ts`, `src/demo/normal.test.ts`
