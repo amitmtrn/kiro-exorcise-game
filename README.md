@@ -14,8 +14,8 @@ Ghosts and bats fly in from the dark edges of the screen toward your webcam imag
 - **20 specs** at PR #5 in [`.kiro/specs`](.kiro/specs) (requirements, design, tasks): 805 ticked task checkboxes, 89 commits named after a task (`<type>(<spec>-T<n>)`).
 - **3 steering files** in [`.kiro/steering`](.kiro/steering), **5 hooks** in [`.kiro/hooks`](.kiro/hooks), **1 custom agent** (`balancer`) and **1 local MCP server** (`motion-harness`, stdio only, no network).
 - **1120 tests** at PR #5, 0 failed, 0 skipped; **119 property tests** (`fc.assert`) in 31 files, both at PR #5 (df26f4d). A property found a spawner-cap bug that unit tests had missed (BUG-1), and four more bugs got regression properties.
-- **One PR per feature from #2 on** (#1 bundled the P0/P1 specs): #1 to #10 merged (#6 is demo mode, merge commit 46d9551; #7 is the judge write-up, merge commit 7575a07; #8 is playtest-polish, merge commit 1156313; #9 is more-content, merge commit f0e1d20; #10 is ci-timeout, merge commit 8462694). Test count by PR: 806, 912, 994, 1045, 1120, 1254, 1291; #8 playtest-polish: 1515; #9 more-content: 1728; #10 ci-timeout: 1741; playtest1-fixes (this branch): 1853.
-- **802.22 Kiro credits** used after the ci-timeout spec (bonus pool of 4000).
+- **One PR per feature from #2 on** (#1 bundled the P0/P1 specs): #1 to #11 merged (#6 is demo mode, merge commit 46d9551; #7 is the judge write-up, merge commit 7575a07; #8 is playtest-polish, merge commit 1156313; #9 is more-content, merge commit f0e1d20; #10 is ci-timeout, merge commit 8462694; #11 is playtest1-fixes, merge commit fce349d). Test count by PR: 806, 912, 994, 1045, 1120, 1254, 1291; #8 playtest-polish: 1515; #9 more-content: 1728; #10 ci-timeout: 1741; #11 playtest1-fixes: 1853; playtest2-fixes (PR #12, this branch): 1887.
+- **928.32 Kiro credits used after the playtest2-fixes spec (PR #12)** (bonus pool of 4000).
 - **Read the full write-up: [docs/KIRO.md](docs/KIRO.md).** Local power: [`.kiro/powers/exorcise-motion-harness`](.kiro/powers/exorcise-motion-harness).
 - **Live demo:** <https://amitmtrn.github.io/kiro-exorcise-game/>
 
@@ -36,7 +36,7 @@ npm run dev
 
 | Command | What it does |
 |---|---|
-| `npm test` | Run all 1853 unit tests (Vitest) |
+| `npm test` | Run all 1887 unit tests (Vitest) |
 | `npm run build` | Production build → `dist/` |
 | `npm run preview` | Preview the production build locally |
 
@@ -181,6 +181,7 @@ Every feature was planned as a Kiro spec before implementation:
 | `more-content/` | Three new ghosts (twin wisps, mirror ghost, blink ghost) with telegraphed state machines and fairness property tests, stage 6 "The Midnight Finale" with the Hollow King and its own music, local top-10 high scores with motion-button name entry (1P and per half in 2P) |
 | `ci-timeout/` | Fix the deploy workflow's `npm test` timeout: faster R1.5 frame-budget property with fixed 120 s edge examples, explicit timeouts for the legitimately long tests, Node 22 in `deploy.yml` |
 | `playtest1-fixes/` | First real-webcam playtest: one heart per hit or miss with a 1 s grace, visible heart loss, a death transition and GAME OVER before the name screen; the strongest-covered motion button wins; OK saves the name; card buttons clear of the card; mirror and full-resolution video checks |
+| `playtest2-fixes/` | Second real-webcam playtest: every heart-costing arrival shows a shrinking danger ring for at least 1 s and a red MISSED where it arrived, threats end in the player zone; skulls hover beside the body column, never from the bottom or under the HUD, with a 1 s spawn grace; game-over sting, soft confirm sound on every motion button, countdown ticks on every title card |
 
 Each spec has `requirements.md`, `design.md`, and `tasks.md`. Writing requirements and design before tasks surfaced design gaps (e.g. skull penalty rules, hitbox coordinate system, mirror parity bug) that would have been painful to fix mid-implementation.
 
@@ -341,6 +342,7 @@ src/
     more-content/       New ghosts, stage 6 finale, local high scores spec
     ci-timeout/         Test timeouts and Node 22 for the deploy workflow spec
     playtest1-fixes/    First playtest: hearts, motion buttons, name entry, card spec
+    playtest2-fixes/    Second playtest: telegraphs, skull zones, end-screen and countdown sounds spec
   powers/               exorcise-motion-harness Kiro power
   settings/mcp.json     Workspace MCP registration (motion-harness, stdio, relative path)
   agents/balancer.json  Report-only playtest-tuner agent

@@ -3,7 +3,7 @@ import fc from 'fast-check'
 import {
   SFX_IDS, SFX_GAIN, MUSIC_GAIN, renderRecipe, rawLevel, gainFor, measure, toDb,
   estimateMusicLevel, musicGainFor, MUSIC_VOICES, recipeFor, recipeSeconds, comboFreq,
-  TARGET_RMS_DB, PEAK_CEIL_DB, MUSIC_BELOW_SFX_DB, STACK_MARGIN, stackPeakCeil, COMBO_TIERS, type SfxId,
+  TARGET_RMS_DB, PEAK_CEIL_DB, tableGain, SFX_TRIM_DB, MUSIC_BELOW_SFX_DB, STACK_MARGIN, stackPeakCeil, COMBO_TIERS, type SfxId,
 } from './recipes'
 import { VOICE_PEAKS } from './music/voices'
 
@@ -36,16 +36,17 @@ describe('SFX gain table (R6.1)', () => {
 describe('normalisation (R6.2)', () => {
   it.each(SFX_IDS)('%s: table gain matches the rule, peak <= -3 dBFS, RMS at target unless peak-limited', (id) => {
     const raw = rawLevel(id, SR)
-    const rule = gainFor(raw)
+    const rule = tableGain(id, SR) // gainFor(raw) plus the UI trim (playtest2-fixes)
     expect(Math.abs(toDb(SFX_GAIN[id] / rule))).toBeLessThan(0.5)
+    const trim = SFX_TRIM_DB[id] ?? 0
     const peakDb = toDb(raw.peak * SFX_GAIN[id])
     const rmsDb = toDb(raw.rms * SFX_GAIN[id])
     expect(peakDb).toBeLessThanOrEqual(PEAK_CEIL_DB + 0.01)
     const ceilDb = Math.min(PEAK_CEIL_DB, toDb(stackPeakCeil())) // the -3 dBFS ceiling or the three-way stack ceiling
     expect(peakDb).toBeLessThanOrEqual(ceilDb + 1e-9)
     const peakLimited = peakDb > ceilDb - 0.5
-    if (!peakLimited) expect(Math.abs(rmsDb - TARGET_RMS_DB)).toBeLessThanOrEqual(1.5)
-    else expect(rmsDb).toBeLessThanOrEqual(TARGET_RMS_DB + 1.5)
+    if (!peakLimited && toDb(gainFor(raw) * raw.peak) < ceilDb - 0.5) expect(Math.abs(rmsDb - (TARGET_RMS_DB + trim))).toBeLessThanOrEqual(1.5)
+    else expect(rmsDb).toBeLessThanOrEqual(TARGET_RMS_DB + trim + 1.5)
   })
 
   it('prints the measured levels', () => {
@@ -72,8 +73,16 @@ describe('music level (analytic estimate)', () => {
 
 describe('stacked worst case under 0 dBFS before the limiter (R6.2)', () => {
   const music = estimateMusicLevel().peak * MUSIC_GAIN
+  // Renders are deterministic: cache them so the grid only pays for the mixing.
+  const cache = new Map<string, Float32Array>()
+  const rendered = (id: SfxId, arg: number): Float32Array => {
+    const key = `${id}:${id === 'combo' ? arg : 2}`
+    let b = cache.get(key)
+    if (!b) { b = renderRecipe(id, SR, SFX_GAIN[id], arg); cache.set(key, b) }
+    return b
+  }
   function mixPeak(items: Array<{ id: SfxId; arg?: number; offsetMs: number }>): number {
-    const bufs = items.map((it) => ({ b: renderRecipe(it.id, SR, SFX_GAIN[it.id], it.arg ?? 2), at: Math.round((it.offsetMs / 1000) * SR) }))
+    const bufs = items.map((it) => ({ b: rendered(it.id, it.arg ?? 2), at: Math.round((it.offsetMs / 1000) * SR) }))
     const len = Math.max(...bufs.map((x) => x.at + x.b.length))
     const mix = new Float32Array(len)
     for (const { b, at } of bufs) for (let i = 0; i < b.length; i++) mix[at + i] += b[i]
@@ -108,15 +117,17 @@ describe('stacked worst case under 0 dBFS before the limiter (R6.2)', () => {
     expect(top3[0] + top3[1] + top3[2] + music).toBeLessThanOrEqual(1 - STACK_MARGIN + 1e-9)
   })
 
-  it('every pair and triple of different SFX on a 25 ms offset grid (0-100) stays under 0 dBFS, all combo tiers', () => {
+  it('every pair and triple of different SFX (playtest2-fixes sounds included) on a 25 ms offset grid (0-100) stays under 0 dBFS, all combo tiers', () => {
     const grid = [0, 25, 50, 75, 100]
     let worst = 0
+    // The tier only changes the combo chime: other mixes are rendered once (playtest2-fixes added four ids).
+    const tiersFor = (...ids: SfxId[]) => (ids.includes('combo') ? COMBO_TIERS : [2])
     for (let a = 0; a < SFX_IDS.length; a++) for (let b = a + 1; b < SFX_IDS.length; b++) {
-      for (const tier of COMBO_TIERS) {
+      for (const tier of tiersFor(SFX_IDS[a], SFX_IDS[b])) {
         for (const ob of grid) worst = Math.max(worst, mixPeak([{ id: SFX_IDS[a], arg: tier, offsetMs: 0 }, { id: SFX_IDS[b], arg: tier, offsetMs: ob }]) + music)
-        for (let c = b + 1; c < SFX_IDS.length; c++) for (const ob of grid) for (const oc of grid) {
+      }
+      for (let c = b + 1; c < SFX_IDS.length; c++) for (const tier of tiersFor(SFX_IDS[a], SFX_IDS[b], SFX_IDS[c])) for (const ob of grid) for (const oc of grid) {
           worst = Math.max(worst, mixPeak([{ id: SFX_IDS[a], arg: tier, offsetMs: 0 }, { id: SFX_IDS[b], arg: tier, offsetMs: ob }, { id: SFX_IDS[c], arg: tier, offsetMs: oc }]) + music)
-        }
       }
     }
     expect(worst).toBeLessThan(1)
@@ -129,7 +140,7 @@ describe('stacked worst case under 0 dBFS before the limiter (R6.2)', () => {
       fc.constantFrom(...COMBO_TIERS),
       (ids, offs, tier) => mixPeak(ids.map((id, i) => ({ id, arg: tier, offsetMs: offs[i] }))) + music < 1,
     ), { numRuns: 300 })
-  }, 30_000) // about 35 s at 20 000 runs (checked once with the failing seed 1120058258); 300 runs keep CI fast
+  }, 30_000) // about 35 s at 20 000 runs (checked once with the failing seed 1120058258, and again at 20 000 runs with the playtest2-fixes sounds); 300 runs keep CI fast
 })
 
 describe('MUSIC_VOICES peaks come from the voices (review fix)', () => {

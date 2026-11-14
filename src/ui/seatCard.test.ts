@@ -1,4 +1,6 @@
 import { describe, it, expect, vi } from 'vitest'
+vi.mock('../audio/sfx', () => ({ sfxConfirm: vi.fn() }))
+import { sfxConfirm } from '../audio/sfx'
 import fc from 'fast-check'
 import { SeatCard, seatOfferGeometry, routeSeatClick, sharedButtonsLive, PREVIEW_LOCK_MAX_MS } from './seatCard'
 import type { SeatSession } from './seatCard'
@@ -95,9 +97,11 @@ describe('SeatCard offer', () => {
     const ctx = fakeCtx(HW, H)
     card.render(ctx, 0, true)
     pts = ring(g.cx, g.cy, g.r)
+    ;(sfxConfirm as ReturnType<typeof vi.fn>).mockClear()
     run(card, ctx, 100, FILL_DURATION_MS + 200)
     expect(session.calls.open).toBe(1)
     expect(card.lockedUntil).toBeGreaterThan(0)
+    expect(sfxConfirm).toHaveBeenCalledTimes(1) // playtest2-fixes R4.2: the per-seat offer button confirms once
   })
 
   it('a click on the offer opens, a click elsewhere does not; clicks need `live`', () => {

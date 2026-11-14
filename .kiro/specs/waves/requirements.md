@@ -20,16 +20,16 @@ spawning; lunger and skull behaviour are unchanged).
 **R1.1** Enemies move along one of five path types:
 `line`, `arc`, `flyby`, `drop`, `swarm`.
 
-**R1.2** `line` — edge to a point in the play area (x 20–80 %, y 25–75 % of the
-canvas), not the centre. `arc` — the same, along a curve that bulges toward the
+**R1.2** `line` — edge to a point in the player zone (x 38–62 %, y 35–65 % of the
+canvas; amended by `playtest2-fixes` R1.4, it used to be a random play-area
+point x 20–80 %, y 25–75 %). `arc` — the same, along a curve that bulges toward the
 canvas centre. `drop` — enters above the top edge and falls (fast, then slowing)
-to a landing point in the play area. It costs a life only when its fall time is
-up, and that takes at least 1.8 s on any canvas size (R1.5). A `line` / `arc` walk is at least 0.85
-canvas heights long, so even the fastest stage 1 ghost needs about 4 s to cost
-a life. The bound is constructed, not sampled: a random target that is too close
-is replaced by the point 0.85 H away in the same direction (clamped to the play
-area, else the farthest play-area corner). On canvases too narrow to reach 0.85 H
-(portrait windows) the walk is the longest one the play area allows.
+to a landing point in the player zone (x 38–62 %, y 45–65 %). It costs a life only when its fall time is
+up, and that takes at least 1.8 s on any canvas size (R1.5). A `line` / `arc` walk
+never takes less time than a 0.85 canvas-height walk at the nominal speed, so even
+the fastest stage 1 ghost needs about 4 s to cost a life. The bound is constructed:
+a chord shorter than 0.85 H is travelled proportionally slower (speed scaled by
+`chord / 0.85 H`), on every canvas shape including portrait windows.
 
 **R1.3** `flyby` — crosses the canvas edge to edge (left→right or right→left) at a
 chosen height (15–80 % of the canvas height, several heights per wave; end points are clamped into that band after jitter), never

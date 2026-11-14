@@ -13,6 +13,8 @@ import { BOSS_SIZE } from './boss'
 import { CANDY_SIZE } from './candy'
 import { moveBoss } from './bossPhases'
 import { stepVariant, isVariantType, WISP_SIZE } from './variants'
+import { isThreat } from './reach'
+import { tickWarn } from './telegraph'
 import { pathPosition, pathEnd, pathDurationMs, pathProgress, pathExits } from '../paths'
 
 /** Sine phase rate, rad/s (the old per-frame step × 60). */
@@ -32,7 +34,10 @@ export function moveEnemies(
   canvasW: number,
   canvasH: number,
 ): Enemy[] {
-  return enemies.map((enemy) => moveSingle(enemy, deltaMs, canvasW, canvasH))
+  return enemies.map((enemy) => {
+    const moved = moveSingle(enemy, deltaMs, canvasW, canvasH)
+    return isThreat(moved) ? tickWarn(moved, deltaMs, canvasW, canvasH) : moved
+  })
 }
 
 /** Straight-line step toward the target, never overshooting it. */
@@ -47,16 +52,21 @@ function stepToward(enemy: Enemy, pxPerSec: number, deltaMs: number) {
 /** Skull lifecycle: count on-screen time, then turn around and leave. */
 function tickSkull(enemy: Enemy, deltaMs: number, canvasW: number, canvasH: number): Enemy {
   if (enemy.exiting) return enemy
+  // Spawn grace (playtest2-fixes R3.3) counts down only while the whole hitbox is on screen.
+  if (enemy.graceMs > 0) {
+    const b = enemy.hitbox
+    if (b.x >= 0 && b.y >= 0 && b.x + b.w <= canvasW && b.y + b.h <= canvasH) {
+      enemy = { ...enemy, graceMs: Math.max(0, enemy.graceMs - deltaMs) }
+    }
+  }
   const inside = enemy.x >= 0 && enemy.x <= canvasW && enemy.y >= 0 && enemy.y <= canvasH
   if (!inside) return enemy
   const onScreenMs = enemy.onScreenMs + deltaMs
   if (onScreenMs < SKULL_ON_SCREEN_MS) return { ...enemy, onScreenMs }
 
-  // Leave through the side it is nearest to (straight out from the centre).
-  let dx = enemy.x - canvasW / 2
-  let dy = enemy.y - canvasH / 2
-  const len = Math.hypot(dx, dy)
-  if (len < 1e-6) { dx = 0; dy = -1 } else { dx /= len; dy /= len }
+  // Leave through the side it hovers at, horizontally: away from the body column and clear of the HUD rows.
+  const dx = enemy.x >= canvasW / 2 ? 1 : -1
+  const dy = 0
   const far = canvasW + canvasH
   return {
     ...enemy,

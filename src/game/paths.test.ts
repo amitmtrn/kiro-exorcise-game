@@ -3,6 +3,7 @@ import { mulberry32 } from '../test/prng'
 import {
   makePath, makeSwarm, pathPosition, pathDurationMs, pathExits, pathEnd, marginPx, WAVE_PATHS,
 } from './paths'
+import { PLAYER_END } from './zones'
 import type { PathKind, PathSpec } from './paths'
 
 const SIZES: Array<[number, number]> = [[960, 540], [1280, 720], [640, 360], [1920, 1080]]
@@ -18,8 +19,6 @@ function inExtendedBox(pt: { x: number; y: number }, W: number, H: number): bool
   const m = marginPx(H) + 1e-6
   return pt.x >= -m && pt.x <= W + m && pt.y >= -m && pt.y <= H + m
 }
-
-const chordH = (p: PathSpec, W: number, H: number) => Math.hypot((p.x1 - p.x0) * W, (p.y1 - p.y0) * H) / H
 
 describe('paths', () => {
   it('lists all five path types', () => {
@@ -51,21 +50,22 @@ describe('paths', () => {
     })
   }
 
-  it('line / arc / landing drop end inside the canvas, away from a single point (not all the centre)', () => {
-    const [W, H] = [960, 540]
-    const ends = new Set<string>()
-    for (let seed = 1; seed <= 60; seed++) {
-      for (const kind of ['line', 'arc', 'drop'] as const) {
-        const p = makePath(kind, { W, H, speed: 0.3, rand: mulberry32(seed) })
-        expect(pathExits(p)).toBe(false)
-        expect(p.x1).toBeGreaterThanOrEqual(0.15)
-        expect(p.x1).toBeLessThanOrEqual(0.85)
-        expect(p.y1).toBeGreaterThanOrEqual(0.25)
-        expect(p.y1).toBeLessThanOrEqual(0.75)
-        ends.add(`${Math.round(p.x1 * 10)},${Math.round(p.y1 * 10)}`)
+  it('line / arc / landing drop end in the player zone, spread out (not all one point) (playtest2-fixes R1.4)', () => {
+    for (const [W, H] of [[960, 540], [3024, 1364], [540, 960]]) {
+      const ends = new Set<string>()
+      for (let seed = 1; seed <= 60; seed++) {
+        for (const kind of ['line', 'arc', 'drop'] as const) {
+          const p = makePath(kind, { W, H, speed: 0.3, rand: mulberry32(seed) })
+          expect(pathExits(p)).toBe(false)
+          expect(p.x1).toBeGreaterThanOrEqual(PLAYER_END.x0)
+          expect(p.x1).toBeLessThanOrEqual(PLAYER_END.x1)
+          expect(p.y1).toBeGreaterThanOrEqual(PLAYER_END.y0)
+          expect(p.y1).toBeLessThanOrEqual(PLAYER_END.y1)
+          ends.add(`${Math.round(p.x1 * 20)},${Math.round(p.y1 * 20)}`)
+        }
       }
+      expect(ends.size).toBeGreaterThan(10)
     }
-    expect(ends.size).toBeGreaterThan(10)
   })
 
   it('flyby crosses edge to edge at the requested height and exits', () => {
@@ -165,42 +165,15 @@ describe('paths', () => {
     }
   })
 
-  it('line / arc walks are long enough to be fair (≥ 0.85 H) at 16:9, so stage 1 stays forgiving', () => {
-    const [W, H] = [960, 540]
-    for (const kind of ['line', 'arc'] as const) {
-      for (let seed = 1; seed <= 200; seed++) {
-        const p = makePath(kind, { W, H, speed: 0.2, edges: 'leftRight', rand: mulberry32(seed) })
-        const chord = Math.hypot((p.x1 - p.x0) * W, (p.y1 - p.y0) * H) / H
-        expect(chord).toBeGreaterThanOrEqual(0.85)
-      }
-    }
-  })
-
-  it('line / arc walks reach 0.85 H from every edge (edges "all"), on wide and square canvases (R1.2)', () => {
-    for (const [W, H] of [[960, 540], [1920, 1080], [800, 800], [1280, 720]]) {
+  it('line / arc walks never take less time than a 0.85 H walk at the nominal speed, on every canvas (waves R1.2, playtest2-fixes R1.4)', () => {
+    for (const [W, H] of [[960, 540], [1920, 1080], [800, 800], [1280, 720], [3024, 1364], [540, 960], [400, 900], [300, 900]]) {
       for (const kind of ['line', 'arc'] as const) {
-        for (let seed = 1; seed <= 400; seed++) {
-          const p = makePath(kind, { W, H, speed: 0.2, edges: 'all', rand: mulberry32(seed) })
-          expect(chordH(p, W, H)).toBeGreaterThanOrEqual(0.85 - 1e-9)
-        }
-      }
-    }
-  })
-
-  it('on narrow / portrait canvases the walk is the longest reachable, up to 0.85 H (R1.2)', () => {
-    for (const [W, H] of [[540, 960], [400, 900], [300, 900]]) {
-      // Longest possible walk from this start into the play-area box.
-      const farthest = (p: PathSpec) => {
-        let m = 0
-        for (const x of [0.2, 0.8]) for (const y of [0.25, 0.75]) {
-          m = Math.max(m, Math.hypot((x - p.x0) * W, (y - p.y0) * H) / H)
-        }
-        return m
-      }
-      for (const edges of ['leftRight', 'all'] as const) {
-        for (let seed = 1; seed <= 300; seed++) {
-          const p = makePath('line', { W, H, speed: 0.2, edges, rand: mulberry32(seed) })
-          expect(chordH(p, W, H)).toBeGreaterThanOrEqual(Math.min(0.85, farthest(p)) - 1e-9)
+        for (const edges of ['leftRight', 'all'] as const) {
+          for (let seed = 1; seed <= 200; seed++) {
+            const p = makePath(kind, { W, H, speed: 0.2, edges, rand: mulberry32(seed) })
+            expect(pathDurationMs(p, W, H)).toBeGreaterThanOrEqual((0.85 / 0.2) * 1000 - 1e-6)
+            expect(p.speed).toBeLessThanOrEqual(0.2 + 1e-12)
+          }
         }
       }
     }

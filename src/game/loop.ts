@@ -62,7 +62,8 @@ import { downloadCanvasPng } from '../card/download'
 import { CardPreview, cardKeyAction, offerHit, lockEndButtons } from '../ui/cardScreen'
 import { SeatCard, routeSeatClick, sharedButtonsLive } from '../ui/seatCard'
 import type { CardAction } from '../ui/cardScreen'
-import { sfxStageClear, startMusic, startTitleMusic, stopMusic, setMusicCombo } from '../audio/index'
+import { sfxStageClear, sfxGameOver, startMusic, startTitleMusic, stopMusic, setMusicCombo } from '../audio/index'
+import { createCountdownCues } from './countdown'
 import type { DemoRuntime } from '../demo/runtime'
 import type { DemoView } from '../demo/driver'
 import { handRadius } from '../demo/driver'
@@ -75,6 +76,12 @@ import { NameScreen } from '../ui/nameScreen'
 import type { NameInfo } from '../ui/nameScreen'
 
 let rafId = 0
+
+/**
+ * End-screen bed (playtest2-fixes R4.3): the quiet title theme comes back this long after the GAME OVER / YOU WIN
+ * screen appeared, so the game-over sting (1.6 s, started at death) has finished first.
+ */
+export const END_BED_DELAY_MS = 800
 
 // Name entry (more-content R9.3): while a name screen is open, keys are queued here by main.ts.
 let nameKeys: string[] = []
@@ -443,6 +450,9 @@ export async function startLoop(
   // ── Two-player session (two-player spec). `two` is non-null while a 2P game is on screen. ──
   let two: TwoPlayerState | null = null
   let prevTwoPhase: TwoPlayerState['phase'] | null = null
+  // Countdown ticks on every stage title card (playtest2-fixes R5.1), one cue tracker per mode.
+  const countdown1P = createCountdownCues()
+  const countdown2P = createCountdownCues()
   const halfCanvases: HTMLCanvasElement[] = []
   const pulses: HudPulse[] = [] // created on first use per seat
   const hudCanvases: HTMLCanvasElement[] = [] // transparent per-seat HUD layers, drawn above the divider
@@ -530,9 +540,14 @@ export async function startLoop(
         else if (t.phase === 'final') {
           resetFinalScreen(); stopMusic()
           if (t.seats.some((s) => s.phase !== 'gameover')) sfxStageClear() // no jingle when both are out
+          else sfxGameOver() // both out: the game-over sting, once (playtest2-fixes R4.1)
         }
       } catch { /* ignore */ }
       prevTwoPhase = t.phase
+    }
+    countdown2P.update(t.phase === 'stageTitle', t.seats.find((s) => s.phase === 'stageTitle')?.stageTitleMs ?? 0)
+    if (t.phase === 'final' && finalShownAt >= 0 && now - finalShownAt >= END_BED_DELAY_MS) {
+      try { startTitleMusic() } catch { /* ignore */ }
     }
     if (t.phase === 'playing') {
       try { setMusicCombo(Math.max(...t.seats.filter((s) => s.phase === 'playing').map((s) => s.combo), 1)) } catch { /* ignore */ }
@@ -765,6 +780,7 @@ export async function startLoop(
     // ── Stage title card ──────────────────────────────────────────────────────
     if (state.phase === 'stageTitle') {
       state = tickRound(state, deltaMs, displayW, displayH)
+      countdown1P.update(state.phase === 'stageTitle', state.stageTitleMs) // 3, 2, 1 ticks; "go" on the tick play starts
       renderFrame(gameCtx, state, now)
       renderStageTitle(gameCtx, state)
       prevCtx.drawImage(currentCanvas, 0, 0)
@@ -803,6 +819,7 @@ export async function startLoop(
         return
       }
       if (!gameOverVisible) { resetGameOverScreen(); gameOverVisible = true; endShownAt = now; onRunEnd(now); saveHighScore(state.highScore) } // explicit entry: lock-out + fresh buttons; best score stored once
+      if (now - endShownAt >= END_BED_DELAY_MS) { try { startTitleMusic() } catch { /* ignore */ } } // quiet bed after the sting
       state = tickEffects(state, deltaMs)
       renderFrame(gameCtx, state, now)
       // The GAME OVER screen comes first; the name screen opens NAME_DELAY_MS later (R1.6), never over an open card.
@@ -828,6 +845,7 @@ export async function startLoop(
         try { sfxStageClear(); stopMusic() } catch { /* ignore */ }
         prevPhase = 'victory'
       }
+      if (now - endShownAt >= END_BED_DELAY_MS) { try { startTitleMusic() } catch { /* ignore */ } } // quiet bed after the jingle
       state = tickEffects(state, deltaMs)
       renderFrame(gameCtx, state, now)
       if (!(nameDue(now) && runNameScreen(now, resetVictoryScreen)) && !renderCardPreview(now)) {
@@ -888,6 +906,7 @@ export async function startLoop(
         saveHighScore(state.highScore) // best score stored once per stage clear, so a closed tab keeps it
       } else if (state.phase === 'gameover') {
         try { stopMusic() } catch { /* ignore */ }
+        try { sfxGameOver() } catch { /* ignore */ } // once per game over, also the boss timeout (playtest2-fixes R4.1)
       }
       // 'victory' is handled at the top of its own branch next frame.
       if (state.phase !== 'victory') prevPhase = state.phase

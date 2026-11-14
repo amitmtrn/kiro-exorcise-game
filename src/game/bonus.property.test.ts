@@ -3,6 +3,7 @@ import fc from 'fast-check'
 import { tickSpawners } from './enemies/spawn'
 import { moveEnemies, cullExitedEnemies } from './enemies/movement'
 import { splitReached } from './enemies/reach'
+import { TELEGRAPH_MIN_MS } from './enemies/telegraph'
 import { spawnWave } from './enemies/waveSpawn'
 import { createInitialState, tickTimer, decrementLife } from './state'
 import type { GameState } from './state'
@@ -64,8 +65,8 @@ describe('bonus round — never costs a life (R5.3)', () => {
   it('even with threats sitting on their targets, the reach check ignores the bonus round', () => {
     fc.assert(fc.property(fc.integer({ min: 0, max: 6 }), fc.integer({ min: 1, max: 1e6 }), (n, seed) => {
       const threats = withSeededRandom(seed, () => spawnWave('ghost', 'line', n, { W: 960, H: 540, speedMult: 1 }))
-        .map((e) => ({ ...e, x: e.targetX, y: e.targetY }))
-      expect(splitReached(threats, true, 960, 540)).toEqual({ survivors: threats, missed: 0 })
+        .map((e) => ({ ...e, x: e.targetX, y: e.targetY, warnMs: TELEGRAPH_MIN_MS })) // telegraph done (playtest2-fixes R1.1)
+      expect(splitReached(threats, true, 960, 540)).toEqual({ survivors: threats, missed: 0, lost: [] })
       expect(splitReached(threats, false, 960, 540).missed).toBe(n)
     }))
   })

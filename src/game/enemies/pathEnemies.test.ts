@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { mulberry32 } from '../../test/prng'
 import { makeEnemy } from '../state'
+import { TELEGRAPH_MIN_MS } from './telegraph'
 import type { Enemy } from '../state'
 import { moveEnemies, cullExitedEnemies, hitboxFor } from './movement'
 import { isThreat, splitReached, CENTER_THRESHOLD } from './reach'
@@ -171,7 +172,8 @@ describe('landing drops (fair reaction window)', () => {
 })
 
 describe('reach rule', () => {
-  const at = (e: Enemy): Enemy => ({ ...e, x: e.targetX, y: e.targetY })
+  // playtest2-fixes R1.1: an arrival only counts once its telegraph ran, so fixtures at the target carry it.
+  const at = (e: Enemy): Enemy => ({ ...e, x: e.targetX, y: e.targetY, warnMs: TELEGRAPH_MIN_MS })
 
   it('a converging ghost that reaches its target is missed', () => {
     const [g] = spawnWave('ghost', 'arc', 1, opts())
@@ -190,9 +192,9 @@ describe('reach rule', () => {
 
   it('reaches within CENTER_THRESHOLD px', () => {
     const [g] = spawnWave('ghost', 'line', 1, opts())
-    const near = { ...g, x: g.targetX + CENTER_THRESHOLD - 1, y: g.targetY }
+    const near = { ...g, x: g.targetX + CENTER_THRESHOLD - 1, y: g.targetY, warnMs: TELEGRAPH_MIN_MS }
     expect(splitReached([near], false, W, H).missed).toBe(1)
-    const far = { ...g, x: g.targetX + CENTER_THRESHOLD + 1, y: g.targetY }
+    const far = { ...g, x: g.targetX + CENTER_THRESHOLD + 1, y: g.targetY, warnMs: TELEGRAPH_MIN_MS }
     expect(splitReached([far], false, W, H).missed).toBe(0)
   })
 
@@ -211,11 +213,11 @@ describe('reach rule', () => {
   it('skulls and the boss are never "reached"', () => {
     const skull = makeEnemy({ id: 's', type: 'skull', x: 100, y: 100, targetX: 100, targetY: 100, speed: 0.1, hitbox: { x: 0, y: 0, w: 1, h: 1 } })
     const boss = { ...skull, id: 'b', type: 'boss' as const }
-    expect(splitReached([skull, boss], false, W, H)).toEqual({ survivors: [skull, boss], missed: 0 })
+    expect(splitReached([skull, boss], false, W, H)).toEqual({ survivors: [skull, boss], missed: 0, lost: [] })
   })
 
   it('legacy ghosts (no path) are still missed at their target', () => {
-    const g = makeEnemy({ id: 'g', type: 'ghost', x: 480, y: 270, targetX: 480, targetY: 270, speed: 0.1, hitbox: { x: 0, y: 0, w: 1, h: 1 } })
+    const g = makeEnemy({ id: 'g', type: 'ghost', x: 480, y: 270, targetX: 480, targetY: 270, speed: 0.1, hitbox: { x: 0, y: 0, w: 1, h: 1 }, warnMs: TELEGRAPH_MIN_MS })
     expect(splitReached([g], false, W, H).missed).toBe(1)
   })
 

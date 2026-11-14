@@ -20,6 +20,9 @@ import { overlayAlpha, shakeScale } from './flash'
 import { calloutPx, scaled } from '../ui/textScale'
 import { getQualityInfo, formatQualityLine } from './quality'
 import { getMotionGrid } from '../webcam/grid'
+import { isAlarmed, telegraphProgress } from './enemies/telegraph'
+import { isThreat } from './enemies/reach'
+import { SKULL_GRACE_MS } from './enemies/skull'
 import { drawWisp, drawMirror, drawBlink, drawWispLinks } from './renderVariants'
 
 /** Active palette (colourblind-safe variant when the setting is on). */
@@ -76,6 +79,8 @@ export function renderFrame(
   const whiteCtx = whiteFillProxy(ctx)
   drawWispLinks(ctx, state.enemies, now)
   for (const enemy of state.enemies) {
+    const ring = dangerProgress(enemy)
+    if (ring !== null) drawDangerRing(ctx, enemy, ring, now, reduced, enemy.type !== 'skull')
     drawEnemy(enemy.hitFlashFrames > 0 && !reduced ? whiteCtx : ctx, enemy, now)
   }
   // Knocked-away enemies (juice R2): the normal enemy routines, rotated, shrunk and faded
@@ -146,6 +151,51 @@ function whiteFillProxy(ctx: CanvasRenderingContext2D): CanvasRenderingContext2D
       return Reflect.set(target, key, forced ? WHITE : value)
     },
   })
+}
+
+// ─── Danger ring (playtest2-fixes R1.2, R3.3) ─────────────────────────────────
+
+/**
+ * 0..1 progress of the ring, or null for no ring: an alarmed threat counts its telegraph up to the moment it may
+ * cost a heart; a new skull counts its spawn grace down to the moment it becomes dangerous to touch.
+ */
+export function dangerProgress(e: Enemy): number | null {
+  if (e.type === 'skull') return e.graceMs > 0 ? 1 - e.graceMs / SKULL_GRACE_MS : null
+  if (!isAlarmed(e) || !isThreat(e)) return null
+  return telegraphProgress(e)
+}
+
+/**
+ * A dashed ring that shrinks from 2.4x to 1.1x of the enemy over the telegraph, a red tint inside it and (for an
+ * arriving threat) a "!" mark: shape and size cues, so it never depends on colour alone. Reduced flashing: steady
+ * alpha, no pulse.
+ */
+function drawDangerRing(ctx: CanvasRenderingContext2D, e: Enemy, progress: number, now: number, reduced: boolean, mark: boolean): void {
+  const danger = P().danger
+  const half = Math.max(e.hitbox.w, e.hitbox.h) / 2
+  const r = half * (2.4 - 1.3 * progress)
+  const pulse = reduced ? 0 : 0.2 * Math.sin(now / 90)
+  ctx.save()
+  ctx.translate(e.x, e.y)
+  ctx.shadowBlur = 0
+  ctx.globalAlpha = 0.22 + 0.13 * progress
+  ctx.fillStyle = danger
+  ctx.beginPath(); ctx.arc(0, 0, half * 1.05, 0, Math.PI * 2); ctx.fill()
+  ctx.globalAlpha = 0.75 + pulse
+  ctx.strokeStyle = danger
+  ctx.lineWidth = 5
+  ctx.setLineDash([12, 8])
+  ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.stroke()
+  ctx.setLineDash([])
+  if (mark) {
+    ctx.globalAlpha = 1
+    ctx.font = 'bold 30px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
+    ctx.lineWidth = 5; ctx.lineJoin = 'round'; ctx.strokeStyle = 'rgba(13,0,20,0.9)'
+    ctx.strokeText('!', 0, -r - 16)
+    ctx.fillStyle = danger
+    ctx.fillText('!', 0, -r - 16)
+  }
+  ctx.restore()
 }
 
 // ─── Enemy dispatch ───────────────────────────────────────────────────────────
@@ -548,7 +598,7 @@ function drawScoreLabel(ctx: CanvasRenderingContext2D, l: ScoreLabel): void {
 function drawCallout(ctx: CanvasRenderingContext2D, c: Callout): void {
   const pose = calloutPose(c)
   const fontPx = calloutPx(ctx.canvas.width, c.x, [...c.text].length)
-  const color = c.kind === 'tierUp' ? P().combo : P().score
+  const color = c.kind === 'tierUp' ? P().combo : c.kind === 'miss' ? P().danger : P().score
   ctx.save()
   ctx.globalAlpha = Math.max(0, Math.min(1, pose.alpha))
   ctx.translate(c.x, c.y + pose.dy)

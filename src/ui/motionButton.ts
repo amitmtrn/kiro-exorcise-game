@@ -8,6 +8,12 @@ import { getPalette } from './palette'
 import { getSettings } from '../settings/runtime'
 import { RING_OUTSET, fitFontPx } from './layout'
 import { lastMotionPixels, motionFrameSeq, motionCell } from '../game/collision'
+import { sfxConfirm } from '../audio/sfx'
+
+/** A soft confirm sound for a fired motion button (playtest2-fixes R4.2); never throws. */
+export function playConfirm(): void {
+  try { sfxConfirm() } catch { /* audio not ready */ }
+}
 
 /** Where a button reads its motion points (display space of its own canvas). */
 export type PointSource = () => ReadonlyArray<{ x: number; y: number }>
@@ -265,6 +271,9 @@ export function updateExclusive(
   buttons.forEach((b, i) => {
     if (b.updateGated(now, liveOf(i), allowed[i]) === 'triggered' && winner < 0) winner = i
   })
-  if (winner >= 0) buttons.forEach((b, i) => { if (i !== winner) b.suppress() })
+  if (winner >= 0) {
+    buttons.forEach((b, i) => { if (i !== winner) b.suppress() })
+    playConfirm() // every screen's motion buttons resolve here, so each fire sounds exactly once
+  }
   return winner
 }

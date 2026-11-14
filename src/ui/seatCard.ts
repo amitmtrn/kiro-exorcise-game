@@ -8,6 +8,7 @@
  */
 
 import type { PointSource } from './motionButton'
+import { playConfirm } from './motionButton'
 import { ButtonSet } from './buttonSet'
 import { areaButtons } from './layout'
 import { CardPreview, PREVIEW_INPUT_DELAY_MS } from './cardScreen'
@@ -136,7 +137,7 @@ export class SeatCard<C extends CanvasImageSource> {
     const [btn] = this.offer.sync([spec])
     const res = btn.updateGated(now, live && now >= this.liveAt)
     btn.render(ctx, now)
-    if (res === 'triggered') this.run('open', now)
+    if (res === 'triggered') { playConfirm(); this.run('open', now) }
   }
 
   /** Closes the preview without touching the snapshot (the game left the end screen). */

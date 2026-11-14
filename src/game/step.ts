@@ -17,7 +17,7 @@ import { moveEnemies, cullExitedEnemies } from './enemies/movement'
 import { splitReached } from './enemies/reach'
 import { tickParticles, tickScoreLabels } from './particles'
 import { tickKnocks } from './knock'
-import { tickCallouts } from './callouts'
+import { tickCallouts, addCallout, missCallout } from './callouts'
 import { spawnBoss } from './round'
 import { bossDue, withKingWarning } from './finale'
 import { sfxLifeLost } from '../audio/index'
@@ -44,8 +44,14 @@ export function stepSimulation(state: GameState, simMs: number, displayW: number
   state = setEnemies(state, movedEnemies)
 
   // Enemies reaching their target cost a life (never in the bonus round, never flybys)
-  const { survivors, missed: missedCount } = splitReached(state.enemies, state.bonus, displayW, displayH)
+  const { survivors, missed: missedCount, lost } = splitReached(state.enemies, state.bonus, displayW, displayH)
   state = setEnemies(state, survivors)
+  // The lost heart is linked to its cause: a red MISSED where each enemy arrived (playtest2-fixes R1.3).
+  if (lost.length > 0 && state.phase !== 'gameover') {
+    let callouts = state.callouts
+    for (const e of lost) callouts = addCallout(callouts, missCallout(e.x, e.y, displayW, displayH))
+    state = { ...state, callouts }
+  }
   // Every missed enemy counts as missed, but they cost one heart together, and none while the grace runs
   // (playtest1-fixes R1.1, R1.2: three ghosts arriving in one tick used to take all three hearts).
   if (missedCount > 0 && state.phase !== 'gameover') {

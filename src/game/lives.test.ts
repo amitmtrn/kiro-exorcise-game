@@ -1,4 +1,5 @@
 /** One heart per event, grace, visible loss, death transition (playtest1-fixes R1). */
+import { TELEGRAPH_MIN_MS } from './enemies/telegraph'
 import { describe, it, expect } from 'vitest'
 import {
   createInitialState, makeEnemy, decrementLife, tickTimer, tickLifeTimers, tickDeath,
@@ -18,7 +19,7 @@ function playing(over: Partial<GameState> = {}): GameState {
 function arrived(id: string): Enemy {
   return makeEnemy({
     id, type: 'ghost', x: W / 2, y: H / 2, targetX: W / 2, targetY: H / 2, speed: 0,
-    hitbox: { x: W / 2 - 30, y: H / 2 - 30, w: 60, h: 60 }, spawnedAt: 0,
+    hitbox: { x: W / 2 - 30, y: H / 2 - 30, w: 60, h: 60 }, spawnedAt: 0, warnMs: TELEGRAPH_MIN_MS, // telegraph done (playtest2-fixes R1.1)
   })
 }
 

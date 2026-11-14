@@ -128,3 +128,13 @@ export function sfxWispLink(): void { play('wispLink') }
 
 /** Mirror ghost shield absorbed a swat — short metallic tick */
 export function sfxShield(): void { play('shield') }
+
+/** Game over — a slow, friendly falling sting (playtest2-fixes R4.1) */
+export function sfxGameOver(): void { play('gameOver') }
+
+/** A motion button fired — soft two-note blip (playtest2-fixes R4.2) */
+export function sfxConfirm(): void { play('uiConfirm') }
+
+/** Stage title countdown: one tick per number (3, 2, 1) and an accent when play begins (playtest2-fixes R5.1) */
+export function sfxCountTick(): void { play('countTick') }
+export function sfxCountGo(): void { play('countGo') }

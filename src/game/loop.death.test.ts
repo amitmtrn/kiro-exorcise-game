@@ -26,7 +26,7 @@ vi.mock('./state', async (orig) => {
     createInitialState: (...a: Parameters<typeof m.createInitialState>) => ({
       ...m.createInitialState(...a), phase: 'playing' as const, lives: 1, score: 30050, stage: 3, roundTimeMs: 36_000,
       spawnTimers: { ghost: 1e9, bat: 1e9, skull: 1e9, lunger: 1e9, pumpkin: 1e9 },
-      enemies: ['a', 'b', 'c'].map((id) => m.makeEnemy({ id, type: 'ghost', x: 640, y: 360, targetX: 640, targetY: 360, speed: 0, hitbox: { x: 610, y: 330, w: 60, h: 60 } })),
+      enemies: ['a', 'b', 'c'].map((id) => m.makeEnemy({ id, type: 'ghost', x: 640, y: 360, targetX: 640, targetY: 360, speed: 0, hitbox: { x: 610, y: 330, w: 60, h: 60 }, warnMs: 1000 })), // telegraph done (playtest2-fixes)
     }),
   }
 })

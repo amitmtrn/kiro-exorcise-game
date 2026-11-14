@@ -4,6 +4,7 @@
 
 import type { Enemy } from '../state'
 import { pathExits, pathDurationMs } from '../paths'
+import { telegraphDone } from './telegraph'
 
 /** An enemy within this many px of its target has reached it. */
 export const CENTER_THRESHOLD = 40
@@ -26,23 +27,26 @@ export function isThreat(e: Enemy): boolean {
  * position gets to the target in pixels. Other paths use the pixel threshold.
  */
 function reached(e: Enemy, W: number, H: number): boolean {
+  // playtest2-fixes R1.1: never before the telegraph has been shown for TELEGRAPH_MIN_MS (it waits, alarmed).
+  if (!telegraphDone(e)) return false
   if (e.path?.kind === 'drop') return e.pathMs >= pathDurationMs(e.path, W, H)
   return Math.hypot(e.x - e.targetX, e.y - e.targetY) <= CENTER_THRESHOLD
 }
 
 /**
  * Splits enemies into those still coming and the number that reached their
- * target. In the bonus round nothing can ever be missed (R5.3).
+ * target (and the enemies that did, for the MISSED call-out). In the bonus round nothing can ever be missed (R5.3).
  */
 export function splitReached(
   enemies: Enemy[],
   bonus: boolean,
   canvasW: number,
   canvasH: number,
-): { survivors: Enemy[]; missed: number } {
-  if (bonus) return { survivors: enemies, missed: 0 }
+): { survivors: Enemy[]; missed: number; lost: Enemy[] } {
+  if (bonus) return { survivors: enemies, missed: 0, lost: [] }
   let survivors: Enemy[] = []
   let missed = 0
+  const lost: Enemy[] = []
   const lostPairs = new Set<string>()
   for (const e of enemies) {
     if (isThreat(e) && reached(e, canvasW, canvasH)) {
@@ -52,8 +56,9 @@ export function splitReached(
         lostPairs.add(e.pairId)
       }
       missed++
+      lost.push(e)
     } else survivors.push(e)
   }
   if (lostPairs.size > 0) survivors = survivors.filter((e) => !(e.type === 'wisp' && e.pairId !== undefined && lostPairs.has(e.pairId)))
-  return { survivors, missed }
+  return { survivors, missed, lost }
 }
