@@ -35,11 +35,11 @@ vi.mock('../ui/splitscreen', () => ({
   drawDivider: vi.fn(), drawSeatOverlay: vi.fn(), FINAL_INPUT_DELAY_MS: 1500,
   renderTwoPlayerSummary: (_c: unknown, _t: unknown, _n: unknown, next: () => void) => { h.next = next; if (h.press === 'next') { h.press = null; next() } },
   renderTwoPlayerFinal: (_c: unknown, _t: unknown, _n: unknown, again: () => void, menu: () => void) => { h.again = again; h.menu = menu; h.finalCalls++; if (h.press === 'again') { h.press = null; again() } else if (h.press === 'menu') { h.press = null; menu() } },
-  resetFinalScreen: vi.fn(),
+  resetFinalScreen: vi.fn(), resetFinalButtons: vi.fn(),
 }))
 vi.mock('../ui/screens', () => ({
   renderStartScreen: (_c: unknown, _s: unknown, _n: unknown, cb: (m: 1 | 2) => void) => { h.onStart = cb; if (h.fireStart) { const m = h.fireStart; h.fireStart = null; cb(m) } }, renderStageTitle: vi.fn(), renderSummary: vi.fn(),
-  renderGameOver: vi.fn(), renderVictory: vi.fn(), resetVictoryScreen: vi.fn(), resetStartScreen: vi.fn(), resetGameOverScreen: vi.fn(),
+  renderGameOver: vi.fn(), renderVictory: vi.fn(), resetVictoryScreen: vi.fn(), resetVictoryButtons: vi.fn(), resetStartScreen: vi.fn(), resetGameOverScreen: vi.fn(),
 }))
 vi.mock('../audio/index', () => ({
   sfxLifeLost: vi.fn(), sfxStageClear: vi.fn(), startMusic: vi.fn(), startTitleMusic: vi.fn(),

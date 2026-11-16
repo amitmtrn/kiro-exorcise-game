@@ -6,12 +6,12 @@
 
 ## T1 — End screens: the intro plays once, a round trip does not flash
 Files: `src/ui/screens.ts`, `src/ui/splitscreen.ts`, `src/game/loop.ts`
-- [ ] Failing tests first: the first victory frame after a name-screen round trip has the full backdrop alpha and the banner at rest; same for the 2P final; backdrop alpha never drops (1P victory, 1P game over, 2P final) at any frame step.
-- [ ] `screens.ts`: separate intro clock and input lock; `resetVictoryButtons()`.
-- [ ] `splitscreen.ts`: `finalIntro` separate from `finalLock`; `resetFinalButtons()`.
-- [ ] `loop.ts`: name-screen `onDone` uses the button-only resets.
-- [ ] `npm test` and `npm run build` both clean.
-- [ ] Commit: `fix(playtest3-fixes-T1): end screens keep their backdrop and banner after the name screen`
+- [x] Failing tests first: the first victory frame after a name-screen round trip has the full backdrop alpha and the banner at rest; same for the 2P final; backdrop alpha never drops (1P victory, 1P game over, 2P final) at any frame step.
+- [x] `screens.ts`: separate intro clock and input lock; `resetVictoryButtons()`.
+- [x] `splitscreen.ts`: `finalIntro` separate from `finalLock`; `resetFinalButtons()`.
+- [x] `loop.ts`: name-screen `onDone` uses the button-only resets.
+- [x] `npm test` and `npm run build` both clean.
+- [x] Commit: `fix(playtest3-fixes-T1): end screens keep their backdrop and banner after the name screen`
 
 ## T2 — Skull lanes: nothing hides a skull
 Files: `src/game/skullLane.ts`, `enemies/waveSpawn.ts`, `enemies/spawn.ts`, `enemies/skull.ts`

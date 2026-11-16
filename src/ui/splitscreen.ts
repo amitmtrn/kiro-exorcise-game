@@ -31,6 +31,8 @@ let lastW = 0
 const nextSets = SEATS.map((seat) => new ButtonSet(halfSource(seat, () => lastW)))
 const finalSets = SEATS.map((seat) => new ButtonSet(halfSource(seat, () => lastW)))
 const finalLock = new EntryLock()
+/** Intro clock of the final screen (backdrop fade, banner); not reset by the name screens. */
+const finalIntro = new EntryLock()
 
 /** Draws a half's buttons in half-local coordinates at the half's offset on the full canvas. */
 function inHalf(ctx: CanvasRenderingContext2D, seat: Seat, W: number, fn: () => void): void {
@@ -51,8 +53,18 @@ export function winnerText(w: Seat | 'tie'): string {
 
 /** Call once when the game enters `final`: restarts the banner and the input lock-out. */
 export function resetFinalScreen(): void {
+  finalIntro.reset()
   finalLock.reset()
   for (const s of finalSets) s.clear() // drop any half-filled button state from an earlier visit
+}
+
+/**
+ * Call when the name screens close on the final screen (playtest3-fixes R1.3): fresh buttons and lock-out; the
+ * intro clock keeps running, so the backdrop stays dark and the banner stays at rest.
+ */
+export function resetFinalButtons(): void {
+  finalLock.reset()
+  for (const s of finalSets) s.clear()
 }
 
 /** Call once when the game enters `summary`: a fresh NEXT button (no stale fill). */
@@ -174,7 +186,8 @@ export function renderTwoPlayerFinal(
   const { width: W, height: H } = ctx.canvas
   pointSources = sources; lastW = W
   const entryLive = finalLock.touch(now)
-  const el = finalLock.since(now)
+  finalIntro.touch(now)
+  const el = finalIntro.since(now)
   const w = winnerOf(t)
 
   ctx.save()
