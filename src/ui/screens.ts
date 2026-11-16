@@ -53,7 +53,8 @@ export function resetGameOverScreen(): void {
 registerEndButtonReset(() => { gameOverSet.reset(); victorySet.reset() })
 // Victory: ignore the buttons briefly so the wave that beat the boss can't trigger them.
 let victoryShownAt: number | null = null
-const VICTORY_INPUT_DELAY_MS = ENTRY_LOCK_MS
+/** Input lock-out of the victory buttons; separate from the intro clock (playtest3-fixes R1). */
+const victoryLock = new EntryLock()
 const VICTORY_FADE_MS = 400
 
 /** Font px that keeps `text` inside the central text band (menu text never reaches the button columns). */
@@ -336,9 +337,19 @@ export function renderGameOver(
 
 // ─── Victory (boss-phases R6.3) ──────────────────────────────────────────────
 
-/** Call once when the game enters `victory`: restarts the banner and input lockout. */
+/** Call once when the game enters `victory`: restarts the intro (backdrop fade, banner) and the input lockout. */
 export function resetVictoryScreen(): void {
   victoryShownAt = null
+  victoryLock.reset()
+  victorySet.clear()
+}
+
+/**
+ * Call when the name screen closes on the victory screen (playtest3-fixes R1.3): fresh buttons and a new input
+ * lock-out, but the intro clock keeps running, so the backdrop stays dark and the banner stays at rest.
+ */
+export function resetVictoryButtons(): void {
+  victoryLock.reset()
   victorySet.clear()
 }
 
@@ -395,7 +406,7 @@ export function renderVictory(
   const specs = buttonLayout('victory', W, H)
   const cardBtn = offerButton(specs[0])
   const [againBtn, menuBtn] = victorySet.sync(specs.slice(1))
-  const live = t >= VICTORY_INPUT_DELAY_MS
+  const live = victoryLock.touch(now)
   const won = updateExclusive([cardBtn, againBtn, menuBtn], now, live && endButtonsLive(now))
   cardBtn.render(ctx, now)
   againBtn.render(ctx, now)

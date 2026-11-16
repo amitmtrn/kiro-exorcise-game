@@ -28,7 +28,7 @@ import { tickCallouts } from './callouts'
 import { renderFrame } from './render'
 import { renderHUD, hudFontSize, HUD_FONT_FAMILY, createHudPulse, drawMuteButton, muteButtonRect2P } from '../ui/hud'
 import type { HudPulse } from '../ui/hud'
-import { drawDivider, drawSeatOverlay, renderTwoPlayerSummary, renderTwoPlayerFinal, resetFinalScreen, resetSummaryScreen, FINAL_INPUT_DELAY_MS } from '../ui/splitscreen'
+import { drawDivider, drawSeatOverlay, renderTwoPlayerSummary, renderTwoPlayerFinal, resetFinalScreen, resetFinalButtons, resetSummaryScreen, FINAL_INPUT_DELAY_MS } from '../ui/splitscreen'
 import { createTwoPlayer, tickTwoPlayer, advanceSession, seatStatus, winnerOf } from './twoPlayer'
 import type { TwoPlayerState } from './twoPlayer'
 import { SEATS, halfOffset, halfWidth, displayPointsInHalf } from './halves'
@@ -40,6 +40,7 @@ import {
   renderGameOver,
   renderVictory,
   resetVictoryScreen,
+  resetVictoryButtons,
   resetStartScreen,
   resetGameOverScreen,
 } from '../ui/screens'
@@ -383,7 +384,7 @@ export async function startLoop(
     nameActive = false
     scoreTable = loadTable()
     finalAt = now
-    resetFinalScreen()
+    resetFinalButtons() // buttons only: the intro must not replay (playtest3-fixes R1.3)
     return false
   }
   /** 2P: when the end screen first showed after the death transition (-1 = not yet); names wait NAME_DELAY_MS after it. */
@@ -848,7 +849,7 @@ export async function startLoop(
       if (now - endShownAt >= END_BED_DELAY_MS) { try { startTitleMusic() } catch { /* ignore */ } } // quiet bed after the jingle
       state = tickEffects(state, deltaMs)
       renderFrame(gameCtx, state, now)
-      if (!(nameDue(now) && runNameScreen(now, resetVictoryScreen)) && !renderCardPreview(now)) {
+      if (!(nameDue(now) && runNameScreen(now, resetVictoryButtons)) && !renderCardPreview(now)) {
         renderVictory(gameCtx, state, now,
           () => {
             if (demo) { state = createInitialState(1); begin(1) } // seeded run at the demo stage, like any other start
