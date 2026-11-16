@@ -15,7 +15,7 @@ Ghosts and bats fly in from the dark edges of the screen toward your webcam imag
 - **3 steering files** in [`.kiro/steering`](.kiro/steering), **5 hooks** in [`.kiro/hooks`](.kiro/hooks), **1 custom agent** (`balancer`) and **1 local MCP server** (`motion-harness`, stdio only, no network).
 - **1120 tests** at PR #5, 0 failed, 0 skipped; **119 property tests** (`fc.assert`) in 31 files, both at PR #5 (df26f4d); 182 property tests in 52 files now (178 in 50 before playtest3-fixes). A property found a spawner-cap bug that unit tests had missed (BUG-1), and four more bugs got regression properties.
 - **One PR per feature from #2 on** (#1 bundled the P0/P1 specs): #1 to #12 merged (#6 is demo mode, merge commit 46d9551; #7 is the judge write-up, merge commit 7575a07; #8 is playtest-polish, merge commit 1156313; #9 is more-content, merge commit f0e1d20; #10 is ci-timeout, merge commit 8462694; #11 is playtest1-fixes, merge commit fce349d; #12 is playtest2-fixes, merge commit d693a3d). Test count by PR: 806, 912, 994, 1045, 1120, 1254, 1291; #8 playtest-polish: 1515; #9 more-content: 1728; #10 ci-timeout: 1741; #11 playtest1-fixes: 1853; #12 playtest2-fixes: 1887; playtest3-fixes (PR #13, this branch): 1904.
-- **928.32 Kiro credits used after the playtest2-fixes spec (PR #12)** (bonus pool of 4000).
+- **944.64 Kiro credits used after the playtest3-fixes spec (PR #13)** (bonus pool of 4000).
 - **Read the full write-up: [docs/KIRO.md](docs/KIRO.md).** Local power: [`.kiro/powers/exorcise-motion-harness`](.kiro/powers/exorcise-motion-harness).
 - **Live demo:** <https://amitmtrn.github.io/kiro-exorcise-game/>
 

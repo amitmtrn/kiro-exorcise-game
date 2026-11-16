@@ -26,7 +26,7 @@ reproducible: `git checkout df26f4d` and run the same command.
 | Custom agents | 1 (`balancer`) | `ls .kiro/agents` |
 | MCP servers | 1 (`motion-harness`, local stdio, 2 tools) | `.kiro/settings/mcp.json` |
 | Pull requests | 12 merged (#1 to #12; #7 is the judge write-up, #8 is playtest-polish, #9 is more-content, #10 is ci-timeout, merge commit 8462694, #11 is playtest1-fixes, merge commit fce349d, #12 is playtest2-fixes, merge commit d693a3d); `playtest3-fixes` (PR #13) is on this branch | (log) |
-| Kiro credits | 928.32 of 4000, after the playtest2-fixes spec (PR #12) | (log) |
+| Kiro credits | 944.64 of 4000, after the playtest3-fixes spec (PR #13) | (log) |
 | Kiro app | Kiro CLI 3.3.0 only | (log) |
 
 ## How Kiro was used
@@ -436,7 +436,7 @@ Cumulative Kiro `/usage`, from a bonus pool of 4000 (log):
 | After ci-timeout | 802.22 |
 | After playtest1-fixes (PR #11) | 868.84 |
 | After playtest2-fixes (PR #12) | 928.32 |
-| After playtest3-fixes (PR #13) | (the operator fills in the new figure) |
+| After playtest3-fixes (PR #13) | 944.64 |
 
 Largest steps: demo-mode (about 189) and motion-ui-ergonomics (about 70, plus 8).
 
