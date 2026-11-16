@@ -15,14 +15,14 @@ Files: `src/ui/screens.ts`, `src/ui/splitscreen.ts`, `src/game/loop.ts`
 
 ## T2 — Skull lanes: nothing hides a skull
 Files: `src/game/skullLane.ts`, `enemies/waveSpawn.ts`, `enemies/spawn.ts`, `enemies/skull.ts`
-- [ ] Failing tests first: a swarm / flyby spawned beside a skull has no sample inside the skull zone; a skull does not pick the row of a lane on screen.
-- [ ] `skullLane.ts`: `skullClearancePx`, `skullZone`, `pathHitsZone`.
-- [ ] `spawnWave` `avoid` (re-roll, thin, empty); `tickSpawners` passes the skull zones, scripted events wait.
-- [ ] Skull candidates rejected when their zone meets an on-screen lane.
-- [ ] Property tests (`skullLane.property.test.ts`): new bat / candy / ghost / pumpkin paths stay clear of an active skull; a skull never picks an occupied row; per 2P half and small areas.
-- [ ] Demo seed 5 sims clean.
-- [ ] `npm test` and `npm run build` both clean.
-- [ ] Commit: `fix(playtest3-fixes-T2): keep lanes and skull rows clear of each other`
+- [x] Failing tests first: a swarm / flyby spawned beside a skull has no sample inside the skull zone; a skull does not pick the row of a lane on screen.
+- [x] `skullLane.ts`: `skullClearancePx`, `skullZone`, `pathHitsZone`.
+- [x] `spawnWave` `avoid` (re-roll, thin, empty); `tickSpawners` passes the skull zones, scripted events wait.
+- [x] Skull candidates rejected when their zone meets an on-screen lane.
+- [x] Property tests (`skullLane.property.test.ts`): new bat / candy / ghost / pumpkin paths stay clear of an active skull; a skull never picks an occupied row; per 2P half and small areas.
+- [x] Demo seed 5 sims clean. The game-over coverage test in `demo.sim.test.ts` moves to seed 60 at speed 3 (no seed in 1–16 loses a stage any more).
+- [x] `npm test` and `npm run build` both clean.
+- [x] Commit: `fix(playtest3-fixes-T2): keep lanes and skull rows clear of each other`
 
 ## T3 — Docs
 Files: `README.md`, `docs/KIRO.md`, `tools/judge-docs.test.mjs`

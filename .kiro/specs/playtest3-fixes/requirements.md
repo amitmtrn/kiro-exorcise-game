@@ -41,7 +41,7 @@ is not bypassed. GAME OVER keeps its constant backdrop.
 
 ## R2 — A skull hidden in a bat swarm (video 3:48.9–3:49.4, stage 4)
 
-**R2.1** While a skull is on screen, no newly spawned path enemy (ghost, bat,
+**R2.1** While a skull is active (not yet leaving), no newly spawned path enemy (ghost, bat,
 pumpkin, candy; flyby, swarm, line, arc or drop, with its sway) passes within
 `skullClearancePx` of the skull's lane: the corridor from its entry edge to its
 hover point, including the hover rect. The clearance is one hand radius plus

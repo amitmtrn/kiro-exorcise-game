@@ -10,6 +10,7 @@ import { createSkull } from './skull'
 import { createLunger } from './lunger'
 import { spawnWave } from './waveSpawn'
 import { spawnVariant, skullClearancePx } from './variantSpawn'
+import { skullZones, rowOccupied } from '../skullLane'
 import { withTip, VARIANT_DEFER_MAX_MS } from '../finale'
 import { intensityAt, spawnRateFor, speedFactorFor, pickPath, BONUS_ROUND } from '../waves'
 import type { WaveKind } from '../waves'
@@ -76,12 +77,15 @@ export function tickSpawners(
   let nonBossCount = enemies.filter((e) => e.type !== 'boss' && !e.exiting).length
 
   /** Spawn up to `count` path enemies, never beyond `cap` (default: the stage cap, R3.4). */
-  const addWave = (kind: WaveKind, path: WavePath, count: number, height?: number, cap = max): void => {
+  const addWave = (kind: WaveKind, path: WavePath, count: number, height?: number, cap = max): number => {
     const n = Math.min(count, cap - nonBossCount)
-    if (n <= 0) return
-    const made = spawnWave(kind, path, n, { W: canvasW, H: canvasH, speedMult: mult, edges, height, bonus })
+    if (n <= 0) return 0
+    // Paths keep clear of every live skull's lane (playtest3-fixes R2.1).
+    const avoid = skullZones(enemies, canvasW, canvasH)
+    const made = spawnWave(kind, path, n, { W: canvasW, H: canvasH, speedMult: mult, edges, height, bonus, avoid })
     enemies = [...enemies, ...made]
     nonBossCount += made.length
+    return made.length
   }
 
   /** Timer-driven spawn of one ghost / bat / pumpkin / candy (or a swarm). Random candy stops one short of the cap. */
@@ -106,7 +110,8 @@ export function tickSpawners(
       if (enabled) {
         const need = ev.path === 'swarm' ? Math.min(3, ev.count) : 1
         if (max - nonBossCount < need) break
-        addWave(ev.kind, ev.path, ev.count, ev.height)
+        // Nothing fits beside a live skull: the event waits for it to leave instead of being lost (R2.3).
+        if (addWave(ev.kind, ev.path, ev.count, ev.height) === 0 && skullZones(enemies, canvasW, canvasH).length > 0) break
       }
       waveIndex++
     }
@@ -164,13 +169,15 @@ export function tickSpawners(
       const newGhosts = enemies.filter((e) => e.type === 'blink' || e.type === 'wisp' || e.type === 'mirror')
       const clear = skullClearancePx()
       let skull: Enemy | null = null
-      for (let i = 0; i < 6 && !skull; i++) {
+      for (let i = 0; i < 12 && !skull; i++) {
         const c = createSkull(canvasW, canvasH, mult)
-        if (newGhosts.every((g) => Math.hypot(g.x - c.x, g.y - c.y) >= clear)) skull = c
+        // Also keep off the lanes already on screen (playtest3-fixes R2.2).
+        if (newGhosts.every((g) => Math.hypot(g.x - c.x, g.y - c.y) >= clear) && !rowOccupied(c, enemies, canvasW, canvasH)) skull = c
       }
       if (skull) { enemies = [...enemies, skull]; nonBossCount++ } else skullWaits = true
     }
     if (!skullWaits) timers.skull = resetTimer(timers.skull, cfg.spawnIntervalMs.skull)
+    else timers.skull = 0 // still due, retried next tick; no overshoot piles up while it waits
   }
 
   // Lunger

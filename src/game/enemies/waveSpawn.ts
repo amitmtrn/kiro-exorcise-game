@@ -13,6 +13,8 @@ import { PUMPKIN_SPEED } from './pumpkin'
 import { CANDY_SPEED } from './candy'
 import { hitboxFor } from './movement'
 import { randomId } from './spawnUtils'
+import type { Rect } from '../zones'
+import { pathHitsZone } from '../skullLane'
 
 const BASE_SPEED: Record<WaveKind, number> = {
   ghost: GHOST_SPEED,
@@ -32,7 +34,12 @@ export interface SpawnOptions {
   /** Single flyby height (fraction of H). */
   height?: number
   rand?: Rand
+  /** Skull zones (playtest3-fixes R2.1): no spawned path may pass through one. */
+  avoid?: readonly Rect[]
 }
+
+/** Attempts to place a wave clear of the skull zones; the last half give up a fixed scripted height. */
+export const AVOID_ATTEMPTS = 8
 
 /** Flyby row heights: `count` evenly spread bands between 0.18 and 0.78 of the canvas height. */
 export function rowHeights(count: number): number[] {
@@ -67,6 +74,21 @@ function enemyOnPath(kind: WaveKind, path: PathSpec, o: SpawnOptions): Enemy {
  * `count` members; `flyby` with count > 1 is a row at several heights.
  */
 export function spawnWave(kind: WaveKind, path: WavePath, count: number, o: SpawnOptions): Enemy[] {
+  const zones = o.avoid
+  if (!zones || zones.length === 0) return spawnWaveRaw(kind, path, count, o)
+  // Re-roll until every member is clear; otherwise keep the attempt with the most clear members (thinned),
+  // possibly none (the caller waits for the skull to leave).
+  let best: Enemy[] = []
+  for (let i = 0; i < AVOID_ATTEMPTS; i++) {
+    const made = spawnWaveRaw(kind, path, count, { ...o, avoid: undefined, height: i < AVOID_ATTEMPTS / 2 ? o.height : undefined })
+    const clear = made.filter((e) => !e.path || !pathHitsZone(e.path, o.W, o.H, zones))
+    if (clear.length === made.length) return made
+    if (clear.length > best.length) best = clear
+  }
+  return best
+}
+
+function spawnWaveRaw(kind: WaveKind, path: WavePath, count: number, o: SpawnOptions): Enemy[] {
   // Left / right-only stages never enter from the top (R3.3): a drop becomes a flyby.
   if (path === 'drop' && o.edges === 'leftRight') path = 'flyby'
   const rand = o.rand ?? Math.random

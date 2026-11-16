@@ -85,10 +85,11 @@ Fix (a combination, justified below):
 - **New enemies keep out.** `spawnWave` takes `avoid` zones. It tries up to
   8 attempts (the last 4 drop a fixed scripted `height`), removes members whose
   path hits a zone, keeps the attempt with the most clear members and returns
-  `[]` when none. `tickSpawners` passes the zones of every skull in the list
-  (leaving skulls too, they still cost a heart). A scripted event that made
+  `[]` when none. `tickSpawners` passes the zones of every active (non-exiting) skull;
+  a skull that is already leaving is gone within a second. A scripted event that made
   nothing waits (as it already does for a full cap) and is retried on later
-  ticks; random spawns are skipped and their timer reset.
+  ticks; random spawns are skipped and their timer reset. A waiting skull keeps its
+  timer at 0 (still due) instead of piling up overshoot.
 - **The skull picks a clear row.** In the skull spawn loop a candidate is
   accepted only if its zone does not meet the remaining path
   (`pathMs` → end) of any path enemy on screen; 12 candidates, then the skull
