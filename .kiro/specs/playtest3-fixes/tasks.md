@@ -26,9 +26,9 @@ Files: `src/game/skullLane.ts`, `enemies/waveSpawn.ts`, `enemies/spawn.ts`, `ene
 
 ## T3 — Docs
 Files: `README.md`, `docs/KIRO.md`, `tools/judge-docs.test.mjs`
-- [ ] Property-test count (historical 119 in 31 files kept, current figure added), spec list, test history (PR #12 merged `d693a3d` 1887; playtest3-fixes PR #13 row), credits row left for the operator, README specs tree.
-- [ ] `tools/judge-docs.test.mjs` passes; `npm test` and `npm run build` clean.
-- [ ] Commit: `docs(playtest3-fixes-T3): README and KIRO.md for the third playtest`
+- [x] Property-test count (historical 119 in 31 files kept, current figure added), spec list, test history (PR #12 merged `d693a3d` 1887; playtest3-fixes PR #13 row), credits row left for the operator, README specs tree.
+- [x] `tools/judge-docs.test.mjs` passes; `npm test` and `npm run build` clean.
+- [x] Commit: `docs(playtest3-fixes-T3): README and KIRO.md for the third playtest`
 
 ## T4 — Manual: webcam replay
 - [ ] Win a run: closing the name screen on YOU WIN shows no bright flash and no second banner wobble.

@@ -13,19 +13,19 @@ reproducible: `git checkout df26f4d` and run the same command.
 
 | What | Number | How to check |
 |---|---|---|
-| Specs (requirements + design + tasks each) | 20 at PR #5; 27 now (`demo-mode`, `judge-docs`, `playtest-polish`, `more-content`, `ci-timeout`, `playtest1-fixes` and `playtest2-fixes` added) | `ls .kiro/specs` |
+| Specs (requirements + design + tasks each) | 20 at PR #5; 28 now (`demo-mode`, `judge-docs`, `playtest-polish`, `more-content`, `ci-timeout`, `playtest1-fixes`, `playtest2-fixes` and `playtest3-fixes` added) | `ls .kiro/specs` |
 | Ticked task checkboxes | 805 | `cat .kiro/specs/*/tasks.md \| grep -c '^- \[x\]'` |
 | Unticked task checkboxes | 103 (49 are in `boss-combo`, superseded by `stages`; the rest are manual checks such as webcam playthroughs) | `grep -c '^- \[ \]'` per file |
 | Commits | 175 | `git rev-list --count df26f4d` |
 | Commits named after a spec task, `<type>(<spec>-T<n>)` (67 `feat`, 14 `docs`, 6 `test`, 2 `fix`) | 89 | `git log df26f4d --oneline -E --grep='\([a-z0-9-]+-T[0-9]+\)' \| wc -l` |
 | `fix(...)` commits, mostly review fixes | 57 | `git log df26f4d --oneline -E --grep='^fix' \| wc -l` |
-| Unit and property tests | 1120 passed, 0 failed, 0 skipped at PR #5; 1887 passed, 0 failed, 0 skipped on this branch (playtest2-fixes) after playtest1-fixes (1853), in 160 test files (96 at PR #5) | `npm test` |
-| Property tests: `fc.assert` calls (at df26f4d) | 119 in 31 files | `grep -rh 'fc\.assert' src tools \| wc -l` |
+| Unit and property tests | 1120 passed, 0 failed, 0 skipped at PR #5; 1904 passed, 0 failed, 0 skipped on this branch (playtest3-fixes) after playtest2-fixes (1887), in 162 test files (96 at PR #5) | `npm test` |
+| Property tests: `fc.assert` calls (at df26f4d) | 119 in 31 files (historical); 182 in 52 files now, after playtest3-fixes (178 in 50 before it) | `grep -rh 'fc\.assert' src tools \| wc -l` |
 | Hooks | 5 hook entries in 3 files | `ls .kiro/hooks` |
 | Steering files | 3, 233 lines | `wc -l .kiro/steering/*.md` |
 | Custom agents | 1 (`balancer`) | `ls .kiro/agents` |
 | MCP servers | 1 (`motion-harness`, local stdio, 2 tools) | `.kiro/settings/mcp.json` |
-| Pull requests | 11 merged (#1 to #11; #7 is the judge write-up, #8 is playtest-polish, #9 is more-content, #10 is ci-timeout, merge commit 8462694, #11 is playtest1-fixes, merge commit fce349d); `playtest2-fixes` is on this branch | (log) |
+| Pull requests | 12 merged (#1 to #12; #7 is the judge write-up, #8 is playtest-polish, #9 is more-content, #10 is ci-timeout, merge commit 8462694, #11 is playtest1-fixes, merge commit fce349d, #12 is playtest2-fixes, merge commit d693a3d); `playtest3-fixes` (PR #13) is on this branch | (log) |
 | Kiro credits | 928.32 of 4000, after the playtest2-fixes spec (PR #12) | (log) |
 | Kiro app | Kiro CLI 3.3.0 only | (log) |
 
@@ -57,10 +57,9 @@ Every spec followed the same loop (log):
 The reviewer never edited code. Kiro made every fix. One pull request per feature
 from PR #2 on (PR #1 bundled the P0/P1 specs). A human (Amit) merged the PRs. From 19:02 on Nov 14 the independent review was done by the operator, not by Claude Code.
 
-Review files per spec (rounds plus final re-reviews) (log): balancer 5, boss-phases 3,
-demo-mode 6, exorcist-card 3, feel-fix 1, hooks 4, juice 2,
-motion-ui-ergonomics 6, music-v2 5, onboarding 4, pbt 3, two-player 4,
-two-player-card 3, waves 4. Merging PR #3 had one more review.
+Review files per spec (rounds plus final re-reviews) (log): balancer 5, boss-phases 3, demo-mode 6,
+exorcist-card 3, feel-fix 1, hooks 4, juice 2, motion-ui-ergonomics 6, music-v2 5, onboarding 4,
+pbt 3, two-player 4, two-player-card 3, waves 4. Merging PR #3 had one more review.
 
 ### Kiro apps
 
@@ -302,8 +301,8 @@ fast-check 4.10.2 is the only added dev dependency of the `pbt` spec
 
 | Measure | Value | Command |
 |---|---|---|
-| `fc.assert` calls (at df26f4d) | 119 | `grep -rh 'fc\.assert' src tools \| wc -l` |
-| Files using `fc.assert` (at df26f4d) | 31 | `grep -rl 'fc\.assert' src tools \| wc -l` |
+| `fc.assert` calls (at df26f4d; 182 now) | 119 | `grep -rh 'fc\.assert' src tools \| wc -l` |
+| Files using `fc.assert` (at df26f4d; 52 now) | 31 | `grep -rl 'fc\.assert' src tools \| wc -l` |
 
 Property names, quoted from the tests: `multiplier is always in {1,2,3,4}`
 (`state.property.test.ts`); `straight-line enemies end at the same position at
@@ -330,9 +329,8 @@ found one real bug directly and made the reviewer's four findings cheap to pin.
 **The flaky property.** `src/game/swipe.property.test.ts` failed intermittently
 for inputs within 1e-6 of the swipe threshold. Fix (`5eb2b14`): such cases are
 skipped with `fc.pre`. That fix landed during the `balancer` review round
-(`fix(balancer)`), not the `pbt` reviews. Seeded randomness helpers
-(`src/test/prng.ts`: `mulberry32`, `withSeededRandom`) keep other properties
-deterministic.
+(`fix(balancer)`), not the `pbt` reviews. Seeded randomness helpers (`src/test/prng.ts`:
+`mulberry32`, `withSeededRandom`) keep other properties deterministic.
 
 ## Powers
 
@@ -411,7 +409,8 @@ hip-to-shin height (72 to 92 % of the frame) to raised-hand zones (19 to 39 %) (
 | #9 | more-content (new ghosts, stage 6 finale, local high scores) | 1728 |
 | #10 | ci-timeout (test timeouts, Node 22 deploy) | 1741 |
 | #11 | playtest1-fixes (first real-webcam playtest bugs: hearts, motion buttons, name entry, card) | 1853 |
-| playtest2-fixes (PR #12, this branch) | second real-webcam playtest bugs (arrival telegraph, skull zones and grace, game-over and countdown sounds) | 1887 |
+| #12 | playtest2-fixes (second real-webcam playtest bugs: arrival telegraph, skull zones and grace, game-over and countdown sounds) | 1887 |
+| playtest3-fixes (PR #13, this branch) | third real-webcam playtest bugs (end-screen flash after the name screen, skull hidden in a swarm) | 1904 |
 
 0 failed and 0 skipped at each point (log).
 
@@ -437,6 +436,7 @@ Cumulative Kiro `/usage`, from a bonus pool of 4000 (log):
 | After ci-timeout | 802.22 |
 | After playtest1-fixes (PR #11) | 868.84 |
 | After playtest2-fixes (PR #12) | 928.32 |
+| After playtest3-fixes (PR #13) | (the operator fills in the new figure) |
 
 Largest steps: demo-mode (about 189) and motion-ui-ergonomics (about 70, plus 8).
 
